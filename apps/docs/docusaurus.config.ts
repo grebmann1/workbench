@@ -57,11 +57,6 @@ const config: Config = {
                     label: 'Website',
                     position: 'right',
                 },
-                {
-                    href: 'https://app.workbench-salesforce.com',
-                    label: 'Open App',
-                    position: 'right',
-                },
             ],
         },
         footer: {
@@ -90,7 +85,6 @@ const config: Config = {
                     title: 'Product',
                     items: [
                         { label: 'Website', href: 'https://workbench-salesforce.com' },
-                        { label: 'Application', href: 'https://app.workbench-salesforce.com' },
                         { label: 'Chrome Extension', href: 'https://chromewebstore.google.com/detail/salesforce-toolkit/konbmllgicfccombdckckakhnmejjoei?hl=en' },
                         { label: 'GitHub', href: 'https://github.com/grebmann1/sfdx-ui-light' },
                     ],

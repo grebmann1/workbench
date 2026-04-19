@@ -5,8 +5,8 @@
   "description": "Workbench documentation site",
   "scripts": {
     "dev": "DOCS_BASE_PATH=/ docusaurus start --port 27000 --host 0.0.0.0 --no-open",
-    "build": "DOCS_BASE_PATH=/docs/ docusaurus build --out-dir ../../dist/docs",
-    "serve": "DOCS_BASE_PATH=/docs/ docusaurus serve ../../dist/docs --port 27001 --host 0.0.0.0",
+    "build": "DOCS_BASE_PATH=/ docusaurus build --out-dir ../../dist/docs",
+    "serve": "DOCS_BASE_PATH=/ docusaurus serve ../../dist/docs --port 27001 --host 0.0.0.0",
     "clear": "docusaurus clear",
     "typecheck": "tsc --noEmit"
   },

@@ -113,15 +113,11 @@ http {
     }
 
     # doc.workbench-salesforce.com → apps/docs (Docusaurus)
+    # Built with DOCS_BASE_PATH=/ so all asset paths are rooted at /
     server {
         listen ${PORT};
         server_name doc.workbench-salesforce.com;
         root /app/dist/docs;
-
-        location /docs/ {
-            alias /app/dist/docs/;
-            try_files $uri $uri/ /index.html;
-        }
 
         location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {
             expires 1y;
@@ -138,19 +134,11 @@ http {
     # =========================================================================
 
     # apps/docs — Docusaurus static site
-    # Built with DOCS_BASE_PATH=/docs/, so all asset URLs are /docs/assets/...
+    # Built with DOCS_BASE_PATH=/ so all asset paths are rooted at /
     server {
         listen 4000;
         server_name _;
         root /app/dist/docs;
-
-        # Handle the /docs/ base path Docusaurus was built with.
-        # Aliases /docs/* → /app/dist/docs/* so assets, pages, and SPA
-        # fallback all resolve correctly.
-        location /docs/ {
-            alias /app/dist/docs/;
-            try_files $uri $uri/ /index.html;
-        }
 
         location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {
             expires 1y;
