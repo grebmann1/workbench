@@ -44,12 +44,6 @@ The overlay shows four tabs:
 2. Browse the **Quick Links** tab or type in the search box (`Ctrl/Cmd + Shift + S`).
 3. Click any tool name — Workbench opens that tool in a new browser tab, automatically passing your current session credentials.
 
-The tool URL follows this pattern:
-
-```
-https://app.workbench-salesforce.com/app?applicationName=<tool>&sessionId=...&serverUrl=...
-```
-
 You never need to log in separately — the session is carried over from the page you were on.
 
 ---
