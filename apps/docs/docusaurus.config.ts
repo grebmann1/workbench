@@ -44,13 +44,13 @@ const config: Config = {
                     type: 'docSidebar',
                     sidebarId: 'userSidebar',
                     position: 'left',
-                    label: 'User Guide',
+                    label: 'Functional',
                 },
                 {
                     type: 'docSidebar',
                     sidebarId: 'developerSidebar',
                     position: 'left',
-                    label: 'Developer',
+                    label: 'Technical',
                 },
                 {
                     href: 'https://workbench-salesforce.com',
@@ -63,20 +63,23 @@ const config: Config = {
             style: 'dark',
             links: [
                 {
-                    title: 'User Guide',
+                    title: 'Functional',
                     items: [
                         { label: 'Installation', to: '/getting-started/installation' },
                         { label: 'Quickstart', to: '/getting-started/quickstart' },
+                        { label: 'Applications', to: '/applications/overview' },
                         { label: 'AI Agent', to: '/ai-agent/setup' },
                         { label: 'Security', to: '/security/local-data-and-privacy' },
                         { label: 'Troubleshooting', to: '/troubleshooting/common-issues' },
                     ],
                 },
                 {
-                    title: 'Developer',
+                    title: 'Technical',
                     items: [
                         { label: 'Architecture', to: '/architecture/overview' },
                         { label: 'VS Code', to: '/vscode/overview' },
+                        { label: 'New Application', to: '/developer/new-application' },
+                        { label: 'New Tool', to: '/developer/new-tool' },
                         { label: 'Local Storage', to: '/storage/indexeddb-workspace' },
                         { label: 'Contributing', to: '/contributing/how-to-contribute' },
                     ],
@@ -86,7 +89,7 @@ const config: Config = {
                     items: [
                         { label: 'Website', href: 'https://workbench-salesforce.com' },
                         { label: 'Chrome Extension', href: 'https://chromewebstore.google.com/detail/salesforce-toolkit/konbmllgicfccombdckckakhnmejjoei?hl=en' },
-                        { label: 'GitHub', href: 'https://github.com/grebmann1/sfdx-ui-light' },
+                        { label: 'GitHub', href: 'https://github.com/grebmann1/workbench' },
                     ],
                 },
             ],

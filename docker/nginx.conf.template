@@ -37,7 +37,7 @@ http {
 
     # =========================================================================
     # Domain-based routing (port 80)
-    # Production: workbench-salesforce.com, app.workbench-salesforce.com, vscode.workbench-salesforce.com,
+    # Production: workbench-salesforce.com, api.workbench-salesforce.com, vscode.workbench-salesforce.com,
     #             doc.workbench-salesforce.com
     # =========================================================================
 
@@ -47,10 +47,10 @@ http {
         server_name workbench-salesforce.com www.workbench-salesforce.com;
         root /app/dist/ui;
 
-        # Canonical redirect: /app and /app/<path> → app.workbench-salesforce.com/<path>
+        # Canonical redirect: /app and /app/<path> → api.workbench-salesforce.com/<path>
         # Declared before the SPA catch-all so try_files doesn't swallow it.
         location ~ ^/app(/.*)?$ {
-            return 301 https://app.workbench-salesforce.com$1$is_args$args;
+            return 301 https://api.workbench-salesforce.com$1$is_args$args;
         }
 
         location /welcome/ {
@@ -65,10 +65,10 @@ http {
         }
     }
 
-    # app.workbench-salesforce.com → packages/server (Express API: proxy, OAuth, LLM, documentation)
+    # api.workbench-salesforce.com → packages/server (Express API: proxy, OAuth, LLM, documentation)
     server {
         listen ${PORT};
-        server_name app.workbench-salesforce.com;
+        server_name api.workbench-salesforce.com;
 
         location / {
             proxy_pass             http://127.0.0.1:3000;

@@ -1,0 +1,62 @@
+# Development compose — mounts source code and runs all dev servers with hot reload.
+#
+# Usage:
+#   docker compose -f docker-compose.dev.yml up
+#   # or via npm:
+#   npm run docker:dev
+#
+# Prerequisites:
+#   - Copy .env.dev from .env.dev.example (or create it with the required vars)
+#
+# Ports:
+#   3000  — Express API  (packages/server, dev mode)
+#   27000 — Docusaurus   (apps/docs, live reload)
+#   27100 — Vite UI      (apps/ui, HMR)
+#   5173  — VS Code IDE  (packages/vscode, HMR)
+#
+# Node modules are stored in named volumes so that the container's installed
+# packages are never overwritten by the host's node_modules folder.
+
+services:
+  dev:
+    image: node:22-alpine
+    working_dir: /app
+    volumes:
+      # Mount the full source tree
+      - .:/app
+      # Isolate each node_modules so host and container don't collide
+      - dev_root_nm:/app/node_modules
+      - dev_ui_nm:/app/apps/ui/node_modules
+      - dev_docs_nm:/app/apps/docs/node_modules
+      - dev_vscode_nm:/app/packages/vscode/node_modules
+    ports:
+      - "3000:3000"   # Express API
+      - "27000:27000" # Docusaurus docs
+      - "27100:27100" # Vite UI
+      - "5173:5173"   # VS Code / Monaco IDE
+    env_file:
+      - .env.dev
+    environment:
+      NODE_ENV: development
+      # Skips the postinstall hook that installs the desktop (Electron) package,
+      # which is irrelevant in a Docker environment.
+      DOCKER_DEV: "1"
+      # Tell the Vite proxy where the Express server lives.
+      # When running inside Docker the server is on localhost (same container).
+      VITE_SERVER_URL: "http://localhost:3000"
+    # On first run this installs all dependencies, then starts every dev server
+    # in parallel. Subsequent runs skip the install step quickly via npm's cache.
+    command: >
+      sh -c "
+        npm install --prefer-offline &&
+        npm --prefix apps/ui ci --prefer-offline &&
+        npm --prefix apps/docs ci --prefer-offline &&
+        npm --prefix packages/vscode ci --prefer-offline &&
+        npm run docker:dev:start
+      "
+
+volumes:
+  dev_root_nm:
+  dev_ui_nm:
+  dev_docs_nm:
+  dev_vscode_nm:

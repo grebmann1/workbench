@@ -11,7 +11,7 @@ Workbench is deployed to Heroku using the **Container Registry** (Docker-based) 
 ```
 Internet → Heroku TLS termination → $PORT → nginx (vhost router)
                                                 ├── workbench-salesforce.com      → dist/ui   (Vite SPA)
-                                                ├── app.workbench-salesforce.com  → Express API (port 3000 internal)
+                                                ├── api.workbench-salesforce.com  → Express API (port 3000 internal)
                                                 ├── vscode.workbench-salesforce.com → packages/vscode/dist
                                                 └── doc.workbench-salesforce.com  → dist/docs (Docusaurus)
 ```
@@ -69,7 +69,7 @@ heroku config:set -a workbench2 \
 
 ```bash
 heroku domains:add workbench-salesforce.com -a workbench2
-heroku domains:add app.workbench-salesforce.com -a workbench2
+heroku domains:add api.workbench-salesforce.com -a workbench2
 heroku domains:add vscode.workbench-salesforce.com -a workbench2
 heroku domains:add doc.workbench-salesforce.com -a workbench2
 ```

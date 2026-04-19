@@ -5,13 +5,13 @@ This runbook deploys the single Docker image built by `./docker/build.sh` to **o
 | Subdomain                   | Served by                    | Backend                         |
 | --------------------------- | ---------------------------- | ------------------------------- |
 | `workbench-salesforce.com` / `www`    | `nginx` → `dist/ui`          | Vite welcome SPA (static)       |
-| `app.workbench-salesforce.com`        | `nginx` → `127.0.0.1:3000`   | Express + LWR web app           |
+| `api.workbench-salesforce.com`        | `nginx` → `127.0.0.1:3000`   | Express API (proxy, OAuth, LLM) |
 | `doc.workbench-salesforce.com`        | `nginx` → `dist/docs`        | Docusaurus (static)             |
 | `vscode.workbench-salesforce.com`     | `nginx` → `packages/vscode/dist` | Monaco / VS Code web IDE    |
 
 All four domains share a single dyno. `nginx` inside the container dispatches by `Host` header — this is what `docker/nginx.conf.template` does on the platform-assigned `$PORT`.
 
-As a convenience, `workbench-salesforce.com/app` (and any sub-path, e.g. `workbench-salesforce.com/app/foo?x=1`) is `301`-redirected to `app.workbench-salesforce.com` — `/app` is stripped, query string is preserved. See the `location ~ ^/app(/.*)?$` block on the `workbench-salesforce.com` server in `docker/nginx.conf.template`.
+As a convenience, `workbench-salesforce.com/app` (and any sub-path, e.g. `workbench-salesforce.com/app/foo?x=1`) is `301`-redirected to `api.workbench-salesforce.com` — `/app` is stripped, query string is preserved. See the `location ~ ^/app(/.*)?$` block on the `workbench-salesforce.com` server in `docker/nginx.conf.template`.
 
 ---
 
@@ -82,7 +82,7 @@ heroku certs:auto:enable -a sf-toolkit
 # Add all four public domains
 heroku domains:add workbench-salesforce.com          -a sf-toolkit
 heroku domains:add www.workbench-salesforce.com      -a sf-toolkit
-heroku domains:add app.workbench-salesforce.com      -a sf-toolkit
+heroku domains:add api.workbench-salesforce.com      -a sf-toolkit
 heroku domains:add doc.workbench-salesforce.com      -a sf-toolkit
 heroku domains:add vscode.workbench-salesforce.com   -a sf-toolkit
 
@@ -100,7 +100,7 @@ Typical result:
 | ------ | ---------------------- | ------------------------------------------ |
 | ALIAS  | `workbench-salesforce.com`       | `<whatever>.herokudns.com` (apex)          |
 | CNAME  | `www`                  | `<whatever>.herokudns.com`                 |
-| CNAME  | `app`                  | `<whatever>.herokudns.com`                 |
+| CNAME  | `api`                  | `<whatever>.herokudns.com`                 |
 | CNAME  | `doc`                  | `<whatever>.herokudns.com`                 |
 | CNAME  | `vscode`               | `<whatever>.herokudns.com`                 |
 
@@ -118,7 +118,7 @@ Mirror the contents of `.env.prod` into Heroku config vars:
 heroku config:set \
   NODE_ENV=production \
   PORT=3000 \
-  WORKBENCH_BASE_URL=https://app.workbench-salesforce.com \
+  WORKBENCH_BASE_URL=https://api.workbench-salesforce.com \
   REDIRECT_URI=https://workbench-salesforce.com/oauth2/callback \
   CLIENT_ID='...' \
   CLIENT_SECRET='...' \
@@ -182,7 +182,7 @@ You should see:
 ```bash
 curl -I https://workbench-salesforce.com
 curl -I https://www.workbench-salesforce.com
-curl -I https://app.workbench-salesforce.com
+curl -I https://api.workbench-salesforce.com
 curl -I https://doc.workbench-salesforce.com
 curl -I https://vscode.workbench-salesforce.com
 ```

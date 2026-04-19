@@ -6,7 +6,22 @@ const sidebars: SidebarsConfig = {
         {
             type: 'category',
             label: 'Getting Started',
-            items: ['getting-started/installation', 'getting-started/quickstart'],
+            items: [
+                'getting-started/installation',
+                'getting-started/quickstart',
+                'getting-started/overlay',
+                'getting-started/menu',
+                'getting-started/org-access',
+            ],
+        },
+        {
+            type: 'category',
+            label: 'Applications',
+            items: [
+                'applications/overview',
+                'applications/org-overview',
+                'applications/soql-explorer',
+            ],
         },
         {
             type: 'category',
@@ -32,7 +47,7 @@ const sidebars: SidebarsConfig = {
         },
         {
             type: 'category',
-            label: 'VS Code',
+            label: 'VS Code Integration',
             items: ['vscode/overview', 'vscode/extension-parity'],
         },
         {

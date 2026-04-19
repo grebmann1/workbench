@@ -20,7 +20,7 @@ This guide gets you from install to your first working session in a few minutes.
 ### 1. Install and start
 
 ```bash
-git clone https://github.com/grebmann1/sfdx-ui-light.git
+git clone https://github.com/grebmann1/workbench.git
 cd sfdx-ui-light
 npm install
 npm run start:dev:ui

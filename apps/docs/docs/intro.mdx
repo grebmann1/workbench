@@ -9,13 +9,35 @@ Workbench is a Salesforce productivity toolkit that ships as a **Chrome extensio
 
 It is the modern replacement for **Salesforce Workbench** and **Benchpress**.
 
-## What this documentation covers
+---
 
-- **Getting started**: install the extension or run locally, configure OAuth, and connect your org.
-- **Architecture**: monorepo layout, packages, iframe bridge design, and multi-surface builds.
-- **VS Code integration**: embedded editor, extension bridges, and parity with upstream Salesforce extensions.
-- **AI Agent**: provider setup, capabilities, and tool reference.
-- **Operations and support**: troubleshoot issues, review privacy details, and contribute changes.
+## Two documentation tracks
+
+### Functional
+
+Everything a user needs to get productive with Workbench:
+
+- **Getting Started** — install the extension, connect your org, launch tools from the overlay or the menu
+- **Applications** — reference for every built-in tool: SOQL Explorer, Metadata Explorer, API Explorer, Anonymous Apex, Data Import, and more
+- **AI Agent** — configure a provider (OpenAI, Anthropic, Gemini, Mistral, Grok) and learn what the agent can do
+- **Security & Troubleshooting** — privacy details and common issues
+
+→ Start with [Installation](./getting-started/installation) and [Quickstart](./getting-started/quickstart)
+
+---
+
+### Technical
+
+How Workbench is built and how to extend it:
+
+- **Architecture** — monorepo layout, packages, iframe bridge design, Redux state, and all build targets
+- **VS Code Integration** — embedded editor, extension bridges, LSP clients, and language support
+- **Developing Extensions** — step-by-step guides for adding new tools and full routed applications
+- **Storage, Deployment, Contributing**
+
+→ Start with [Architecture Overview](./architecture/overview)
+
+---
 
 ## Available platforms
 
@@ -31,27 +53,3 @@ It is the modern replacement for **Salesforce Workbench** and **Benchpress**.
 | Welcome / landing | `http://localhost:27100` | `http://localhost:3000/welcome` |
 | Main app | `http://localhost:27100/app` | `http://localhost:3000/app` |
 | Docs | `http://localhost:3001` | `http://localhost:3000/docs` |
-
-## Recommended reading path
-
-1. [Installation](./getting-started/installation)
-2. [Quickstart](./getting-started/quickstart)
-3. [Architecture overview](./architecture/overview)
-4. [VS Code integration](./vscode/overview)
-5. [AI Agent setup](./ai-agent/setup)
-
-## Start here
-
-- [Installation](./getting-started/installation)
-- [Quickstart](./getting-started/quickstart)
-- [Architecture overview](./architecture/overview)
-- [VS Code integration](./vscode/overview)
-- [AI Agent tools](./ai-agent/tools-overview)
-- [IndexedDB virtual file system](./storage/indexeddb-workspace)
-- [Security and privacy](./security/local-data-and-privacy)
-- [Troubleshooting](./troubleshooting/common-issues)
-
-## Contribute
-
-- [How to contribute](./contributing/how-to-contribute)
-- [Report issues and request features](./contributing/reporting-issues)

@@ -21,7 +21,7 @@ SF Toolkit embeds an AI Agent directly into the Workbench. This page explains ho
 1. Open **SF Toolkit Workbench** in your browser.
 2. Click the **Settings** icon in the left navigation bar.
 3. Select the **AI** tab.
-4. Choose your preferred provider (OpenAI, Anthropic, Gemini, Mistral, or Grok).
+4. Choose your preferred provider (OpenAI, Anthropic, Gemini, Mistral, xAI Grok, or Workbench Free Tier).
 5. Paste your API key into the corresponding field.
 6. Optionally override the base URL if you use a self-hosted or proxied endpoint.
 7. Save — the agent becomes available immediately.
@@ -30,11 +30,12 @@ SF Toolkit embeds an AI Agent directly into the Workbench. This page explains ho
 
 | Provider | Models |
 |---|---|
-| **OpenAI** | GPT-4o, GPT-4o-mini, o1, o3-mini, and others |
-| **Anthropic** | Claude 3.5 Sonnet, Claude 3 Opus, Haiku |
-| **Google Gemini** | Gemini 1.5 Pro, Gemini 1.5 Flash |
-| **Mistral** | Mistral Large, Mistral Nemo |
-| **Grok (xAI)** | Grok-2 |
+| **OpenAI** | gpt-5, gpt-5-mini, gpt-5-codex, gpt-5-nano, gpt-5.4, gpt-5.4-mini, gpt-5.4-nano |
+| **Anthropic** | claude-opus-4-6, claude-sonnet-4-6, claude-haiku-4-5 |
+| **Google Gemini** | gemini-3-flash-preview, gemini-3.1-flash-lite-preview, gemini-3.1-pro-preview |
+| **Mistral** | mistral-small, mistral-medium, mistral-large, devstral |
+| **xAI Grok** | grok-4.20-reasoning, grok-4.20-multi-agent, grok-4-1-fast-reasoning |
+| **Workbench (Free Tier)** | gpt-4o-mini, gpt-4o — no API key required, proxied via Workbench servers |
 
 API keys are stored locally in your browser (Chrome extension storage) and never transmitted to SF Toolkit infrastructure.
 

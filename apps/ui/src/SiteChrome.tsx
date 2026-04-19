@@ -4,9 +4,8 @@ import { Trans, useTranslation } from 'react-i18next';
 import { SUPPORTED_LANGUAGES } from './i18n';
 
 export const DOCS_URL = import.meta.env.VITE_DOCS_URL || '/docs';
-export const GITHUB_URL = 'https://github.com/grebmann1/sfdx-ui-light';
-export const CHROME_STORE_URL =
-    'https://chromewebstore.google.com/detail/salesforce-toolkit/konbmllgicfccombdckckakhnmejjoei?hl=en';
+export const GITHUB_URL = import.meta.env.VITE_GITHUB_URL || 'https://github.com/grebmann1/workbench';
+export const CHROME_STORE_URL = import.meta.env.VITE_CHROME_STORE_URL || 'https://chromewebstore.google.com/detail/salesforce-toolkit/konbmllgicfccombdckckakhnmejjoei?hl=en';
 
 function LanguagePicker() {
     const { i18n } = useTranslation();

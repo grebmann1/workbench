@@ -36,7 +36,7 @@ npm -v
 ### Clone and install
 
 ```bash
-git clone https://github.com/grebmann1/sfdx-ui-light.git
+git clone https://github.com/grebmann1/workbench.git
 cd sfdx-ui-light
 npm install
 ```

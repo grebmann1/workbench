@@ -1,4 +1,4 @@
-export const GITHUB_DISCUSSIONS_URL = 'https://github.com/grebmann1/sfdx-ui-light/discussions';
+export const GITHUB_DISCUSSIONS_URL = 'https://github.com/grebmann1/workbench/discussions';
 export const AI_DOC_URL = 'ai-agent/setup';
 
 export const QUICK_TIPS = [

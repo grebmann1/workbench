@@ -345,13 +345,13 @@ export default class Menu extends ToolkitElement {
             },
             {
                 name: 'extra_reportIssue',
-                url: 'https://github.com/grebmann1/sfdx-ui-light/issues',
+                url: 'https://github.com/grebmann1/workbench/issues',
                 menuIcon: 'utility:bug',
                 menuLabel: 'Report issue',
             },
             {
                 name: 'extra_contribute',
-                url: 'https://github.com/grebmann1/sfdx-ui-light',
+                url: 'https://github.com/grebmann1/workbench',
                 menuIcon: 'utility:recipe',
                 menuLabel: 'Contribute',
             },

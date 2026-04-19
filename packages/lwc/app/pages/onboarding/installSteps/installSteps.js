@@ -72,7 +72,7 @@ export default class installSteps extends LightningElement {
             id: 8,
             class: 'slds-dot',
             title: 'Ready to Go!',
-            description: `You\'re all set to start using Workbench. </br> The extension will automatically activate when you visit Salesforce pages.</br> </br>If you have more questions or want to contribute, visit our GitHub page: <a href="https://github.com/grebmann1/sfdx-ui-light" target="_blank">https://github.com/grebmann1/sfdx-ui-light</a>`,
+            description: `You\'re all set to start using Workbench. </br> The extension will automatically activate when you visit Salesforce pages.</br> </br>If you have more questions or want to contribute, visit our GitHub page: <a href="https://github.com/grebmann1/workbench" target="_blank">https://github.com/grebmann1/workbench</a>`,
             list: [
                 'Need help? Visit our documentation or contact support through the extension settings.',
             ],
