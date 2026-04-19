@@ -2,7 +2,7 @@
     "name": "@sf-toolkit/desktop",
     "version": "0.1.0",
     "private": true,
-    "description": "Electron desktop shell for sf-toolkit-web",
+    "description": "Electron desktop shell for workbench",
     "main": "dist/main/desktopMain.js",
     "bin": {
         "sf-toolkit-desktop": "dist/cli/desktopCli.js"

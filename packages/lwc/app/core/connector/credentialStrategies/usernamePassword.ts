@@ -27,7 +27,7 @@ export async function directConnect({
         OAUTH_TYPES.USERNAME,
         {
             instanceUrl: normalizedUrl,
-            //proxyUrl: window.jsforceSettings?.proxyUrl || 'https://workbench-salesforce.com/proxy/',
+            //proxyUrl: window.jsforceSettings?.proxyUrl || 'https://www.workbench-salesforce.com/proxy/',
         },
         platform
     );

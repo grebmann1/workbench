@@ -78,7 +78,7 @@ export default class Root extends LightningElement {
 
             const redirect = `/metadata/LightningComponentBundle?param1=${developerName}`;
             sendResponse(
-                `https://workbench-salesforce.com/extension?sessionId=${this.connector.conn.accessToken}&serverUrl=${encodeURIComponent(this.connector.conn.instanceUrl)}&redirectUrl=${encodeURIComponent(redirect)}`
+                `https://www.workbench-salesforce.com/extension?sessionId=${this.connector.conn.accessToken}&serverUrl=${encodeURIComponent(this.connector.conn.instanceUrl)}&redirectUrl=${encodeURIComponent(redirect)}`
             )
         }
     }*/

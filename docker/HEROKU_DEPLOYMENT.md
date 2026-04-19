@@ -119,7 +119,7 @@ heroku config:set \
   NODE_ENV=production \
   PORT=3000 \
   WORKBENCH_BASE_URL=https://api.workbench-salesforce.com \
-  REDIRECT_URI=https://workbench-salesforce.com/oauth2/callback \
+  REDIRECT_URI=https://www.workbench-salesforce.com/oauth2/callback \
   CLIENT_ID='...' \
   CLIENT_SECRET='...' \
   CHROME_ID='...' \
@@ -180,7 +180,7 @@ You should see:
 ## 6. Smoke tests
 
 ```bash
-curl -I https://workbench-salesforce.com
+curl -I https://www.workbench-salesforce.com
 curl -I https://www.workbench-salesforce.com
 curl -I https://api.workbench-salesforce.com
 curl -I https://doc.workbench-salesforce.com

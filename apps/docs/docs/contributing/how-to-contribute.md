@@ -8,7 +8,7 @@ Contributions are welcome for bug fixes, documentation improvements, and new too
 
 ## Where to contribute
 
-- Repository: [sf-toolkit-web](https://github.com/grebmann1/sf-toolkit-web)
+- Repository: [workbench](https://github.com/grebmann1/workbench)
 - Source of truth for changes is GitHub pull requests.
 
 ## Typical contribution flow

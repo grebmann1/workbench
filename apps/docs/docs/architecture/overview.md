@@ -9,7 +9,7 @@ Workbench is a monorepo that builds the same core product across two deployment 
 ## Monorepo layout
 
 ```
-sf-toolkit-web/
+workbench/
 ├── apps/
 │   ├── docs/          ← Docusaurus documentation site
 │   └── ui/            ← Welcome / marketing site (Vite + React)

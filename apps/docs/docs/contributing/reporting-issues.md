@@ -8,7 +8,7 @@ Use GitHub issues to report bugs, request features, and discuss improvements.
 
 ## Where to file issues
 
-- Issues page: [sf-toolkit-web/issues](https://github.com/grebmann1/sf-toolkit-web/issues)
+- Issues page: [workbench/issues](https://github.com/grebmann1/workbench/issues)
 
 ## Bug report checklist
 

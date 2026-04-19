@@ -339,7 +339,7 @@ export default class Menu extends ToolkitElement {
         return [
             {
                 name: 'extra_howTo',
-                url: 'https://workbench-salesforce.com/install',
+                url: 'https://www.workbench-salesforce.com/install',
                 menuIcon: 'utility:knowledge_base',
                 menuLabel: 'How to',
             },

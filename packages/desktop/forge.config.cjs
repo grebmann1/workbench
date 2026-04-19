@@ -20,7 +20,7 @@ const publishers = process.env.GITHUB_TOKEN
               authToken: process.env.GITHUB_TOKEN,
               prerelease: process.env.GITHUB_PRERELEASE === 'true',
               repository: {
-                  name: process.env.GITHUB_REPOSITORY_NAME || 'sf-toolkit-web',
+                  name: process.env.GITHUB_REPOSITORY_NAME || 'workbench',
                   owner: process.env.GITHUB_REPOSITORY_OWNER || 'grebmann',
               },
           }),

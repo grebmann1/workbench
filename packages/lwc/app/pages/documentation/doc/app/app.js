@@ -602,7 +602,7 @@ export default class App extends ToolkitElement {
     }
 
     get searchHost() {
-        return this.isResponsive ? 'https://workbench-salesforce.com/' : '/';
+        return this.isResponsive ? 'https://www.workbench-salesforce.com/' : '/';
     }
 
     get isNavigationAvailable() {

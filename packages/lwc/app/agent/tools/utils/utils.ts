@@ -55,7 +55,7 @@ export async function openToolkit({
     let url = new URL(
         isChromeExtension()
             ? chrome.runtime.getURL('/views/app.html')
-            : 'https://workbench-salesforce.com/extension'
+            : 'https://www.workbench-salesforce.com/extension'
     );
 
     let isChromeProcessSuccess = false;
