@@ -636,6 +636,11 @@ export default class App extends LightningElement {
             LOGGER.warn(`Unknown app type: ${target}`);
             // Run Manual Mode
         } else {
+            const existingApp = this.applications.find(x => x.name === target);
+            if (existingApp) {
+                this.loadSpecificTab(existingApp.id);
+                return;
+            }
             const application = {
                 name: settings.name,
                 constructor: settings.module,

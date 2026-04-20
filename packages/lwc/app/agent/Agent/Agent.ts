@@ -393,6 +393,7 @@ export class Agent {
             provider,
             apiKey: settings.apiKey,
             baseUrl: settings.baseUrl,
+            isInternal: !!settings.isInternal,
         });
         const summaryModel = getSummaryModelForAgentProvider(
             provider,

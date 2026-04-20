@@ -92,9 +92,9 @@ async function* streamCompletionViaProvider(
         return;
     }
 
-    const isInternal = provider === 'openai' && isInternalProviderBaseUrl(baseUrl);
+    const isInternal = isInternalProviderBaseUrl(baseUrl);
     const reasoningConfig = getReasoningConfigFromSelection(reasoning);
-    const providerInstance = createProviderInstance({ provider, apiKey, baseUrl });
+    const providerInstance = createProviderInstance({ provider, apiKey, baseUrl, isInternal });
     const systemPrompt = buildSystemPrompt(
         String(modelConfig.systemPrompt || storedConfig.systemPrompt || '')
     );

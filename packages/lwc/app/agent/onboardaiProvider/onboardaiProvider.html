@@ -74,31 +74,14 @@
                         <div class="slds-box slds-theme_default slds-m-top_medium onboard-section">
                             <h3 class="slds-text-title_bold">Customer, partner, etc</h3>
                             <p class="slds-m-top_x-small slds-text-color_weak">
-                                Add your OpenAI key in Settings &gt; AI, or paste it below.
+                                Configure your AI provider (OpenAI, Anthropic, Gemini, Mistral, xAI Grok, or the free Workbench tier) in Settings.
                             </p>
-                            <div class="slds-m-top_small">
-                                <lightning-input
-                                    label="OpenAI key"
-                                    placeholder="sk-xxxxxx"
-                                    field-level-help="Keys start with sk- and look like sk-xxxxxx."
-                                    value={externalKey}
-                                    onchange={handleExternalKeyChange}
-                                    pattern="^sk-[A-Za-z0-9]+$"
-                                    message-when-pattern-mismatch="Key must start with sk- and contain only letters and numbers."
-                                    type="password"></lightning-input>
-                                <template lwc:if={isExternalKeyValid}>
-                                    <div class="slds-m-top_small onboard-actions">
-                                        <lightning-button
-                                            label="Install key"
-                                            variant="brand"
-                                            onclick={handleInstallExternalKey}></lightning-button>
-                                    </div>
-                                </template>
-                            </div>
                             <div class="slds-m-top_small onboard-actions">
                                 <lightning-button
-                                    label="Open AI Setup"
-                                    variant="neutral"></lightning-button>
+                                    label="Open Settings → AI"
+                                    variant="brand"
+                                    icon-name="utility:settings"
+                                    onclick={handleOpenSettings}></lightning-button>
                             </div>
                         </div>
                     </template>
@@ -126,7 +109,7 @@
                                 onclick={handleSelectExternal}>
                                 <div class="onboard-choice__title">Customer, partner, etc</div>
                                 <div class="onboard-choice__subtitle">
-                                    Use OpenAI key or ChatGPT OAuth
+                                    Configure your AI provider in Settings
                                 </div>
                             </button>
                         </div>

@@ -232,6 +232,18 @@ function getStaticProviderCatalog(
     provider: Exclude<LlmProvider, 'openai'>,
     config: LlmProviderConfig
 ): LlmProviderCatalog {
+    // When the provider points at the internal gateway, defer to the client-side
+    // INTERNAL_MODEL_OPTIONS fallback so we don't duplicate the catalog on the server.
+    if (isInternalProviderBaseUrl(config.baseUrl)) {
+        return {
+            provider,
+            status: config.apiKey ? 'ok' : 'missing_key',
+            models: [],
+            defaultModel: null,
+            error: config.apiKey ? null : `${provider} API key is required to load models.`,
+        };
+    }
+
     const models = getProviderModelOptions(provider);
     return {
         provider,

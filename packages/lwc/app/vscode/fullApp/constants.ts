@@ -26,8 +26,14 @@ export const WORKBENCH_AI_NEXT_EDIT_SUGGESTIONS_SETTING = 'workbenchAINextEditSu
 export const LIGHT_COLOR_THEME = 'Default Light+';
 export const DARK_COLOR_THEME = 'Default Dark+';
 export const WORKBENCH_THEME_STORAGE_KEY = 'vscode.workbench.themeMode';
-export const WORKBENCH_IFRAME_URL = 'http://localhost:5173/';
-export const WORKBENCH_IFRAME_ORIGIN = 'http://localhost:5173';
+// In development the VS Code web server runs at localhost:5173.
+// In production the iframe is served from the same origin as WORKBENCH_BASE_URL.
+// Both values must stay in sync with the manifest's `frame-src __buildWorkbenchOrigin__`.
+export const WORKBENCH_IFRAME_ORIGIN =
+    process.env.NODE_ENV === 'production'
+        ? process.env.WORKBENCH_BASE_URL
+        : 'http://localhost:5173';
+export const WORKBENCH_IFRAME_URL = WORKBENCH_IFRAME_ORIGIN + '/';
 export const DEFAULT_WORKSPACE_ROOT = '/workspace';
 export {
     IFRAME_FS_BRIDGE_QUERY_FLAG,

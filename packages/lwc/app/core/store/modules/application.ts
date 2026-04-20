@@ -49,16 +49,15 @@ type ApplicationState = {
     settings: Record<string, unknown>;
 };
 
-function getActiveProviderConfig(state: ApplicationState) {
-    return state.providerConfigs[normalizeLlmProvider(state.aiProvider)];
-}
+const INTERNAL_GATEWAY_PROVIDERS = ['openai', 'anthropic', 'gemini'] as const;
 
 function syncLegacyProviderFields(state: ApplicationState) {
     state.openaiKey = state.providerConfigs.openai.apiKey;
     state.openaiUrl = state.providerConfigs.openai.baseUrl;
     state.mistralKey = state.providerConfigs.mistral.apiKey;
-    const activeConfig = getActiveProviderConfig(state);
-    state.isInternal = isInternalProviderBaseUrl(activeConfig?.baseUrl || '');
+    state.isInternal = INTERNAL_GATEWAY_PROVIDERS.some(provider =>
+        isInternalProviderBaseUrl(state.providerConfigs[provider]?.baseUrl || '')
+    );
 }
 
 const initialState: ApplicationState = {

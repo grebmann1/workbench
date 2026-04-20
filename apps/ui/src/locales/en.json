@@ -81,8 +81,13 @@
             "instructions": "Click the <puzzle/> puzzle icon at the top-right of Chrome, then hit the <pin/> pin next to <strong>Workbench</strong>. It will stay in your toolbar so you can launch it from anywhere.",
             "hint": "Already pinned? You're good — jump straight into the app below."
         },
+        "start": {
+            "kicker": "Step 2 · Open it",
+            "title": "Click the extension icon to launch Workbench",
+            "body": "Once pinned, click the Workbench icon in your Chrome toolbar while on any Salesforce page. The app opens instantly in a side panel — no extra login required."
+        },
         "overlay": {
-            "kicker": "Step 2 · Explore the overlay",
+            "kicker": "Step 3 · Explore the overlay",
             "title": "A panel right inside Salesforce",
             "body": "The Workbench overlay appears on every Salesforce page automatically. Click the button at the edge of the screen to open it — inspect org info, browse objects, jump to Setup links, and more without leaving your current page."
         },

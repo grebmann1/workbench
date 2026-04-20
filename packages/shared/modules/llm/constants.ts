@@ -67,10 +67,45 @@ export const OPENAI_MODEL_OPTIONS: LlmModelOption[] = [
     { label: 'gpt-5.4-nano', value: 'gpt-5.4-nano', provider: 'openai' },
 ];
 
-export const INTERNAL_OPENAI_MODEL_OPTIONS: LlmModelOption[] = [
-    { label: 'gpt-5-mini', value: 'gpt-5-mini', provider: 'openai' },
+export const INTERNAL_MODEL_OPTIONS: LlmModelOption[] = [
+    // Anthropic
+    { label: 'claude-sonnet-4-20250514', value: 'claude-sonnet-4-20250514', provider: 'anthropic' },
+    {
+        label: 'claude-sonnet-4-5-20250929',
+        value: 'claude-sonnet-4-5-20250929',
+        provider: 'anthropic',
+    },
+    { label: 'claude-sonnet-4-6', value: 'claude-sonnet-4-6', provider: 'anthropic' },
+    {
+        label: 'claude-opus-4-5-20251101',
+        value: 'claude-opus-4-5-20251101',
+        provider: 'anthropic',
+    },
+    { label: 'claude-opus-4-6-v1', value: 'claude-opus-4-6-v1', provider: 'anthropic' },
+    { label: 'claude-opus-4-7', value: 'claude-opus-4-7', provider: 'anthropic' },
+    {
+        label: 'claude-haiku-4-5-20251001',
+        value: 'claude-haiku-4-5-20251001',
+        provider: 'anthropic',
+    },
+    // Gemini
+    { label: 'gemini-2.0-flash', value: 'gemini-2.0-flash', provider: 'gemini' },
+    { label: 'gemini-2.5-pro', value: 'gemini-2.5-pro', provider: 'gemini' },
+    { label: 'gemini-2.5-flash', value: 'gemini-2.5-flash', provider: 'gemini' },
+    { label: 'gemini-3-pro-preview', value: 'gemini-3-pro-preview', provider: 'gemini' },
+    { label: 'gemini-3-flash-preview', value: 'gemini-3-flash-preview', provider: 'gemini' },
+    { label: 'gemini-3.1-pro-preview', value: 'gemini-3.1-pro-preview', provider: 'gemini' },
+    // OpenAI
+    { label: 'gpt-4o', value: 'gpt-4o', provider: 'openai' },
+    { label: 'gpt-4o-mini', value: 'gpt-4o-mini', provider: 'openai' },
     { label: 'gpt-5', value: 'gpt-5', provider: 'openai' },
+    { label: 'gpt-5-mini', value: 'gpt-5-mini', provider: 'openai' },
+    { label: 'gpt-5.2-codex', value: 'gpt-5.2-codex', provider: 'openai' },
+    { label: 'gpt-5.3-codex', value: 'gpt-5.3-codex', provider: 'openai' },
 ];
+
+/** @deprecated Use INTERNAL_MODEL_OPTIONS instead */
+export const INTERNAL_OPENAI_MODEL_OPTIONS = INTERNAL_MODEL_OPTIONS;
 
 export const ANTHROPIC_MODEL_OPTIONS: LlmModelOption[] = [
     { label: 'claude-opus-4-6', value: 'claude-opus-4-6', provider: 'anthropic' },

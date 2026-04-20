@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
-import screenshotOverlay from './assets/screenshot-overlay.png';
+import screenshotOverlay from '../../../assets/images/screenshots/screenshot-overlay.png';
+import screenshotStart from '../../../assets/images/screenshots/screenshot-start.gif';
 import { FakeBrowser, SiteShell } from './SiteChrome';
 
 const DEFAULT_WORKBENCH_APP_URL =
@@ -214,6 +215,19 @@ export default function Welcome() {
                     </div>
                     <div className="pin-callout-visual">
                         <FakeToolbar />
+                    </div>
+                </div>
+            </section>
+
+            <section className="start-callout" aria-labelledby="start-title">
+                <div className="start-callout-inner">
+                    <div className="start-callout-body">
+                        <p className="section-kicker">{t('welcome.start.kicker')}</p>
+                        <h2 id="start-title">{t('welcome.start.title')}</h2>
+                        <p className="start-callout-text">{t('welcome.start.body')}</p>
+                    </div>
+                    <div className="start-callout-visual">
+                        <FakeBrowser url="yourorg.salesforce.com" screenshot={screenshotStart} />
                     </div>
                 </div>
             </section>

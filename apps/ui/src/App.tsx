@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import screenshotWelcome from './assets/screenshot-welcome.png';
-import screenshotOverlay from './assets/screenshot-overlay.png';
-import screenshotEditor from './assets/screenshot-editor.png';
-import screenshotSoql from './assets/screenshot-soql.gif';
-import screenshotMetadata from './assets/screenshot-metadata.gif';
-import screenshotAgent from './assets/screenshot-agent.gif';
+import screenshotWelcome from '../../../assets/images/screenshots/screenshot-welcome.png';
+import screenshotOverlay from '../../../assets/images/screenshots/screenshot-overlay.png';
+import screenshotEditor from '../../../assets/images/screenshots/screenshot-editor.png';
+import screenshotSoql from '../../../assets/images/screenshots/screenshot-soql.gif';
+import screenshotMetadata from '../../../assets/images/screenshots/screenshot-metadata.gif';
+import screenshotAgent from '../../../assets/images/screenshots/screenshot-agent.gif';
 import {
     CHROME_STORE_URL,
     FakeBrowser,

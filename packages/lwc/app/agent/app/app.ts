@@ -162,7 +162,7 @@ export default class App extends ToolkitElement {
         this._setIfChanged('activeProviderBaseUrl', activeProviderConfig?.baseUrl || null);
         this._setIfChanged(
             'isInternal',
-            activeProvider === 'openai' && isInternalProviderBaseUrl(activeProviderConfig?.baseUrl)
+            isInternalProviderBaseUrl(activeProviderConfig?.baseUrl)
         );
         if (agent) {
             this._setIfChanged('selectedModel', agent.selectedModel);
@@ -424,8 +424,7 @@ export default class App extends ToolkitElement {
         const state = store.getState();
         const activeProvider = getProviderForModel(model, this.availableModels);
         const activeProviderConfig = state.application?.providerConfigs?.[activeProvider];
-        const isInternal =
-            activeProvider === 'openai' && isInternalProviderBaseUrl(activeProviderConfig?.baseUrl);
+        const isInternal = isInternalProviderBaseUrl(activeProviderConfig?.baseUrl);
         const currentMessages = Array.isArray(state.agent?.messagesById?.[conversationId])
             ? state.agent.messagesById[conversationId]
             : [];

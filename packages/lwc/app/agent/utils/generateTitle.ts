@@ -18,7 +18,7 @@ export async function generateConversationTitle(
 ): Promise<string> {
     const { provider, apiKey, baseUrl, isInternal = false, selectedModel } = settings;
     const modelId = getSummaryModelForAgentProvider(provider, selectedModel, isInternal);
-    const providerInstance = createProviderInstance({ provider, apiKey, baseUrl });
+    const providerInstance = createProviderInstance({ provider, apiKey, baseUrl, isInternal });
 
     LOGGER.debug('[generateTitle] Generating title with model:', modelId);
 

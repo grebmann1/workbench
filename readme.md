@@ -5,7 +5,7 @@
 Workbench is a Salesforce administration toolkit that embeds directly into your browser — bringing an overlay panel, a VS Code editor, a full metadata explorer, a SOQL editor, and an AI agent capable of controlling your browser, all from a single Chrome extension.
 
 <div align="center">
-<img src="./apps/ui/src/assets/screenshot-welcome.png" alt="Workbench App" width="90%" />
+<img src="./assets/images/screenshots/screenshot-welcome.png" alt="Workbench App" width="90%" />
 </div>
 
 ---
@@ -14,7 +14,7 @@ Workbench is a Salesforce administration toolkit that embeds directly into your 
 
 <table>
   <tr>
-    <td width="55%"><img src="./apps/ui/src/assets/screenshot-overlay.png" alt="Salesforce Overlay" width="100%"/></td>
+    <td width="55%"><img src="./assets/images/screenshots/screenshot-overlay.png" alt="Salesforce Overlay" width="100%"/></td>
     <td width="45%" valign="middle" align="left" style="padding-left:24px">
       <p><strong>Always at hand</strong></p>
       <h3>Overlay embedded in your Salesforce pages</h3>
@@ -28,11 +28,11 @@ Workbench is a Salesforce administration toolkit that embeds directly into your 
       <h3>VS Code editor running in your local browser</h3>
       <p>A full-featured code editor opens directly inside your browser, powered by the same engine as VS Code. Write, run, and debug Apex without switching windows.</p>
     </td>
-    <td width="55%"><img src="./apps/ui/src/assets/screenshot-editor.png" alt="VS Code Editor" width="100%"/></td>
+    <td width="55%"><img src="./assets/images/screenshots/screenshot-editor.png" alt="VS Code Editor" width="100%"/></td>
   </tr>
   <tr><td colspan="2"><br/></td></tr>
   <tr>
-    <td width="55%"><img src="./apps/ui/src/assets/screenshot-metadata.gif" alt="Metadata Explorer" width="100%"/></td>
+    <td width="55%"><img src="./assets/images/screenshots/screenshot-metadata.gif" alt="Metadata Explorer" width="100%"/></td>
     <td width="45%" valign="middle" align="left" style="padding-left:24px">
       <p><strong>Full visibility into your org</strong></p>
       <h3>Full workbench to interact and explore metadata</h3>
@@ -46,11 +46,11 @@ Workbench is a Salesforce administration toolkit that embeds directly into your 
       <h3>Modern SOQL editor built for Salesforce</h3>
       <p>Browse every SObject, write SOQL with autocomplete, and see results instantly. A focused query interface designed to replace the old Workbench query tool.</p>
     </td>
-    <td width="55%"><img src="./apps/ui/src/assets/screenshot-soql.gif" alt="SOQL Editor" width="100%"/></td>
+    <td width="55%"><img src="./assets/images/screenshots/screenshot-soql.gif" alt="SOQL Editor" width="100%"/></td>
   </tr>
   <tr><td colspan="2"><br/></td></tr>
   <tr>
-    <td width="55%"><img src="./apps/ui/src/assets/screenshot-agent.gif" alt="AI Agent" width="100%"/></td>
+    <td width="55%"><img src="./assets/images/screenshots/screenshot-agent.gif" alt="AI Agent" width="100%"/></td>
     <td width="45%" valign="middle" align="left" style="padding-left:24px">
       <p><strong>AI that actually does work</strong></p>
       <h3>Powerful AI agent capable of controlling your browser</h3>

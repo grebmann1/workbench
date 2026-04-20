@@ -1,7 +1,7 @@
 import {
     getProviderModelOptions,
     OPENAI_MODEL_OPTIONS,
-    INTERNAL_OPENAI_MODEL_OPTIONS,
+    INTERNAL_MODEL_OPTIONS,
     getDefaultModelForProvider,
     normalizeLlmProvider,
     type LlmProvider,
@@ -12,7 +12,7 @@ export const MODELS = OPENAI_MODEL_OPTIONS.map(model => ({
     value: model.value,
 }));
 
-export const INTERNAL_MODELS = INTERNAL_OPENAI_MODEL_OPTIONS.map(model => ({
+export const INTERNAL_MODELS = INTERNAL_MODEL_OPTIONS.map(model => ({
     label: model.label,
     value: model.value,
 }));

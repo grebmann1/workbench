@@ -1,7 +1,7 @@
 import {
     DEFAULT_LLM_PROVIDER,
     DEFAULT_PROVIDER_BASE_URLS,
-    INTERNAL_OPENAI_MODEL_OPTIONS,
+    INTERNAL_MODEL_OPTIONS,
     LLM_PROVIDERS,
     LLM_PROVIDER_OPTIONS,
     OPENAI_MODEL_OPTIONS,
@@ -12,6 +12,10 @@ import {
     type LlmProviderConfig,
     type LlmProviderConfigMap,
 } from './constants';
+
+function getInternalModelsForProvider(provider: LlmProvider): LlmModelOption[] {
+    return INTERNAL_MODEL_OPTIONS.filter(model => model.provider === provider);
+}
 
 export * from './constants';
 
@@ -114,7 +118,7 @@ export function isInternalProviderBaseUrl(baseUrl: unknown): boolean {
 }
 
 export function resolveOpenAiCompatibleModels(isInternal = false): LlmModelOption[] {
-    return isInternal ? INTERNAL_OPENAI_MODEL_OPTIONS : OPENAI_MODEL_OPTIONS;
+    return isInternal ? INTERNAL_MODEL_OPTIONS : OPENAI_MODEL_OPTIONS;
 }
 
 function getWorkbenchBaseUrl(): string {
@@ -193,13 +197,12 @@ export function buildAvailableAgentModelOptions({
     return configuredProviders.flatMap(provider => {
         const config = normalizedConfigs[provider];
         const serverModels = extractModels(availableModelsByProvider, provider);
+        const isProviderInternal = isInternalProviderBaseUrl(config.baseUrl);
         const models =
-            provider === 'openai' && isInternalProviderBaseUrl(config.baseUrl)
-                ? serverModels.length > 0
-                    ? serverModels
-                    : resolveOpenAiCompatibleModels(true)
-                : serverModels.length > 0
-                  ? serverModels
+            serverModels.length > 0
+                ? serverModels
+                : isProviderInternal
+                  ? getInternalModelsForProvider(provider)
                   : getProviderModelOptions(provider);
 
         return models.map(model => ({

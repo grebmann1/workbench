@@ -66,12 +66,25 @@ export function createProviderInstance({
     provider,
     apiKey,
     baseUrl,
+    isInternal = false,
 }: {
     provider: unknown;
     apiKey?: string;
     baseUrl?: string;
+    isInternal?: boolean;
 }): ProviderInstance {
     const normalizedProvider = normalizeLlmProvider(provider);
+
+    // Internal gateway is OpenAI-compatible for every provider it proxies,
+    // so always use the OpenAI SDK pointed at the gateway URL.
+    if (isInternal) {
+        return createOpenAI({
+            apiKey: apiKey || '',
+            baseURL: resolveProviderRuntimeBaseUrl('openai', baseUrl),
+            fetch: createSanitizedFetch(),
+        });
+    }
+
     const settings = {
         apiKey: apiKey || '',
         baseURL: resolveProviderRuntimeBaseUrl(normalizedProvider, baseUrl),
@@ -106,10 +119,15 @@ export function resolveProviderModelInstance(
     }
 ) {
     const normalizedProvider = normalizeLlmProvider(provider);
+
+    // In internal gateway mode, the provider instance is the OpenAI SDK regardless
+    // of the logical provider, so route every call through .chat(modelId).
+    if (isInternal && typeof providerInstance.chat === 'function') {
+        return providerInstance.chat(modelId);
+    }
+
     if (normalizedProvider === 'openai') {
-        return isInternal && typeof providerInstance.chat === 'function'
-            ? providerInstance.chat(modelId)
-            : providerInstance(modelId);
+        return providerInstance(modelId);
     }
 
     if (normalizedProvider === 'mistral' && typeof providerInstance.chat === 'function') {
