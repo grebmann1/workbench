@@ -40,12 +40,14 @@ type SalesforceShellHandlers = {
         shouldOpenUi: boolean;
         sourceFilePath: string | null;
         ctx: ShellCommandContext;
+        targetOrg?: string;
     }) => Promise<SalesforceCommandExecution>;
     executeSoql: (args: {
         query: string;
         useToolingApi: boolean;
         includeDeletedRecords: boolean;
         ctx: ShellCommandContext;
+        targetOrg?: string;
     }) => Promise<SalesforceCommandExecution>;
     executeApi: (args: {
         method: string;
@@ -55,36 +57,45 @@ type SalesforceShellHandlers = {
         headerText: string;
         bodyFilePath: string | null;
         ctx: ShellCommandContext;
+        targetOrg?: string;
     }) => Promise<SalesforceCommandExecution>;
     listOrgs: () => Promise<SalesforceCommandExecution>;
     openOrg: (args: { alias: string }) => Promise<SalesforceCommandExecution>;
+    connectOrg: (args: { alias: string }) => Promise<SalesforceCommandExecution>;
+    navigate: (args: { app: string }) => Promise<SalesforceCommandExecution>;
     runApexTests: (args: {
         classNames: string[];
         testLevel: string;
         timeoutMs: number;
         ctx: ShellCommandContext;
+        targetOrg?: string;
     }) => Promise<SalesforceCommandExecution>;
-    enableDebugLog: (args: { durationMinutes: number }) => Promise<SalesforceCommandExecution>;
-    listDebugLogs: (args: { limit: number }) => Promise<SalesforceCommandExecution>;
+    enableDebugLog: (args: { durationMinutes: number; targetOrg?: string }) => Promise<SalesforceCommandExecution>;
+    listDebugLogs: (args: { limit: number; targetOrg?: string }) => Promise<SalesforceCommandExecution>;
     getDebugLog: (args: {
         logId: string;
         outputPath: string | null;
         ctx: ShellCommandContext;
+        targetOrg?: string;
     }) => Promise<SalesforceCommandExecution>;
-    displayLimits: () => Promise<SalesforceCommandExecution>;
-    describeSObject: (args: { objectName: string }) => Promise<SalesforceCommandExecution>;
+    displayLimits: (args?: { targetOrg?: string }) => Promise<SalesforceCommandExecution>;
+    describeSObject: (args: { objectName: string; targetOrg?: string }) => Promise<SalesforceCommandExecution>;
     deployMetadata: (args: {
         filePath: string;
         metadataType: string | null;
         apiName: string | null;
         ctx: ShellCommandContext;
+        targetOrg?: string;
     }) => Promise<SalesforceCommandExecution>;
     retrieveMetadata: (args: {
         metadataType: string;
         apiName: string;
         outputPath: string | null;
         ctx: ShellCommandContext;
+        targetOrg?: string;
     }) => Promise<SalesforceCommandExecution>;
+    listMetadataTypes: (args: { targetOrg?: string }) => Promise<SalesforceCommandExecution>;
+    listMetadataRecords: (args: { metadataType: string; targetOrg?: string }) => Promise<SalesforceCommandExecution>;
 };
 
 export const APEX_HELP = `Run anonymous Apex (SF CLI shim).
@@ -92,7 +103,14 @@ export const APEX_HELP = `Run anonymous Apex (SF CLI shim).
 Usage:
   sf apex run --apex-code '<code>'
   sf apex run --file <path>
+  sf apex run --apex-code '<code>' --target-org <alias>
   sf apex run --help
+
+Options:
+  --apex-code, -c       Inline Apex code (required if --file not given)
+  --file, -f            Path to an .apex file in /workspace
+  --no-ui               Skip opening the Apex Editor UI
+  --target-org, -o, -u  Alias of the org to run against (default: active org)
 
 Notes:
   - Uses the Apex Editor execution path (same as the Apex tools).
@@ -105,7 +123,14 @@ Usage:
   sf data query --query "<soql>"
   sf data query --query "<soql>" --tooling
   sf data query --query "<soql>" --all-rows
+  sf data query --query "<soql>" --target-org <alias>
   sf data query --help
+
+Options:
+  --query, -q           SOQL query string (required)
+  --tooling             Use Tooling API
+  --all-rows            Include soft-deleted records
+  --target-org, -o, -u  Alias of the org to query (default: active org)
 `;
 
 export const API_HELP = `Send a REST API request (SF CLI shim).
@@ -115,23 +140,40 @@ Usage:
   sf api request --method POST --url "<endpoint>" --body '<json>'
   sf api request --method POST --url "<endpoint>" --body @<file>
   sf api request --header "Key: Value" --header "Key2: Value2"
+  sf api request --method GET --url "<endpoint>" --target-org <alias>
   sf api request --help
+
+Options:
+  --method, -X          HTTP method (default: GET)
+  --url                 API endpoint, relative or absolute (required)
+  --body                Request body JSON or @<file> path
+  --header, -H          Request header "Key: Value" (repeatable)
+  --target-org, -o      Alias of the org to call (default: active org)
 
 Notes:
   - Endpoint can be relative (e.g. /services/data/vXX.X/...) or absolute.
-  - Headers can be repeated.`;
+  - Headers can be repeated.
+  - Use --target-org (not -u) in this command; -u is reserved for the URL.`;
 
-export const ORG_HELP = `List or open Salesforce orgs (SF CLI shim).
+export const ORG_HELP = `List, connect, or open Salesforce orgs (SF CLI shim).
 
 Usage:
   sf org list
+  sf org connect --target-org <alias>
   sf org open --target-org <alias>
   sf org open -o <alias>
   sf org open -u <alias>
-  sf org open --help
+  sf org --help
+
+Subcommands:
+  list     List all configured org connections
+  connect  Connect to an org (establishes toolkit session / login)
+  open     Open an org in the browser via the front door URL
 
 Notes:
-  - Alias is required for org open.`;
+  - Use sf org connect to log in or switch the active org.
+  - sf org open only opens a browser tab — it does NOT connect to the org.
+  - Alias is required for org connect and org open.`;
 
 export const APEX_TEST_HELP = `Run Apex tests (SF CLI shim).
 
@@ -140,49 +182,67 @@ Usage:
   sf apex test run --class-names "MyTestClass" --test-level RunSpecifiedTests
   sf apex test run --test-level RunLocalTests
   sf apex test run --timeout 120000
+  sf apex test run --class-names "MyTestClass" --target-org <alias>
   sf apex test run --help
 
 Options:
-  --class-names, -n   Comma-separated list of test class names (required unless test-level is RunLocalTests/RunAllTestsInOrg)
-  --test-level        RunSpecifiedTests | RunLocalTests | RunAllTestsInOrg (default: RunSpecifiedTests)
-  --timeout           Max wait time in ms (default: 60000)`;
+  --class-names, -n     Comma-separated list of test class names (required unless test-level is RunLocalTests/RunAllTestsInOrg)
+  --test-level          RunSpecifiedTests | RunLocalTests | RunAllTestsInOrg (default: RunSpecifiedTests)
+  --timeout             Max wait time in ms (default: 60000)
+  --target-org, -o, -u  Alias of the org to run tests against (default: active org)`;
 
 export const DEBUG_LOG_HELP = `Manage Salesforce debug logs (SF CLI shim).
 
 Usage:
   sf debug log enable
   sf debug log enable --duration 30
+  sf debug log enable --target-org <alias>
   sf debug log list
   sf debug log list --limit 10
+  sf debug log list --target-org <alias>
   sf debug log get <id>
   sf debug log get <id> --output /workspace/debug.log
+  sf debug log get <id> --target-org <alias>
   sf debug log --help
 
 Subcommands:
   enable    Create or refresh a TraceFlag so debug logs are captured (default: 15 min)
   list      List recent ApexLog records
-  get       Download a specific log body by ID`;
+  get       Download a specific log body by ID
+
+Options (all subcommands):
+  --target-org, -o, -u  Alias of the org (default: active org)`;
 
 export const LIMITS_HELP = `Display API limits for the connected org (SF CLI shim).
 
 Usage:
   sf limits display
-  sf limits display --help`;
+  sf limits display --target-org <alias>
+  sf limits display --help
+
+Options:
+  --target-org, -o, -u  Alias of the org (default: active org)`;
 
 export const SOBJECT_HELP = `Describe a Salesforce SObject's fields and metadata (SF CLI shim).
 
 Usage:
   sf sobject describe --object Account
-  sf sobject describe -o Contact
+  sf sobject describe --object Contact
   sf sobject describe --object MyCustomObject__c
+  sf sobject describe --object Account --target-org <alias>
   sf sobject describe --help
 
 Options:
-  --object, -o    SObject API name (required)`;
+  --object          SObject API name (required)
+  --target-org, -o, -u  Alias of the org (default: active org)`;
 
-export const METADATA_HELP = `Deploy or retrieve Salesforce metadata (SF CLI shim).
+export const METADATA_HELP = `Deploy, retrieve, or browse Salesforce metadata (SF CLI shim).
 
 Usage:
+  sf metadata list-types
+  sf metadata list-types --target-org <alias>
+  sf metadata list-records --metadata-type ApexClass
+  sf metadata list-records --metadata-type ApexClass --target-org <alias>
   sf metadata deploy --file /workspace/MyClass.cls
   sf metadata deploy --file /workspace/MyTrigger.trigger
   sf metadata deploy --file /workspace/MyPage.page
@@ -190,18 +250,28 @@ Usage:
   sf metadata retrieve --metadata-type ApexClass --api-name MyClass --output /workspace/retrieved
   sf metadata --help
 
+Subcommands:
+  list-types    List all available metadata types in the org
+  list-records  List all records for a given metadata type
+  deploy        Deploy a metadata file to the org
+  retrieve      Retrieve a metadata record from the org
+
 Supported Tooling API types for deploy/retrieve:
   ApexClass, ApexTrigger, ApexPage, ApexComponent, StaticResource
 
 Options:
+  list-records:
+    --metadata-type, -m  Metadata type (required)
   deploy:
-    --file, -f          Path to metadata file in /workspace (required)
-    --metadata-type     Override auto-detected type
-    --api-name          Override auto-detected API name
+    --file, -f           Path to metadata file in /workspace (required)
+    --metadata-type      Override auto-detected type
+    --api-name           Override auto-detected API name
   retrieve:
-    --metadata-type     Metadata type (required)
-    --api-name          API name of the record to retrieve (required)
-    --output            Output directory (default: /workspace)`;
+    --metadata-type      Metadata type (required)
+    --api-name           API name of the record to retrieve (required)
+    --output             Output directory (default: /workspace)
+  all:
+    --target-org, -o, -u  Alias of the org (default: active org)`;
 
 function createCommand(
     name: string,
@@ -263,6 +333,8 @@ export function parseCliArgs(argv: string[]) {
         'm',
         'api-name',
         'object',
+        'app',
+        'a',
     ]);
     for (let i = 0; i < argv.length; i += 1) {
         const arg = argv[i];
@@ -376,6 +448,22 @@ const TOOLING_API_TYPES: Record<string, string> = {
     '.resource': 'StaticResource',
 };
 
+export const NAVIGATE_HELP = `Navigate the SF Toolkit to a specific application (SF CLI shim).
+
+Usage:
+  sf navigate --app soql
+  sf navigate --app api
+  sf navigate -a metadata
+  sf navigate --help
+
+Options:
+  --app, -a    Application name (required)
+
+Available apps:
+  api, soql, anonymousApex, agent, connections, settings, accessAnalyzer,
+  org, code, metadata, object, doc, recordViewer, platformevent, package,
+  assistant, release`;
+
 export function detectMetadataType(filePath: string): { type: string | null; apiName: string } {
     const basename = filePath.split('/').pop() || filePath;
     const lastDot = basename.lastIndexOf('.');
@@ -402,6 +490,7 @@ export function registerSalesforceShellCommands({
         const fileFlag = ensureSingleValue(getFlagValue(flags, 'file', 'f'));
         const codeFlag = ensureSingleValue(getFlagValue(flags, 'apex-code', 'c'));
         const shouldOpenUi = !getFlagValue(flags, 'no-ui');
+        const targetOrg = ensureSingleValue(getFlagValue(flags, 'target-org', 'o', 'u')) as string | undefined;
         let apexCode = typeof codeFlag === 'string' ? codeFlag : '';
         let sourceFilePath: string | null = null;
         if (!apexCode && typeof fileFlag === 'string') {
@@ -431,6 +520,7 @@ export function registerSalesforceShellCommands({
                     shouldOpenUi,
                     sourceFilePath,
                     ctx,
+                    targetOrg,
                 })
             );
             return {
@@ -458,6 +548,7 @@ export function registerSalesforceShellCommands({
         }
         const useToolingApi = Boolean(getFlagValue(flags, 'tooling'));
         const includeDeletedRecords = Boolean(getFlagValue(flags, 'all-rows'));
+        const targetOrg = ensureSingleValue(getFlagValue(flags, 'target-org', 'o', 'u')) as string | undefined;
         try {
             const handled = normalizeHandlerResult(
                 await handlers.executeSoql({
@@ -465,6 +556,7 @@ export function registerSalesforceShellCommands({
                     useToolingApi,
                     includeDeletedRecords,
                     ctx,
+                    targetOrg,
                 })
             );
             return {
@@ -515,6 +607,7 @@ export function registerSalesforceShellCommands({
         }
 
         const headerText = headerValues.join('\n');
+        const targetOrg = ensureSingleValue(getFlagValue(flags, 'target-org', 'o')) as string | undefined;
 
         try {
             const handled = normalizeHandlerResult(
@@ -526,6 +619,7 @@ export function registerSalesforceShellCommands({
                     headerText,
                     bodyFilePath,
                     ctx,
+                    targetOrg,
                 })
             );
             return {
@@ -576,6 +670,58 @@ export function registerSalesforceShellCommands({
         }
     };
 
+    const runOrgConnectCli = async (argv: string[]) => {
+        if (argv.includes('--help') || argv.includes('-h')) {
+            return { stdout: ORG_HELP, stderr: '', exitCode: 0 };
+        }
+        const { flags } = parseCliArgs(argv);
+        const alias = ensureSingleValue(getFlagValue(flags, 'target-org', 'o', 'u'));
+        if (!alias || typeof alias !== 'string') {
+            return {
+                stdout: '',
+                stderr: `Error: Missing org alias. Use --target-org.\n\n${ORG_HELP}\n`,
+                exitCode: 1,
+            };
+        }
+        try {
+            const handled = normalizeHandlerResult(await handlers.connectOrg({ alias }));
+            return {
+                stdout: formatCliOutput(handled.result),
+                stderr: '',
+                exitCode: handled.exitCode,
+            };
+        } catch (err) {
+            return commandError(err instanceof Error ? err.message : String(err));
+        }
+    };
+
+    const runNavigateCli = async (argv: string[]) => {
+        if (argv.includes('--help') || argv.includes('-h')) {
+            return { stdout: NAVIGATE_HELP, stderr: '', exitCode: 0 };
+        }
+        const { flags, positionals } = parseCliArgs(argv);
+        const app = String(
+            ensureSingleValue(getFlagValue(flags, 'app', 'a')) || positionals[0] || ''
+        ).trim();
+        if (!app) {
+            return {
+                stdout: '',
+                stderr: `Error: Missing app name. Use --app.\n\n${NAVIGATE_HELP}\n`,
+                exitCode: 1,
+            };
+        }
+        try {
+            const handled = normalizeHandlerResult(await handlers.navigate({ app }));
+            return {
+                stdout: formatCliOutput(handled.result),
+                stderr: '',
+                exitCode: handled.exitCode,
+            };
+        } catch (err) {
+            return commandError(err instanceof Error ? err.message : String(err));
+        }
+    };
+
     const runApexTestCli = async (argv: string[], ctx: ShellCommandContext) => {
         if (argv.includes('--help') || argv.includes('-h')) {
             return { stdout: APEX_TEST_HELP, stderr: '', exitCode: 0 };
@@ -587,6 +733,7 @@ export function registerSalesforceShellCommands({
         );
         const timeoutFlag = ensureSingleValue(getFlagValue(flags, 'timeout'));
         const timeoutMs = typeof timeoutFlag === 'string' ? parseInt(timeoutFlag, 10) : 60000;
+        const targetOrg = ensureSingleValue(getFlagValue(flags, 'target-org', 'o', 'u')) as string | undefined;
 
         const classNames =
             typeof classNamesFlag === 'string'
@@ -605,7 +752,7 @@ export function registerSalesforceShellCommands({
         }
         try {
             const handled = normalizeHandlerResult(
-                await handlers.runApexTests({ classNames, testLevel, timeoutMs, ctx })
+                await handlers.runApexTests({ classNames, testLevel, timeoutMs, ctx, targetOrg })
             );
             return {
                 stdout: formatCliOutput(handled.result),
@@ -628,9 +775,10 @@ export function registerSalesforceShellCommands({
             const durationFlag = ensureSingleValue(getFlagValue(flags, 'duration'));
             const durationMinutes =
                 typeof durationFlag === 'string' ? parseInt(durationFlag, 10) : 15;
+            const targetOrg = ensureSingleValue(getFlagValue(flags, 'target-org', 'o', 'u')) as string | undefined;
             try {
                 const handled = normalizeHandlerResult(
-                    await handlers.enableDebugLog({ durationMinutes })
+                    await handlers.enableDebugLog({ durationMinutes, targetOrg })
                 );
                 return {
                     stdout: formatCliOutput(handled.result),
@@ -646,8 +794,9 @@ export function registerSalesforceShellCommands({
             const { flags } = parseCliArgs(rest);
             const limitFlag = ensureSingleValue(getFlagValue(flags, 'limit'));
             const limit = typeof limitFlag === 'string' ? parseInt(limitFlag, 10) : 25;
+            const targetOrg = ensureSingleValue(getFlagValue(flags, 'target-org', 'o', 'u')) as string | undefined;
             try {
-                const handled = normalizeHandlerResult(await handlers.listDebugLogs({ limit }));
+                const handled = normalizeHandlerResult(await handlers.listDebugLogs({ limit, targetOrg }));
                 return {
                     stdout: formatCliOutput(handled.result),
                     stderr: '',
@@ -662,8 +811,9 @@ export function registerSalesforceShellCommands({
             const { flags, positionals } = parseCliArgs(rest);
             const logId =
                 positionals[0] || String(ensureSingleValue(getFlagValue(flags, 'id')) || '');
-            const outputFlag = ensureSingleValue(getFlagValue(flags, 'output', 'o'));
+            const outputFlag = ensureSingleValue(getFlagValue(flags, 'output'));
             const outputPath = typeof outputFlag === 'string' ? outputFlag : null;
+            const targetOrg = ensureSingleValue(getFlagValue(flags, 'target-org', 'o', 'u')) as string | undefined;
             if (!logId) {
                 return {
                     stdout: '',
@@ -673,7 +823,7 @@ export function registerSalesforceShellCommands({
             }
             try {
                 const handled = normalizeHandlerResult(
-                    await handlers.getDebugLog({ logId, outputPath, ctx })
+                    await handlers.getDebugLog({ logId, outputPath, ctx, targetOrg })
                 );
                 return {
                     stdout: formatCliOutput(handled.result),
@@ -696,8 +846,10 @@ export function registerSalesforceShellCommands({
         if (argv.includes('--help') || argv.includes('-h')) {
             return { stdout: LIMITS_HELP, stderr: '', exitCode: 0 };
         }
+        const { flags } = parseCliArgs(argv);
+        const targetOrg = ensureSingleValue(getFlagValue(flags, 'target-org', 'o', 'u')) as string | undefined;
         try {
-            const handled = normalizeHandlerResult(await handlers.displayLimits());
+            const handled = normalizeHandlerResult(await handlers.displayLimits({ targetOrg }));
             return {
                 stdout: formatCliOutput(handled.result),
                 stderr: '',
@@ -714,8 +866,9 @@ export function registerSalesforceShellCommands({
         }
         const { flags, positionals } = parseCliArgs(argv);
         const objectName = String(
-            ensureSingleValue(getFlagValue(flags, 'object', 'o')) || positionals[0] || ''
+            ensureSingleValue(getFlagValue(flags, 'object')) || positionals[0] || ''
         ).trim();
+        const targetOrg = ensureSingleValue(getFlagValue(flags, 'target-org', 'o', 'u')) as string | undefined;
         if (!objectName) {
             return {
                 stdout: '',
@@ -724,7 +877,7 @@ export function registerSalesforceShellCommands({
             };
         }
         try {
-            const handled = normalizeHandlerResult(await handlers.describeSObject({ objectName }));
+            const handled = normalizeHandlerResult(await handlers.describeSObject({ objectName, targetOrg }));
             return {
                 stdout: formatCliOutput(handled.result),
                 stderr: '',
@@ -741,11 +894,52 @@ export function registerSalesforceShellCommands({
         }
         const [subcommand, ...rest] = argv;
 
+        if (subcommand === 'list-types') {
+            const { flags } = parseCliArgs(rest);
+            const targetOrg = ensureSingleValue(getFlagValue(flags, 'target-org', 'o', 'u')) as string | undefined;
+            try {
+                const handled = normalizeHandlerResult(await handlers.listMetadataTypes({ targetOrg }));
+                return {
+                    stdout: formatCliOutput(handled.result),
+                    stderr: '',
+                    exitCode: handled.exitCode,
+                };
+            } catch (err) {
+                return commandError(err instanceof Error ? err.message : String(err));
+            }
+        }
+
+        if (subcommand === 'list-records') {
+            const { flags } = parseCliArgs(rest);
+            const metadataTypeFlag = ensureSingleValue(getFlagValue(flags, 'metadata-type', 'm'));
+            const targetOrg = ensureSingleValue(getFlagValue(flags, 'target-org', 'o', 'u')) as string | undefined;
+            if (!metadataTypeFlag || typeof metadataTypeFlag !== 'string') {
+                return {
+                    stdout: '',
+                    stderr: `Error: Missing --metadata-type flag.\n\n${METADATA_HELP}\n`,
+                    exitCode: 1,
+                };
+            }
+            try {
+                const handled = normalizeHandlerResult(
+                    await handlers.listMetadataRecords({ metadataType: metadataTypeFlag, targetOrg })
+                );
+                return {
+                    stdout: formatCliOutput(handled.result),
+                    stderr: '',
+                    exitCode: handled.exitCode,
+                };
+            } catch (err) {
+                return commandError(err instanceof Error ? err.message : String(err));
+            }
+        }
+
         if (subcommand === 'deploy') {
             const { flags } = parseCliArgs(rest);
             const fileFlag = ensureSingleValue(getFlagValue(flags, 'file', 'f'));
             const metadataTypeFlag = ensureSingleValue(getFlagValue(flags, 'metadata-type', 'm'));
             const apiNameFlag = ensureSingleValue(getFlagValue(flags, 'api-name'));
+            const targetOrg = ensureSingleValue(getFlagValue(flags, 'target-org', 'o', 'u')) as string | undefined;
             if (!fileFlag || typeof fileFlag !== 'string') {
                 return {
                     stdout: '',
@@ -762,6 +956,7 @@ export function registerSalesforceShellCommands({
                         metadataType,
                         apiName,
                         ctx,
+                        targetOrg,
                     })
                 );
                 return {
@@ -778,7 +973,8 @@ export function registerSalesforceShellCommands({
             const { flags } = parseCliArgs(rest);
             const metadataTypeFlag = ensureSingleValue(getFlagValue(flags, 'metadata-type', 'm'));
             const apiNameFlag = ensureSingleValue(getFlagValue(flags, 'api-name'));
-            const outputFlag = ensureSingleValue(getFlagValue(flags, 'output', 'o'));
+            const outputFlag = ensureSingleValue(getFlagValue(flags, 'output'));
+            const targetOrg = ensureSingleValue(getFlagValue(flags, 'target-org', 'o', 'u')) as string | undefined;
             if (!metadataTypeFlag || typeof metadataTypeFlag !== 'string') {
                 return {
                     stdout: '',
@@ -801,6 +997,7 @@ export function registerSalesforceShellCommands({
                         apiName: apiNameFlag,
                         outputPath,
                         ctx,
+                        targetOrg,
                     })
                 );
                 return {
@@ -830,12 +1027,15 @@ export function registerSalesforceShellCommands({
                 '  sf data query',
                 '  sf api request',
                 '  sf org list',
+                '  sf org connect',
                 '  sf org open',
+                '  sf navigate',
                 '  sf debug log enable|list|get',
                 '  sf limits display',
                 '  sf sobject describe',
-                '  sf metadata deploy|retrieve',
+                '  sf metadata list-types|list-records|deploy|retrieve',
                 '',
+                'Most commands accept --target-org <alias> to run against a different org.',
                 'Use subcommand --help for details.',
                 '',
                 APEX_HELP,
@@ -847,6 +1047,8 @@ export function registerSalesforceShellCommands({
                 API_HELP,
                 '',
                 ORG_HELP,
+                '',
+                NAVIGATE_HELP,
                 '',
                 DEBUG_LOG_HELP,
                 '',
@@ -874,8 +1076,14 @@ export function registerSalesforceShellCommands({
         if (group === 'org' && action === 'list') {
             return runOrgListCli();
         }
+        if (group === 'org' && action === 'connect') {
+            return runOrgConnectCli(rest);
+        }
         if (group === 'org' && action === 'open') {
             return runOrgOpenCli(rest);
+        }
+        if (group === 'navigate') {
+            return runNavigateCli([action, ...rest].filter(Boolean));
         }
         if (group === 'debug' && action === 'log') {
             return runDebugLogCli(rest, ctx);
@@ -886,8 +1094,8 @@ export function registerSalesforceShellCommands({
         if (group === 'sobject' && action === 'describe') {
             return runSObjectDescribeCli(rest);
         }
-        if (group === 'metadata' && (action === 'deploy' || action === 'retrieve')) {
-            return runMetadataCli([action, ...rest], ctx);
+        if (group === 'metadata') {
+            return runMetadataCli([action, ...rest].filter(Boolean), ctx);
         }
         return {
             stdout: '',

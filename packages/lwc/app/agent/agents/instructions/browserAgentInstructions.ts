@@ -99,7 +99,12 @@ sf api request --method POST --url "/services/data/v59.0/composite/sobjects" --b
 sf api request --header "Sforce-Call-Options: client=Workbench2" --method GET --url "/services/data/v59.0/limits"
 
 sf org list
+sf org connect --target-org my-sandbox
 sf org open --target-org my-sandbox
+
+sf navigate --app soql
+sf navigate --app api
+sf navigate --app anonymousApex
 
 sf debug log enable
 sf debug log enable --duration 30
@@ -111,8 +116,9 @@ sf debug log get 07L000000000001 --output /workspace/tmp/\${conversationId}/debu
 sf limits display
 
 sf sobject describe --object Account
-sf sobject describe -o Contact
 
+sf metadata list-types
+sf metadata list-records --metadata-type ApexClass
 sf metadata deploy --file /workspace/MyClass.cls
 sf metadata deploy --file /workspace/MyTrigger.trigger
 sf metadata retrieve --metadata-type ApexClass --api-name MyClass
@@ -120,19 +126,33 @@ sf metadata retrieve --metadata-type ApexClass --api-name MyClass --output /work
 \`\`\`
 
 Notes:
-- \`sf org open\` requires an alias.
-- \`sf api request\` accepts relative or absolute URLs.
+- **\`sf org connect\` logs in / switches the active org** (establishes a toolkit session). Use this when you need to connect to an org.
+- **\`sf org open\` only opens a browser tab** via the front door URL. It does NOT connect to the org. Do NOT use it to connect.
+- Most \`sf\` commands accept \`--target-org <alias>\` (also \`-o\` / \`-u\`) to run against a different org without switching the active connection. If omitted, commands run against the currently connected org.
+- \`sf navigate --app <name>\` switches the toolkit UI to the named application (soql, api, anonymousApex, metadata, connections, org, etc.).
+- \`sf api request\` accepts relative or absolute URLs. Use \`--target-org\` (not \`-u\`) in the API command since \`-u\` is reserved for the URL.
 - \`--header\` can be repeated.
 - \`sf apex test run\` polls until tests complete or timeout (default 60s). Use \`--timeout <ms>\` for longer suites.
 - \`sf debug log enable\` creates a TraceFlag for the current user so subsequent Apex executions capture logs.
+- \`sf metadata list-types\` lists all SObject types available in the org.
+- \`sf metadata list-records --metadata-type <type>\` lists all records of a given type (e.g. ApexClass).
 - \`sf metadata deploy\` supports ApexClass (.cls), ApexTrigger (.trigger), ApexPage (.page), ApexComponent (.component). Type is auto-detected from the file extension.
 - \`sf metadata retrieve\` downloads source from the org into \`/workspace\` (or \`--output\` path).
 
 More examples:
 
 \`\`\`bash
+# Connect (login) to an org by alias
+sf org connect --target-org my-sandbox
+
+# Navigate the toolkit to the SOQL editor
+sf navigate --app soql
+
 # Run Apex from a file in the workspace
 sf apex run --file /workspace/apex/run.apex
+
+# Run Apex against a different org without switching active session
+sf apex run --apex-code 'System.debug("Hello");' --no-ui --target-org my-sandbox
 
 # Run specific test classes and check results
 sf apex test run --class-names "AccountControllerTest,OpportunityTest"
@@ -146,7 +166,11 @@ sf data query --query "SELECT Id, Name FROM ApexClass" --tooling
 # Query soft-deleted records
 sf data query --query "SELECT Id FROM Account" --all-rows
 
+# Run a query against a different org without switching
+sf data query --query "SELECT Id FROM Account LIMIT 5" --target-org my-prod
+
 # POST JSON payload from a file
+sf api request --method GET --url "/services/data/v59.0/limits" --target-org my-prod
 sf api request --method POST --url "/services/data/v59.0/sobjects/Account" --body @/workspace/payload.json
 
 # Add multiple headers
@@ -156,20 +180,23 @@ sf api request --header "Sforce-Call-Options: client=Workbench2" --header "Conte
 sf data query --query "SELECT Id, Name FROM Account LIMIT 5" > /workspace/tmp/\${conversationId}/account-query.json
 echo "Saved query output to /workspace/tmp/\${conversationId}/account-query.json"
 
-# Open an org by alias
-sf org open --target-org my-prod
-
 # Enable debug logging, run Apex, then retrieve the latest log
 sf debug log enable --duration 15
 sf apex run --apex-code 'System.debug(LoggingLevel.INFO, "Test log entry");' --no-ui
 sf debug log list --limit 1
 sf debug log get <id-from-list> --output /workspace/tmp/\${conversationId}/apex-debug.log
 
-# Show all API limits
-sf limits display
+# Show API limits of another org
+sf limits display --target-org my-prod
 
-# Describe an SObject's fields
-sf sobject describe --object Opportunity
+# Describe an SObject's fields in another org
+sf sobject describe --object Opportunity --target-org my-sandbox
+
+# List all metadata types in another org
+sf metadata list-types --target-org my-sandbox
+
+# List all Apex classes in another org
+sf metadata list-records --metadata-type ApexClass --target-org my-sandbox
 
 # Deploy a local Apex class to the org
 sf metadata deploy --file /workspace/classes/MyClass.cls
@@ -181,7 +208,9 @@ sf metadata retrieve --metadata-type ApexClass --api-name MyClass --output /work
 What not to do:
 
 - Do not use the real \`sf\` CLI binary; only the shims are available here.
-- Do not omit \`--query\` for \`sf data query\` or \`--target-org\` for \`sf org open\`.
+- **Do not use \`sf org open\` to connect to an org** — use \`sf org connect --target-org <alias>\` instead.
+- Do not omit \`--target-org\` when the user specifies a different org than the current active one.
+- Do not omit \`--query\` for \`sf data query\` or \`--target-org\` for \`sf org open\` / \`sf org connect\`.
 - Do not pass local file paths outside \`/workspace\` or \`/mnt\`.
 - Do not assume a user is logged in; return a clear error if no active connector exists.
 - Do not include secrets (session IDs, tokens) in output.

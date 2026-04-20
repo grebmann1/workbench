@@ -11,16 +11,17 @@ import {
     SOQL_HELP,
     detectMetadataType,
 } from 'core/bash';
-import { store, APEX, API, QUERY, ERROR } from 'core/store';
+import { store, APEX, API, QUERY, ERROR, APPLICATION } from 'core/store';
 import {
     getConfiguration,
     getPublicConfigurations,
     credentialStrategies,
     OAUTH_TYPES,
+    saveSession,
 } from 'core/connector';
 import type { ConnectorLike } from 'core/connector';
 import { discoverSkills, fetchSkillByName } from 'agent/utils';
-import { waitForLoaded, wrappedNavigate, formatTabId, openBrowser } from '../utils/utils';
+import { waitForLoaded, wrappedNavigate, formatTabId, openBrowser, openToolkit } from '../utils/utils';
 import { saveSkillToFs } from './skillUtils';
 import type { ShellCommandContext } from 'core/bash';
 import {
@@ -192,21 +193,32 @@ async function resolveCliFileContent(filePath: string, ctx: ShellCommandContext)
     }
 }
 
+async function resolveConnector(targetOrg?: string): Promise<ConnectorLike> {
+    if (targetOrg) {
+        return getConnectorByAlias(targetOrg);
+    }
+    const state = store.getState() as any;
+    const connector = state?.application?.connector;
+    if (!connector) throw new Error('No active org connector found.');
+    return connector;
+}
+
 async function callConnectorRest({
     path,
     method = 'GET',
     body,
     extraHeaders = {},
     isTooling = false,
+    connector: connectorOverride,
 }: {
     path: string;
     method?: string;
     body?: string;
     extraHeaders?: Record<string, string>;
     isTooling?: boolean;
+    connector?: ConnectorLike;
 }): Promise<{ data: any; status: number }> {
-    const state = store.getState() as any;
-    const connector = state?.application?.connector;
+    const connector = connectorOverride ?? (store.getState() as any)?.application?.connector;
     if (!connector?.conn) {
         throw new Error('No active org connector found.');
     }
@@ -250,14 +262,14 @@ async function callConnectorRest({
     return { data, status: res.status };
 }
 
-async function getConnectorVersion(): Promise<string> {
-    const state = store.getState() as any;
-    return state?.application?.connector?.conn?.version || '59.0';
+async function getConnectorVersion(connector?: ConnectorLike): Promise<string> {
+    const active = connector ?? (store.getState() as any)?.application?.connector;
+    return active?.conn?.version || '59.0';
 }
 
-async function getConnectorUserInfo(): Promise<{ id: string; username: string }> {
-    const state = store.getState() as any;
-    const conn = state?.application?.connector?.conn;
+async function getConnectorUserInfo(connector?: ConnectorLike): Promise<{ id: string; username: string }> {
+    const active = connector ?? (store.getState() as any)?.application?.connector;
+    const conn = active?.conn;
     if (!conn) throw new Error('No active org connector found.');
     const userInfo = conn.userInfo || {};
     return {
@@ -564,11 +576,13 @@ export function registerShellCommands({
     registerSalesforceShellCommands({
         shell,
         handlers: {
-            async executeApex({ apexCode, shouldOpenUi }) {
+            async executeApex({ apexCode, shouldOpenUi, targetOrg }) {
                 try {
+                    const overrideConnector = targetOrg ? await resolveConnector(targetOrg) : null;
                     const result = await store.dispatch(async (dispatch, getState) => {
                         const { application, apex } = getState();
-                        if (!application?.connector) {
+                        const connector = overrideConnector || application?.connector;
+                        if (!connector) {
                             throw new Error('No active org connector found.');
                         }
                         if (application.isLoading && shouldOpenUi) await waitForLoaded();
@@ -586,7 +600,7 @@ export function registerShellCommands({
                         }
                         const apexPromise = dispatch(
                             APEX.executeApexAnonymous({
-                                connector: application.connector,
+                                connector,
                                 body: apexCode,
                                 tabId: realTabId,
                                 createdDate: Date.now(),
@@ -622,15 +636,17 @@ export function registerShellCommands({
                     throw err;
                 }
             },
-            async executeSoql({ query, useToolingApi, includeDeletedRecords }) {
+            async executeSoql({ query, useToolingApi, includeDeletedRecords, targetOrg }) {
+                const overrideConnector = targetOrg ? await resolveConnector(targetOrg) : null;
                 const result = await store.dispatch(async (dispatch, getState) => {
                     const { application } = getState();
-                    if (!application?.connector) {
+                    const connector = overrideConnector || application?.connector;
+                    if (!connector) {
                         throw new Error('No active org connector found.');
                     }
                     const res = (await dispatch(
                         QUERY.executeQueryIncognito({
-                            connector: application.connector,
+                            connector,
                             soql: query,
                             tabId: `cli-${Date.now()}`,
                             useToolingApi,
@@ -645,10 +661,12 @@ export function registerShellCommands({
                 });
                 return { result };
             },
-            async executeApi({ method, endpoint, body, headerText }) {
+            async executeApi({ method, endpoint, body, headerText, targetOrg }) {
+                const overrideConnector = targetOrg ? await resolveConnector(targetOrg) : null;
                 const result = await store.dispatch(async (dispatch, getState) => {
                     const { application } = getState();
-                    if (!application?.connector) {
+                    const connector = overrideConnector || application?.connector;
+                    if (!connector) {
                         throw new Error('No active org connector found.');
                     }
                     const { request: formattedRequest, error } = API_UTILS.formatApiRequest({
@@ -656,7 +674,7 @@ export function registerShellCommands({
                         method,
                         body,
                         header: headerText,
-                        connector: application.connector as any,
+                        connector: connector as any,
                         replaceVariableValues: value => value,
                     });
                     if (error) {
@@ -671,7 +689,7 @@ export function registerShellCommands({
                     const tabId = `cli-${Date.now()}`;
                     const apiPromise = dispatch(
                         API.executeApiRequest({
-                            connector: application.connector,
+                            connector,
                             request: originalRequest,
                             formattedRequest,
                             tabId,
@@ -697,7 +715,23 @@ export function registerShellCommands({
                 await openBrowser({ url: connector.frontDoorUrl, alias, target: 'default' });
                 return { result: `Opened org ${alias}` };
             },
-            async runApexTests({ classNames, testLevel, timeoutMs }) {
+            async connectOrg({ alias }) {
+                const connector = await getConnectorByAlias(alias);
+                const { isSidePanel } = store.getState().application;
+                if (isSidePanel) {
+                    await openToolkit({ connector });
+                } else {
+                    await saveSession(connector.configuration);
+                    store.dispatch(APPLICATION.reduxSlice.actions.login({ connector }));
+                }
+                return { result: `Connected to org ${alias}` };
+            },
+            async navigate({ app }) {
+                await wrappedNavigate({ applicationName: app });
+                return { result: `Navigated to ${app}` };
+            },
+            async runApexTests({ classNames, testLevel, timeoutMs, targetOrg }) {
+                const connector = targetOrg ? await resolveConnector(targetOrg) : undefined;
                 const requestBody: Record<string, any> = { testLevel };
                 if (classNames.length > 0) {
                     requestBody.classNames = classNames.join(',');
@@ -707,6 +741,7 @@ export function registerShellCommands({
                     method: 'POST',
                     body: JSON.stringify(requestBody),
                     isTooling: true,
+                    connector,
                 });
                 if (!jobId || typeof jobId !== 'string') {
                     throw new Error('Unexpected response from runTestsAsynchronous');
@@ -720,6 +755,7 @@ export function registerShellCommands({
                     const { data } = await callConnectorRest({
                         path: `/query?q=${pollQuery}`,
                         isTooling: true,
+                        connector,
                     });
                     const record = data?.records?.[0];
                     if (record && ['Completed', 'Failed', 'Aborted'].includes(record.Status)) {
@@ -732,6 +768,7 @@ export function registerShellCommands({
                 const { data: resultsData } = await callConnectorRest({
                     path: `/query?q=${resultsQuery}`,
                     isTooling: true,
+                    connector,
                 });
                 const testResults = resultsData?.records || [];
 
@@ -750,14 +787,16 @@ export function registerShellCommands({
                 const exitCode = failed > 0 || summary.status === 'timeout' ? 1 : 0;
                 return { result: { jobId, summary: { ...summary, passed, failed, skipped }, failures }, exitCode };
             },
-            async enableDebugLog({ durationMinutes }) {
-                const userInfo = await getConnectorUserInfo();
+            async enableDebugLog({ durationMinutes, targetOrg }) {
+                const connector = targetOrg ? await resolveConnector(targetOrg) : undefined;
+                const userInfo = await getConnectorUserInfo(connector);
                 let userId = userInfo.id;
 
                 // Resolve user ID from username if not available directly
                 if (!userId && userInfo.username) {
                     const { data } = await callConnectorRest({
                         path: `/query?q=SELECT+Id+FROM+User+WHERE+Username='${userInfo.username}'+LIMIT+1`,
+                        connector,
                     });
                     userId = data?.records?.[0]?.Id || '';
                 }
@@ -767,6 +806,7 @@ export function registerShellCommands({
                 const { data: dlData } = await callConnectorRest({
                     path: `/query?q=SELECT+Id+FROM+DebugLevel+WHERE+DeveloperName='WorkbenchAgent'+LIMIT+1`,
                     isTooling: true,
+                    connector,
                 });
                 let debugLevelId: string = dlData?.records?.[0]?.Id || '';
                 if (!debugLevelId) {
@@ -786,6 +826,7 @@ export function registerShellCommands({
                             Workflow: 'INFO',
                         }),
                         isTooling: true,
+                        connector,
                     });
                     debugLevelId = newDl?.id || newDl?.Id || '';
                 }
@@ -798,6 +839,7 @@ export function registerShellCommands({
                 const { data: tfData } = await callConnectorRest({
                     path: `/query?q=SELECT+Id+FROM+TraceFlag+WHERE+TracedEntityId='${userId}'+AND+LogType='DEVELOPER_LOG'+LIMIT+1`,
                     isTooling: true,
+                    connector,
                 });
                 const existingTfId: string = tfData?.records?.[0]?.Id || '';
                 if (existingTfId) {
@@ -805,6 +847,7 @@ export function registerShellCommands({
                         path: `/sobjects/TraceFlag/${existingTfId}`,
                         method: 'DELETE',
                         isTooling: true,
+                        connector,
                     });
                 }
 
@@ -819,6 +862,7 @@ export function registerShellCommands({
                         ExpirationDate: expiry.toISOString(),
                     }),
                     isTooling: true,
+                    connector,
                 });
 
                 return {
@@ -830,17 +874,20 @@ export function registerShellCommands({
                     },
                 };
             },
-            async listDebugLogs({ limit }) {
+            async listDebugLogs({ limit, targetOrg }) {
+                const connector = targetOrg ? await resolveConnector(targetOrg) : undefined;
                 const safeLimit = Math.min(Math.max(1, limit), 200);
                 const q = `SELECT+Id,LogUser.Name,Application,DurationMilliseconds,StartTime,Status,LogLength+FROM+ApexLog+ORDER+BY+StartTime+DESC+LIMIT+${safeLimit}`;
-                const { data } = await callConnectorRest({ path: `/query?q=${q}`, isTooling: true });
+                const { data } = await callConnectorRest({ path: `/query?q=${q}`, isTooling: true, connector });
                 return { result: data?.records || [] };
             },
-            async getDebugLog({ logId, outputPath, ctx }) {
+            async getDebugLog({ logId, outputPath, ctx, targetOrg }) {
+                const connector = targetOrg ? await resolveConnector(targetOrg) : undefined;
                 const { data } = await callConnectorRest({
                     path: `/sobjects/ApexLog/${logId}/Body`,
                     extraHeaders: { Accept: 'text/plain' },
                     isTooling: true,
+                    connector,
                 });
                 const logText = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
                 if (outputPath && ctx.fs.writeFile) {
@@ -850,9 +897,10 @@ export function registerShellCommands({
                 }
                 return { result: logText };
             },
-            async displayLimits() {
-                const version = await getConnectorVersion();
-                const { data } = await callConnectorRest({ path: '/limits' });
+            async displayLimits({ targetOrg } = {}) {
+                const connector = targetOrg ? await resolveConnector(targetOrg) : undefined;
+                const version = await getConnectorVersion(connector);
+                const { data } = await callConnectorRest({ path: '/limits', connector });
                 if (!data || typeof data !== 'object') return { result: data };
                 const lines = Object.entries(data).map(([name, val]: [string, any]) => {
                     const max = val?.Max ?? '?';
@@ -862,8 +910,9 @@ export function registerShellCommands({
                 });
                 return { result: { apiVersion: version, limits: data, summary: lines.join('\n') } };
             },
-            async describeSObject({ objectName }) {
-                const { data } = await callConnectorRest({ path: `/sobjects/${objectName}/describe` });
+            async describeSObject({ objectName, targetOrg }) {
+                const connector = targetOrg ? await resolveConnector(targetOrg) : undefined;
+                const { data } = await callConnectorRest({ path: `/sobjects/${objectName}/describe`, connector });
                 if (!data || typeof data !== 'object') return { result: data };
                 const fields = (data.fields || []).map((f: any) => ({
                     name: f.name,
@@ -889,7 +938,8 @@ export function registerShellCommands({
                     },
                 };
             },
-            async deployMetadata({ filePath, metadataType, apiName, ctx }) {
+            async deployMetadata({ filePath, metadataType, apiName, ctx, targetOrg }) {
+                const connector = targetOrg ? await resolveConnector(targetOrg) : undefined;
                 const resolved = ctx.fs.resolvePath(ctx.cwd, filePath);
                 let content: string | null = null;
                 try {
@@ -916,6 +966,7 @@ export function registerShellCommands({
                 const { data: existing } = await callConnectorRest({
                     path: `/query?q=${q}`,
                     isTooling: true,
+                    connector,
                 });
                 const existingId: string = existing?.records?.[0]?.Id || '';
 
@@ -925,24 +976,28 @@ export function registerShellCommands({
                         method: 'PATCH',
                         body: JSON.stringify({ [bodyField]: content }),
                         isTooling: true,
+                        connector,
                     });
                     return { result: { deployed: true, type, name, action: 'updated', id: existingId } };
                 } else {
-                    const version = await getConnectorVersion();
+                    const version = await getConnectorVersion(connector);
                     const { data: created } = await callConnectorRest({
                         path: `/sobjects/${type}`,
                         method: 'POST',
                         body: JSON.stringify({ [nameField]: name, [bodyField]: content, ApiVersion: parseFloat(version) }),
                         isTooling: true,
+                        connector,
                     });
                     return { result: { deployed: true, type, name, action: 'created', id: created?.id || created?.Id } };
                 }
             },
-            async retrieveMetadata({ metadataType, apiName, outputPath, ctx }) {
+            async retrieveMetadata({ metadataType, apiName, outputPath, ctx, targetOrg }) {
+                const connector = targetOrg ? await resolveConnector(targetOrg) : undefined;
                 const q = `SELECT+Id,Name,Body+FROM+${metadataType}+WHERE+Name='${apiName}'+LIMIT+1`;
                 const { data } = await callConnectorRest({
                     path: `/query?q=${q}`,
                     isTooling: true,
+                    connector,
                 });
                 const record = data?.records?.[0];
                 if (!record) {
@@ -979,6 +1034,32 @@ export function registerShellCommands({
                         size: (record.Body || '').length,
                     },
                 };
+            },
+            async listMetadataTypes({ targetOrg } = {}) {
+                const connector = targetOrg ? await resolveConnector(targetOrg) : undefined;
+                const { data } = await callConnectorRest({
+                    path: '/sobjects',
+                    connector,
+                });
+                const types = (data?.sobjects || []).map((s: any) => ({
+                    name: s.name,
+                    label: s.label,
+                    custom: s.custom,
+                    queryable: s.queryable,
+                    createable: s.createable,
+                }));
+                return { result: { count: types.length, types } };
+            },
+            async listMetadataRecords({ metadataType, targetOrg }) {
+                const connector = targetOrg ? await resolveConnector(targetOrg) : undefined;
+                const q = `SELECT+Id,Name+FROM+${metadataType}+ORDER+BY+Name+ASC+LIMIT+200`;
+                const { data } = await callConnectorRest({
+                    path: `/query?q=${q}`,
+                    isTooling: true,
+                    connector,
+                });
+                const records = (data?.records || []).map((r: any) => ({ id: r.Id, name: r.Name }));
+                return { result: { type: metadataType, count: records.length, records } };
             },
         },
     });
