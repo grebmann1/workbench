@@ -114,6 +114,59 @@ heroku container:release web -a workbench2
 | `AI_RATE_LIMIT_DAILY` | No | `100` | Max AI requests per user per day |
 | `DOC_VERSION` | No | `260.0` | Salesforce API doc version loaded at startup |
 
+## Environment variables: two tiers
+
+Workbench has **two completely separate categories** of environment variables. Understanding the difference is critical — changing the wrong one in the wrong place has no effect.
+
+### Tier 1 — Runtime server variables (Heroku config vars)
+
+These are read by the **Express server** (`packages/server`) at process start via `process.env`. Changing them in Heroku and restarting the dyno is enough — no rebuild required.
+
+```bash
+heroku config:set MY_VAR=value -a workbench2
+heroku ps:restart -a workbench2   # apply immediately
+```
+
+All the variables listed in the [Config vars reference](#config-vars-reference) table above fall into this tier.
+
+### Tier 2 — Build-time frontend variables (`VITE_*`)
+
+These are read by **Vite** at build time and compiled as string literals into `dist/ui/`. By the time the Docker image runs on Heroku, they are already baked in — **Heroku config vars cannot reach them**.
+
+The current `VITE_*` variables live in `apps/ui/.env.prod`:
+
+| Variable | Description |
+|---|---|
+| `VITE_EXTENSION_ID` | Chrome extension ID used to build the redirect URL |
+| `VITE_CHROME_STORE_URL` | Link to the extension on the Chrome Web Store |
+| `VITE_DOCS_URL` | Base URL for the documentation site |
+| `VITE_GITHUB_URL` | GitHub repository URL |
+
+To change any `VITE_*` value in production:
+
+1. Edit `apps/ui/.env.prod`
+2. Rebuild and redeploy:
+
+```bash
+npm run docker:prebuild
+heroku container:push web -a workbench2
+heroku container:release web -a workbench2
+```
+
+> **Never put secrets in `VITE_*` variables.** They are compiled into the public JavaScript bundle and visible to anyone who inspects the page source.
+
+---
+
+### Quick reference
+
+| I want to change… | Where to set it | Requires redeploy? |
+|---|---|---|
+| API keys, OAuth secrets, rate limits | `heroku config:set` | No — restart dyno only |
+| Chrome extension ID, store URL | `apps/ui/.env.prod` | **Yes** |
+| Docs URL, GitHub URL | `apps/ui/.env.prod` | **Yes** |
+
+---
+
 ## Monitoring
 
 ```bash
