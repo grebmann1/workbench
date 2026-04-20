@@ -3,8 +3,7 @@ import ToolkitElement from 'core/toolkitElement';
 import { NavigationContext, navigate } from 'lwr/navigation';
 import { isChromeExtension } from 'shared/utils';
 import { listOrgSessionsViaBackground } from 'core/connector';
-import { loadLlmProviderConfigMapFromCache } from 'shared/cacheManager';
-import { GITHUB_DISCUSSIONS_URL, QUICK_TIPS, AI_DOC_URL } from './constants.js';
+import { GITHUB_DISCUSSIONS_URL, QUICK_TIPS } from './constants.js';
 
 export default class Welcome extends ToolkitElement {
     @wire(NavigationContext)
@@ -16,14 +15,8 @@ export default class Welcome extends ToolkitElement {
     latestRelease = null;
     tips = QUICK_TIPS;
 
-    isAiConfigured = true; // default true to avoid flashing the setup card
-
     async connectedCallback() {
-        await Promise.all([
-            this._loadSessions(),
-            this._loadLatestRelease(),
-            this._checkAiConfiguration(),
-        ]);
+        await Promise.all([this._loadSessions(), this._loadLatestRelease()]);
     }
 
     async _loadSessions() {
@@ -54,15 +47,6 @@ export default class Welcome extends ToolkitElement {
         }
     }
 
-    async _checkAiConfiguration() {
-        try {
-            const configMap = await loadLlmProviderConfigMapFromCache();
-            this.isAiConfigured = Object.values(configMap).some(c => c?.apiKey);
-        } catch {
-            this.isAiConfigured = true; // assume configured on error to avoid nagging
-        }
-    }
-
     /** Getters */
 
     get hasSessions() {
@@ -84,10 +68,6 @@ export default class Welcome extends ToolkitElement {
         const cats = first?.categories ?? [];
         const total = cats.reduce((n, c) => n + (c.items?.length ?? 0), 0);
         return `${first.title}: ${total} change${total !== 1 ? 's' : ''}`;
-    }
-
-    get showAiSetup() {
-        return !this.isAiConfigured;
     }
 
     /** Events */
@@ -123,20 +103,6 @@ export default class Welcome extends ToolkitElement {
         navigate(this.navContext, {
             type: 'application',
             state: { applicationName: 'connections' },
-        });
-    };
-
-    handleGoToAiSettings = () => {
-        navigate(this.navContext, {
-            type: 'application',
-            state: { applicationName: 'settings' },
-        });
-    };
-
-    handleViewAiDoc = () => {
-        navigate(this.navContext, {
-            type: 'application',
-            state: { applicationName: AI_DOC_URL },
         });
     };
 

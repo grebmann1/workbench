@@ -206,10 +206,7 @@
                                 <lightning-card
                                     class="settings slds-col slds-size_1-of-1 slds-large-size_1-of-1 slds-p-around_medium">
                                     <div slot="title">
-                                        <h1>Google Account</h1>
-                                        <p class="description slds-truncate">
-                                            Sign in via the AI Agent to link your Google account.
-                                        </p>
+                                        <h1>User Informations</h1>
                                     </div>
                                     <div class="slds-grid slds-wrap">
                                         <settings-card
@@ -532,6 +529,7 @@
                                         </settings-card>
                                     </div>
                                 </lightning-card>
+                                <template lwc:if={googleConnected}>
                                 <lightning-card
                                     class="settings slds-col slds-size_1-of-1 slds-p-around_medium">
                                     <div slot="title">
@@ -714,6 +712,19 @@
                                         </slds-tab>
                                     </slds-tabset>
                                 </lightning-card>
+                                </template>
+                                <template lwc:else>
+                                    <div class="slds-col slds-size_1-of-1 slds-p-around_medium">
+                                        <div class="slds-box slds-theme_shade slds-text-align_center slds-p-around_large">
+                                            <lightning-icon icon-name="utility:lock" size="medium" class="slds-m-bottom_small"></lightning-icon>
+                                            <p class="slds-text-heading_small slds-m-bottom_x-small">Google account required</p>
+                                            <p class="slds-text-body_regular slds-text-color_weak">
+                                                Connect your Google account to access the AI Providers settings.
+                                                Go to <strong>Settings &rarr; User</strong> to set up your Google connection.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </template>
                                 <!-- Tools -->
                                 <lightning-card
                                     class="settings slds-col slds-size_1-of-1 slds-p-around_medium">

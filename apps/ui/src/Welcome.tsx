@@ -4,8 +4,8 @@ import screenshotOverlay from '../../../assets/images/screenshots/screenshot-ove
 import screenshotStart from '../../../assets/images/screenshots/screenshot-start.gif';
 import { FakeBrowser, SiteShell } from './SiteChrome';
 
-const DEFAULT_WORKBENCH_APP_URL =
-    'chrome-extension://dncmipbpdapfjancbhmbodlhllapmagf/views/app.html';
+const EXTENSION_ID = import.meta.env.VITE_EXTENSION_ID as string;
+const DEFAULT_WORKBENCH_APP_URL = `chrome-extension://${EXTENSION_ID}/views/app.html`;
 
 function resolveWorkbenchAppUrl(): string {
     if (typeof window === 'undefined') return DEFAULT_WORKBENCH_APP_URL;

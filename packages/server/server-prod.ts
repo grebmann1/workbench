@@ -25,7 +25,7 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 const PORT = parseInt(process.env.PORT || '3000', 10);
-const CHROME_ID = process.env.CHROME_ID || 'dncmipbpdapfjancbhmbodlhllapmagf';
+const CHROME_ID = process.env.CHROME_ID || 'konbmllgicfccombdckckakhnmejjoei';
 
 const getQueryStringValue = (value: unknown): string => {
     if (Array.isArray(value)) return typeof value[0] === 'string' ? value[0] : '';

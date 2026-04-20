@@ -18,7 +18,7 @@
     "CHROME_ID": {
       "description": "Chrome Web Store extension ID used in the OAuth callback redirect.",
       "required": false,
-      "value": "dncmipbpdapfjancbhmbodlhllapmagf"
+      "value": "konbmllgicfccombdckckakhnmejjoei"
     },
     "GOOGLE_CLIENT_ID_WEB": {
       "description": "Google OAuth 2.0 client ID for web sign-in.",

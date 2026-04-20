@@ -17,7 +17,7 @@ const init = async () => {
     window.jsforceSettings = {
         clientId:
             '3MVG9_kZcLde7U5oNdaqndT3T9qa54eaA.ycC6APuOkYzRP286pPeOvwOqAQ2ue7l5ejNAxPYj4xTbWn3zS6Y',
-        chromeId: 'dncmipbpdapfjancbhmbodlhllapmagf',
+        chromeId: 'konbmllgicfccombdckckakhnmejjoei',
         redirectUri: chrome.identity.getRedirectURL(), //'https://www.workbench-salesforce.com/chrome/callback',
         //proxyUrl:   'https://www.workbench-salesforce.com/proxy/',
         //redirectUri: `http://localhost:3000/chrome/callback`,

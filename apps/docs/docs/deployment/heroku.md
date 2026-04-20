@@ -50,7 +50,7 @@ Optional vars (set the ones your deployment uses):
 
 ```bash
 heroku config:set -a workbench2 \
-  CHROME_ID=dncmipbpdapfjancbhmbodlhllapmagf \
+  CHROME_ID=konbmllgicfccombdckckakhnmejjoei \
   GOOGLE_CLIENT_ID_WEB=<google_oauth_client_id> \
   GOOGLE_CLIENT_SECRET_WEB=<google_oauth_client_secret> \
   GOOGLE_SESSION_SECRET=<random_secret_string> \
@@ -104,7 +104,7 @@ heroku container:release web -a workbench2
 | `NODE_ENV` | Yes | `production` | Runtime environment |
 | `CLIENT_ID` | Yes | — | Salesforce Connected App OAuth2 client ID |
 | `CLIENT_SECRET` | Yes | — | Salesforce Connected App OAuth2 client secret |
-| `CHROME_ID` | No | `dncmipbpdapfjancbhmbodlhllapmagf` | Chrome extension ID for OAuth callback redirect |
+| `CHROME_ID` | No | `konbmllgicfccombdckckakhnmejjoei` | Chrome extension ID for OAuth callback redirect |
 | `GOOGLE_CLIENT_ID_WEB` | No | — | Google OAuth 2.0 client ID |
 | `GOOGLE_CLIENT_SECRET_WEB` | No | — | Google OAuth 2.0 client secret |
 | `GOOGLE_SESSION_SECRET` | No | — | Secret for signing Google OAuth session cookie |

@@ -129,45 +129,6 @@
             </div>
         </div>
 
-        <!-- AI Setup (shown only when no provider is configured) -->
-        <template lwc:if={showAiSetup}>
-            <div class="ai-setup-card">
-                <div class="ai-setup-card__icon" aria-hidden="true">
-                    <lightning-icon icon-name="utility:einstein" size="medium"></lightning-icon>
-                </div>
-                <div class="ai-setup-card__content">
-                    <h2 class="ai-setup-card__title">Set up the AI Agent</h2>
-                    <p class="ai-setup-card__message">
-                        Connect an AI provider to unlock the AI Agent — automate Salesforce tasks,
-                        query your org, and interact with your workspace directly from the chat.
-                        Everything runs locally through the extension; no data passes through any server.
-                    </p>
-                    <div class="ai-setup-card__actions">
-                        <button
-                            class="ai-setup-card__btn ai-setup-card__btn_primary"
-                            type="button"
-                            onclick={handleGoToAiSettings}>
-                            <lightning-icon
-                                icon-name="utility:settings"
-                                size="x-small"
-                                class="ai-setup-card__btn-icon"></lightning-icon>
-                            Configure AI
-                        </button>
-                        <button
-                            class="ai-setup-card__btn ai-setup-card__btn_ghost"
-                            type="button"
-                            onclick={handleViewAiDoc}>
-                            <lightning-icon
-                                icon-name="utility:info"
-                                size="x-small"
-                                class="ai-setup-card__btn-icon"></lightning-icon>
-                            Learn more
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </template>
-
         <!-- Footer -->
         <div class="welcome-footer">
             <lightning-icon

@@ -88,7 +88,7 @@ export default class Root extends LightningElement {
     /** Events */
 
     handleNavigation = _event => {
-        // Dev Extension ->  chrome-extension://dncmipbpdapfjancbhmbodlhllapmagf/views/app.html
+        // Dev Extension ->  chrome-extension://konbmllgicfccombdckckakhnmejjoei/views/app.html
     };
 
     /** Method **/
