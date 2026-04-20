@@ -1144,7 +1144,9 @@ class IframeJsforceBridgeRuntime {
             'ApexClass',
             'ApexTrigger',
             'LightningComponentBundle',
+            'LightningComponentResource',
             'AuraDefinitionBundle',
+            'AuraDefinition',
         ]);
 
         const results: Array<Record<string, unknown>> = [];

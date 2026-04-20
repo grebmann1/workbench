@@ -128,7 +128,7 @@ sf metadata retrieve --metadata-type ApexClass --api-name MyClass --output /work
 Notes:
 - **\`sf org connect\` logs in / switches the active org** (establishes a toolkit session). Use this when you need to connect to an org.
 - **\`sf org open\` only opens a browser tab** via the front door URL. It does NOT connect to the org. Do NOT use it to connect.
-- Most \`sf\` commands accept \`--target-org <alias>\` (also \`-o\` / \`-u\`) to run against a different org without switching the active connection. If omitted, commands run against the currently connected org.
+- Most \`sf\` commands accept \`--target-org <alias>\` (also \`-o\` / \`-u\`) to run against a different org without switching the active connection. If omitted, commands run against the currently connected org. **\`--target-org\` must be a real org alias from \`sf org list\` — never pass a generic phrase like \`"active org"\` or \`"current org"\`. If you don't know the alias, omit the flag entirely.**
 - \`sf navigate --app <name>\` switches the toolkit UI to the named application (soql, api, anonymousApex, metadata, connections, org, etc.).
 - \`sf api request\` accepts relative or absolute URLs. Use \`--target-org\` (not \`-u\`) in the API command since \`-u\` is reserved for the URL.
 - \`--header\` can be repeated.
@@ -210,6 +210,7 @@ What not to do:
 - Do not use the real \`sf\` CLI binary; only the shims are available here.
 - **Do not use \`sf org open\` to connect to an org** — use \`sf org connect --target-org <alias>\` instead.
 - Do not omit \`--target-org\` when the user specifies a different org than the current active one.
+- **Do not pass a descriptive phrase as \`--target-org\`** (e.g. \`--target-org "active org"\`, \`--target-org current\`). The value must be a real org alias — use \`sf org list\` first if you are unsure of the alias.
 - Do not omit \`--query\` for \`sf data query\` or \`--target-org\` for \`sf org open\` / \`sf org connect\`.
 - Do not pass local file paths outside \`/workspace\` or \`/mnt\`.
 - Do not assume a user is logged in; return a clear error if no active connector exists.

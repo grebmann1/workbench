@@ -29,6 +29,7 @@ export default class Root extends LightningElement {
     version;
 
     currentTab;
+    currentWindowId: number | undefined;
     recordId;
     hasLoaded = false;
     panel = PANELS.SALESFORCE;
@@ -134,6 +135,7 @@ export default class Root extends LightningElement {
         // Handle Tabs
         try {
             this.currentTab = await getCurrentTab();
+            this.currentWindowId = this.currentTab?.windowId;
             this.currentUrl = this.currentTab?.url;
             //this.currentOrigin = (new URL(this.currentTab.url)).origin;
             if (withMonitorChange) {
@@ -204,6 +206,9 @@ export default class Root extends LightningElement {
 
     handleTabActivatedListener = (activeInfo: chrome.tabs.TabActiveInfo) => {
         if (!activeInfo?.tabId) {
+            return;
+        }
+        if (activeInfo.windowId !== this.currentWindowId) {
             return;
         }
         runActionAfterTimeOut(

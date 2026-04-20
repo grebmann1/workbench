@@ -105,11 +105,17 @@ const getMetadataConfig = async (connector: Connector, sobject: string) => {
 };
 
 // Helper function to load specific metadata
-async function loadSpecificMetadata(connector: Connector, sobject: string, bypass?: boolean) {
-    const isSobject =
-        getStore()
-            ?.getState()
-            .metadata.metadata_global.records.find(x => x.name == sobject)?.isSobject || false;
+export async function loadSpecificMetadata(
+    connector: Connector,
+    sobject: string,
+    bypass?: boolean,
+    globalRecords?: any[] | null
+) {
+    const records =
+        globalRecords ||
+        getStore()?.getState().metadata?.metadata_global?.records ||
+        [];
+    const isSobject = records.find(x => x.name == sobject)?.isSobject || false;
 
     if (!isSobject) {
         // Metadata API
@@ -155,7 +161,7 @@ async function loadSpecificMetadata(connector: Connector, sobject: string, bypas
 }
 
 // Helper function to load exception metadata
-async function loadSpecificMetadataException(
+export async function loadSpecificMetadataException(
     connector: Connector,
     exceptionMetadata: Record<string, any>,
     recordId: string | null,

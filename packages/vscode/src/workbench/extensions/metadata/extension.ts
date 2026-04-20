@@ -431,71 +431,106 @@ function getSalesforcePanelHtml({
     <style>
         body {
             margin: 0;
-            padding: 8px;
+            padding: 6px 10px;
             font: 12px/1.4 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
             color: var(--vscode-foreground, #1f2328);
             background: transparent;
         }
         .sfCard {
-            border: 1px solid var(--vscode-panel-border, rgba(128, 128, 128, 0.35));
+            position: relative;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px 14px;
+            border: 1px solid rgba(1, 118, 211, 0.25);
             border-radius: 8px;
-            background: var(--vscode-editor-background, #ffffff);
-            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+            background: linear-gradient(
+                90deg,
+                rgba(0, 161, 224, 0.12) 0%,
+                rgba(0, 161, 224, 0.04) 45%,
+                var(--vscode-editor-background, #ffffff) 100%
+            );
+            box-shadow: 0 1px 3px rgba(1, 118, 211, 0.08);
+            padding: 8px 12px 8px 16px;
             overflow: hidden;
-            max-width: 480px;
-            margin: 0 auto;
+        }
+        .sfCard::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background: linear-gradient(180deg, #0176d3, #00a1e0);
         }
         .sfHeader {
-            padding: 8px 10px;
-            border-bottom: 1px solid var(--vscode-panel-border, rgba(128, 128, 128, 0.25));
-            background: linear-gradient(180deg, rgba(0, 161, 224, 0.10), rgba(0, 161, 224, 0.02));
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 2px;
+            min-width: 0;
+            flex: 1 1 220px;
         }
         .sfTitle {
             margin: 0;
-            font-size: 13px;
+            font-size: 12px;
             font-weight: 700;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
         .sfSubtitle {
-            margin: 2px 0 0;
+            margin: 0;
             font-size: 11px;
             color: var(--vscode-descriptionForeground, #6a737d);
-        }
-        .sfBody {
-            padding: 8px 10px 10px;
-            display: grid;
-            gap: 8px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
         .sfStatus {
-            padding: 6px 10px;
+            margin-top: 2px;
+            padding: 3px 8px;
             border-radius: 6px;
             border: 1px solid ${statusBorder};
             background: ${statusBackground};
             color: ${statusTone};
             font-size: 11px;
+            line-height: 1.3;
+            align-self: flex-start;
+            max-width: 100%;
         }
         .sfStatus strong {
-            font-size: 12px;
+            font-size: 11px;
         }
         .sfStatus .sfStatusDetail {
-            display: block;
-            margin-top: 2px;
+            margin-left: 4px;
+        }
+        .sfDivider {
+            width: 1px;
+            align-self: stretch;
+            background: rgba(1, 118, 211, 0.2);
         }
         .sfActions {
-            display: grid;
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+            align-items: center;
             gap: 6px;
         }
         .sfButton {
-            width: 100%;
             border: 1px solid transparent;
             border-radius: 6px;
-            padding: 6px 10px;
+            padding: 5px 12px;
             font: inherit;
+            font-size: 12px;
             cursor: pointer;
-            text-align: left;
+            text-align: center;
+            white-space: nowrap;
         }
         .sfButtonPrimary {
             background: #0176d3;
             color: #ffffff;
+            font-weight: 600;
         }
         .sfButtonSecondary {
             background: var(--vscode-button-secondaryBackground, rgba(128, 128, 128, 0.14));
@@ -503,15 +538,18 @@ function getSalesforcePanelHtml({
             border-color: var(--vscode-panel-border, rgba(128, 128, 128, 0.25));
         }
         .sfFooter {
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 10px 14px;
             color: var(--vscode-descriptionForeground, #6a737d);
-            display: grid;
-            gap: 8px;
         }
         .sfFooterVersion {
-            display: grid;
-            grid-template-columns: auto minmax(0, 1fr) auto;
-            gap: 6px;
+            display: flex;
+            flex-direction: row;
             align-items: center;
+            gap: 6px;
         }
         .sfFooterLabel {
             font-size: 11px;
@@ -520,23 +558,26 @@ function getSalesforcePanelHtml({
             white-space: nowrap;
         }
         .sfFooterButton {
-            width: auto;
             text-align: center;
             white-space: nowrap;
-            padding: 5px 10px;
+            padding: 4px 10px;
         }
         .sfSelect {
-            width: 100%;
             border: 1px solid var(--vscode-panel-border, rgba(128, 128, 128, 0.25));
             border-radius: 6px;
-            padding: 4px 8px;
+            padding: 3px 8px;
             font: inherit;
+            font-size: 12px;
             color: var(--vscode-foreground, #1f2328);
             background: var(--vscode-input-background, rgba(128, 128, 128, 0.08));
+            min-width: 80px;
         }
         .sfOptions {
-            display: grid;
-            gap: 4px;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
         }
         .sfSectionTitle {
             font-weight: 700;
@@ -545,22 +586,28 @@ function getSalesforcePanelHtml({
             text-transform: uppercase;
             color: var(--vscode-descriptionForeground, #6a737d);
             margin: 0;
+            white-space: nowrap;
         }
         .sfToggleGrid {
-            display: grid;
-            gap: 4px;
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 4px 12px;
         }
         .sfToggle {
-            display: flex;
+            display: inline-flex;
             align-items: center;
-            gap: 6px;
+            gap: 5px;
             cursor: pointer;
+            white-space: nowrap;
         }
         .sfToggle input[type="checkbox"] {
             margin: 0;
         }
         .sfToggleLabel {
-            font-weight: 600;
+            font-weight: 500;
+            font-size: 11px;
             color: var(--vscode-foreground, #1f2328);
         }
     </style>
@@ -570,8 +617,6 @@ function getSalesforcePanelHtml({
         <div class="sfHeader">
             <h2 class="sfTitle">${title}</h2>
             <p class="sfSubtitle">${subtitle}</p>
-        </div>
-        <div class="sfBody">
             ${
                 connected && !detail
                     ? ''
@@ -581,13 +626,15 @@ function getSalesforcePanelHtml({
                     }
             </div>`
             }
-            <div class="sfActions">
-                <button class="sfButton sfButtonPrimary" data-command="${primaryCommand}">${primaryLabel}</button>
-                ${secondaryActions}
-            </div>
-            <div class="sfFooter">
-                ${footerContent}
-            </div>
+        </div>
+        <div class="sfDivider"></div>
+        <div class="sfActions">
+            <button class="sfButton sfButtonPrimary" data-command="${primaryCommand}">${primaryLabel}</button>
+            ${secondaryActions}
+        </div>
+        <div class="sfDivider"></div>
+        <div class="sfFooter">
+            ${footerContent}
         </div>
     </div>
     <script nonce="${nonce}">

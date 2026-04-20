@@ -52,6 +52,15 @@ export default class Header extends LightningElement {
             legacyStore.dispatch(store_application.collapseAgentChat());
         } else {
             legacyStore.dispatch(store_application.expandAgentChat());
+            // Collapse the left menu to free up horizontal space for the agent panel
+            if (!this.isMenuSmall) {
+                this.isMenuSmall = true;
+                legacyStore.dispatch(store_application.collapseMenu());
+                window.defaultStore.setItem(
+                    'header-isMenuSmall',
+                    JSON.stringify(this.isMenuSmall)
+                );
+            }
         }
     };
 

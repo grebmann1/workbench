@@ -77,7 +77,7 @@
                         alternative-text="Close"
                         title="Close"></lightning-button-icon>
                 </div>
-                <metadata-menu
+                <package-menu
                     lwc:ref="menu"
                     class="slds-full-height slds-p-horizontal_x-small"
                     application-name={applicationName}
@@ -88,10 +88,7 @@
                     sobject={sobject}
                     onselect={handleItemSelection}
                     onselectall={handleSelectAll}
-                    onunselectall={handleUnselectAll}
-                    is-select-all-displayed
-                    is-basic-selection-enabled
-                    is-level2-excluded></metadata-menu>
+                    onunselectall={handleUnselectAll}></package-menu>
             </div>
 
             <article class="full-page-body slds-card">

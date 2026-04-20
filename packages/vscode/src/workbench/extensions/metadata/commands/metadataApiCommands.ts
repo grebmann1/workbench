@@ -2,7 +2,7 @@
 import { zipUnpackagedFiles } from 'vscode/metadataApi';
 
 import { registerCommand } from '../../core/extensionRegistration';
-import { listFilesAndDirsRecursive } from '../core/workspaceCache';
+import { listFilesAndDirsRecursive, writeTextFile } from '../core/workspaceCache';
 import {
     getWorkspaceDefaultRootUri,
     getWorkspaceRootPath,
@@ -308,7 +308,20 @@ export function registerMetadataApiCommands({ connectionRuntime, context, deploy
         return '';
     }
 
-    async function deployAndRetrieveNewBundle(
+    function buildDefaultApexMetaXml(type: 'ApexClass' | 'ApexTrigger', apiVersion: string) {
+        const version = String(apiVersion || '60.0').replace(/[^0-9.]/g, '') || '60.0';
+        return `<?xml version="1.0" encoding="UTF-8"?>\n<${type} xmlns="http://soap.sforce.com/2006/04/metadata">\n    <apiVersion>${version}</apiVersion>\n    <status>Active</status>\n</${type}>\n`;
+    }
+
+    async function readFileBytesIfExists(filePath: string): Promise<Uint8Array | null> {
+        try {
+            return await vscode.workspace.fs.readFile(vscode.Uri.file(filePath));
+        } catch {
+            return null;
+        }
+    }
+
+    async function deployAndRetrieveNewMember(
         conn,
         filePaths: string[],
         options: { showProgress?: boolean; title?: string } = {}
@@ -325,10 +338,11 @@ export function registerMetadataApiCommands({ connectionRuntime, context, deploy
         const root = getWorkspaceDefaultRootUri(vscode);
         const rootPath = `${root.path.replace(/\/+$/, '')}/`;
 
-        // Infer bundle members from file paths
+        // Infer metadata members from file paths. Accept any inferable type; bundle types
+        // (LWC/Aura) still get the Tooling API fast path, others go straight to Metadata API.
         const membersByKey = new Map<
             string,
-            { type: string; fullName: string; bundleDirPath: string }
+            { type: string; fullName: string; memberDirPath: string; isBundle: boolean }
         >();
         for (const filePath of Array.isArray(filePaths) ? filePaths : []) {
             const relativePath = filePath.startsWith(rootPath)
@@ -336,24 +350,30 @@ export function registerMetadataApiCommands({ connectionRuntime, context, deploy
                 : null;
             if (!relativePath) continue;
             const member = inferMetadataMemberFromRelativePath(relativePath);
-            if (!member || !NEW_BUNDLE_TYPES.has(member.type)) continue;
+            if (!member?.type || !member?.fullName) continue;
             const key = `${member.type}::${member.fullName}`;
             if (membersByKey.has(key)) continue;
             const lastSlash = filePath.lastIndexOf('/');
-            const bundleDirPath = lastSlash > 0 ? filePath.slice(0, lastSlash) : filePath;
-            membersByKey.set(key, { type: member.type, fullName: member.fullName, bundleDirPath });
+            const memberDirPath = lastSlash > 0 ? filePath.slice(0, lastSlash) : filePath;
+            membersByKey.set(key, {
+                type: member.type,
+                fullName: member.fullName,
+                memberDirPath,
+                isBundle: NEW_BUNDLE_TYPES.has(member.type),
+            });
         }
 
         if (membersByKey.size === 0) {
             throw new Error(
-                'No LWC or Aura bundles could be inferred from the selected file(s). Make sure the file is inside an lwc or aura folder.'
+                'Could not infer a metadata type from the selected file(s). Ensure the file lives under a recognized Salesforce metadata folder (classes, triggers, lwc, aura, flows, layouts, objects, etc.).'
             );
         }
 
-        // Read all bundle files into memory once for both code paths
+        // Collect files to include in the zip. For bundle types we walk the bundle dir;
+        // for non-bundle types we include only the file itself plus its companion -meta.xml.
         type FileEntry = {
             absolutePath: string;
-            relPath: string;   // e.g. lwc/helloWorld/helloWorld.html
+            relPath: string;
             filename: string;
             source: string;
             bytes: Uint8Array;
@@ -363,36 +383,112 @@ export function registerMetadataApiCommands({ connectionRuntime, context, deploy
         const fileEntries: FileEntry[] = [];
         const pathToBytes: Record<string, Uint8Array> = {};
 
-        for (const { type: bundleType, fullName: bundleName, bundleDirPath } of membersByKey.values()) {
-            const bundleDirUri = vscode.Uri.file(bundleDirPath);
-            try {
+        const toRelPath = (absolutePath: string) =>
+            absolutePath.startsWith(rootPath) ? absolutePath.slice(rootPath.length) : null;
+
+        const addFile = (
+            absolutePath: string,
+            filename: string,
+            bytes: Uint8Array,
+            bundleName: string,
+            bundleType: string
+        ) => {
+            const relPath = toRelPath(absolutePath);
+            if (!relPath) return;
+            const source = new TextDecoder().decode(bytes);
+            pathToBytes[relPath] = bytes;
+            fileEntries.push({
+                absolutePath,
+                relPath,
+                filename,
+                source,
+                bytes,
+                bundleName,
+                bundleType,
+            });
+        };
+
+        for (const {
+            type: memberType,
+            fullName,
+            memberDirPath,
+            isBundle,
+        } of membersByKey.values()) {
+            if (isBundle) {
+                const bundleDirUri = vscode.Uri.file(memberDirPath);
+                try {
+                    // eslint-disable-next-line no-await-in-loop
+                    const entries = await vscode.workspace.fs.readDirectory(bundleDirUri);
+                    for (const [filename, fileType] of entries) {
+                        if (fileType !== 1 /* FileType.File */) continue;
+                        const fileUri = vscode.Uri.joinPath(bundleDirUri, filename);
+                        try {
+                            // eslint-disable-next-line no-await-in-loop
+                            const bytes = await vscode.workspace.fs.readFile(fileUri);
+                            addFile(fileUri.path, filename, bytes, fullName, memberType);
+                        } catch {
+                            // skip unreadable files
+                        }
+                    }
+                } catch {
+                    // skip if dir is unreadable
+                }
+                continue;
+            }
+
+            // Non-bundle: include only the file itself and its companion -meta.xml.
+            if (memberType === 'ApexClass' || memberType === 'ApexTrigger') {
+                const suffix = memberType === 'ApexClass' ? 'cls' : 'trigger';
+                const bodyFilename = `${fullName}.${suffix}`;
+                const metaFilename = `${fullName}.${suffix}-meta.xml`;
+                const bodyAbs = `${memberDirPath}/${bodyFilename}`;
+                const metaAbs = `${memberDirPath}/${metaFilename}`;
                 // eslint-disable-next-line no-await-in-loop
-                const entries = await vscode.workspace.fs.readDirectory(bundleDirUri);
-                for (const [filename, fileType] of entries) {
-                    if (fileType !== 1 /* FileType.File */) continue;
-                    const fileUri = vscode.Uri.joinPath(bundleDirUri, filename);
-                    const absolutePath = fileUri.path;
-                    const relPath = absolutePath.startsWith(rootPath)
-                        ? absolutePath.slice(rootPath.length)
-                        : null;
-                    if (!relPath) continue;
+                const bodyBytes = await readFileBytesIfExists(bodyAbs);
+                if (bodyBytes) {
+                    addFile(bodyAbs, bodyFilename, bodyBytes, fullName, memberType);
+                }
+                // eslint-disable-next-line no-await-in-loop
+                let metaBytes = await readFileBytesIfExists(metaAbs);
+                if (!metaBytes) {
+                    // Auto-generate the meta.xml companion so the Metadata API deploy succeeds,
+                    // and persist it to disk so future saves are stable.
+                    const metaXml = buildDefaultApexMetaXml(memberType, apiVersion);
+                    metaBytes = new TextEncoder().encode(metaXml);
                     try {
                         // eslint-disable-next-line no-await-in-loop
-                        const bytes = await vscode.workspace.fs.readFile(fileUri);
-                        const source = new TextDecoder().decode(bytes);
-                        pathToBytes[relPath] = bytes;
-                        fileEntries.push({ absolutePath, relPath, filename, source, bytes, bundleName, bundleType });
+                        await writeTextFile(vscode, vscode.Uri.file(metaAbs), metaXml);
                     } catch {
-                        // skip unreadable files
+                        // Non-fatal; we still include the generated bytes in the zip.
                     }
                 }
-            } catch {
-                // skip if dir is unreadable
+                addFile(metaAbs, metaFilename, metaBytes, fullName, memberType);
+                continue;
+            }
+
+            // Generic non-bundle: include the file itself; caller already produced a workspace
+            // path, so infer filename from it.
+            const genericFilename = memberDirPath
+                ? String(filePaths[0] || '').slice(memberDirPath.length + 1) || `${fullName}`
+                : `${fullName}`;
+            for (const selectedPath of filePaths) {
+                const relativePath = toRelPath(selectedPath);
+                if (!relativePath) continue;
+                const inferred = inferMetadataMemberFromRelativePath(relativePath);
+                if (inferred?.type !== memberType || inferred?.fullName !== fullName) continue;
+                // eslint-disable-next-line no-await-in-loop
+                const bytes = await readFileBytesIfExists(selectedPath);
+                if (!bytes) continue;
+                const lastSlash = selectedPath.lastIndexOf('/');
+                const filename =
+                    lastSlash >= 0 ? selectedPath.slice(lastSlash + 1) : genericFilename;
+                addFile(selectedPath, filename, bytes, fullName, memberType);
             }
         }
 
-        // --- Try Tooling API create (fast path, no polling) ---
-        if (membersByKey.size === 1) {
+        // --- Try Tooling API create (fast path, no polling) — LWC/Aura only ---
+        const allBundles = Array.from(membersByKey.values()).every(m => m.isBundle);
+        if (allBundles && membersByKey.size === 1) {
             const [{ type: bundleType, fullName: bundleName }] = Array.from(membersByKey.values());
             const isLwc = bundleType === 'LightningComponentBundle';
             const toolingFiles = fileEntries
@@ -421,12 +517,10 @@ export function registerMetadataApiCommands({ connectionRuntime, context, deploy
                     if (result?.bundleId && Array.isArray(result.resources) && deployTools?.mergeToolingMapItems) {
                         const resourceSObject = isLwc ? 'LightningComponentResource' : 'AuraDefinition';
                         const newItems: Record<string, unknown> = {};
-                        // Build relPath → absolutePath lookup
                         const relPathToAbs: Record<string, string> = {};
                         for (const e of fileEntries) {
                             relPathToAbs[e.relPath] = e.absolutePath;
                         }
-                        // Also build defType → absolutePath for Aura
                         const defTypeToAbs: Record<string, string> = {};
                         if (!isLwc) {
                             for (const e of fileEntries) {
@@ -504,23 +598,30 @@ export function registerMetadataApiCommands({ connectionRuntime, context, deploy
             );
         }
 
-        // Retrieve to populate tooling-map so subsequent saves use Tooling API
+        // Retrieve to populate tooling-map so subsequent saves use Tooling API. Only tooling-
+        // backed types can be registered there; other types fall back to the Metadata API map.
         const typesMap = new Map<string, Set<string>>();
         for (const { type, fullName } of membersByKey.values()) {
+            if (!TOOLING_METADATA_TYPES.has(type)) continue;
             if (!typesMap.has(type)) typesMap.set(type, new Set());
             typesMap.get(type)!.add(fullName);
         }
-        try {
-            await retrieveRuntime.retrieveToolingTypes(conn, typesMap);
-            if (deployTools && typeof deployTools.invalidateToolingMap === 'function') {
-                deployTools.invalidateToolingMap();
+        if (typesMap.size > 0) {
+            try {
+                await retrieveRuntime.retrieveToolingTypes(conn, typesMap);
+                if (deployTools && typeof deployTools.invalidateToolingMap === 'function') {
+                    deployTools.invalidateToolingMap();
+                }
+            } catch {
+                // Non-fatal: deploy succeeded; tooling-map update failed
             }
-        } catch {
-            // Non-fatal: deploy succeeded; tooling-map update failed
         }
 
         return status;
     }
+
+    // Back-compat alias; existing callers still use the bundle-shaped name.
+    const deployAndRetrieveNewBundle = deployAndRetrieveNewMember;
 
     async function resolveToolingIdentitiesForPaths(conn, filePaths: string[]) {
         const metadataApiMap = await loadMetadataApiMapCached();

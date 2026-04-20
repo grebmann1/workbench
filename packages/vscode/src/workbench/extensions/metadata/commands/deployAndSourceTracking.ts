@@ -9,6 +9,7 @@ import {
 import { createToolingMapStore } from '../core/toolingMapStore';
 import { writeTextFile } from '../core/workspaceCache';
 import { getWorkspacePath, getWorkspaceUri } from '../core/workspacePaths';
+import { inferMetadataMemberFromRelativePath } from '../runtime/metadataPathInference';
 
 import {
     buildChangedFileDeployQuickPickItems,
@@ -1029,11 +1030,14 @@ export function createDeployAndSourceTracking({
                             return;
                         }
 
-                        const canNewBundle =
+                        const inferredNewMember = inferMetadataMemberFromRelativePath(
+                            deriveWorkspaceRelativePath(deployPath)
+                        );
+                        const canNewMember =
                             resolution?.status === 'missing' &&
                             typeof newBundleDeployFn === 'function' &&
-                            Boolean(deriveWorkspaceRelativePath(deployPath));
-                        if (canNewBundle) {
+                            Boolean(inferredNewMember?.type && inferredNewMember?.fullName);
+                        if (canNewMember) {
                             void (async () => {
                                 try {
                                     await newBundleDeployFn(conn, [deployPath], {
@@ -1046,7 +1050,7 @@ export function createDeployAndSourceTracking({
                                             : 'Unknown error';
                                     logAutoDeploySkip(
                                         deployPath,
-                                        `newBundleError: ${message}`
+                                        `newMemberError: ${message}`
                                     );
                                 }
                             })();
@@ -1179,9 +1183,14 @@ export function createDeployAndSourceTracking({
                     return;
                 }
 
+                const inferredNewMember = inferMetadataMemberFromRelativePath(
+                    deriveWorkspaceRelativePath(path)
+                );
                 if (
                     resolution?.status === 'missing' &&
-                    typeof newBundleDeployFn === 'function'
+                    typeof newBundleDeployFn === 'function' &&
+                    inferredNewMember?.type &&
+                    inferredNewMember?.fullName
                 ) {
                     const conn = connectionRuntime.loadStoredConn();
                     if (!conn.instanceUrl || !conn.accessToken) {
@@ -1191,7 +1200,7 @@ export function createDeployAndSourceTracking({
                         return;
                     }
                     const choice = await vscode.window.showWarningMessage(
-                        'This file is not yet in Salesforce. Deploy the component to the org now?',
+                        `${inferredNewMember.fullName} (${inferredNewMember.type}) is not yet in Salesforce. Deploy it now?`,
                         'Deploy to Org',
                         'Cancel'
                     );
@@ -1199,7 +1208,7 @@ export function createDeployAndSourceTracking({
                     try {
                         await newBundleDeployFn(conn, [path], { showProgress: true });
                         await vscode.window.showInformationMessage(
-                            'Component deployed and registered successfully.'
+                            `${inferredNewMember.fullName} deployed and registered successfully.`
                         );
                     } catch (error) {
                         await vscode.window.showErrorMessage(

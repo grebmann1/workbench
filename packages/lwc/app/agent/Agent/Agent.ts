@@ -2,7 +2,7 @@ import { stepCountIs, streamText, tool as createAiSdkTool } from 'ai';
 import type { ModelMessage, ToolModelMessage, ToolResultPart, ToolSet } from 'ai';
 import type { ToolCall as AiToolCall, ToolResultOutput } from '@ai-sdk/provider-utils';
 import { createBashTools, filterToolsByModel } from 'agent/tools';
-import { DEFAULT_LLM_PROVIDER, normalizeLlmProvider } from 'shared/llm';
+import { DEFAULT_LLM_PROVIDER, normalizeLlmProvider, getMaxOutputTokensForModel } from 'shared/llm';
 import { getIndexedDbFileSystem } from 'core/fs';
 import { guid } from 'shared/utils';
 import { z } from 'zod';
@@ -291,6 +291,7 @@ export class Agent {
     private tools: ToolSet;
     private reasoningConfig?: { reasoningEffort: string; reasoningSummary: string };
     private modelContextWindow: number;
+    private modelMaxOutputTokens: number;
     private maxToolRounds: number;
     private abortController: AbortController | null = null;
     private messages: ModelMessage[] = [];
@@ -316,6 +317,7 @@ export class Agent {
         tools,
         reasoningConfig,
         modelContextWindow,
+        modelMaxOutputTokens,
         systemPrompt,
         maxToolRounds,
         isStoreEnabled,
@@ -331,6 +333,7 @@ export class Agent {
         tools: ToolSet;
         reasoningConfig?: { reasoningEffort: string; reasoningSummary: string };
         modelContextWindow: number;
+        modelMaxOutputTokens: number;
         systemPrompt: string;
         maxToolRounds: number;
         isStoreEnabled: boolean;
@@ -346,6 +349,7 @@ export class Agent {
         this.tools = tools;
         this.reasoningConfig = reasoningConfig;
         this.modelContextWindow = modelContextWindow;
+        this.modelMaxOutputTokens = modelMaxOutputTokens;
         this.systemPrompt = systemPrompt;
         this.maxToolRounds = maxToolRounds;
         this.isStoreEnabled = isStoreEnabled;
@@ -411,6 +415,7 @@ export class Agent {
             tools: aiTools,
             reasoningConfig,
             modelContextWindow: settings.modelContextWindow || 128000,
+            modelMaxOutputTokens: getMaxOutputTokensForModel(currentModel),
             systemPrompt: settings.systemPrompt || '',
             maxToolRounds: settings.maxToolRounds || MAX_TOOL_ROUNDS,
             isStoreEnabled: settings.isStoreEnabled || false,
@@ -664,6 +669,7 @@ export class Agent {
                         tools: this.tools,
                         stopWhen: stepCountIs(this.maxToolRounds),
                         maxRetries: 0,
+                        maxOutputTokens: this.modelMaxOutputTokens,
                         abortSignal: signal,
                         providerOptions: resolveProviderOptions({
                             provider: this.provider,

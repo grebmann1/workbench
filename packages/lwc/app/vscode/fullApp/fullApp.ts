@@ -30,6 +30,7 @@ import {
     IFRAME_FS_BRIDGE_QUERY_FLAG,
     IFRAME_FS_BRIDGE_QUERY_VERSION_PARAM,
     IFRAME_FS_BRIDGE_QUERY_PARENT_ORIGIN_PARAM,
+    IFRAME_FS_BRIDGE_QUERY_WORKSPACE_ROOT_PARAM,
     IFRAME_JSFORCE_BRIDGE_QUERY_FLAG,
     IFRAME_JSFORCE_BRIDGE_QUERY_VERSION_PARAM,
     IFRAME_AI_BRIDGE_QUERY_FLAG,
@@ -77,7 +78,7 @@ export default class VscodeWorkbenchApp extends ToolkitElement {
     @track orgContext = buildOrgContext();
 
     _started = false;
-    _workspaceRoot = DEFAULT_WORKSPACE_ROOT;
+    @track _workspaceRoot = DEFAULT_WORKSPACE_ROOT;
     _appFs = null;
     _workspaceBootstrap = null;
     _connectionBootstrapPromise = null;
@@ -1183,6 +1184,18 @@ export default class VscodeWorkbenchApp extends ToolkitElement {
             url.searchParams.set(
                 IFRAME_FS_BRIDGE_QUERY_PARENT_ORIGIN_PARAM,
                 window.location.origin
+            );
+        }
+        // Scope VSCode's workspace identity (and therefore its IndexedDB-backed
+        // editor/tab state) to the active Salesforce org. When the workspace
+        // root changes, this getter re-evaluates, the iframe `src` changes, and
+        // the iframe reloads with the correct workspace — which is the only
+        // way to update VSCode's `folderUri` since it is locked at module-init
+        // time in `setup.common.ts`.
+        if (this._workspaceRoot && this._workspaceRoot !== DEFAULT_WORKSPACE_ROOT) {
+            url.searchParams.set(
+                IFRAME_FS_BRIDGE_QUERY_WORKSPACE_ROOT_PARAM,
+                this._workspaceRoot
             );
         }
         return url.toString();

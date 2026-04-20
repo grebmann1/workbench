@@ -89,6 +89,7 @@ import {
   defaultKeybindingsJson
 } from './workbench/configuration/config'
 import { registerIframeWorkspaceProvider } from 'vscode/bridge/registerIframeWorkspaceProvider'
+import { IFRAME_FS_BRIDGE_QUERY_WORKSPACE_ROOT_PARAM } from 'vscode/bridge/iframeFsBridgeContract'
 import 'vscode/localExtensionHost'
 
 const url = new URL(document.location.href)
@@ -96,14 +97,27 @@ const params = url.searchParams
 export const remoteAuthority = params.get('remoteAuthority') ?? undefined
 export const connectionToken = params.get('connectionToken') ?? undefined
 
+// Read the org-scoped workspace root from the iframe URL synchronously, before
+// storage/services are initialized. The host (LWC parent) sets this param so
+// VSCode's `folderUri` — and therefore the IndexedDB-backed workspace state
+// key that drives open tabs/editor restoration — is scoped per Salesforce org.
+const defaultWorkspaceRoot = '/workspace'
+const workspaceRootFromUrl = (() => {
+  const raw = params.get(IFRAME_FS_BRIDGE_QUERY_WORKSPACE_ROOT_PARAM)
+  if (typeof raw !== 'string') return null
+  const trimmed = raw.trim()
+  if (!trimmed || !trimmed.startsWith('/')) return null
+  return trimmed
+})()
+
 window.history.replaceState({}, document.title, url.href)
 
 export const userDataProvider = await createIndexedDBProviders()
-const defaultWorkspaceRoot = '/workspace'
 const iframeWorkspaceBridgeRegistration = await registerIframeWorkspaceProvider({
   vscode,
   registerFileSystemOverlay,
-  priority: 1
+  priority: 1,
+  workspaceRoot: workspaceRootFromUrl ?? undefined
 }).catch((error) => {
   console.warn('[sfWorkbench] Failed to register iframe workspace bridge provider.', error)
   return null
@@ -113,7 +127,7 @@ export const workspaceRoot =
   typeof iframeWorkspaceBridgeRegistration?.workspaceRoot === 'string' &&
   iframeWorkspaceBridgeRegistration.workspaceRoot.trim()
     ? iframeWorkspaceBridgeRegistration.workspaceRoot
-    : defaultWorkspaceRoot
+    : workspaceRootFromUrl ?? defaultWorkspaceRoot
 export const workspaceFile = monaco.Uri.file(`${workspaceRoot}.code-workspace`)
 
 if (!useIframeWorkspaceBridge) {

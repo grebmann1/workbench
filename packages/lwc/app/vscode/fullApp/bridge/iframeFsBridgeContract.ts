@@ -4,6 +4,7 @@ export const IFRAME_FS_BRIDGE_VERSION = 1;
 export const IFRAME_FS_BRIDGE_QUERY_FLAG = 'fsBridge';
 export const IFRAME_FS_BRIDGE_QUERY_VERSION_PARAM = 'bridgeProtocolVersion';
 export const IFRAME_FS_BRIDGE_QUERY_PARENT_ORIGIN_PARAM = 'bridgeParentOrigin';
+export const IFRAME_FS_BRIDGE_QUERY_WORKSPACE_ROOT_PARAM = 'workspaceRoot';
 
 export const IFRAME_FS_BRIDGE_WINDOW_MESSAGE_TYPES = {
     HELLO: 'bridgeHello',

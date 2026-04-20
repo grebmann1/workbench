@@ -111,6 +111,9 @@ export default class App extends ToolkitElement {
     @track cacheFilter = '';
     _cacheFilterTimer = null;
 
+    // AI Provider Onboarding
+    @track showOnboardAiProvider = false;
+
     @track metadataStorageTypeOptions = App.DEFAULT_METADATA_STORAGE_TYPES.map(type => ({
         label: type,
         value: type,
@@ -259,6 +262,14 @@ export default class App extends ToolkitElement {
 
     handleCloseCacheExplorer = () => {
         this.showCacheExplorer = false;
+    };
+
+    handleOpenOnboardAiProvider = () => {
+        this.showOnboardAiProvider = true;
+    };
+
+    handleCloseOnboardAiProvider = () => {
+        this.showOnboardAiProvider = false;
     };
 
     handleCacheFilterChange = e => {
@@ -447,6 +458,10 @@ export default class App extends ToolkitElement {
 
     get googleUserEmail() {
         return this.googleUser?.email || '';
+    }
+
+    get isSalesforceGoogleUser() {
+        return /@salesforce\.com$/i.test(this.googleUserEmail);
     }
 
     get googleUserPicture() {

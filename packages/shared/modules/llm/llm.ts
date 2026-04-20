@@ -156,6 +156,21 @@ function extractModels(
     return Array.isArray(entry?.models) ? entry.models : [];
 }
 
+const DEFAULT_MAX_OUTPUT_TOKENS = 8192;
+
+export function getMaxOutputTokensForModel(
+    model: unknown,
+    options: LlmModelOption[] = [
+        ...Object.values(PROVIDER_MODEL_OPTIONS).flat(),
+        ...INTERNAL_MODEL_OPTIONS,
+    ]
+): number {
+    const normalized = normalizeString(model);
+    if (!normalized) return DEFAULT_MAX_OUTPUT_TOKENS;
+    const match = options.find(o => o.value === normalized);
+    return match?.maxOutputTokens ?? DEFAULT_MAX_OUTPUT_TOKENS;
+}
+
 export function getProviderForModel(
     model: unknown,
     options: LlmModelOption[] = Object.values(PROVIDER_MODEL_OPTIONS).flat()

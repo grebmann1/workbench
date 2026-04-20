@@ -137,6 +137,25 @@ export function resolveProviderModelInstance(
     return providerInstance(modelId);
 }
 
+// Maps reasoning effort labels to Anthropic thinking token budgets.
+const ANTHROPIC_THINKING_BUDGETS: Record<string, number> = {
+    minimal: 1024,
+    low: 4096,
+    medium: 8000,
+    high: 16000,
+    xhigh: 32000,
+};
+
+// Maps reasoning effort labels to Google thinkingLevel values.
+// 'xhigh' is not a valid Google level, so we fall back to 'high'.
+const GEMINI_THINKING_LEVEL_MAP: Record<string, 'minimal' | 'low' | 'medium' | 'high'> = {
+    minimal: 'minimal',
+    low: 'low',
+    medium: 'medium',
+    high: 'high',
+    xhigh: 'high',
+};
+
 export function supportsReasoningProvider(provider: unknown, isInternal = false) {
     return normalizeLlmProvider(provider) === 'openai' && !isInternal;
 }
@@ -150,6 +169,35 @@ export function resolveProviderOptions({
     reasoningConfig?: ProviderReasoningConfig;
     isInternal?: boolean;
 }) {
+    const normalizedProvider = normalizeLlmProvider(provider);
+
+    // Internal Gemini goes through @ai-sdk/openai (OpenAI-compatible gateway).
+    // That SDK cannot preserve Gemini's thought_signature across multi-turn tool
+    // calls, causing BadRequestError. Disabling thinking avoids the problem.
+    if (normalizedProvider === 'gemini' && isInternal) {
+        return { openai: { thinking: { type: 'disabled' } } };
+    }
+
+    // Non-internal Gemini: map reasoning effort to thinkingLevel, or disable
+    // thinking explicitly when effort is none (Gemini has thinking on by default).
+    if (normalizedProvider === 'gemini' && !isInternal) {
+        const level =
+            reasoningConfig?.reasoningEffort != null
+                ? GEMINI_THINKING_LEVEL_MAP[reasoningConfig.reasoningEffort]
+                : null;
+        return level != null
+            ? { google: { thinkingConfig: { thinkingLevel: level } } }
+            : { google: { thinkingConfig: { thinkingBudget: 0 } } };
+    }
+
+    // Non-internal Anthropic: map reasoning effort to a thinking budget.
+    if (normalizedProvider === 'anthropic' && !isInternal && reasoningConfig != null) {
+        const budget = ANTHROPIC_THINKING_BUDGETS[reasoningConfig.reasoningEffort];
+        if (budget != null) {
+            return { anthropic: { thinking: { type: 'enabled', budgetTokens: budget } } };
+        }
+    }
+
     return !supportsReasoningProvider(provider, isInternal) || reasoningConfig == null
         ? undefined
         : { openai: reasoningConfig };

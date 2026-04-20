@@ -1,6 +1,15 @@
 import { createSlice, createAsyncThunk, createEntityAdapter } from '@reduxjs/toolkit';
-import { lowerCaseKey, guid, isNotUndefinedOrNull } from 'shared/utils';
+import {
+    lowerCaseKey,
+    guid,
+    isNotUndefinedOrNull,
+    METADATA as METADATA_UTILS,
+} from 'shared/utils';
 import * as BACKGROUNDJOB from './backgroundJob';
+import * as DESCRIBE from './describe';
+import * as ERROR from './error';
+import { loadSpecificMetadata, loadSpecificMetadataException } from './metadata';
+import { getStore } from '../storeRef';
 import type { ConnectorLike, ConnectionLike } from 'core/connector';
 
 const PACKAGE_SETTINGS_KEY = 'PACKAGE_SETTINGS_KEY';
@@ -241,6 +250,106 @@ export const cancelPackageDeploy = createAsyncThunk(
     }
 );
 */
+
+// Metadata menu thunks (isolated from the METADATA slice so the Deployment Manager
+// catalog doesn't share browsing state with the Metadata Explorer).
+const fetchMenuGlobalMetadata = createAsyncThunk(
+    'package/menu/fetchGlobalMetadata',
+    async (_, { dispatch, getState, rejectWithValue }) => {
+        try {
+            const { application } = getState() as any;
+            const { tooling } = (
+                await dispatch(
+                    DESCRIBE.describeSObjects({
+                        connector: application.connector.conn,
+                    })
+                )
+            ).payload;
+            const sobjects = tooling.sobjects.map(obj => obj.name);
+            const { metadataObjects } = (
+                await dispatch(
+                    DESCRIBE.describeVersion({
+                        connector: application.connector.conn,
+                    })
+                )
+            ).payload;
+            let result = metadataObjects
+                .filter(obj => !METADATA_UTILS.METADATA_EXCLUDE_LIST.includes(obj.xmlName))
+                .map(obj => ({
+                    ...obj,
+                    name: obj.xmlName,
+                    label: obj.xmlName,
+                    key: obj.xmlName,
+                    isSobject: sobjects.includes(obj.xmlName),
+                }));
+            result = [
+                ...result,
+                ...METADATA_UTILS.METADATA_EXCEPTION_LIST.filter(x => x.isSearchable),
+            ];
+            return { records: result, label: 'Metadata' };
+        } catch (error) {
+            getStore()?.dispatch(
+                ERROR.reduxSlice.actions.addError({
+                    message: 'Error fetching global metadata for package',
+                    details: error.message,
+                })
+            );
+            return rejectWithValue(error.message);
+        }
+    }
+);
+
+const fetchMenuSpecificMetadata = createAsyncThunk(
+    'package/menu/fetchSpecificMetadata',
+    async (
+        { sobject, bypass = false, force = false }: any,
+        { dispatch, getState, rejectWithValue }
+    ) => {
+        try {
+            await dispatch(packageSlice.actions.setMenuAttributes({ sobject }));
+            const { application, package2 } = getState() as any;
+            const exceptionMetadata =
+                METADATA_UTILS.METADATA_EXCEPTION_LIST.find(x => x.name === sobject) || null;
+            if (
+                package2.menu_currentMetadata !== sobject ||
+                force ||
+                !package2.menu_metadata_records
+            ) {
+                const _metadata = exceptionMetadata
+                    ? await loadSpecificMetadataException(
+                          application.connector,
+                          exceptionMetadata,
+                          null,
+                          1,
+                          bypass
+                      )
+                    : await loadSpecificMetadata(
+                          application.connector,
+                          sobject,
+                          bypass,
+                          package2.menu_metadata_global?.records
+                      );
+                return {
+                    currentMetadata: sobject,
+                    metadata: _metadata,
+                };
+            }
+            return {
+                currentMetadata: package2.menu_currentMetadata,
+                metadata: package2.menu_metadata_records,
+            };
+        } catch (error) {
+            getStore()?.dispatch(
+                ERROR.reduxSlice.actions.addError({
+                    message: 'Error fetching specific metadata for package',
+                    details: error.message,
+                })
+            );
+            return rejectWithValue(error.message);
+        }
+    }
+);
+
 // Create a slice with reducers and extraReducers
 const packageSlice = createSlice({
     name: 'package',
@@ -249,6 +358,15 @@ const packageSlice = createSlice({
         currentMethod: null,
         currentDeploymentJob: null,
         currentRetrieveJob: null,
+        // Metadata menu (isolated from METADATA slice)
+        menu_isLoading: false,
+        menu_loadingMessage: '',
+        menu_currentMetadata: null,
+        menu_metadata_global: null,
+        menu_metadata_records: null,
+        menu_param1: null,
+        menu_label1: null,
+        menu_sobject: null,
     },
     reducers: {
         loadCacheSettings: (state, action) => {
@@ -287,6 +405,18 @@ const packageSlice = createSlice({
         },
         clearCurrentRetrieveJob: (state, action) => {
             state.currentRetrieveJob = null;
+        },
+        setMenuAttributes: (state, action) => {
+            const { sobject, param1, label1 } = action.payload || {};
+            if (sobject !== undefined) state.menu_sobject = sobject;
+            if (param1 !== undefined) state.menu_param1 = param1;
+            if (label1 !== undefined) state.menu_label1 = label1;
+        },
+        menuGoBack: state => {
+            state.menu_metadata_records = null;
+            state.menu_currentMetadata = null;
+            state.menu_param1 = null;
+            state.menu_label1 = null;
         },
         /*setCurrentDeploymentJobId :(state, action) => {
             const { id } = action.payload;
@@ -338,8 +468,34 @@ const packageSlice = createSlice({
                     isFetching: false,
                     error,
                 });
+            })
+            // Menu: global metadata types
+            .addCase(fetchMenuGlobalMetadata.pending, state => {
+                state.menu_isLoading = true;
+                state.menu_loadingMessage = 'Loading All Metadata';
+            })
+            .addCase(fetchMenuGlobalMetadata.fulfilled, (state, action) => {
+                state.menu_isLoading = false;
+                state.menu_metadata_global = action.payload;
+            })
+            .addCase(fetchMenuGlobalMetadata.rejected, state => {
+                state.menu_isLoading = false;
+            })
+            // Menu: specific metadata records
+            .addCase(fetchMenuSpecificMetadata.pending, state => {
+                state.menu_isLoading = true;
+                state.menu_loadingMessage = 'Loading Records';
+            })
+            .addCase(fetchMenuSpecificMetadata.fulfilled, (state, action) => {
+                state.menu_isLoading = false;
+                state.menu_metadata_records = action.payload.metadata;
+                state.menu_currentMetadata = action.payload.currentMetadata;
+            })
+            .addCase(fetchMenuSpecificMetadata.rejected, state => {
+                state.menu_isLoading = false;
             });
     },
 });
 
 export const reduxSlice = packageSlice;
+export { fetchMenuGlobalMetadata, fetchMenuSpecificMetadata };
