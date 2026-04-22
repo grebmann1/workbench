@@ -839,6 +839,10 @@ let cachedBrowser = null;
 let cachedPage = null;
 let cachedTabId = null;
 
+// Tracks the last tab created by the agent via createTab() so repeated calls
+// (e.g. retries) reuse the same tab instead of spawning a new one each time.
+let _agentTabId = null;
+
 const isInternalLogEnabled = false
 
 function sandboxLog(...args) {
@@ -944,10 +948,38 @@ async function listTabs() {
 
 /**
  * Open a new tab via extension host.
- * @param {string} url
+ *
+ * Idempotent by default: if a previous createTab() call in this sandbox is
+ * still open, that same tab is returned instead of spawning a new one. This
+ * prevents agent retries from piling up dozens of tabs. Pass
+ * `{ forceNew: true }` to always open a brand-new tab.
+ *
+ * @param {string} [url]
+ * @param {{ forceNew?: boolean }} [options]
  * @returns {Promise<{id:number,title:string,url:string,active:boolean}>}
  */
-async function createTab(url) {
+async function createTab(url, options) {
+    const forceNew = !!(options && options.forceNew);
+
+    if (!forceNew && _agentTabId !== null) {
+        try {
+            const tabs = await listTabs();
+            const existing = tabs.find(t => t.id === _agentTabId);
+            if (existing) {
+                console.log(
+                    `[createTab] Reusing existing agent tab #${existing.id} (url: ${existing.url}). Pass { forceNew: true } to open a new tab.`
+                );
+                return existing;
+            }
+            console.log(
+                `[createTab] Previous agent tab #${_agentTabId} not found — creating a new tab.`
+            );
+            _agentTabId = null;
+        } catch (err) {
+            sandboxLog('createTab listTabs error, falling through to create:', err?.message ?? err);
+        }
+    }
+
     const response = await sendParentRequest(
         'CREATE_TAB_REQUEST',
         'CREATE_TAB_RESPONSE',
@@ -955,7 +987,14 @@ async function createTab(url) {
         10000,
         'createTab'
     );
-    return response.tab;
+    const tab = response.tab;
+    _agentTabId = tab?.id ?? null;
+    if (forceNew) {
+        console.log(`[createTab] forceNew=true — created new tab #${tab?.id} (url: ${tab?.url}).`);
+    } else {
+        console.log(`[createTab] Created new tab #${tab?.id} (url: ${tab?.url}).`);
+    }
+    return tab;
 }
 
 /**
@@ -981,6 +1020,9 @@ async function closeTab(tabId) {
                 });
             }
             clearPageCache();
+        }
+        if (_agentTabId === tabId) {
+            _agentTabId = null;
         }
     }
 }

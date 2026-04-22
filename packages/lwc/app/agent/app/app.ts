@@ -104,7 +104,7 @@ export default class App extends ToolkitElement {
     activeProvider;
     activeProviderApiKey;
     activeProviderBaseUrl;
-    isInternal;
+    @track isInternal;
 
     // Google auth state — driven by application.settings via storeChange
     @track isGoogleAuthenticated = false;

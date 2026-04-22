@@ -15,8 +15,23 @@ export default class App extends ToolkitElement {
 
     @api openaiKey: string | undefined;
     @api isAudioRecorderDisabled = false;
-    @api isInternal = false;
     @api availableModels = MODELS;
+
+    _isInternal = false;
+    @api
+    get isInternal() {
+        return this._isInternal;
+    }
+    set isInternal(value) {
+        const prev = this._isInternal;
+        this._isInternal = !!value;
+        // When switching to an internal provider, reasoning is not supported.
+        // Reset the local selection so the next `send` emits 'none' and the
+        // hidden reasoning selector doesn't leak a stale value into the store.
+        if (!prev && this._isInternal && this.selectedReasoning !== 'none') {
+            this.selectedReasoning = 'none';
+        }
+    }
 
     @track selectedModel = DEFAULT_MODEL;
     @track selectedReasoning = DEFAULT_REASONING;

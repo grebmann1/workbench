@@ -431,6 +431,8 @@ logImage(await page.screenshot({ encoding: "base64" }));
 
 For tasks that visit multiple URLs sequentially, reuse a single "worker" tab rather than creating a new tab for each URL. This prevents browser memory bloat and keeps the tab bar manageable during long-running tasks.
 
+**\`createTab()\` is idempotent by default.** Repeated calls (e.g. on retries, or running the same script multiple times) return the **same** tab that was previously created, as long as it is still open. The log line \`[createTab] Reusing existing agent tab #<id>\` tells you a reuse happened; \`[createTab] Created new tab #<id>\` tells you a fresh tab was opened. Only pass \`{ forceNew: true }\` when you genuinely need a second, isolated tab.
+
 \`\`\`javascript
 // Good: One tab, multiple URLs
 const tab = await createTab();
@@ -444,14 +446,19 @@ for (const url of urlsToScrape) {
   results.push(data);
 }
 
-// Avoid: Creating many tabs and leaving them open
+// Also fine on retries: calling createTab() again returns the same tab
+// (no new tab is opened), so retry logic does NOT pile up tabs.
+const sameTab = await createTab();
+// => logs "[createTab] Reusing existing agent tab #<id>"
+
+// Avoid: Forcing a new tab on every iteration
 for (const url of urlsToScrape) {
-  const newTab = await createTab(url);  // Creates 10+ tabs!
+  const newTab = await createTab(url, { forceNew: true }); // Creates 10+ tabs!
   // Browser gets cluttered, memory usage grows
 }
 
 // If you must open extra tabs, close them when done
-const tempTab = await createTab('https://example.com');
+const tempTab = await createTab('https://example.com', { forceNew: true });
 // ...work...
 await closeTab(tempTab.id);
 \`\`\`
@@ -558,37 +565,62 @@ logImage(await page.screenshot({ encoding: "base64" }));
 console.log("Page loaded, check screenshot to verify");
 \`\`\`
 
-### createTab(url?)
+### createTab(url?, options?)
 
-Create a new browser tab for automation.
+Create a browser tab for automation. **Idempotent by default** — repeated calls return the previously-created agent tab if it is still open, so retries do not pile up tabs.
 
 **Parameters:**
 
-- \`url\` (string, optional): URL to navigate to. Defaults to \`about:blank\`.
+- \`url\` (string, optional): URL to navigate to. Defaults to \`about:blank\`. Only used when a new tab is actually created; ignored when an existing tab is reused.
+- \`options\` (object, optional):
+  - \`forceNew\` (boolean): When \`true\`, always open a brand-new tab even if a previous agent tab is still open. Defaults to \`false\`.
 
 **Returns:** \`{id, title, url, active}\` - Tab information
+
+**Logging:** \`createTab\` prints one of these lines so you can tell what happened:
+
+- \`[createTab] Reusing existing agent tab #<id> (url: ...)\` — an existing tab was returned, no new tab was opened.
+- \`[createTab] Created new tab #<id> (url: ...)\` — a new tab was opened (first call, or previous tab was closed).
+- \`[createTab] forceNew=true — created new tab #<id> (url: ...)\` — a new tab was opened because \`forceNew: true\` was passed.
 
 **Example:**
 
 \`\`\`javascript
-// Create a new tab and navigate to a URL
+// First call: creates a new tab
 const tab = await createTab("https://example.com");
 const page = await connectToPage(tab.id);
-// Now you can automate this fresh tab
+
+// Second call (e.g. on retry or re-run): returns the SAME tab,
+// does NOT open a new one. The url argument is ignored here.
+const sameTab = await createTab("https://example.com");
+// sameTab.id === tab.id
+\`\`\`
+
+**Forcing a brand-new tab:**
+
+\`\`\`javascript
+// Open a second, independent tab for parallel or isolated work
+const extraTab = await createTab("https://example.com/other", { forceNew: true });
+const extraPage = await connectToPage(extraTab.id);
+// ...work...
+await closeTab(extraTab.id);
 \`\`\`
 
 **Notes:**
 
-- The tab is created in the background (won't steal focus)
-- Use the returned \`id\` with \`connectToPage()\` to get a Puppeteer Page
-- Useful for starting automation on a clean page without affecting user's tabs
+- The tab is created in the background (won't steal focus).
+- Use the returned \`id\` with \`connectToPage()\` to get a Puppeteer Page.
+- Do **not** call \`createTab\` on every retry or every loop iteration with \`forceNew: true\` — you will end up with N tabs. Rely on the default idempotent behavior, or use \`listTabs()\` to find an existing tab.
+- Closing the tracked tab via \`closeTab()\` resets the tracking, so the next \`createTab()\` will open a fresh one.
 
 **Common Pattern - Fresh Tab Automation:**
 
 \`\`\`javascript
-// Create a new tab for scraping without affecting user's browsing
+// Create a tab for scraping without affecting user's browsing.
+// Safe to re-run: on retry it reuses the same tab instead of piling up tabs.
 const tab = await createTab("https://example.com/data");
 const page = await connectToPage(tab.id);
+await page.goto("https://example.com/data");
 await page.waitForSelector(".data-table");
 const data = await page.$$eval(".data-row", (rows) => rows.map((r) => r.textContent));
 return data;
