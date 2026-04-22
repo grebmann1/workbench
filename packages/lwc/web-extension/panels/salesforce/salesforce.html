@@ -144,13 +144,9 @@
                     </slds-tabset>
                 </template>
                 <template lwc:else>
-                    <div
-                        class="slds-text-align_center slds-text-color_weak slds-p-horizontal_medium">
-                        <slds-spinner
-                            alternative-text="Loading"
-                            message="Connecting to Salesforce."
-                            size="small"></slds-spinner>
-                    </div>
+                    <skeleton-loading-overlay
+                        variant="light"
+                        message="Connecting to Salesforce..."></skeleton-loading-overlay>
                 </template>
 
                 <!-- End -->

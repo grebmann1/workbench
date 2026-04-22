@@ -5,7 +5,7 @@
             "default": true
         }
     ],
-    "name": "sf-toolkit-workspace",
+    "name": "workbench-workspace",
     "namespace": "",
     "sfdcLoginUrl": "https://login.salesforce.com",
     "sourceApiVersion": "66.0"

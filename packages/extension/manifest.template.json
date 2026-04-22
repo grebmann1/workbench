@@ -1,5 +1,6 @@
 {
     "manifest_version": 3,
+    "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAh3x6gqnWMRSHjn4frL+REg5lUJbcSof73dM8DMo/DdQfgAbgN5w+f/Qw6NPVn9iFRclKFJ/BcCYxbo4aEFNROrBh55L2o5No60O4b4b1u9b4OpK8yK7sMbjuiRZ6YdmYZvNMqYVI3BvfNTKFgobmflhgdVOMJijBefofNbdDjcC9fI50VAFaj9exC1tRChuBKJmVhV2+PMcuCRpUj0LgBO6bhwnh6DFp/AiH1GS9zkgz/WKHx9s4VzqCUXmJenPqE0tjhe+LhTAUwf4TCbRCg8GBePcRdzOpNQBHKr9G24aaX/zUqOdILkQsEOxZ6CZIBr+lGdgnUQec7JzXlYMq3wIDAQAB",
     "name": "Workbench",
     "version": "__buildVersion__",
     "description": "Use Workbench directly from chrome to visualize record details and analyze User access, profile, permissions, etc",

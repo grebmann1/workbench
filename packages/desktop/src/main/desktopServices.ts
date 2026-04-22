@@ -235,7 +235,7 @@ export async function getPmdInstallation(projectPath: string | null | undefined)
     installationPath: string | null;
     executablePath: string | null;
 }> {
-    const localInstallationPath = projectPath ? path.join(projectPath, '.sf-toolkit', 'pmd') : null;
+    const localInstallationPath = projectPath ? path.join(projectPath, '.workbench', 'pmd') : null;
     const localExecutablePath = localInstallationPath
         ? path.join(localInstallationPath, 'bin', 'pmd')
         : null;
@@ -265,8 +265,8 @@ async function ensureWorkspaceScaffold(projectPath: string): Promise<void> {
     await fs.mkdir(projectPath, { recursive: true });
     await fs.mkdir(path.join(projectPath, 'force-app', 'main', 'default'), { recursive: true });
     await fs.mkdir(path.join(projectPath, 'manifest'), { recursive: true });
-    await fs.mkdir(path.join(projectPath, '.sf-toolkit', 'pmd', 'reports'), { recursive: true });
-    await fs.mkdir(path.join(projectPath, '.sf-toolkit', 'pmd', 'rulesets', 'apex'), {
+    await fs.mkdir(path.join(projectPath, '.workbench', 'pmd', 'reports'), { recursive: true });
+    await fs.mkdir(path.join(projectPath, '.workbench', 'pmd', 'rulesets', 'apex'), {
         recursive: true,
     });
 
@@ -274,7 +274,7 @@ async function ensureWorkspaceScaffold(projectPath: string): Promise<void> {
     const packageXmlPath = path.join(projectPath, 'manifest', 'package.xml');
     const pmdQuickstartPath = path.join(
         projectPath,
-        '.sf-toolkit',
+        '.workbench',
         'pmd',
         'rulesets',
         'apex',
@@ -291,7 +291,7 @@ async function ensureWorkspaceScaffold(projectPath: string): Promise<void> {
                         default: true,
                     },
                 ],
-                name: path.basename(projectPath) || 'sf-toolkit-workspace',
+                name: path.basename(projectPath) || 'workbench-workspace',
                 namespace: '',
                 sfdcLoginUrl: 'https://login.salesforce.com',
                 sourceApiVersion: DEFAULT_SOURCE_API_VERSION,
@@ -710,7 +710,7 @@ export async function installLatestPmd(projectPath: string | null | undefined): 
     const releaseResponse = await fetch(PMD_RELEASES_API_URL, {
         headers: {
             Accept: 'application/vnd.github+json',
-            'User-Agent': 'sf-toolkit-desktop',
+            'User-Agent': 'workbench-desktop',
         },
     });
 
@@ -731,7 +731,7 @@ export async function installLatestPmd(projectPath: string | null | undefined): 
 
     const zipResponse = await fetch(downloadUrl, {
         headers: {
-            'User-Agent': 'sf-toolkit-desktop',
+            'User-Agent': 'workbench-desktop',
         },
     });
 
@@ -739,8 +739,8 @@ export async function installLatestPmd(projectPath: string | null | undefined): 
         throw new Error(`Failed to download PMD: ${zipResponse.status}`);
     }
 
-    const installationRoot = path.join(projectPath, '.sf-toolkit', 'pmd');
-    const tempRoot = path.join(app.getPath('temp'), `sf-toolkit-pmd-${Date.now()}`);
+    const installationRoot = path.join(projectPath, '.workbench', 'pmd');
+    const tempRoot = path.join(app.getPath('temp'), `workbench-pmd-${Date.now()}`);
     const archivePath = path.join(tempRoot, 'pmd.zip');
     const extractRoot = path.join(tempRoot, 'extract');
 

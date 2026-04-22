@@ -51,6 +51,11 @@ const workbenchBaseUrl = JSON.stringify(
         .trim()
         .replace(/\/+$/, '')
 );
+const workbenchVscodeUrl = JSON.stringify(
+    String(process.env.WORKBENCH_VSCODE_URL || process.env.WORKBENCH_BASE_URL || 'https://www.workbench-salesforce.com')
+        .trim()
+        .replace(/\/+$/, '')
+);
 const fullAppPathFragment = `${path.sep}vscode${path.sep}fullApp${path.sep}`;
 
 function importerIsUnderVscodeFullApp(importer) {
@@ -403,7 +408,7 @@ const getChromeCopyTargets = (isProduction) => [
             newContents = newContents.replace(
                 '__buildWorkbenchOrigin__',
                 isProduction
-                    ? String(process.env.WORKBENCH_BASE_URL || 'https://www.workbench-salesforce.com') + '/'
+                    ? String(process.env.WORKBENCH_VSCODE_URL || process.env.WORKBENCH_BASE_URL || 'https://www.workbench-salesforce.com') + '/'
                     : 'http://localhost:5173/'
             );
             newContents = newContents.replace(
@@ -563,6 +568,7 @@ const basicBundler = (
         replace({
             'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV),
             'process.env.WORKBENCH_BASE_URL': workbenchBaseUrl,
+            'process.env.WORKBENCH_VSCODE_URL': workbenchVscodeUrl,
             '/assets/icons/': '/_slds/icons/',
             preventAssignment: true,
             'process.env.IS_CHROME': true,
@@ -591,6 +597,7 @@ const coreBuilder = (modulesArg, isProduction) => ({
         replace({
             'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV),
             'process.env.WORKBENCH_BASE_URL': workbenchBaseUrl,
+            'process.env.WORKBENCH_VSCODE_URL': workbenchVscodeUrl,
             'process.env.IS_CHROME': true,
             preventAssignment: true,
         }),
@@ -635,6 +642,7 @@ const sandboxBuilder = (isProduction) => ({
         replace({
             'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV),
             'process.env.WORKBENCH_BASE_URL': workbenchBaseUrl,
+            'process.env.WORKBENCH_VSCODE_URL': workbenchVscodeUrl,
             preventAssignment: true,
         }),
         stripTypescript(),

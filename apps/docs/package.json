@@ -1,5 +1,5 @@
 {
-  "name": "@sf-toolkit/docs",
+  "name": "@workbench/docs",
   "private": true,
   "version": "1.0.0",
   "description": "Workbench documentation site",

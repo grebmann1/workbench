@@ -28,11 +28,13 @@ export const LIGHT_COLOR_THEME = 'Default Light+';
 export const DARK_COLOR_THEME = 'Default Dark+';
 export const WORKBENCH_THEME_STORAGE_KEY = 'vscode.workbench.themeMode';
 // In development the VS Code web server runs at localhost:5173.
-// In production the iframe is served from the same origin as WORKBENCH_BASE_URL.
-// Both values must stay in sync with the manifest's `frame-src __buildWorkbenchOrigin__`.
+// In production the iframe is served from WORKBENCH_VSCODE_URL (the dedicated VS Code web app
+// host, e.g. vscode.workbench-salesforce.com). WORKBENCH_BASE_URL is the API server and must not
+// be used as the iframe origin. Both values must stay in sync with the manifest's
+// `frame-src __buildWorkbenchOrigin__`.
 export const WORKBENCH_IFRAME_ORIGIN =
     process.env.NODE_ENV === 'production'
-        ? process.env.WORKBENCH_BASE_URL
+        ? process.env.WORKBENCH_VSCODE_URL || process.env.WORKBENCH_BASE_URL
         : 'http://localhost:5173';
 export const WORKBENCH_IFRAME_URL = WORKBENCH_IFRAME_ORIGIN + '/';
 export const DEFAULT_WORKSPACE_ROOT = '/workspace';

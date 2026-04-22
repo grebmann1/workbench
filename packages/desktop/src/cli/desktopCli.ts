@@ -7,10 +7,10 @@ import path from 'node:path';
 import { serializeLaunchIntent, type DesktopLaunchIntent } from '../main/launchIntent';
 
 function printHelp(): void {
-    process.stdout.write(`sf-toolkit-desktop\n\n`);
+    process.stdout.write(`workbench-desktop\n\n`);
     process.stdout.write(`Usage:\n`);
-    process.stdout.write(`  sf-toolkit-desktop\n`);
-    process.stdout.write(`  sf-toolkit-desktop --org <alias>\n`);
+    process.stdout.write(`  workbench-desktop\n`);
+    process.stdout.write(`  workbench-desktop --org <alias>\n`);
 }
 
 export function parseCliArgs(argv: string[]): DesktopLaunchIntent {

@@ -74,20 +74,20 @@ heroku login
 heroku container:login
 
 # Create the app in container stack
-heroku create sf-toolkit --stack container --region us
+heroku create workbench2 --stack container --region us
 
 # Enable ACM (free auto-managed SSL for custom domains)
-heroku certs:auto:enable -a sf-toolkit
+heroku certs:auto:enable -a workbench2
 
 # Add all four public domains
-heroku domains:add workbench-salesforce.com          -a sf-toolkit
-heroku domains:add www.workbench-salesforce.com      -a sf-toolkit
-heroku domains:add api.workbench-salesforce.com      -a sf-toolkit
-heroku domains:add doc.workbench-salesforce.com      -a sf-toolkit
-heroku domains:add vscode.workbench-salesforce.com   -a sf-toolkit
+heroku domains:add workbench-salesforce.com          -a workbench2
+heroku domains:add www.workbench-salesforce.com      -a workbench2
+heroku domains:add api.workbench-salesforce.com      -a workbench2
+heroku domains:add doc.workbench-salesforce.com      -a workbench2
+heroku domains:add vscode.workbench-salesforce.com   -a workbench2
 
 # Inspect and copy the DNS targets Heroku assigns
-heroku domains -a sf-toolkit
+heroku domains -a workbench2
 ```
 
 ### 3.1 DNS records (at the registrar)
@@ -131,7 +131,7 @@ heroku config:set \
   GOOGLE_CLIENT_ID_WEB='...' \
   GOOGLE_CLIENT_SECRET_WEB='...' \
   AI_RATE_LIMIT_DAILY=100 \
-  -a sf-toolkit
+  -a workbench2
 ```
 
 > Important: `PORT=3000` here is the **internal** Express port used by Supervisor (see `docker/supervisord.conf`). Heroku **overrides** `$PORT` at dyno boot for the dyno process (which is `nginx`), so nginx will correctly listen on Heroku's assigned port. The Express child process is launched by supervisor with `environment=...,PORT="3000"` which takes precedence over the dyno `$PORT` — keep that line in `supervisord.conf`.
@@ -139,7 +139,7 @@ heroku config:set \
 Verify:
 
 ```bash
-heroku config -a sf-toolkit
+heroku config -a workbench2
 ```
 
 ---
@@ -154,19 +154,19 @@ Three commands from a clean checkout:
 npm run docker:prebuild
 
 # 2. Build the image from the repo Dockerfile and push it to Heroku's
-#    Container Registry. The CLI tags it as registry.heroku.com/sf-toolkit/web.
-heroku container:push web -a sf-toolkit
+#    Container Registry. The CLI tags it as registry.heroku.com/workbench2/web.
+heroku container:push web -a workbench2
 
 # 3. Promote the pushed image to the active release.
-heroku container:release web -a sf-toolkit
+heroku container:release web -a workbench2
 ```
 
-> `heroku container:push` runs `docker build` against the local `Dockerfile` — it does **not** reuse an image already tagged as `sf-toolkit:latest`. So don't run `docker compose build` before it; the push command builds once on its own.
+> `heroku container:push` runs `docker build` against the local `Dockerfile` — it does **not** reuse an image already tagged as `workbench2:latest`. So don't run `docker compose build` before it; the push command builds once on its own.
 
 Tail logs to confirm `nginx` and `server` both come up under supervisor:
 
 ```bash
-heroku logs --tail -a sf-toolkit
+heroku logs --tail -a workbench2
 ```
 
 You should see:
@@ -206,8 +206,8 @@ cross-origin-resource-policy: cross-origin
 ## 7. Rollback
 
 ```bash
-heroku releases -a sf-toolkit
-heroku rollback v<previous> -a sf-toolkit
+heroku releases -a workbench2
+heroku rollback v<previous> -a workbench2
 ```
 
 ---
@@ -217,4 +217,4 @@ heroku rollback v<previous> -a sf-toolkit
 - **Multi-stage Dockerfile + `heroku.yml`** to let Heroku build the image from git on each push (instead of us building locally and using `heroku container:push`). Worth doing once CI is involved so a teammate without Docker installed can still deploy.
 - **Dyno sizing**: the image ships LWR + Docusaurus + Monaco assets and the Express server; start on `standard-1x`, scale up if memory pressure appears under LWR SSR load.
 - **Health check**: add a lightweight `/healthz` in `packages/server/server-prod.ts` and a matching nginx location on each subdomain so Heroku's routing layer surfaces real failures instead of a black-box 503.
-- **Preview / staging app**: duplicate the provisioning section under `sf-toolkit-staging` with different domains (e.g. `staging.workbench-salesforce.com`) before shipping risky changes.
+- **Preview / staging app**: duplicate the provisioning section under `workbench2-staging` with different domains (e.g. `staging.workbench-salesforce.com`) before shipping risky changes.

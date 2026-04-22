@@ -1,5 +1,5 @@
 {
-    "name": "sfdx-ui-light",
+    "name": "workbench",
     "version": "2.0.0",
     "engines": {
         "node": "22.14"
