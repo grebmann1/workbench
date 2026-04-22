@@ -284,6 +284,7 @@ function focusPortTab(port) {
     const tab = port?.sender?.tab;
     if (!tab?.id || !tab?.windowId) return;
     chrome.tabs.update(tab.id, { active: true }, updatedTab => {
+        if (chrome.runtime.lastError || !updatedTab) return;
         chrome.windows.update(updatedTab.windowId, { focused: true });
     });
 }
@@ -465,6 +466,8 @@ async function updateContextMenu() {
 
 // Async version of shouldInjectScript
 async function shouldInjectScriptAsync(url) {
+    // Never inject into the extension's own pages.
+    if (typeof url === 'string' && url.startsWith('chrome-extension://')) return false;
     const normalizedUrl = normalizeUrlForPatternMatch(url);
     if (!normalizedUrl) return false;
     const { includePatterns, excludePatterns } = await getContentScriptPatterns(
@@ -561,8 +564,11 @@ async function handleTabUpdated(tabId, info, tab) {
             },
             results => {
                 if (chrome.runtime.lastError) {
-                    injectToolkit(tabId);
-                } else if (!results || !results[0] || !results[0].result) {
+                    // Tab is in an error/restricted state (e.g. error page, tab closed).
+                    // Do not attempt injection — it will fail and generate noise.
+                    return;
+                }
+                if (!results || !results[0] || !results[0].result) {
                     injectToolkit(tabId);
                 }
             }
@@ -861,7 +867,7 @@ chrome.runtime.onInstalled.addListener(async details => {
     if (reason === 'install') {
         await chrome.storage.local.set({ installedVersion: currentVersion });
         chrome.tabs.create({
-            url: `https://www.workbench-salesforce.com/welcome?redirect_url=${encodeURIComponent(chrome.runtime.getURL('views/app.html'))}`,
+            url: `https://www.sf-workbench.com/welcome?redirect_url=${encodeURIComponent(chrome.runtime.getURL('views/app.html'))}`,
         });
     } else if (
         reason === 'update' &&
@@ -869,7 +875,7 @@ chrome.runtime.onInstalled.addListener(async details => {
         currentVersion &&
         compareMajorMinor(previousVersion, currentVersion)
     ) {
-        chrome.tabs.create({ url: 'https://www.workbench-salesforce.com/app?applicationName=release' });
+        chrome.tabs.create({ url: 'https://www.sf-workbench.com/app?applicationName=release' });
     }
     /* const isEnabled = await loadSingleExtensionConfigFromCache(CACHE_CONFIG.OVERLAY_ENABLED.key);
     if (!data.hasOwnProperty(OVERLAY_ENABLED_VAR)) {

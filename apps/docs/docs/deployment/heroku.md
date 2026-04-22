@@ -10,10 +10,10 @@ Workbench is deployed to Heroku using the **Container Registry** (Docker-based) 
 
 ```
 Internet → Heroku TLS termination → $PORT → nginx (vhost router)
-                                                ├── workbench-salesforce.com      → dist/ui   (Vite SPA)
-                                                ├── api.workbench-salesforce.com  → Express API (port 3000 internal)
-                                                ├── vscode.workbench-salesforce.com → packages/vscode/dist
-                                                └── doc.workbench-salesforce.com  → dist/docs (Docusaurus)
+                                                ├── sf-workbench.com      → dist/ui   (Vite SPA)
+                                                ├── api.sf-workbench.com  → Express API (port 3000 internal)
+                                                ├── vscode.sf-workbench.com → packages/vscode/dist
+                                                └── doc.sf-workbench.com  → dist/docs (Docusaurus)
 ```
 
 - **nginx** listens on Heroku's dynamic `$PORT` and routes by subdomain (`server_name`).
@@ -68,10 +68,10 @@ heroku config:set -a workbench2 \
 ### 3. Add custom domains
 
 ```bash
-heroku domains:add workbench-salesforce.com -a workbench2
-heroku domains:add api.workbench-salesforce.com -a workbench2
-heroku domains:add vscode.workbench-salesforce.com -a workbench2
-heroku domains:add doc.workbench-salesforce.com -a workbench2
+heroku domains:add sf-workbench.com -a workbench2
+heroku domains:add api.sf-workbench.com -a workbench2
+heroku domains:add vscode.sf-workbench.com -a workbench2
+heroku domains:add doc.sf-workbench.com -a workbench2
 ```
 
 Then retrieve the DNS targets and configure your DNS provider:

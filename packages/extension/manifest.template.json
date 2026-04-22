@@ -42,7 +42,7 @@
     "content_scripts": [
         {
             "matches": [
-                "https://*.workbench-salesforce.com/*",
+                "https://*.sf-workbench.com/*",
                 "http://localhost:3000/*"
             ],
             "run_at": "document_end",
@@ -99,7 +99,7 @@
     "incognito": "spanning",
     "externally_connectable": {
         "matches": [
-            "*://*.workbench-salesforce.com/*"
+            "*://*.sf-workbench.com/*"
         ]
     },
     "oauth2": {

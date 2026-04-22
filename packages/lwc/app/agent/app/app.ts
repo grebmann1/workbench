@@ -9,6 +9,7 @@ import {
     normalizeLlmProvider,
 } from 'shared/llm';
 import { CACHE_CONFIG, cacheManager, saveSingleExtensionConfigToCache } from 'shared/cacheManager';
+import { GOOGLE_SIGNIN_SCOPES } from 'agent/googleAuth';
 import ToolkitElement from 'core/toolkitElement';
 import { reportError, store, connectStore, AGENT, APPLICATION } from 'core/store';
 import LOGGER from 'shared/logger';
@@ -110,6 +111,8 @@ export default class App extends ToolkitElement {
     @track isGoogleAuthenticated = false;
     @track googleUser: { token: string; email: string; name: string; picture: string } | null = null;
     @track rateLimitRemaining: number | null = null;
+    /** Tracks the last token we sent to the backend for verification, to avoid redundant calls. */
+    _sessionVerifiedToken: string | null = null;
     // Agent tool settings — driven by application.settings via storeChange
     brightDataApiKey: string | null = null;
     googleSheetEnabled = false;
@@ -140,6 +143,9 @@ export default class App extends ToolkitElement {
             if (nextIsAuthenticated) {
                 this._applyWorkbenchProvider(nextGoogleUser.token, nextGoogleUser.email);
                 void this._refreshRateLimit();
+                // Verify the session token we just loaded from cache (covers the race where
+                // _restoreGoogleSession ran before loadFromCache populated the store).
+                void this._verifyAndMaybeRefreshSession(nextGoogleUser);
             } else {
                 this.rateLimitRemaining = null;
             }
@@ -218,35 +224,103 @@ export default class App extends ToolkitElement {
 
     async _restoreGoogleSession() {
         // Read from the store (already populated by skeleton/app/cache.ts loadFromCache).
+        // If loadFromCache hasn't finished yet the store is empty and we return early; storeChange
+        // will call _verifyAndMaybeRefreshSession once the session is available.
         const session = store.getState().application?.settings?.[CACHE_CONFIG.GOOGLE_SESSION.key] as
             | { token: string; email: string; name: string; picture: string }
             | null
             | undefined;
         if (!session?.token) return;
+        void this._verifyAndMaybeRefreshSession(session);
+    }
 
-        // Verify the session is still valid on the backend.
+    /** Verifies the stored backend JWT. If it is expired, attempts a silent Chrome token refresh
+     *  so the user is not prompted for OAuth again. Falls back to clearing the session only when
+     *  Chrome cannot provide a token silently. */
+    async _verifyAndMaybeRefreshSession(
+        session: { token: string; email: string; name: string; picture: string }
+    ) {
+        if (!session?.token) return;
+        // Skip if we already verified this exact token to avoid redundant network calls.
+        if (this._sessionVerifiedToken === session.token) return;
+        this._sessionVerifiedToken = session.token;
+
         try {
             const resp = await fetch(`${this._serverBaseUrl}/google/me`, {
                 headers: { Authorization: `Bearer ${session.token}` },
-                credentials: 'same-origin',
             });
-            if (!resp.ok) {
-                // Backend session gone — clear both the persistent cache and the store.
-                await cacheManager.setConfigValue(CACHE_CONFIG.GOOGLE_SESSION.key, null);
-                await cacheManager.setConfigValue(CACHE_CONFIG.GOOGLE_DRIVE_CONNECTED.key, false);
-                store.dispatch(
-                    APPLICATION.reduxSlice.actions.updateSettings({
-                        [CACHE_CONFIG.GOOGLE_SESSION.key]: null,
-                        [CACHE_CONFIG.GOOGLE_DRIVE_CONNECTED.key]: false,
-                    })
-                );
-                return;
-            }
+            if (resp.ok) return; // Token still valid — nothing to do.
         } catch {
-            // Network error — keep the existing session; it will fail on first AI call.
+            // Network error — keep existing session; it will surface errors on first AI call.
+            return;
         }
-        // storeChange will pick up the session from application.settings and set
-        // isGoogleAuthenticated, so nothing else needed here.
+
+        // Backend returned non-OK (expired/invalid) — try silent re-auth via Chrome identity
+        // so the user is not asked to sign in again unnecessarily.
+        this._sessionVerifiedToken = null;
+        await this._trySilentGoogleReauth();
+    }
+
+    /** Attempts to silently obtain a fresh Google access token from Chrome and exchange it for a
+     *  new backend session JWT. Clears the session without prompting if Chrome cannot help. */
+    async _trySilentGoogleReauth() {
+        if (
+            typeof chrome === 'undefined' ||
+            typeof (chrome as any).identity?.getAuthToken !== 'function'
+        ) {
+            await this._clearGoogleSession();
+            return;
+        }
+        (chrome as any).identity.getAuthToken(
+            { interactive: false, scopes: GOOGLE_SIGNIN_SCOPES },
+            async (chromeToken: string | undefined) => {
+                if ((chrome as any).runtime.lastError || !chromeToken) {
+                    // Chrome cannot refresh silently — let the user sign in manually.
+                    await this._clearGoogleSession();
+                    return;
+                }
+                try {
+                    const resp = await fetch(`${this._serverBaseUrl}/google/oauth/verify-token`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ accessToken: chromeToken }),
+                    });
+                    if (!resp.ok) {
+                        await this._clearGoogleSession();
+                        return;
+                    }
+                    const data = await resp.json();
+                    const newSession = {
+                        token: data.token,
+                        email: data.email,
+                        name: data.name,
+                        picture: data.picture,
+                    };
+                    // Persist silently refreshed session — no user interaction needed.
+                    await cacheManager.setConfigValue(CACHE_CONFIG.GOOGLE_SESSION.key, newSession);
+                    store.dispatch(
+                        APPLICATION.reduxSlice.actions.updateSettings({
+                            [CACHE_CONFIG.GOOGLE_SESSION.key]: newSession,
+                        })
+                    );
+                } catch {
+                    await this._clearGoogleSession();
+                }
+            }
+        );
+    }
+
+    /** Removes the Google session from the persistent cache and Redux store. */
+    async _clearGoogleSession() {
+        this._sessionVerifiedToken = null;
+        await cacheManager.setConfigValue(CACHE_CONFIG.GOOGLE_SESSION.key, null);
+        await cacheManager.setConfigValue(CACHE_CONFIG.GOOGLE_DRIVE_CONNECTED.key, false);
+        store.dispatch(
+            APPLICATION.reduxSlice.actions.updateSettings({
+                [CACHE_CONFIG.GOOGLE_SESSION.key]: null,
+                [CACHE_CONFIG.GOOGLE_DRIVE_CONNECTED.key]: false,
+            })
+        );
     }
 
     _applyWorkbenchProvider(token: string, email: string) {

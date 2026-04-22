@@ -16,3 +16,31 @@ extension-header {
 .slds-full-height {
     height: 100%;
 }
+
+/* First-visit spotlight on the "Open App" header button.
+   Applied on the lightning-button-icon host element. box-shadow pulses on the
+   host so we do not need to pierce the shadow DOM. */
+.open-app-spotlight {
+    display: inline-flex;
+    border-radius: 0.375rem;
+    animation: open-app-pulse 1.6s ease-out infinite;
+}
+
+@keyframes open-app-pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(0, 112, 210, 0.55);
+    }
+    70% {
+        box-shadow: 0 0 0 8px rgba(0, 112, 210, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(0, 112, 210, 0);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .open-app-spotlight {
+        animation: none;
+        box-shadow: 0 0 0 2px rgba(0, 112, 210, 0.55);
+    }
+}

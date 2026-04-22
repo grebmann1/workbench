@@ -11,10 +11,10 @@
 #   heroku container:release web -a workbench2
 #
 # Custom domains (run once per domain):
-#   heroku domains:add workbench-salesforce.com -a workbench2
-#   heroku domains:add api.workbench-salesforce.com -a workbench2
-#   heroku domains:add vscode.workbench-salesforce.com -a workbench2
-#   heroku domains:add doc.workbench-salesforce.com -a workbench2
+#   heroku domains:add sf-workbench.com -a workbench2
+#   heroku domains:add api.sf-workbench.com -a workbench2
+#   heroku domains:add vscode.sf-workbench.com -a workbench2
+#   heroku domains:add doc.sf-workbench.com -a workbench2
 # Then point DNS CNAMEs to the targets printed by `heroku domains -a workbench2`.
 # =============================================================================
 build:

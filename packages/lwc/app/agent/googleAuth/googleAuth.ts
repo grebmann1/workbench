@@ -11,7 +11,7 @@ export type GoogleUser = {
 };
 
 export default class GoogleAuth extends LightningElement {
-    /** Absolute server base URL (e.g. https://api.workbench-salesforce.com). */
+    /** Absolute server base URL (e.g. https://api.sf-workbench.com). */
     @api serverUrl: string = '';
 
     @track isLoading = false;

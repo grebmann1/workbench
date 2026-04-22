@@ -21,6 +21,7 @@ import {
     normalizeString as normalize,
     groupBy,
     getChromePort,
+    redirectToUrlViaChrome,
 } from 'shared/utils';
 import {
     getConfigurations,
@@ -31,6 +32,7 @@ import {
     getCurrentTab,
     credentialStrategies,
     notificationService,
+    listOrgSessionsViaBackground,
     OAUTH_TYPES,
 } from 'core/connector';
 import { reportError, store, APPLICATION } from 'core/store';
@@ -94,14 +96,57 @@ export default class App extends ToolkitElement {
     showOrgFarm = true;
     showNonOrgFarm = true;
 
+    // Active Browser Sessions (card/side-panel variant only)
+    @track sessions: Array<{
+        sessionId?: string;
+        serverUrl?: string;
+        label?: string;
+        detail?: string;
+    }> = [];
+    isLoadingSessions = false;
+
     async connectedCallback() {
         window.addEventListener('electron-orgs-updated', this._onElectronOrgsUpdated);
         await this._loadConnectionFiltersFromCache();
         await this.fetchAllConnections();
         this.checkForInjected();
+        if (this.isHeaderLess) {
+            this._loadBrowserSessions();
+        }
         window.setTimeout(() => {
             this.openNewConnectionModalFromPrefill();
         }, 10);
+    }
+
+    _loadBrowserSessions = async () => {
+        this.isLoadingSessions = true;
+        try {
+            const result = await listOrgSessionsViaBackground();
+            this.sessions = Array.isArray(result) ? result : [];
+        } catch (e) {
+            LOGGER.error('listOrgSessionsViaBackground failed', e);
+            this.sessions = [];
+        } finally {
+            this.isLoadingSessions = false;
+        }
+    };
+
+    handleSessionClick = event => {
+        const el = event.currentTarget;
+        const serverUrl = el?.dataset?.serverUrl;
+        const sessionId = el?.dataset?.sessionId;
+        if (!serverUrl || !sessionId) return;
+        if (!isChromeExtension()) return;
+        redirectToUrlViaChrome({
+            baseUrl: chrome.runtime.getURL('/views/app.html'),
+            sessionId,
+            serverUrl,
+            isNewTab: true,
+        });
+    };
+
+    get hasSessions() {
+        return this.sessions.length > 0;
     }
 
     openNewConnectionModalFromPrefill = () => {
@@ -565,7 +610,7 @@ export default class App extends ToolkitElement {
             let url = new URL(
                 isChromeExtension()
                     ? chrome.runtime.getURL('/views/app.html')
-                    : 'https://www.workbench-salesforce.com/extension'
+                    : 'https://www.sf-workbench.com/extension'
             );
 
             const { alias, credentialType, ...settings } = this.data.find(x => x.id == row.id);

@@ -8,7 +8,11 @@ import {
 } from 'shared/utils';
 import { APPLICATION, connectStore, store } from 'core/store';
 import LOGGER from 'shared/logger';
-import { CACHE_CONFIG, loadSingleExtensionConfigFromCache } from 'shared/cacheManager';
+import {
+    CACHE_CONFIG,
+    loadSingleExtensionConfigFromCache,
+    saveSingleExtensionConfigToCache,
+} from 'shared/cacheManager';
 
 const APPLICATIONS = {
     CONNECTION: 'connection',
@@ -23,9 +27,11 @@ export default class Default extends LightningElement {
 
     _currentApplication; //APPLICATIONS.ASSISTANT;//
     betaSmartInputEnabled = false;
+    isFirstVisit = false;
 
     connectedCallback() {
         this.loadBetaFlags();
+        this.loadFirstVisit();
         this.emitApplicationChange(this.currentApplication);
     }
 
@@ -38,6 +44,21 @@ export default class Default extends LightningElement {
             this.betaSmartInputEnabled = false;
         }
     };
+
+    loadFirstVisit = async () => {
+        try {
+            const seen = await loadSingleExtensionConfigFromCache(
+                CACHE_CONFIG.SIDEPANEL_HAS_SEEN_OPEN_APP.key
+            );
+            this.isFirstVisit = !seen;
+        } catch (e) {
+            this.isFirstVisit = false;
+        }
+    };
+
+    get openAppButtonClass() {
+        return this.isFirstVisit ? 'open-app-spotlight' : '';
+    }
 
     @api
     get currentApplication() {
@@ -179,7 +200,18 @@ export default class Default extends LightningElement {
         );
     };
 
-    openToolkitClick = () => {
+    openToolkitClick = async () => {
+        if (this.isFirstVisit) {
+            this.isFirstVisit = false;
+            try {
+                await saveSingleExtensionConfigToCache(
+                    CACHE_CONFIG.SIDEPANEL_HAS_SEEN_OPEN_APP.key,
+                    true
+                );
+            } catch (e) {
+                // Non-blocking: spotlight will simply reappear on next open
+            }
+        }
         const params = new URLSearchParams({
             applicationName: 'home',
         });

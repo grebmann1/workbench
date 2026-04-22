@@ -47,12 +47,12 @@ const resolvePlugin = resolve({
 const cjsPlugin = cjs({ requireReturnsDefault: 'auto' });
 const terserPlugin = terser();
 const workbenchBaseUrl = JSON.stringify(
-    String(process.env.WORKBENCH_BASE_URL || 'https://www.workbench-salesforce.com')
+    String(process.env.WORKBENCH_BASE_URL || 'https://www.sf-workbench.com')
         .trim()
         .replace(/\/+$/, '')
 );
 const workbenchVscodeUrl = JSON.stringify(
-    String(process.env.WORKBENCH_VSCODE_URL || process.env.WORKBENCH_BASE_URL || 'https://www.workbench-salesforce.com')
+    String(process.env.WORKBENCH_VSCODE_URL || process.env.WORKBENCH_BASE_URL || 'https://www.sf-workbench.com')
         .trim()
         .replace(/\/+$/, '')
 );
@@ -408,7 +408,7 @@ const getChromeCopyTargets = (isProduction) => [
             newContents = newContents.replace(
                 '__buildWorkbenchOrigin__',
                 isProduction
-                    ? String(process.env.WORKBENCH_VSCODE_URL || process.env.WORKBENCH_BASE_URL || 'https://www.workbench-salesforce.com') + '/'
+                    ? String(process.env.WORKBENCH_VSCODE_URL || process.env.WORKBENCH_BASE_URL || 'https://www.sf-workbench.com') + '/'
                     : 'http://localhost:5173/'
             );
             newContents = newContents.replace(

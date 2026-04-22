@@ -37,20 +37,20 @@ http {
 
     # =========================================================================
     # Domain-based routing (port 80)
-    # Production: workbench-salesforce.com, api.workbench-salesforce.com, vscode.workbench-salesforce.com,
-    #             doc.workbench-salesforce.com
+    # Production: sf-workbench.com, api.sf-workbench.com, vscode.sf-workbench.com,
+    #             doc.sf-workbench.com
     # =========================================================================
 
-    # workbench-salesforce.com → apps/ui (Vite SPA)
+    # sf-workbench.com → apps/ui (Vite SPA)
     server {
         listen ${PORT};
-        server_name workbench-salesforce.com www.workbench-salesforce.com;
+        server_name sf-workbench.com www.sf-workbench.com;
         root /app/dist/ui;
 
-        # Canonical redirect: /app and /app/<path> → api.workbench-salesforce.com/<path>
+        # Canonical redirect: /app and /app/<path> → api.sf-workbench.com/<path>
         # Declared before the SPA catch-all so try_files doesn't swallow it.
         location ~ ^/app(/.*)?$ {
-            return 301 https://api.workbench-salesforce.com$1$is_args$args;
+            return 301 https://api.sf-workbench.com$1$is_args$args;
         }
 
         location /welcome/ {
@@ -65,10 +65,10 @@ http {
         }
     }
 
-    # api.workbench-salesforce.com → packages/server (Express API: proxy, OAuth, LLM, documentation)
+    # api.sf-workbench.com → packages/server (Express API: proxy, OAuth, LLM, documentation)
     server {
         listen ${PORT};
-        server_name api.workbench-salesforce.com;
+        server_name api.sf-workbench.com;
 
         location / {
             proxy_pass             http://127.0.0.1:3000;
@@ -86,10 +86,10 @@ http {
         }
     }
 
-    # vscode.workbench-salesforce.com → packages/vscode (Monaco/VS Code web IDE)
+    # vscode.sf-workbench.com → packages/vscode (Monaco/VS Code web IDE)
     server {
         listen ${PORT};
-        server_name vscode.workbench-salesforce.com;
+        server_name vscode.sf-workbench.com;
         root /app/packages/vscode/dist;
 
         # Required for SharedArrayBuffer (used by language server workers)
@@ -112,11 +112,11 @@ http {
         }
     }
 
-    # doc.workbench-salesforce.com → apps/docs (Docusaurus)
+    # doc.sf-workbench.com → apps/docs (Docusaurus)
     # Built with DOCS_BASE_PATH=/ so all asset paths are rooted at /
     server {
         listen ${PORT};
-        server_name doc.workbench-salesforce.com;
+        server_name doc.sf-workbench.com;
         root /app/dist/docs;
 
         location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {

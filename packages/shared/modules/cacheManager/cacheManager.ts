@@ -296,6 +296,8 @@ export const CACHE_CONFIG = {
     SHORTCUT_DOCUMENTATION: new CONFIG_OBJECT('shortcut_documentation', 'ctrl+shift+6'),
     SHORTCUT_OPEN_PANEL: new CONFIG_OBJECT('shortcut_openPanel', 'ctrl+shift+7'),
     SHORTCUT_OPEN_OVERLAY: new CONFIG_OBJECT('shortcut_openOverlay', 'ctrl+shift+8'),
+    // First-visit onboarding flags for the side panel
+    SIDEPANEL_HAS_SEEN_OPEN_APP: new CONFIG_OBJECT('sidepanel_has_seen_open_app', false),
     //  TODO: Add Global CLIENT_ID and API_VERSION to the CACHE_CONFIG
 };
 

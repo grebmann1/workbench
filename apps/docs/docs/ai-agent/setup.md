@@ -18,7 +18,7 @@ SF Toolkit embeds an AI Agent directly into the Workbench. This page explains ho
 
 ## How to configure the AI provider
 
-Open the **[Settings → AI tab](https://www.workbench-salesforce.com/app?applicationName=settings)** to choose your provider and paste your API key. You can optionally override the base URL if you use a self-hosted or proxied endpoint. Changes take effect immediately after saving.
+Open the **[Settings → AI tab](https://www.sf-workbench.com/app?applicationName=settings)** to choose your provider and paste your API key. You can optionally override the base URL if you use a self-hosted or proxied endpoint. Changes take effect immediately after saving.
 
 ### Supported providers
 

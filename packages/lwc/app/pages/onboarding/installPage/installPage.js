@@ -12,6 +12,6 @@ export default class installPage extends LightningElement {
     }
 
     handleTutorialComplete() {
-        window.location.href = this.redirect_url || 'https://www.workbench-salesforce.com/';
+        window.location.href = this.redirect_url || 'https://www.sf-workbench.com/';
     }
 }
