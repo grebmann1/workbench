@@ -5,7 +5,6 @@ import jsforce from 'jsforce';
 import qs from 'qs';
 
 import { searchDocumentation } from './modules/documentationSearch';
-import googleAuth from './modules/googleAuth';
 import llmModels from './modules/llmModels';
 import openaiProxy from './modules/openaiProxy';
 import proxy from './modules/proxy';
@@ -32,8 +31,6 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.all('/cometd{/*splat}', proxy({ enableCORS: true }));
 /* jsForce Proxy */
 app.all('/proxy{/*splat}', proxy({ enableCORS: true }));
-/* Google Auth */
-googleAuth(app);
 /* OpenAI Proxy */
 openaiProxy(app, { path: '/openai/v1' });
 llmModels(app);

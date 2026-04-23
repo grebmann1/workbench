@@ -50,15 +50,12 @@
                             onrowaction={handleRowAction}></connection-card>
                     </template>
                     <template lwc:if={isNoRecord}>
-                        <illustration-empty title="No orgs"></illustration-empty>
-                        <div class="connection-empty-hint connection-empty-hint--card">
-                            No saved org yet. Use
-                            <strong>Add Org</strong>
-                            to add one to your list, or use
-                            <strong>Quick Connect</strong>
-                            or
-                            <strong>Manual Session</strong>
-                            for direct access.
+                        <div class="connection-empty-state">
+                            <illustration-empty title="No orgs"></illustration-empty>
+                            <p class="connection-empty-state__hint">
+                                Use <strong>Add Org</strong> above to save your first org, or pick
+                                an active session below.
+                            </p>
                         </div>
                     </template>
                 </template>
@@ -264,17 +261,70 @@
                         </template>
                         <!-- empty state -->
                         <template lwc:if={isNoRecord}>
-                            <illustration-empty title="No orgs"></illustration-empty>
-                            <div class="connection-empty-hint connection-empty-hint--card">
-                                No saved org yet. Use
-                                <strong>Add Org</strong>
-                                to add one to your list, or use
-                                <strong>Quick Connect</strong>
-                                or
-                                <strong>Manual Session</strong>
-                                for direct access.
+                            <div class="connection-empty-state connection-empty-state--full">
+                                <illustration-empty title="No orgs"></illustration-empty>
+                                <p class="connection-empty-state__desc">
+                                    No saved org yet. Add one to your list, or connect directly
+                                    without saving.
+                                </p>
+                                <div class="connection-empty-state__actions">
+                                    <lightning-button
+                                        icon-name="utility:add"
+                                        label="Add Org"
+                                        variant="brand"
+                                        onclick={addConnectionClick}></lightning-button>
+                                    <lightning-button
+                                        icon-name="utility:link"
+                                        label="Quick Connect"
+                                        onclick={directConnectClick}></lightning-button>
+                                    <lightning-button
+                                        icon-name="utility:salesforce1"
+                                        label="Manual Session"
+                                        onclick={manualSessionClick}></lightning-button>
+                                </div>
                             </div>
                         </template>
+
+                        <!-- Active Browser Sessions (full-panel) -->
+                        <div class="browser-sessions browser-sessions--full">
+                            <p class="browser-sessions__title">Active Browser Sessions</p>
+                            <template lwc:if={isLoadingSessions}>
+                                <div class="browser-sessions__skeleton" aria-hidden="true">
+                                    <div class="browser-sessions__skeleton-row"></div>
+                                    <div class="browser-sessions__skeleton-row"></div>
+                                </div>
+                            </template>
+                            <template lwc:elseif={hasSessions}>
+                                <ul class="browser-sessions__list browser-sessions__list--full" role="list">
+                                    <template for:each={sessions} for:item="session">
+                                        <li
+                                            key={session.serverUrl}
+                                            class="browser-session-item"
+                                            role="button"
+                                            tabindex="0"
+                                            data-server-url={session.serverUrl}
+                                            data-session-id={session.sessionId}
+                                            onclick={handleSessionClick}>
+                                            <lightning-icon
+                                                icon-name="utility:salesforce1"
+                                                size="x-small"
+                                                class="browser-session-item__icon"></lightning-icon>
+                                            <div class="browser-session-item__body">
+                                                <span class="browser-session-item__label">{session.label}</span>
+                                                <span class="browser-session-item__detail">{session.detail}</span>
+                                            </div>
+                                            <lightning-icon
+                                                icon-name="utility:chevronright"
+                                                size="x-small"
+                                                class="browser-session-item__chevron"></lightning-icon>
+                                        </li>
+                                    </template>
+                                </ul>
+                            </template>
+                            <template lwc:else>
+                                <p class="browser-sessions__empty">No active Salesforce tab found</p>
+                            </template>
+                        </div>
                     </div>
                 </div>
             </div>

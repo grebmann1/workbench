@@ -500,7 +500,7 @@ export default class VscodeWorkbenchApp extends ToolkitElement {
     }
 
     async _buildDefaultWorkspaceBootstrap() {
-        const workspaceRoot = this._resolvePreferredWorkspaceRoot(
+        const candidateRoot = this._resolvePreferredWorkspaceRoot(
             this._workspaceRoot || this.workspaceBasePath
         );
         const serverUrl = this._getBootstrapServerUrl();
@@ -513,6 +513,13 @@ export default class VscodeWorkbenchApp extends ToolkitElement {
             normalizedServerUrl ? { instanceUrl: normalizedServerUrl } : null,
             this.workspaceBasePath || DEFAULT_WORKSPACE_ROOT
         );
+        // When candidateRoot is the default (/workspace), use the derived org path
+        // directly to avoid seeding files at the workspace root and opening VSCode there.
+        const workspaceRoot =
+            candidateRoot !== DEFAULT_WORKSPACE_ROOT ? candidateRoot : seededBootstrap.workspaceRoot;
+        if (workspaceRoot === seededBootstrap.workspaceRoot) {
+            return seededBootstrap;
+        }
         const sourceRoot = seededBootstrap.workspaceRoot;
         const remapPath = path =>
             typeof path === 'string' && path.startsWith(sourceRoot)
@@ -584,11 +591,20 @@ export default class VscodeWorkbenchApp extends ToolkitElement {
     async _seedWorkspaceFiles() {
         const workspaceBootstrap =
             this._workspaceBootstrap || (await this._buildDefaultWorkspaceBootstrap());
+        const seedRoot = workspaceBootstrap.workspaceRoot;
+        if (!seedRoot || seedRoot === DEFAULT_WORKSPACE_ROOT) {
+            // Safety guard: never write org files directly into the bare workspace
+            // root. This would corrupt the filesystem by mixing workspace-level
+            // content with org-scoped content and make the wrong folder visible in
+            // VSCode's explorer.
+            console.warn('[fullApp] Refusing to seed workspace files at root:', seedRoot);
+            return;
+        }
         await seedWorkspaceFiles(this, {
             getIndexedDbFileSystem,
             ensureDirectories: workspaceBootstrap.ensureDirectories,
             initialFiles: workspaceBootstrap.initialFiles,
-            workspaceRoot: workspaceBootstrap.workspaceRoot,
+            workspaceRoot: seedRoot,
         });
     }
 

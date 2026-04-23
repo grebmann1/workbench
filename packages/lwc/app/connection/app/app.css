@@ -9,34 +9,57 @@
     flex-direction: column;
 }
 
-.connection-empty-hint {
-    margin: 0.75rem 0;
-    padding: 0.75rem 1rem;
-    border: 1px solid var(--slds-g-color-border-base-3, #c9c7c5);
-    border-radius: 0.5rem;
-    background: var(--slds-g-color-neutral-base-95, #f3f3f3);
-    color: var(--slds-g-color-neutral-base-30, #514f4d);
-    font-size: 0.82rem;
-    line-height: 1.4;
+.connection-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0.5rem 0 1rem;
 }
 
-.connection-empty-hint--card {
-    max-width: 36rem;
-    margin: 1rem auto 1.25rem;
+.connection-empty-state--full {
+    padding: 1rem 0 1.5rem;
+}
+
+.connection-empty-state__hint {
+    margin: 0 auto;
+    max-width: 22rem;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8125rem;
+    color: var(--slds-g-color-neutral-base-40, #706e6b);
     text-align: center;
-    line-height: 1.6;
+    line-height: 1.5;
 }
 
-.connection-empty-hint--card strong {
-    display: inline-block;
-    margin: 0 0.2rem;
+.connection-empty-state__hint strong {
+    color: var(--slds-g-color-neutral-base-20, #3e3e3c);
 }
 
-/* Active Browser Sessions (card/side-panel variant) */
+.connection-empty-state__desc {
+    margin: 0 auto 1rem;
+    max-width: 28rem;
+    font-size: 0.875rem;
+    color: var(--slds-g-color-neutral-base-40, #706e6b);
+    text-align: center;
+    line-height: 1.5;
+}
+
+.connection-empty-state__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    justify-content: center;
+}
+
+/* Active Browser Sessions */
 .browser-sessions {
     margin: 0.75rem 0.25rem 0.5rem;
     padding: 0.5rem 0.25rem 0;
     border-top: 1px solid var(--slds-g-color-border-base-2, #e5e5e5);
+}
+
+.browser-sessions--full {
+    margin: 1.25rem 0 0;
+    padding: 1rem 0 0;
 }
 
 .browser-sessions__title {
@@ -56,6 +79,17 @@
     display: flex;
     flex-direction: column;
     gap: 0.25rem;
+}
+
+.browser-sessions__list--full {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.browser-sessions__list--full .browser-session-item {
+    flex: 1 1 240px;
+    max-width: 320px;
 }
 
 .browser-session-item {

@@ -1,21 +1,11 @@
 import type { Application, NextFunction, Request, Response } from 'express';
 import { openai } from './llm/openaiModel';
-import { validateSession } from './googleAuth';
-import { checkAndIncrement } from './userRateLimiter';
-
-// Extend Request so downstream handlers can read the resolved userId
-declare module 'express-serve-static-core' {
-    interface Request {
-        googleUserId?: string;
-    }
-}
 
 function authMiddleware(req: Request, res: Response, next: NextFunction) {
     const rawAuthHeader = req.headers['authorization'];
     const authHeader = Array.isArray(rawAuthHeader) ? rawAuthHeader[0] : rawAuthHeader;
     const bearerToken = typeof authHeader === 'string' ? authHeader.replace(/^Bearer\s+/i, '') : null;
 
-    // 1. Check static service keys (existing enterprise / internal usage)
     const staticKeys = [
         process.env.SALESFORCE_KEY,
         process.env.SALESFORCE_KEY1,
@@ -25,36 +15,16 @@ function authMiddleware(req: Request, res: Response, next: NextFunction) {
         process.env.SALESFORCE_KEY5,
     ].filter(Boolean);
 
-    if (staticKeys.length && bearerToken && staticKeys.some(key => bearerToken === key)) {
+    if (!staticKeys.length) {
+        // No keys configured — open access (dev / self-hosted)
         return next();
     }
 
-    // 2. Fall through to Google session token validation
-    if (!bearerToken) {
-        return res.status(401).json({ error: 'Unauthorized' });
+    if (bearerToken && staticKeys.some(key => bearerToken === key)) {
+        return next();
     }
 
-    const session = validateSession(bearerToken);
-    if (!session) {
-        return res.status(401).json({ error: 'Invalid or expired session' });
-    }
-
-    req.googleUserId = session.userId;
-
-    // Rate limit check
-    const result = checkAndIncrement(session.userId);
-    res.set('X-RateLimit-Limit', String(result.limit));
-    res.set('X-RateLimit-Remaining', String(result.remaining));
-    res.set('X-RateLimit-Reset', String(Math.floor(result.resetAt / 1000)));
-
-    if (!result.allowed) {
-        return res.status(429).json({
-            error: 'Daily AI request limit reached. Configure the Salesforce LLM Gateway or add your own API key for unlimited access.',
-            resetAt: result.resetAt,
-        });
-    }
-
-    next();
+    return res.status(401).json({ error: 'Unauthorized' });
 }
 
 function corsMiddleware(_req: Request, res: Response, next: NextFunction) {

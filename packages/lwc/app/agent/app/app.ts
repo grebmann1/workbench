@@ -8,8 +8,7 @@ import {
     isInternalProviderBaseUrl,
     normalizeLlmProvider,
 } from 'shared/llm';
-import { CACHE_CONFIG, cacheManager, saveSingleExtensionConfigToCache } from 'shared/cacheManager';
-import { GOOGLE_SIGNIN_SCOPES } from 'agent/googleAuth';
+import { CACHE_CONFIG, saveSingleExtensionConfigToCache } from 'shared/cacheManager';
 import ToolkitElement from 'core/toolkitElement';
 import { reportError, store, connectStore, AGENT, APPLICATION } from 'core/store';
 import LOGGER from 'shared/logger';
@@ -105,12 +104,6 @@ export default class App extends ToolkitElement {
     activeProvider;
     @track isInternal;
 
-    // Google auth state — driven by application.settings via storeChange
-    @track isGoogleAuthenticated = false;
-    @track googleUser: { token: string; email: string; name: string; picture: string } | null = null;
-    @track rateLimitRemaining: number | null = null;
-    /** Tracks the last token we sent to the backend for verification, to avoid redundant calls. */
-    _sessionVerifiedToken: string | null = null;
     // Agent tool settings — driven by application.settings via storeChange
     brightDataApiKey: string | null = null;
     googleSheetEnabled = false;
@@ -124,30 +117,7 @@ export default class App extends ToolkitElement {
     storeChange({ application, agent }) {
         this._setIfChanged('aiProvider', application.aiProvider);
 
-        // Google session — read from settings so any writer (agent OR settings page)
-        // propagates automatically via the store without any custom subscription.
         const settings = application?.settings || {};
-        const session = settings[CACHE_CONFIG.GOOGLE_SESSION.key] as
-            | { token: string; email: string; name: string; picture: string }
-            | null
-            | undefined;
-        const nextGoogleUser = session?.token ? session : null;
-        const nextIsAuthenticated = !!nextGoogleUser;
-        if (this.googleUser?.token !== nextGoogleUser?.token) {
-            this.googleUser = nextGoogleUser;
-        }
-        if (this.isGoogleAuthenticated !== nextIsAuthenticated) {
-            this.isGoogleAuthenticated = nextIsAuthenticated;
-            if (nextIsAuthenticated) {
-                this._applyWorkbenchProvider(nextGoogleUser.token, nextGoogleUser.email);
-                void this._refreshRateLimit();
-                // Verify the session token we just loaded from cache so an expired JWT
-                // triggers a silent re-auth rather than a forced sign-in.
-                void this._verifyAndMaybeRefreshSession(nextGoogleUser);
-            } else {
-                this.rateLimitRemaining = null;
-            }
-        }
         this._setIfChanged('brightDataApiKey', (settings[CACHE_CONFIG.TOOL_BRIGHT_DATA_KEY.key] as string) ?? null);
         this._setIfChanged('googleSheetEnabled', !!(settings[CACHE_CONFIG.TOOL_GOOGLE_SHEET_ENABLED.key]));
         const nextAvailableModels = buildAvailableAgentModelOptions({
@@ -240,177 +210,6 @@ export default class App extends ToolkitElement {
         store.dispatch(AGENT.loadCacheSettingsAsync());
         window.addEventListener('agent:ask_user', this._handleAskUserEvent);
         // Session hydration is handled by storeChange once loadFromCache populates the store.
-    }
-
-    /** Verifies the stored backend JWT. If it is expired, attempts a silent Chrome token refresh
-     *  so the user is not prompted for OAuth again. Falls back to clearing the session only when
-     *  Chrome cannot provide a token silently. */
-    async _verifyAndMaybeRefreshSession(
-        session: { token: string; email: string; name: string; picture: string }
-    ) {
-        if (!session?.token) return;
-        // Skip if we already verified this exact token to avoid redundant network calls.
-        if (this._sessionVerifiedToken === session.token) return;
-
-        try {
-            const resp = await fetch(`${this._serverBaseUrl}/google/me`, {
-                headers: { Authorization: `Bearer ${session.token}` },
-            });
-            if (resp.ok) {
-                // Only mark as verified once the backend actually confirmed the token.
-                this._sessionVerifiedToken = session.token;
-                return;
-            }
-        } catch {
-            // Network error — keep existing session; don't cache as verified so we retry later.
-            return;
-        }
-
-        // Backend returned non-OK (expired/invalid) — try silent re-auth via Chrome identity
-        // so the user is not asked to sign in again unnecessarily.
-        await this._trySilentGoogleReauth();
-    }
-
-    /** Attempts to silently obtain a fresh Google access token from Chrome and exchange it for a
-     *  new backend session JWT. Clears the session without prompting if Chrome cannot help. */
-    async _trySilentGoogleReauth() {
-        if (
-            typeof chrome === 'undefined' ||
-            typeof (chrome as any).identity?.getAuthToken !== 'function'
-        ) {
-            await this._clearGoogleSession();
-            return;
-        }
-        await new Promise<void>(resolve => {
-            (chrome as any).identity.getAuthToken(
-                { interactive: false, scopes: GOOGLE_SIGNIN_SCOPES },
-                async (chromeToken: string | undefined) => {
-                    if ((chrome as any).runtime.lastError || !chromeToken) {
-                        // Chrome cannot refresh silently — let the user sign in manually.
-                        await this._clearGoogleSession();
-                        resolve();
-                        return;
-                    }
-                    try {
-                        const resp = await fetch(
-                            `${this._serverBaseUrl}/google/oauth/verify-token`,
-                            {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ accessToken: chromeToken }),
-                            }
-                        );
-                        if (!resp.ok) {
-                            await this._clearGoogleSession();
-                            resolve();
-                            return;
-                        }
-                        const data = await resp.json();
-                        const newSession = {
-                            token: data.token,
-                            email: data.email,
-                            name: data.name,
-                            picture: data.picture,
-                        };
-                        // Persist silently refreshed session — no user interaction needed.
-                        await cacheManager.setConfigValue(
-                            CACHE_CONFIG.GOOGLE_SESSION.key,
-                            newSession
-                        );
-                        store.dispatch(
-                            APPLICATION.reduxSlice.actions.updateSettings({
-                                [CACHE_CONFIG.GOOGLE_SESSION.key]: newSession,
-                            })
-                        );
-                    } catch {
-                        await this._clearGoogleSession();
-                    }
-                    resolve();
-                }
-            );
-        });
-    }
-
-    /** Removes the Google session from the persistent cache and Redux store. */
-    async _clearGoogleSession() {
-        this._sessionVerifiedToken = null;
-        await cacheManager.setConfigValue(CACHE_CONFIG.GOOGLE_SESSION.key, null);
-        await cacheManager.setConfigValue(CACHE_CONFIG.GOOGLE_DRIVE_CONNECTED.key, false);
-        store.dispatch(
-            APPLICATION.reduxSlice.actions.updateSettings({
-                [CACHE_CONFIG.GOOGLE_SESSION.key]: null,
-                [CACHE_CONFIG.GOOGLE_DRIVE_CONNECTED.key]: false,
-            })
-        );
-    }
-
-    _applyWorkbenchProvider(token: string, email: string) {
-        if (!email.toLowerCase().endsWith('@salesforce.com')) return;
-        store.dispatch(
-            APPLICATION.reduxSlice.actions.updateProviderConfig({
-                provider: 'workbench',
-                config: { apiKey: token, baseUrl: `${this._serverBaseUrl}/openai/v1` },
-            })
-        );
-        // Only switch to workbench if the user has not already configured another provider
-        const state = store.getState();
-        const currentProvider = state.application?.aiProvider;
-        const currentConfig = state.application?.providerConfigs?.[currentProvider];
-        const hasOwnKey = !isEmpty(currentConfig?.apiKey) && currentProvider !== 'workbench';
-        if (!hasOwnKey) {
-            store.dispatch(
-                APPLICATION.reduxSlice.actions.updateAiProvider({ aiProvider: 'workbench' })
-            );
-            store.dispatch(
-                AGENT.reduxSlice.actions.updateSelectedModel({ model: 'gpt-4o-mini' })
-            );
-        }
-    }
-
-    handleAuthenticated = async (event: CustomEvent) => {
-        const { token, email, name, picture } = event.detail || {};
-        if (!token) return;
-        const session = { token, email, name, picture };
-        // Persist to cache for next startup, then update the store so storeChange
-        // propagates isGoogleAuthenticated / googleUser reactively.
-        await cacheManager.setConfigValue(CACHE_CONFIG.GOOGLE_SESSION.key, session);
-        store.dispatch(
-            APPLICATION.reduxSlice.actions.updateSettings({
-                [CACHE_CONFIG.GOOGLE_SESSION.key]: session,
-            })
-        );
-    };
-
-    handleDriveConnected = async (event: CustomEvent) => {
-        const { accessToken } = event.detail || {};
-        if (!accessToken) return;
-        await cacheManager.setConfigValue(CACHE_CONFIG.GOOGLE_DRIVE_CONNECTED.key, true);
-        store.dispatch(
-            APPLICATION.reduxSlice.actions.updateSettings({
-                [CACHE_CONFIG.GOOGLE_DRIVE_CONNECTED.key]: true,
-            })
-        );
-    };
-
-    async _refreshRateLimit() {
-        const session = store.getState().application?.settings?.[CACHE_CONFIG.GOOGLE_SESSION.key] as
-            | { token: string; email: string }
-            | null
-            | undefined;
-        const token = session?.token || this.googleUser?.token;
-        if (!token || !this.isWorkbenchUser) return;
-        try {
-            const resp = await fetch(`${this._serverBaseUrl}/google/rate-limit`, {
-                headers: { Authorization: `Bearer ${token}` },
-                credentials: 'same-origin',
-            });
-            if (resp.ok) {
-                const data = await resp.json();
-                this.rateLimitRemaining = typeof data.remaining === 'number' ? data.remaining : null;
-            }
-        } catch {
-            // Non-critical — ignore
-        }
     }
 
     disconnectedCallback() {
@@ -662,9 +461,6 @@ You have full access to the toolkit UI. All navigation and display tools work no
                 agent,
             })
         );
-        if (this.activeProvider === 'workbench') {
-            void this._refreshRateLimit();
-        }
     };
 
     executeAgentWithDirectMessages = async (
@@ -1007,45 +803,6 @@ You have full access to the toolkit UI. All navigation and display tools work no
 
     get activeProviderLabel() {
         return getProviderLabel(this.activeProvider);
-    }
-
-    get isGoogleAuthRequired() {
-        return !this.isGoogleAuthenticated;
-    }
-
-    /** Absolute backend server URL, safe to use from the Chrome extension where
-     *  relative paths would resolve to chrome-extension:// instead.
-     *  Rollup replaces process.env.WORKBENCH_BASE_URL with the literal URL at build time,
-     *  so the try/catch eliminates the runtime process reference entirely. */
-    get _serverBaseUrl(): string {
-        let fromEnv = '';
-        try {
-            fromEnv = (process.env.WORKBENCH_BASE_URL || '').replace(/\/+$/, '');
-        } catch {
-            // process not available in this runtime context
-        }
-        return fromEnv || (typeof window !== 'undefined' ? window.location.origin : '');
-    }
-
-    get isWorkbenchUser() {
-        return !!this.googleUser?.email?.toLowerCase().endsWith('@salesforce.com');
-    }
-
-    get showFreeTierCallout() {
-        return (
-            this.isGoogleAuthenticated &&
-            this.isWorkbenchUser &&
-            this.activeProvider === 'workbench' &&
-            this.rateLimitRemaining !== null
-        );
-    }
-
-    get rateLimitWarning() {
-        return this.rateLimitRemaining !== null && this.rateLimitRemaining < 10;
-    }
-
-    get googleUserName() {
-        return this.googleUser?.name || '';
     }
 
     get inputSectionClass() {

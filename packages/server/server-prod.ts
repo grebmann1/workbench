@@ -6,7 +6,6 @@ import jsforce from 'jsforce';
 import qs from 'qs';
 
 import { initDocumentationIndex, searchDocumentation } from './modules/documentationSearch';
-import googleAuth from './modules/googleAuth';
 import llmModels from './modules/llmModels';
 import openaiProxy from './modules/openaiProxy';
 import proxy from './modules/proxy';
@@ -45,8 +44,6 @@ const getOAuth2Instance = params => {
 app.all('/cometd{/*splat}', proxy({ enableCORS: true }));
 /* jsForce Proxy */
 app.all('/proxy{/*splat}', proxy({ enableCORS: true }));
-/* Google Auth */
-googleAuth(app);
 /* OpenAI Proxy */
 openaiProxy(app);
 llmModels(app);
