@@ -1,11 +1,8 @@
 {
     "name": "workbench",
     "version": "2.0.0",
-    "engines": {
-        "node": "22.14"
-    },
     "scripts": {
-        "postinstall": "[ -z \"$DOCKER_DEV\" ] && npm --prefix packages/desktop install || true",
+        "postinstall": "node tools/scripts/patch_lwr_hmr_namespace.mjs; [ -z \"$DOCKER_DEV\" ] && npm --prefix packages/desktop install || true",
         "start:dev:extension": "rm -rf dist/extension; npm-run-all --parallel watch:extension serve:extension",
         "start:dev:extension:main": "rm -rf dist/extension; npm-run-all --parallel watch:extension:main serve:extension",
         "start:dev:extension:sandbox": "npm-run-all --parallel watch:extension:sandbox serve:extension",
@@ -145,6 +142,8 @@
         "@babel/preset-env": "^7.28.3",
         "@babel/runtime": "^7.28.3",
         "@lwc/rollup-plugin": "^9.1.1",
+        "@lwrjs/client-modules": "^0.23.3",
+        "@lwrjs/router": "^0.23.3",
         "@rollup/plugin-alias": "^5.1.1",
         "@rollup/plugin-babel": "^6.0.4",
         "@rollup/plugin-commonjs": "^26.0.1",
