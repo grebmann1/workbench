@@ -11,7 +11,22 @@ import {
 import LOGGER from 'shared/logger';
 
 export default class App extends ToolkitElement {
-    @api isLoading = false;
+    @track _queuedMessages: Array<{ id: string; prompt: string; isPush?: boolean }> = [];
+    _isLoading = false;
+
+    @api
+    get isLoading() {
+        return this._isLoading;
+    }
+    set isLoading(value) {
+        const prev = this._isLoading;
+        this._isLoading = !!value;
+        if (prev && !this._isLoading && this._queuedMessages.length > 0) {
+            const [next, ...rest] = this._queuedMessages;
+            this._queuedMessages = rest;
+            this._fireEnqueuedSend(next.prompt);
+        }
+    }
 
     @api openaiKey: string | undefined;
     @api isAudioRecorderDisabled = false;
@@ -239,6 +254,48 @@ export default class App extends ToolkitElement {
         this.dispatchEvent(new CustomEvent('stop'));
     };
 
+    handlePushClick = () => {
+        const textarea = this.template.querySelector(
+            '.chat-textarea'
+        ) as HTMLTextAreaElement | null;
+        const value = textarea?.value || '';
+        if (isEmpty(value)) return;
+        // Push = priority queue item: inserted at the front so it executes first
+        this._queuedMessages = [
+            { id: Date.now().toString(), prompt: value.trim(), isPush: true },
+            ...this._queuedMessages,
+        ];
+        this.resetPrompt();
+    };
+
+    handleRemoveQueued = event => {
+        const id = event.currentTarget?.dataset?.queueId;
+        if (!id) return;
+        this._queuedMessages = this._queuedMessages.filter(m => m.id !== id);
+    };
+
+    handlePromoteQueued = event => {
+        const id = event.currentTarget?.dataset?.queueId;
+        if (!id) return;
+        const item = this._queuedMessages.find(m => m.id === id);
+        if (!item) return;
+        const rest = this._queuedMessages.filter(m => m.id !== id);
+        this._queuedMessages = [{ ...item, isPush: true }, ...rest];
+    };
+
+    _fireEnqueuedSend(prompt: string) {
+        this.dispatchEvent(
+            new CustomEvent('send', {
+                detail: {
+                    prompt,
+                    files: [],
+                    model: this.selectedModel,
+                    reasoning: this.selectedReasoning,
+                },
+            })
+        );
+    }
+
     @api
     focusInput() {
         const textarea = this.template.querySelector(
@@ -344,7 +401,15 @@ export default class App extends ToolkitElement {
             '.chat-textarea'
         ) as HTMLTextAreaElement | null;
         const value = textarea?.value || '';
-        if (!isEmpty(value) || this.selectedFiles.length > 0) {
+        if (isEmpty(value) && this.selectedFiles.length === 0) return;
+
+        if (this._isLoading) {
+            this._queuedMessages = [
+                ...this._queuedMessages,
+                { id: Date.now().toString(), prompt: value.trim() },
+            ];
+            this.resetPrompt();
+        } else {
             this.dispatchEvent(
                 new CustomEvent('send', {
                     detail: {
@@ -384,11 +449,23 @@ export default class App extends ToolkitElement {
     }
 
     get isClearButtonDisabled() {
-        return this.isLoading;
+        return false;
     }
 
     get isSendButtonDisabled() {
-        return this.isLoading || isEmpty(this._prompt);
+        return isEmpty(this._prompt) && this.selectedFiles.length === 0;
+    }
+
+    get hasQueuedMessages() {
+        return this._queuedMessages.length > 0;
+    }
+
+    get queueLabel() {
+        return `${this._queuedMessages.length} Queued`;
+    }
+
+    get showPushButton() {
+        return this._isLoading && !isEmpty(this._prompt);
     }
 
     get isAudioRecorderDisplayed() {
