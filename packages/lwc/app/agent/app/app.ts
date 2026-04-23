@@ -514,6 +514,62 @@ export default class App extends ToolkitElement {
         });
     };
 
+    _buildRunningEnvironmentContext(): string {
+        const state = store.getState();
+        const isSidePanel = state.application?.isSidePanel ?? false;
+        const connector = state.application?.connector ?? null;
+        const isLoggedIn = connector != null;
+        const currentApplication = state.application?.currentApplication ?? null;
+
+        const loginStatus = isLoggedIn
+            ? `Connected org: ${connector.toPublic?.()?.alias ?? connector.toPublic?.()?.instanceUrl ?? 'unknown'}`
+            : 'Not connected to any Salesforce org.';
+        const appLine = currentApplication ? `\nCurrently visible panel: ${currentApplication}` : '';
+
+        if (isSidePanel) {
+            return `
+
+## Environment Context
+
+**Running in: Chrome Side Panel**
+
+${loginStatus}${appLine}
+
+You are running inside the Chrome Side Panel, which is a narrow overlay beside the browser — the SF Toolkit LWC app is **not** the visible tab. This has important consequences for UI tools:
+
+**Avoid UI-navigation tools** unless the user explicitly asks to open the Toolkit app:
+- \`navigate_workbench_app\`, \`sf navigate\`, \`soql_query\` (with UI), \`apex_navigate\`, \`metadata_navigate\`, \`navigateToApiEditor\` — these dispatch to the store and will take effect once the user switches to the Toolkit tab, but they produce no immediate visible feedback.
+
+**Prefer background/incognito tools** — they work reliably from the side panel without touching the UI:
+- \`soql_query_incognito\` instead of \`soql_query\`
+- \`sf data query\` for SOQL
+- \`sf apex run --no-ui\` or \`apex_execute\` for Apex
+- \`sf api request\` for REST API calls
+- \`sf metadata list-types / list-records / deploy / retrieve\` for metadata operations
+- \`metadata_list_types\`, \`metadata_list_records\`, \`metadata_get_record\` (all incognito)
+
+**Connecting to a new org** via \`connect_org\` or \`sf org connect\` will open the full Toolkit in a new browser tab.
+
+**Chrome tools** (\`chrome_screenshot\`, \`chrome_list_tabs\`, etc.) work normally.
+`;
+        }
+
+        return `
+
+## Environment Context
+
+**Running in: SF Toolkit Web App**
+
+${loginStatus}${appLine}
+
+You have full access to the toolkit UI. All navigation and display tools work normally:
+- Navigation tools (\`navigate_workbench_app\`, \`sf navigate\`, \`apex_navigate\`, etc.) update the visible UI in real time.
+- Tab management tools open and switch visible editor panels.
+- Use \`soql_query\` (not incognito) to show results in the SOQL editor for the user.
+- Use incognito variants (\`soql_query_incognito\`, \`sf data query\`) when you need data silently without navigating away.
+`;
+    }
+
     async buildAgentExecutionContext(model = this.selectedModel) {
         const conversationId = this.activeConversationId;
         const state = store.getState();
@@ -541,7 +597,7 @@ export default class App extends ToolkitElement {
                     state.agent?.selectedModel ||
                     getDefaultModelForAgentProvider(activeProvider, isInternal),
                 selectedReasoning: state.agent?.selectedReasoning ?? DEFAULT_REASONING,
-                systemPrompt: browserAgentInstructions,
+                systemPrompt: `${browserAgentInstructions}${this._buildRunningEnvironmentContext()}`,
                 isStoreEnabled: true,
                 store,
                 extraTools: [askUserTool, ...workbenchContextTools],

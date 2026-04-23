@@ -73,6 +73,302 @@ const fsBridgeScript = `
       .then(function(r) { return { stdout: r.stdout, stderr: r.stderr, exitCode: r.exitCode }; });
   };
 
+  // workspace: UI + filesystem helpers always available to rendered apps.
+  var workspace = {};
+
+  workspace.files = {
+    search: function(startPath, opts) {
+      opts = opts || {};
+      var ext = opts.ext ? String(opts.ext).toLowerCase() : null;
+      var maxResults = typeof opts.maxResults === 'number' ? opts.maxResults : 500;
+      var start = startPath || '/workspace';
+      var results = [];
+      function walk(dir) {
+        return window.listFiles(dir).then(function(entries) {
+          if (!entries) return;
+          var tasks = [];
+          for (var i = 0; i < entries.length; i++) {
+            if (results.length >= maxResults) break;
+            var entry = entries[i];
+            var name = entry && entry.name;
+            if (!name || name === '.' || name === '..') continue;
+            var full = dir.replace(/\\/+$/, '') + '/' + name;
+            if (entry.isDirectory) {
+              tasks.push(walk(full));
+            } else if (entry.isFile !== false) {
+              if (!ext || name.toLowerCase().endsWith(ext)) {
+                results.push(full);
+              }
+            }
+          }
+          return Promise.all(tasks);
+        }).catch(function() { /* skip unreadable dirs */ });
+      }
+      return walk(start).then(function() { return results; });
+    }
+  };
+
+  workspace.ui = {
+    toast: function(message, variant) {
+      variant = variant || 'info';
+      var palette = {
+        success: { bg: '#16a34a', fg: '#fff' },
+        error:   { bg: '#dc2626', fg: '#fff' },
+        info:    { bg: '#2563eb', fg: '#fff' }
+      };
+      var c = palette[variant] || palette.info;
+      var el = document.createElement('div');
+      el.setAttribute('role', 'status');
+      el.style.cssText = [
+        'position:fixed',
+        'right:16px',
+        'bottom:16px',
+        'z-index:2147483647',
+        'padding:10px 14px',
+        'border-radius:6px',
+        'font:14px/1.3 system-ui,-apple-system,sans-serif',
+        'box-shadow:0 4px 16px rgba(0,0,0,0.2)',
+        'max-width:360px',
+        'background:' + c.bg,
+        'color:' + c.fg,
+        'opacity:0',
+        'transition:opacity 150ms ease'
+      ].join(';');
+      el.textContent = String(message == null ? '' : message);
+      document.body.appendChild(el);
+      requestAnimationFrame(function() { el.style.opacity = '1'; });
+      setTimeout(function() {
+        el.style.opacity = '0';
+        setTimeout(function() { el.remove(); }, 200);
+      }, 3000);
+    },
+
+    filePicker: function(options) {
+      options = options || {};
+      var title = options.title || 'Select a file';
+      var filter = options.filter ? String(options.filter).toLowerCase() : null;
+      var startPath = options.startPath || '/workspace';
+      return new Promise(function(resolve) {
+        var currentPath = startPath;
+        var selectedPath = null;
+
+        var overlay = document.createElement('div');
+        overlay.style.cssText = [
+          'position:fixed',
+          'inset:0',
+          'z-index:2147483646',
+          'background:rgba(15,23,42,0.55)',
+          'display:flex',
+          'align-items:center',
+          'justify-content:center',
+          'font:14px/1.4 system-ui,-apple-system,sans-serif'
+        ].join(';');
+
+        var modal = document.createElement('div');
+        modal.style.cssText = [
+          'width:min(640px,90vw)',
+          'max-height:80vh',
+          'background:#fff',
+          'color:#0f172a',
+          'border-radius:10px',
+          'box-shadow:0 16px 40px rgba(0,0,0,0.3)',
+          'display:flex',
+          'flex-direction:column',
+          'overflow:hidden'
+        ].join(';');
+
+        var header = document.createElement('div');
+        header.style.cssText = 'padding:14px 18px;border-bottom:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center;gap:10px;';
+        var titleEl = document.createElement('div');
+        titleEl.textContent = title;
+        titleEl.style.cssText = 'font-weight:600;font-size:15px;';
+        header.appendChild(titleEl);
+        if (filter) {
+          var badge = document.createElement('span');
+          badge.textContent = filter;
+          badge.style.cssText = 'background:#eef2ff;color:#4338ca;padding:2px 8px;border-radius:9999px;font-size:12px;';
+          header.appendChild(badge);
+        }
+        modal.appendChild(header);
+
+        var crumbs = document.createElement('div');
+        crumbs.style.cssText = 'padding:8px 18px;border-bottom:1px solid #f1f5f9;font-family:ui-monospace,monospace;color:#475569;font-size:13px;overflow-x:auto;white-space:nowrap;';
+        modal.appendChild(crumbs);
+
+        var list = document.createElement('div');
+        list.style.cssText = 'flex:1;overflow-y:auto;padding:6px 0;min-height:240px;';
+        modal.appendChild(list);
+
+        var footer = document.createElement('div');
+        footer.style.cssText = 'padding:12px 18px;border-top:1px solid #e5e7eb;display:flex;justify-content:flex-end;gap:8px;';
+        var cancelBtn = document.createElement('button');
+        cancelBtn.textContent = 'Cancel';
+        cancelBtn.style.cssText = 'padding:6px 14px;border-radius:6px;border:1px solid #cbd5e1;background:#fff;color:#0f172a;cursor:pointer;';
+        var openBtn = document.createElement('button');
+        openBtn.textContent = 'Open';
+        openBtn.disabled = true;
+        openBtn.style.cssText = 'padding:6px 14px;border-radius:6px;border:1px solid #2563eb;background:#2563eb;color:#fff;cursor:pointer;opacity:0.5;';
+        footer.appendChild(cancelBtn);
+        footer.appendChild(openBtn);
+        modal.appendChild(footer);
+
+        overlay.appendChild(modal);
+        document.body.appendChild(overlay);
+
+        function close(result) {
+          document.removeEventListener('keydown', onKey);
+          overlay.remove();
+          resolve(result);
+        }
+
+        function onKey(e) {
+          if (e.key === 'Escape') close(null);
+          if (e.key === 'Enter' && selectedPath) close(selectedPath);
+        }
+        document.addEventListener('keydown', onKey);
+
+        cancelBtn.addEventListener('click', function() { close(null); });
+        openBtn.addEventListener('click', function() {
+          if (selectedPath) close(selectedPath);
+        });
+        overlay.addEventListener('click', function(e) {
+          if (e.target === overlay) close(null);
+        });
+
+        function setSelected(path) {
+          selectedPath = path;
+          openBtn.disabled = !path;
+          openBtn.style.opacity = path ? '1' : '0.5';
+        }
+
+        function addCrumb(label, path) {
+          var a = document.createElement('a');
+          a.href = '#';
+          a.textContent = label;
+          a.style.cssText = 'color:#2563eb;text-decoration:none;margin:0 4px;';
+          a.addEventListener('click', function(e) {
+            e.preventDefault();
+            currentPath = path;
+            setSelected(null);
+            load();
+          });
+          crumbs.appendChild(a);
+        }
+
+        function renderCrumbs() {
+          crumbs.innerHTML = '';
+          addCrumb('/', '/');
+          var parts = currentPath.split('/').filter(Boolean);
+          var acc = '';
+          for (var i = 0; i < parts.length; i++) {
+            acc += '/' + parts[i];
+            var sep = document.createElement('span');
+            sep.textContent = '/';
+            sep.style.color = '#94a3b8';
+            crumbs.appendChild(sep);
+            addCrumb(parts[i], acc);
+          }
+        }
+
+        function makeRow(label, icon, onClick, muted) {
+          var r = document.createElement('div');
+          r.style.cssText = 'padding:6px 18px;display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none;';
+          r.addEventListener('mouseenter', function() {
+            if (r.dataset.selected !== '1') r.style.background = '#f1f5f9';
+          });
+          r.addEventListener('mouseleave', function() {
+            if (r.dataset.selected !== '1') r.style.background = 'transparent';
+          });
+          var ic = document.createElement('span');
+          ic.textContent = icon;
+          ic.style.cssText = 'font-size:16px;width:18px;text-align:center;';
+          var lbl = document.createElement('span');
+          lbl.textContent = label;
+          if (muted) lbl.style.color = '#94a3b8';
+          r.appendChild(ic);
+          r.appendChild(lbl);
+          r.addEventListener('click', onClick);
+          return r;
+        }
+
+        function load() {
+          renderCrumbs();
+          list.innerHTML = '';
+          var loading = document.createElement('div');
+          loading.textContent = 'Loading...';
+          loading.style.cssText = 'padding:12px 18px;color:#94a3b8;';
+          list.appendChild(loading);
+
+          window.listFiles(currentPath).then(function(entries) {
+            list.innerHTML = '';
+            if (currentPath !== '/' && currentPath !== '') {
+              var parent = currentPath.replace(/\\/+$/, '').split('/').slice(0, -1).join('/') || '/';
+              list.appendChild(makeRow('..', '\u21B0', function() {
+                currentPath = parent;
+                setSelected(null);
+                load();
+              }, true));
+            }
+            entries = entries || [];
+            entries.sort(function(a, b) {
+              var ad = !!a.isDirectory, bd = !!b.isDirectory;
+              if (ad !== bd) return ad ? -1 : 1;
+              return String(a.name).localeCompare(String(b.name));
+            });
+            var shown = 0;
+            for (var i = 0; i < entries.length; i++) {
+              var e = entries[i];
+              if (!e || !e.name) continue;
+              var full = currentPath.replace(/\\/+$/, '') + '/' + e.name;
+              if (e.isDirectory) {
+                (function(full, name) {
+                  list.appendChild(makeRow(name + '/', '\uD83D\uDCC1', function() {
+                    currentPath = full;
+                    setSelected(null);
+                    load();
+                  }));
+                })(full, e.name);
+                shown++;
+              } else {
+                if (filter && !String(e.name).toLowerCase().endsWith(filter)) continue;
+                (function(full, name) {
+                  var r = makeRow(name, '\uD83D\uDCC4', function() {
+                    setSelected(full);
+                    Array.prototype.forEach.call(list.children, function(c) {
+                      c.dataset.selected = '0';
+                      c.style.background = 'transparent';
+                    });
+                    r.dataset.selected = '1';
+                    r.style.background = '#dbeafe';
+                  });
+                  r.addEventListener('dblclick', function() { close(full); });
+                  list.appendChild(r);
+                })(full, e.name);
+                shown++;
+              }
+            }
+            if (shown === 0) {
+              var empty = document.createElement('div');
+              empty.textContent = filter ? 'No ' + filter + ' files here.' : 'Empty.';
+              empty.style.cssText = 'padding:12px 18px;color:#94a3b8;';
+              list.appendChild(empty);
+            }
+          }).catch(function(err) {
+            list.innerHTML = '';
+            var e = document.createElement('div');
+            e.textContent = 'Failed to list: ' + (err && err.message ? err.message : err);
+            e.style.cssText = 'padding:12px 18px;color:#dc2626;';
+            list.appendChild(e);
+          });
+        }
+
+        load();
+      });
+    }
+  };
+
+  window.workspace = workspace;
+
   // Signal that the FS bridge is ready
   window.dispatchEvent(new Event('fs-bridge-ready'));
 })();

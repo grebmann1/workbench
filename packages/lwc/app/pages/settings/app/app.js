@@ -313,6 +313,71 @@ export default class App extends ToolkitElement {
         URL.revokeObjectURL(url);
     };
 
+    handleExportSettings = async () => {
+        let data = {};
+        if (this.isChrome) {
+            data = await new Promise(resolve => {
+                chrome.storage.local.get(null, items => resolve(items));
+            });
+        } else {
+            Object.keys(localStorage).forEach(key => {
+                try {
+                    data[key] = JSON.parse(localStorage.getItem(key));
+                } catch {
+                    data[key] = localStorage.getItem(key);
+                }
+            });
+        }
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `sf-toolkit-settings-${new Date().toISOString().slice(0, 10)}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+    };
+
+    handleImportSettings = () => {
+        const fileInput = this.template.querySelector('input[data-id="import-settings"]');
+        if (fileInput) fileInput.click();
+    };
+
+    handleImportFileChange = async e => {
+        const file = e.target.files[0];
+        if (!file) return;
+        try {
+            const text = await file.text();
+            const data = JSON.parse(text);
+            const keyCount = Object.keys(data).length;
+            if (this.isChrome) {
+                await new Promise((resolve, reject) => {
+                    chrome.storage.local.set(data, () => {
+                        if (chrome.runtime.lastError) {
+                            reject(new Error(chrome.runtime.lastError.message));
+                        } else {
+                            resolve();
+                        }
+                    });
+                });
+            } else {
+                Object.entries(data).forEach(([key, value]) => {
+                    localStorage.setItem(
+                        key,
+                        typeof value === 'string' ? value : JSON.stringify(value)
+                    );
+                });
+            }
+            Toast.show({
+                label: `Imported ${keyCount} settings. Reload the page to apply changes.`,
+                variant: 'success',
+            });
+        } catch (err) {
+            LOGGER.error('Settings import error', err);
+            Toast.show({ label: `Import failed: ${err.message}`, variant: 'error' });
+        }
+        e.target.value = '';
+    };
+
     _loadCacheEntries = async () => {
         let entries = [];
         if (this.isChrome) {

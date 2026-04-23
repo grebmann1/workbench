@@ -873,7 +873,7 @@
                                     </div>
                                     <div class="slds-grid slds-wrap">
                                         <settings-card
-                                            class="slds-col slds-size_1-of-1 slds-large-size_1-of-2 slds-p-horizontal_small"
+                                            class="slds-col slds-size_1-of-1 slds-p-horizontal_small"
                                             is-first>
                                             <div slot="title">
                                                 <h1>Cache</h1>
@@ -882,11 +882,29 @@
                                                 </p>
                                             </div>
                                             <div slot="actions">
-                                                <lightning-button
-                                                    label="Open Cache Explorer"
-                                                    icon-name="utility:database"
-                                                    onclick={handleOpenCacheExplorer}
-                                                    variant="neutral"></lightning-button>
+                                                <lightning-button-group>
+                                                    <lightning-button
+                                                        label="Export"
+                                                        icon-name="utility:download"
+                                                        onclick={handleExportSettings}
+                                                        variant="neutral"></lightning-button>
+                                                    <lightning-button
+                                                        label="Import"
+                                                        icon-name="utility:upload"
+                                                        onclick={handleImportSettings}
+                                                        variant="neutral"></lightning-button>
+                                                    <lightning-button
+                                                        label="Explore"
+                                                        icon-name="utility:database"
+                                                        onclick={handleOpenCacheExplorer}
+                                                        variant="neutral"></lightning-button>
+                                                </lightning-button-group>
+                                                <input
+                                                    type="file"
+                                                    accept=".json,application/json"
+                                                    data-id="import-settings"
+                                                    onchange={handleImportFileChange}
+                                                    class="slds-hide" />
                                             </div>
                                             <slds-information-block>
                                                 <lightning-icon
@@ -898,7 +916,7 @@
                                             </slds-information-block>
                                         </settings-card>
                                         <settings-card
-                                            class="slds-col slds-size_1-of-1 slds-large-size_1-of-2 slds-p-horizontal_small"
+                                            class="slds-col slds-size_1-of-1 slds-p-horizontal_small"
                                             is-first>
                                             <div slot="title">
                                                 <h1>File System</h1>

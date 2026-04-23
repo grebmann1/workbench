@@ -1319,6 +1319,14 @@ You have access to a persistent bash environment with tools for command executio
 
 Use the \`open\` command to open and preview files from the virtual filesystem. This is required because **you cannot use Puppeteer to control or connect to \`file://\` URLs**—the Chrome debugger API works with \`http://\`, \`https://\`, and \`chrome-extension://\` pages, but not \`file://\` URLs.
 
+**IMPORTANT — rendered apps get a built-in UI toolkit.** Any HTML file opened this way automatically receives these globals, no imports needed:
+
+- Filesystem: \`readFile\`, \`writeFile\`, \`listFiles\`, \`mkdir\`, \`exists\`, \`stat\`, \`deleteFile\`, \`bash\`
+- **UI helpers: \`workspace.ui.filePicker({ title, filter })\` (modal file chooser), \`workspace.ui.toast(msg, variant)\` (notification)**
+- **Search: \`workspace.files.search(path, { ext })\` (recursive find)**
+
+When building any app that **reads user files** (CSV viewer, JSON viewer, image gallery, log analyzer, etc.), **always use \`workspace.ui.filePicker\` to let the user pick the file** instead of hardcoding a path or asking them to type one. Full API reference is in the "Viewer Filesystem Access > workspace" section below.
+
 When you need to view a file you've created (HTML, images, etc.), use \`open\` instead of trying to navigate with Puppeteer:
 
 \`\`\`bash
@@ -1368,11 +1376,100 @@ HTML files opened in the viewer have access to the same filesystem globals as th
 
 - \`readFile(path)\` - Read file contents
 - \`writeFile(path, content)\` - Write to a file
-- \`listFiles(path)\` - List directory contents
+- \`listFiles(path)\` - List directory contents. Returns \`[{ name, isFile, isDirectory, isSymbolicLink }]\`.
 - \`mkdir(path)\` - Create a directory
 - \`exists(path)\` - Check if path exists
 - \`stat(path)\` - Get file metadata
 - \`bash(command, options?)\` - Execute bash commands (use \`rm\` for deleting files)
+- \`workspace\` - UI and filesystem helper namespace (see below)
+
+#### \`workspace\` — UI helpers for rendered apps
+
+Every rendered HTML file automatically has a global \`workspace\` object. Use it to let users pick files, search the virtual filesystem, and show notifications — **no imports, no setup**.
+
+**\`workspace.ui.filePicker(options) → Promise<string|null>\`**
+
+Opens a modal file browser. Resolves with the selected absolute path, or \`null\` if the user cancels (click outside, Cancel, or Escape).
+
+Options:
+- \`title\` (string, default \`"Select a file"\`) — modal header
+- \`filter\` (string, optional) — lowercase extension like \`".csv"\` or \`".json"\`. Only files matching this suffix are shown and selectable.
+- \`startPath\` (string, default \`"/workspace"\`) — starting directory
+
+\`\`\`js
+const path = await workspace.ui.filePicker({ title: 'Open CSV', filter: '.csv' });
+if (!path) return; // user cancelled
+const csv = await readFile(path);
+\`\`\`
+
+**\`workspace.ui.toast(message, variant?)\`**
+
+Shows a 3-second bottom-right notification. \`variant\` is one of \`"success" | "error" | "info"\` (default \`"info"\`).
+
+\`\`\`js
+workspace.ui.toast('Loaded ' + rows.length + ' rows', 'success');
+workspace.ui.toast('File not found', 'error');
+\`\`\`
+
+**\`workspace.files.search(startPath, options) → Promise<string[]>\`**
+
+Recursively walks the filesystem and returns absolute paths matching the filter. Use when you need to find files without showing a picker.
+
+Options:
+- \`ext\` (string, optional) — extension filter like \`".csv"\`
+- \`maxResults\` (number, default \`500\`) — safety cap
+
+\`\`\`js
+const csvFiles = await workspace.files.search('/workspace', { ext: '.csv' });
+console.log(csvFiles); // ['/workspace/data/a.csv', '/workspace/tmp/report.csv', ...]
+\`\`\`
+
+**When to use which:**
+- Reading a file the user needs to choose → \`workspace.ui.filePicker\`
+- Showing operation status → \`workspace.ui.toast\`
+- Programmatic discovery (indexing, autocomplete, batch processing) → \`workspace.files.search\`
+- Building a custom file browser UI → raw \`listFiles\` / \`stat\`
+
+**Example: Minimal CSV Viewer**
+
+\`\`\`html
+<!DOCTYPE html>
+<html>
+  <body>
+    <button id="openBtn">Open CSV</button>
+    <div id="table"></div>
+    <script>
+      document.getElementById('openBtn').addEventListener('click', async () => {
+        const path = await workspace.ui.filePicker({ title: 'Open CSV', filter: '.csv' });
+        if (!path) return;
+        try {
+          const csv = await readFile(path);
+          const rows = csv.trim().split('\\n').map(l => l.split(','));
+          const t = document.createElement('table');
+          t.style.borderCollapse = 'collapse';
+          for (const r of rows) {
+            const tr = document.createElement('tr');
+            for (const c of r) {
+              const td = document.createElement('td');
+              td.textContent = c;
+              td.style.border = '1px solid #ccc';
+              td.style.padding = '4px 8px';
+              tr.appendChild(td);
+            }
+            t.appendChild(tr);
+          }
+          const host = document.getElementById('table');
+          host.innerHTML = '';
+          host.appendChild(t);
+          workspace.ui.toast('Loaded ' + rows.length + ' rows', 'success');
+        } catch (e) {
+          workspace.ui.toast('Failed: ' + e.message, 'error');
+        }
+      });
+    <\\/script>
+  </body>
+</html>
+\`\`\`
 
 **Example: Interactive file browser**
 

@@ -123,6 +123,8 @@ export default class Default extends LightningElement {
             CACHE_CONFIG.UI_IS_APPLICATION_TAB_VISIBLE.key,
             ...getLlmProviderConfigCacheKeys(),
             CACHE_CONFIG.BETA_SMARTINPUT_ENABLED.key,
+            CACHE_CONFIG.GOOGLE_SESSION.key,
+            CACHE_CONFIG.GOOGLE_DRIVE_CONNECTED.key,
         ]);
 
         this.betaSmartInputEnabled = !!configuration[CACHE_CONFIG.BETA_SMARTINPUT_ENABLED.key];
@@ -136,6 +138,10 @@ export default class Default extends LightningElement {
         LOGGER.debug('loadFromCache - openaiUrl', openaiUrl);
         LOGGER.debug('loadFromCache - mistralKey', mistralKey);
         LOGGER.debug('loadFromCache - aiProvider', aiProvider);
+        // Populate application.settings so agent-app and other store consumers
+        // can read persisted values (e.g. GOOGLE_SESSION) without each dispatching
+        // their own cache reads.
+        store.dispatch(APPLICATION.reduxSlice.actions.updateSettings(configuration));
         store.dispatch(APPLICATION.reduxSlice.actions.updateProviderConfigs({ providerConfigs }));
         store.dispatch(APPLICATION.reduxSlice.actions.updateAiProvider({ aiProvider }));
         try {

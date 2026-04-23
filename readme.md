@@ -187,6 +187,21 @@ npm run build:prod:extension
 npm run build:extension:main
 ```
 
+### Vendor Bundles
+
+Some features depend on pre-built vendor bundles (OpenAI SDK, just-bash). These bundles are not committed and must be generated before building the extension:
+
+```sh
+# Build all vendor bundles
+npm run build:vendor
+
+# Build individual bundles
+npm run build:vendor:openai
+npm run build:vendor:just-bash
+```
+
+Run this once after cloning, and again whenever a vendor package is updated.
+
 ### Workers
 
 ```sh

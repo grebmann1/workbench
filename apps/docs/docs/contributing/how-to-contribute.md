@@ -28,6 +28,16 @@ npm run site:build
 npm run build:web
 ```
 
+### Vendor bundles
+
+Some features rely on pre-built vendor bundles (OpenAI SDK, just-bash) that are not committed to the repository. Build them once after cloning, and again whenever a vendor package changes:
+
+```bash
+npm run build:vendor
+```
+
+The extension build commands (`build:extension`, `build:prod:extension`) depend on the just-bash bundle and will run `build:vendor:just-bash` automatically. Run the full `build:vendor` command manually if you also need the OpenAI bundle.
+
 ## Pull request expectations
 
 - Keep scope small and reviewable.
