@@ -30,11 +30,22 @@ export default class OutputPanel extends ToolkitElement {
 
     @api tableSearch = '';
 
+    _pendingEditCount = 0;
+    _isSavingPendingEdits = false;
+
     @wire(connectStore, { store })
     storeChange({ query, ui, application }: { query: any; ui: any; application: any }) {
         const isCurrentApp = this.verifyIsActive(application.currentApplication);
         if (!isCurrentApp) return;
         const queryState = SELECTORS.queries.selectById({ query }, lowerCaseKey(ui.currentTab?.id));
+        // Pending inline edits for the active tab.
+        const tabId = ui?.currentTab?.id;
+        const tabBucket = (tabId && ui?.pendingEdits?.[tabId]) || {};
+        this._pendingEditCount = Object.values(tabBucket).reduce(
+            (acc: number, entry: any) => acc + Object.keys(entry?.changes || {}).length,
+            0
+        );
+        this._isSavingPendingEdits = !!ui?.pendingEditsSaving;
         // Tab Processing
         if (ui.currentTab && ui.currentTab.id != this.currentTab?.id) {
             this.currentTab = ui.currentTab;
@@ -190,4 +201,80 @@ export default class OutputPanel extends ToolkitElement {
     get mainOutputClass() {
         return this.childResponse ? 'main-output slds-height-70' : 'main-output slds-full-height';
     }
+
+    /** Inline edits toolbar */
+
+    get hasPendingEdits() {
+        return this._pendingEditCount > 0;
+    }
+
+    get pendingEditsLabel() {
+        const n = this._pendingEditCount;
+        return `${n} unsaved ${n === 1 ? 'change' : 'changes'}`;
+    }
+
+    get saveLabel() {
+        const n = this._pendingEditCount;
+        return n > 0 ? `Save ${n} ${n === 1 ? 'change' : 'changes'}` : 'Save';
+    }
+
+    get isSavingPendingEdits() {
+        return this._isSavingPendingEdits;
+    }
+
+    handleSaveEdits = async () => {
+        const { application, ui } = store.getState() as any;
+        const connector = application?.connector;
+        const tabId = ui?.currentTab?.id;
+        if (!connector || !tabId) return;
+        let action: any;
+        try {
+            action = await store.dispatch(UI.saveAllPendingEdits({ connector, tabId }) as any);
+        } catch (e: any) {
+            // The thunk itself catches per-batch errors, but surface anything
+            // unexpected (e.g. a bug in the reducer path) to the user instead
+            // of leaving the toolbar in a stuck "saving" state silently.
+            Toast.show({
+                label: 'Unable to save changes',
+                message: e?.message || 'An unexpected error occurred.',
+                variant: 'error',
+                mode: 'sticky',
+            });
+            return;
+        }
+        const payload = action?.payload || {};
+        const successCount = Object.keys(payload.successByKey || {}).length;
+        const errorEntries = Object.entries(payload.errorByKey || {}) as Array<
+            [string, { message: string; statusCode?: string }]
+        >;
+        if (successCount > 0) {
+            Toast.show({
+                label: `${successCount} record${successCount === 1 ? '' : 's'} updated`,
+                variant: 'success',
+            });
+        }
+        if (errorEntries.length > 0) {
+            const [, firstErr] = errorEntries[0];
+            const firstLine = firstErr?.statusCode
+                ? `${firstErr.statusCode}: ${firstErr.message}`
+                : firstErr?.message || 'Salesforce rejected the update.';
+            const suffix =
+                errorEntries.length > 1
+                    ? `\n(+ ${errorEntries.length - 1} other record${errorEntries.length - 1 === 1 ? '' : 's'} failed. Hover the red cells for details.)`
+                    : '';
+            Toast.show({
+                label: `Failed to save ${errorEntries.length} record${errorEntries.length === 1 ? '' : 's'}`,
+                message: firstLine + suffix,
+                variant: 'error',
+                mode: 'sticky',
+            });
+        }
+    };
+
+    handleDiscardEdits = () => {
+        const { ui } = store.getState() as any;
+        const tabId = ui?.currentTab?.id;
+        if (!tabId) return;
+        store.dispatch(UI.reduxSlice.actions.clearEditsForTab({ tabId }));
+    };
 }

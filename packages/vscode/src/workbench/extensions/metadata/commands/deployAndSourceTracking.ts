@@ -61,6 +61,25 @@ export function createDeployAndSourceTracking({
     let toolingIdentityResolverFn:
         | ((conn: unknown, paths: string[]) => Promise<{ resolvedPaths?: string[] }>)
         | null = null;
+    const deploySuccessListeners = new Set<(paths: string[]) => void>();
+    function emitDeploySuccess(paths: string[]) {
+        if (!paths?.length) return;
+        for (const listener of deploySuccessListeners) {
+            try {
+                listener(paths);
+            } catch {
+                // ignore listener errors
+            }
+        }
+    }
+    function onDeploySuccess(listener: (paths: string[]) => void) {
+        deploySuccessListeners.add(listener);
+        return {
+            dispose() {
+                deploySuccessListeners.delete(listener);
+            },
+        };
+    }
 
     function getDeployConfig() {
         if (typeof vscode?.workspace?.getConfiguration !== 'function') {
@@ -312,17 +331,73 @@ export function createDeployAndSourceTracking({
         return new TextDecoder().decode(bytes || new Uint8Array());
     }
 
+    async function runPreDeployConflictGate(
+        paths: string[],
+        { title }: { title?: string } = {}
+    ): Promise<'proceed' | 'cancel'> {
+        try {
+            const status = await computeRemoteChangeStatus();
+            const conflictPaths = Array.isArray(status?.conflictPaths) ? status.conflictPaths : [];
+            if (!conflictPaths.length) {
+                return 'proceed';
+            }
+            const pathSet = new Set(paths);
+            const affected = conflictPaths.filter(path => pathSet.has(path));
+            if (!affected.length) {
+                return 'proceed';
+            }
+
+            const mapItems = await loadToolingMapItems();
+            const details = affected
+                .slice(0, 10)
+                .map(path => {
+                    const entry = mapItems?.[path];
+                    const type = entry?.type || 'Unknown';
+                    const segments = String(path || '').split('/').filter(Boolean);
+                    const label = segments[segments.length - 1] || path;
+                    return `• ${type}: ${label}`;
+                })
+                .join('\n');
+            const moreLine = affected.length > 10 ? `\n…and ${affected.length - 10} more.` : '';
+            const message =
+                `${title ? `${title}\n\n` : ''}Detected ${affected.length} conflict${affected.length === 1 ? '' : 's'} ` +
+                `between your local changes and the org:\n\n${details}${moreLine}\n\n` +
+                `Deploying will overwrite the remote version for these files.`;
+            const choice = await vscode.window.showWarningMessage(
+                message,
+                { modal: true },
+                'Deploy Anyway',
+                'Open Conflicts'
+            );
+            if (choice === 'Deploy Anyway') {
+                return 'proceed';
+            }
+            if (choice === 'Open Conflicts') {
+                try {
+                    await vscode.commands.executeCommand('salesforceMetadata.view.conflicts');
+                } catch {
+                    // ignore — conflict view may not be registered
+                }
+            }
+            return 'cancel';
+        } catch {
+            return 'proceed';
+        }
+    }
+
     async function deployPaths(
         paths,
         options: {
             showProgress?: boolean;
             textOverrides?: Record<string, string>;
             title?: string;
+            skipConflictCheck?: boolean;
         } = {}
     ) {
         const showProgress = Boolean(options?.showProgress);
         const textOverrides = options?.textOverrides || {};
         const title = options?.title;
+        const skipConflictCheck = Boolean(options?.skipConflictCheck);
 
         const bridgeClient = await connectionRuntime.resolveBridgeClient();
         if (!bridgeClient) {
@@ -330,6 +405,13 @@ export function createDeployAndSourceTracking({
                 connectionRuntime.getInjectedConnectionRequiredMessage()
             );
             return null;
+        }
+
+        if (!skipConflictCheck && Array.isArray(paths) && paths.length) {
+            const gate = await runPreDeployConflictGate(paths, { title });
+            if (gate === 'cancel') {
+                return { failures: [], results: [], skippedReadOnly: 0, cancelled: true };
+            }
         }
 
         const mapItems = await loadToolingMapItems();
@@ -455,6 +537,7 @@ export function createDeployAndSourceTracking({
             } catch {
                 // ignore
             }
+            emitDeploySuccess(successPaths);
         }
 
         return { failures, results, skippedReadOnly };
@@ -656,6 +739,7 @@ export function createDeployAndSourceTracking({
             const summary = await deployPaths(paths, {
                 showProgress: false,
                 textOverrides,
+                skipConflictCheck: true,
             });
             const failures = summary?.failures || [];
             if (failures.length) {
@@ -1730,7 +1814,9 @@ export function createDeployAndSourceTracking({
     registerCommandGroups(commandGroups);
 
     return {
+        computeRemoteChangeStatus,
         deployPaths,
+        onDeploySuccess,
         fetchPathFromSalesforce,
         invalidateToolingMap,
         loadAutoDeployOnSave,

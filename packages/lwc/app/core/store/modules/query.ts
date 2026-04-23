@@ -156,6 +156,32 @@ const queriesSlice = createSlice({
                 });
             }
         },
+        mergeRecordUpdates: (state, action) => {
+            // Merges successful inline-edit values into the query result records
+            // so the table reflects the persisted value without a re-query.
+            const { tabId, updates } = action.payload || {};
+            if (!tabId || !Array.isArray(updates) || updates.length === 0) return;
+
+            const existingRecord = queryAdapter
+                .getSelectors()
+                .selectById(state, lowerCaseKey(tabId));
+            if (!existingRecord?.data?.records) return;
+
+            const byId = new Map(
+                updates.filter(u => u && u.recordId).map(u => [String(u.recordId), u.changes || {}])
+            );
+            const updatedRecords = existingRecord.data.records.map(record => {
+                const changes = byId.get(String(record?.Id));
+                return changes ? { ...record, ...changes } : record;
+            });
+            queryAdapter.upsertOne(state, {
+                ...existingRecord,
+                data: {
+                    ...existingRecord.data,
+                    records: updatedRecords,
+                },
+            });
+        },
         clearQueryError: (state, action) => {
             const { tabId } = action.payload;
             queryAdapter.upsertOne(state, {

@@ -32,7 +32,7 @@ import {
 } from 'shared/utils';
 import { CATEGORY_STORAGE } from 'builder/storagePanel';
 import moment from 'moment';
-import { escapeCsvValue, formatQueryWithComment } from './util';
+import { confirmDiscardPendingEdits, escapeCsvValue, formatQueryWithComment } from './util';
 import LOGGER from 'shared/logger';
 import Analytics from 'shared/analytics';
 import type { ConnectionLike } from 'core/connector';
@@ -264,12 +264,13 @@ export default class App extends ToolkitElement {
     };
 
     deleteRecords = async (sobject, records) => {
-        if (isUndefinedOrNull(sobject)) return;
+        if (isUndefinedOrNull(sobject)) return [];
         const connector: ConnectionLike = sobject.useToolingApi
             ? this.connector.conn.tooling
             : this.connector.conn;
-        const rets = await connector.sobject(sobject.name).delete(records.map(x => x.Id));
-        return rets;
+        const ret = await connector.sobject(sobject.name).delete(records.map(x => x.Id));
+        // jsforce returns a single object when one id is passed, an array otherwise.
+        return Array.isArray(ret) ? ret : [ret];
     };
 
     /** Events **/
@@ -318,7 +319,7 @@ export default class App extends ToolkitElement {
         }
     };
 
-    executeAction = e => {
+    executeAction = async e => {
         const isAllRows = false;
         const inputEl = this.refs?.editor?.editor?.currentModel;
         if (!inputEl) return;
@@ -326,6 +327,8 @@ export default class App extends ToolkitElement {
         if (!query) return;
 
         const { ui, describe } = store.getState();
+        // Block running a new query when the current tab has unsaved inline edits.
+        if (!(await confirmDiscardPendingEdits(ui, ui.currentTab?.id))) return;
         // Clear current tab selection before running a new query
         store.dispatch(UI.reduxSlice.actions.updateTabSelection({ selectedRecordIds: [] }));
         store.dispatch(UI.reduxSlice.actions.deselectChildRelationship());
@@ -364,7 +367,7 @@ export default class App extends ToolkitElement {
         }).then(async data => {
             if (isUndefinedOrNull(data)) return;
 
-            const { name, isGlobal } = data;
+            const { name, isGlobal, folder, tags } = data;
             store.dispatch(async (dispatch, getState) => {
                 await dispatch(
                     DOCUMENT.reduxSlices.QUERYFILE.actions.upsertOne({
@@ -374,6 +377,8 @@ export default class App extends ToolkitElement {
                         alias: this.alias,
                         extra: {
                             useToolingApi: this._useToolingApi === true, // Needed for queries
+                            folder,
+                            tags,
                         },
                     })
                 );
@@ -494,44 +499,80 @@ export default class App extends ToolkitElement {
         if (!(await LightningConfirm.open(params))) return;
         store.dispatch(APPLICATION.reduxSlice.actions.startLoading());
 
-        // Child
-        //const retChild  = await this.deleteRecords(_sobjectChild,this.selectedChildRecords) || [];
-        // Parent
-        const retParent =
-            (await this.deleteRecords(
+        const deletedRecordIds = new Set<string>();
+        const errorMessages: string[] = [];
+        try {
+            const retParent = await this.deleteRecords(
                 _sobject,
                 selectedIds.map(id => ({ Id: id }))
-            )) || [];
-        const deletedRecordIds = new Set();
-        const errorMessages = [];
-        for (const ret of [...retParent]) {
-            // ...retChild,
-            if (ret.success) {
-                deletedRecordIds.add(ret.id);
-            } else {
-                errorMessages.push(
-                    ret.errors.length > 0
-                        ? ret.errors[0].content
-                        : 'Undefined error, please try again.'
-                );
-            }
-        }
-        // Error
-        if (errorMessages.length > 0) {
+            );
+            retParent.forEach((ret, idx) => {
+                if (ret?.success) {
+                    deletedRecordIds.add(ret.id || selectedIds[idx]);
+                    return;
+                }
+                // jsforce SaveResult errors: [{ statusCode, message, fields }]
+                const errs = Array.isArray(ret?.errors)
+                    ? ret.errors
+                    : ret?.errors
+                      ? [ret.errors]
+                      : [];
+                const first = errs[0] || {};
+                const code = first.statusCode || first.errorCode;
+                const msg =
+                    first.message ||
+                    first.content ||
+                    'Salesforce rejected the delete (no message returned).';
+                errorMessages.push(code ? `${code}: ${msg}` : msg);
+            });
+        } catch (err: any) {
+            // Batch-level failure (network, invalid session, no connection).
+            // Surface it, don't leave the UI stuck in loading.
+            const code = err?.errorCode || err?.name;
+            const msg = err?.message || 'Unable to reach Salesforce.';
             Toast.show({
                 label: 'Error during deletion',
-                message: errorMessages[0],
+                message: code ? `${code}: ${msg}` : msg,
+                variant: 'error',
+                mode: 'sticky',
+            });
+            store.dispatch(APPLICATION.reduxSlice.actions.stopLoading());
+            return;
+        }
+
+        if (errorMessages.length > 0) {
+            const suffix =
+                errorMessages.length > 1
+                    ? `\n(+ ${errorMessages.length - 1} other record${errorMessages.length - 1 === 1 ? '' : 's'} failed.)`
+                    : '';
+            Toast.show({
+                label: `Failed to delete ${errorMessages.length} record${errorMessages.length === 1 ? '' : 's'}`,
+                message: errorMessages[0] + suffix,
                 variant: 'error',
                 mode: 'sticky',
             });
         }
-        // Success
         if (deletedRecordIds.size > 0) {
             Toast.show({
-                label: 'Successfull Deletion',
+                label: 'Successful Deletion',
                 message: `${deletedRecordIds.size} record(s) were deleted successfully.`,
                 variant: 'success',
                 mode: 'dismissible',
+            });
+            // Discard any pending inline edits for records that no longer exist,
+            // otherwise the Save N changes toolbar stays lit with ghost rows.
+            const tabId = ui.currentTab.id;
+            const tabEdits = (store.getState() as any).ui?.pendingEdits?.[tabId] || {};
+            Object.values(tabEdits).forEach((entry: any) => {
+                if (entry && deletedRecordIds.has(entry.recordId)) {
+                    store.dispatch(
+                        UI.reduxSlice.actions.clearEditsForRecord({
+                            tabId,
+                            sobjectType: entry.sobjectType,
+                            recordId: entry.recordId,
+                        })
+                    );
+                }
             });
         }
         store.dispatch(
@@ -540,9 +581,14 @@ export default class App extends ToolkitElement {
                 tabId: ui.currentTab.id,
             })
         );
-        // Clear selection for current tab after deletion
-        store.dispatch(UI.reduxSlice.actions.updateTabSelection({ selectedRecordIds: [] }));
-        this.selectedRecords = [];
+        // Clear selection for current tab after deletion (only rows that were actually removed).
+        const remainingSelection = selectedIds.filter(id => !deletedRecordIds.has(id));
+        store.dispatch(
+            UI.reduxSlice.actions.updateTabSelection({ selectedRecordIds: remainingSelection })
+        );
+        this.selectedRecords = this.selectedRecords.filter(
+            r => !deletedRecordIds.has(r?.Id || r?.id)
+        );
         store.dispatch(APPLICATION.reduxSlice.actions.stopLoading());
     };
 

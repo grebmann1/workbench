@@ -9,12 +9,37 @@
     flex: 1;
     display: flex;
     flex-direction: column;
+    border-top: 1px solid #c9c7c5;
+    background: #ffffff;
 }
 .child-relationship-panel .slds-button {
     position: absolute;
     top: 0.25rem;
     right: 0.25rem;
     z-index: 100;
+    color: #706e6b;
+}
+.child-relationship-panel .slds-button:hover {
+    color: #0176d3;
+}
+
+/* Subtle header bar for the child relationship label.
+   The label is rendered by Tabulator as a grouped column header,
+   so we target the grouped column shown inside the child panel. */
+.child-relationship-panel .tabulator-col.tabulator-col-group > .tabulator-col-content {
+    background: linear-gradient(180deg, #ebf3fe 0%, #e1efff 100%);
+    border-bottom: 1px solid #b0d5f8;
+    padding: 0.375rem 0.75rem;
+}
+.child-relationship-panel
+    .tabulator-col.tabulator-col-group
+    > .tabulator-col-content
+    .tabulator-col-title {
+    color: #0176d3;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
 }
 
 .slds-height-30 {
@@ -23,4 +48,23 @@
 
 .slds-height-70 {
     height: 70%;
+}
+
+.sftk-edit-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    padding: 0.25rem 0.75rem;
+    background: #fff4e5;
+    border-top: 1px solid #fddcae;
+    border-bottom: 1px solid #fddcae;
+    flex: 0 0 auto;
+}
+
+.sftk-edit-summary {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: #8a3b00;
+    margin-right: auto;
 }

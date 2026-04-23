@@ -62,7 +62,6 @@ const DEFAULT_INCLUDE_PATTERNS = [
     '/\.sfcrmproducts\.cn/',
     '/\.lightning\.force\.com\.mcas\.ms/',
     '/\.builder\.salesforce-experience\.com/',
-    '/lightning/',
 ];
 const DEFAULT_EXCLUDE_PATTERNS = [
     '/\/setup\/secur\/RemoteAccessAuthorizationPage\.apexp/',
@@ -897,6 +896,17 @@ chrome.runtime.onInstalled.addListener(async details => {
         await chrome.storage.local.set({
             content_script_include_patterns: DEFAULT_INCLUDE_PATTERNS.join('\n'),
         });
+    } else {
+        // Remove the overly-broad "/lightning/" pattern that caused injection into
+        // non-Salesforce pages (e.g. Okta SSO). All Salesforce Lightning URLs are
+        // already covered by more specific domain patterns.
+        const cleaned = data.content_script_include_patterns
+            .split('\n')
+            .filter(line => line.trim() !== '/lightning/')
+            .join('\n');
+        if (cleaned !== data.content_script_include_patterns) {
+            await chrome.storage.local.set({ content_script_include_patterns: cleaned });
+        }
     }
     if (!data.content_script_exclude_patterns) {
         await chrome.storage.local.set({

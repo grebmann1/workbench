@@ -1,10 +1,16 @@
 import { api, wire } from 'lwc';
 import Toast from 'lightning/toast';
 import ToolkitElement from 'core/toolkitElement';
-import { store, UI } from 'core/store';
+import { store, UI, SOBJECT, connectStore } from 'core/store';
 import { NavigationContext, navigate } from 'lwr/navigation';
-import { isNotUndefinedOrNull, isUndefinedOrNull, runActionAfterTimeOut } from 'shared/utils';
+import {
+    isNotUndefinedOrNull,
+    isUndefinedOrNull,
+    lowerCaseKey,
+    runActionAfterTimeOut,
+} from 'shared/utils';
 import { store as legacyStore, store_application } from 'shared/store';
+import { resolveFieldEditability, normalizeEditorValue } from './editable';
 
 class ColumnCollector {
     columnMap = new Map();
@@ -76,6 +82,34 @@ export default class OutputTable extends ToolkitElement {
     @api sobjectName;
     @api isChildTable = false;
 
+    /** Inline-edit state (mirrored from the store) */
+    _currentTabId: string | null = null;
+    _pendingEditsByKey: Record<string, any> = {};
+    _sobjectState: any = null;
+    _describeRequested = new Set<string>();
+
+    /** Inline-edit overlay state */
+    _isEditing = false;
+    _editorProps: any = null;
+    _editorStyle: string = '';
+    _activeEdit: {
+        sobjectType: string;
+        recordId: string;
+        field: string;
+        oldValue: any;
+        editorType: any;
+    } | null = null;
+
+    @wire(connectStore, { store })
+    storeChange({ ui, sobject }: { ui: any; sobject: any }) {
+        if (this.isChildTable) return;
+        this._currentTabId = ui?.currentTab?.id || null;
+        this._pendingEditsByKey =
+            (this._currentTabId && ui?.pendingEdits?.[this._currentTabId]) || {};
+        this._sobjectState = sobject || null;
+        this._refreshDirtyDecorations();
+    }
+
     async ensureTabulator() {
         if (this._tabulatorCtor) return this._tabulatorCtor;
         if (!this._tabulatorImportPromise) {
@@ -117,7 +151,13 @@ export default class OutputTable extends ToolkitElement {
         const records = this._response?.records || [];
         return records.map(record => {
             const row = { ...record };
+            // Preserve the SObject type (needed for inline editing PATCH calls)
+            // but drop the rest of `attributes` so it doesn't leak into the UI.
+            const sobjectType = record?.attributes?.type || null;
             delete row.attributes;
+            if (sobjectType) {
+                row.__sobjectType = sobjectType;
+            }
             row.__searchText = this._buildRowSearchText(row);
             return row;
         });
@@ -125,8 +165,9 @@ export default class OutputTable extends ToolkitElement {
 
     _buildRowSearchText(row) {
         try {
-            return Object.values(row)
-                .map(val => {
+            return Object.entries(row)
+                .filter(([key]) => !key.startsWith('__'))
+                .map(([, val]) => {
                     if (val == null) return '';
                     if (typeof val === 'object') {
                         try {
@@ -171,31 +212,48 @@ export default class OutputTable extends ToolkitElement {
         return `${count} records`;
     }
 
+    _getPendingEditForCell(sobjectType, recordId, field) {
+        if (!sobjectType || !recordId) return null;
+        const entry = this._pendingEditsByKey?.[`${sobjectType}:${recordId}`];
+        if (!entry) return null;
+        return entry.changes?.[field] || null;
+    }
+
+    _formatDisplayValue(val) {
+        if (val == null) return '';
+        if (Array.isArray(val)) return val.join(';');
+        return String(val);
+    }
+
     tabulatorCellFormatter = cell => {
-        const value = cell.getValue();
         const field = cell.getColumn().getField();
         const rowData = cell.getRow().getData() || {};
         const recordId = rowData.Id;
+        const sobjectType = rowData.__sobjectType;
 
-        const isChildRelationship = value && typeof value === 'object';
-        if (isChildRelationship) {
-            const label = this._formatChildRelationshipLabel(value);
+        const rawValue = cell.getValue();
+        const isChildRelationship = rawValue && typeof rawValue === 'object';
+
+        const pendingEdit = this._getPendingEditForCell(sobjectType, recordId, field);
+        const effectiveValue = pendingEdit ? pendingEdit.newValue : rawValue;
+
+        if (isChildRelationship && !pendingEdit) {
+            const label = this._formatChildRelationshipLabel(rawValue);
+            const safe = this._escapeHtml(label);
             return `
                 <div class="sftk-cell">
-                    <button class="slds-button slds-button_neutral sftk-cell-child" type="button" data-action="child" title="${this._escapeHtml(label)}">
-                        ${this._escapeHtml(label)}
-                    </button>
+                    <span class="sftk-badge sftk-cell-child" data-action="child" title="${safe}">${safe}</span>
                 </div>
             `;
         }
 
-        const text = value == null ? '' : String(value);
-        const isIdLike = /^[0-9A-Za-z]{18}$/.test(text);
+        const displayText = this._formatDisplayValue(effectiveValue);
+        const isIdLike = /^[0-9A-Za-z]{18}$/.test(displayText);
         const isRecordIdField = field === 'Id';
 
         const valueHtml = isIdLike
-            ? `<a href="#" class="sftk-cell-link" data-action="navigate" title="${this._escapeHtml(text)}">${this._escapeHtml(text)}</a>`
-            : `<div class="slds-truncate sftk-cell-value" title="${this._escapeHtml(text)}">${this._escapeHtml(text)}</div>`;
+            ? `<a href="#" class="sftk-cell-link" data-action="navigate" title="${this._escapeHtml(displayText)}">${this._escapeHtml(displayText)}</a>`
+            : `<div class="slds-truncate sftk-cell-value" title="${this._escapeHtml(displayText)}">${this._escapeHtml(displayText)}</div>`;
 
         const isLookupField = isIdLike && !isRecordIdField;
 
@@ -214,10 +272,29 @@ export default class OutputTable extends ToolkitElement {
                 })
             );
         }
-        if (value != null && text !== '') {
+        if (effectiveValue != null && displayText !== '') {
             actions.push(
                 this._iconButtonHtml({ action: 'copy', iconName: 'copy', assistiveText: 'copy' })
             );
+        }
+
+        // Apply dirty / error decorations on the cell element after render.
+        const cellEl = cell.getElement?.();
+        if (cellEl) {
+            cellEl.classList.toggle('sftk-cell-dirty', !!pendingEdit);
+            const tabBucket = this._pendingEditsByKey || {};
+            const entry = tabBucket[`${sobjectType}:${recordId}`];
+            // Field-level error takes precedence; fall back to record-level when
+            // Salesforce didn't pinpoint a field (e.g. validation rule with no
+            // field binding, DML exception, auth failure).
+            const fieldErr = entry?.error?.fieldErrors?.[field];
+            const recordErr = entry?.error && !entry.error.fieldErrors ? entry.error.message : null;
+            const errMsg = fieldErr || recordErr;
+            cellEl.classList.toggle('sftk-cell-error', !!(pendingEdit && errMsg));
+            if (errMsg) {
+                const code = entry?.error?.statusCode;
+                cellEl.setAttribute('title', code ? `${code}: ${errMsg}` : errMsg);
+            }
         }
 
         return `
@@ -227,6 +304,33 @@ export default class OutputTable extends ToolkitElement {
             </div>
         `;
     };
+
+    _tabulatorRowFormatter = row => {
+        const data = row.getData() || {};
+        const entry = this._pendingEditsByKey?.[`${data.__sobjectType}:${data.Id}`] || null;
+        const hasDirty = !!(entry && Object.keys(entry.changes || {}).length > 0);
+        row.getElement().classList.toggle('sftk-row-dirty', hasDirty);
+    };
+
+    _refreshDirtyDecorations() {
+        if (!this.tableInstance) return;
+        try {
+            this.tableInstance.getRows().forEach(row => {
+                const data = row.getData() || {};
+                const entry = this._pendingEditsByKey?.[`${data.__sobjectType}:${data.Id}`] || null;
+                const el = row.getElement();
+                const hasDirty = !!(entry && Object.keys(entry.changes || {}).length > 0);
+                const wasDirty = el?.classList?.contains('sftk-row-dirty');
+                el?.classList?.toggle('sftk-row-dirty', hasDirty);
+                if (hasDirty || wasDirty) {
+                    // Re-run formatter so the displayed value + cell classes update.
+                    row.reformat?.();
+                }
+            });
+        } catch (_e) {
+            // no-op
+        }
+    }
 
     _handleCellClick = (e, cell) => {
         const actionEl = e?.target?.closest?.('[data-action]');
@@ -295,7 +399,9 @@ export default class OutputTable extends ToolkitElement {
             let clonedValue = value;
             try {
                 clonedValue = JSON.parse(JSON.stringify(value));
-            } catch (_e) {}
+            } catch (_e) {
+                // fall back to original value if not serializable
+            }
             store.dispatch(
                 UI.reduxSlice.actions.selectChildRelationship({
                     childRelationship: {
@@ -307,6 +413,155 @@ export default class OutputTable extends ToolkitElement {
         }
     };
 
+    _handleCellDblClick = (e, cell) => {
+        if (this.isChildTable) return;
+        const rowData = cell.getRow().getData() || {};
+        const field = cell.getColumn().getField();
+        const sobjectType = rowData.__sobjectType;
+        const recordId = rowData.Id;
+
+        if (!sobjectType || !recordId) return;
+        if (!field || field === '__sobjectType' || field === '__searchText') return;
+
+        const rawValue = cell.getValue();
+        // Prefer the pending edit's newValue when we re-enter editing.
+        const pendingEdit = this._getPendingEditForCell(sobjectType, recordId, field);
+        const valueForEditor = pendingEdit ? pendingEdit.newValue : rawValue;
+
+        const editability = resolveFieldEditability({
+            sobjectState: this._sobjectState,
+            sobjectType,
+            field,
+            value: rawValue,
+        });
+
+        if (!editability.editable) {
+            // Lazy-fetch describe the first time we see this sobject type without metadata.
+            if (editability.reason === 'not-found' || editability.reason === 'no-describe') {
+                this._requestDescribe(sobjectType);
+            }
+            return;
+        }
+
+        // Prevent the single-click handler from firing navigations/actions under the dblclick.
+        e?.preventDefault?.();
+        e?.stopPropagation?.();
+
+        this._openEditor({
+            cell,
+            field,
+            sobjectType,
+            recordId,
+            rawValue,
+            valueForEditor,
+            editability,
+        });
+    };
+
+    _requestDescribe(sobjectType) {
+        if (!sobjectType) return;
+        const key = lowerCaseKey(sobjectType);
+        if (this._describeRequested.has(key)) return;
+        const conn = (store.getState() as any)?.application?.connector;
+        if (!conn) return;
+        this._describeRequested.add(key);
+        store.dispatch(
+            SOBJECT.describeSObject({
+                connector: conn.conn,
+                sObjectName: sobjectType,
+            }) as any
+        );
+    }
+
+    _openEditor({ cell, field, sobjectType, recordId, rawValue, valueForEditor, editability }) {
+        const cellEl = cell.getElement?.();
+        const host = this.template.querySelector('.output-panel');
+        if (!cellEl || !host) return;
+
+        const hostRect = host.getBoundingClientRect();
+        const rect = cellEl.getBoundingClientRect();
+
+        const top = rect.top - hostRect.top + host.scrollTop;
+        const left = rect.left - hostRect.left + host.scrollLeft;
+        const width = Math.max(rect.width, 180);
+        const height = Math.max(rect.height, 28);
+
+        this._editorProps = {
+            editorType: editability.editorType,
+            picklistValues: editability.picklistValues || [],
+            length: editability.length || 0,
+            initialValue: valueForEditor,
+            fieldLabel: editability.label || field,
+        };
+        this._editorStyle = `top:${top}px; left:${left}px; width:${width}px; min-height:${height}px;`;
+        this._activeEdit = {
+            sobjectType,
+            recordId,
+            field,
+            oldValue: rawValue,
+            editorType: editability.editorType,
+        };
+        this._isEditing = true;
+
+        // Commit editor on Tabulator scroll to prevent the editor from floating away.
+        try {
+            if (!this._scrollBound && this.tableInstance) {
+                this._scrollBound = true;
+                this.tableInstance.on('scrollVertical', this._handleTableScrollWhileEditing);
+                this.tableInstance.on('scrollHorizontal', this._handleTableScrollWhileEditing);
+            }
+        } catch (_e) {
+            // ignore scroll-binding errors
+        }
+    }
+
+    _scrollBound = false;
+
+    _handleTableScrollWhileEditing = () => {
+        if (this._isEditing) {
+            this._closeEditor();
+        }
+    };
+
+    _closeEditor() {
+        this._isEditing = false;
+        this._editorProps = null;
+        this._activeEdit = null;
+        this._editorStyle = '';
+    }
+
+    handleCellEditorCommit = (e: CustomEvent) => {
+        if (!this._activeEdit) {
+            this._closeEditor();
+            return;
+        }
+        const { sobjectType, recordId, field, oldValue, editorType } = this._activeEdit;
+        const rawNewValue = (e as any)?.detail?.value;
+        const newValue = normalizeEditorValue(editorType, rawNewValue);
+        this._closeEditor();
+        if (!this._currentTabId) return;
+        store.dispatch(
+            UI.reduxSlice.actions.setCellEdit({
+                tabId: this._currentTabId,
+                sobjectType,
+                recordId,
+                field,
+                oldValue,
+                newValue,
+            })
+        );
+    };
+
+    handleCellEditorCancel = () => {
+        this._closeEditor();
+    };
+
+    @api
+    discardAllEdits() {
+        if (!this._currentTabId) return;
+        store.dispatch(UI.reduxSlice.actions.clearEditsForTab({ tabId: this._currentTabId }));
+    }
+
     formatColumns = () => {
         const columns = this._columns.map(key => {
             return {
@@ -315,6 +570,7 @@ export default class OutputTable extends ToolkitElement {
                 maxWidth: 500,
                 formatter: this.tabulatorCellFormatter,
                 cellClick: this._handleCellClick,
+                cellDblClick: this._handleCellDblClick,
             };
         });
 
@@ -392,6 +648,7 @@ export default class OutputTable extends ToolkitElement {
             columnHeaderVertAlign: 'middle',
             minHeight: 100,
             rowHeight: 28,
+            rowFormatter: this._tabulatorRowFormatter,
             rowHeader: this.isChildTable || data.length === 0 ? null : rowSelector,
             headerSortElement: function (column, dir) {
                 const _arrowIcon = iconName =>

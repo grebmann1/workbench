@@ -224,6 +224,18 @@ export async function validateSession(serverUrl, sessionId) {
     }
 }
 
+const SALESFORCE_HOST_PATTERN =
+    /\.(salesforce(-com)?|lightning\.force(-com)?|force|salesforce-setup(-com)?|salesforce\.mil|crmforce\.mil|cloudforce\.mil|sfcrmapps\.cn|sfcrmproducts\.cn|salesforce-experience)\./;
+
+function isSalesforceTab(url) {
+    try {
+        const { hostname } = new URL(url);
+        return SALESFORCE_HOST_PATTERN.test(hostname);
+    } catch {
+        return false;
+    }
+}
+
 export async function listOrgSessionsFromTabs() {
     const canUseTabs = await hasPermission('tabs');
     if (!canUseTabs) {
@@ -238,6 +250,7 @@ export async function listOrgSessionsFromTabs() {
         try {
             if (!tab?.id || !tab?.url) continue;
             if (!isHttpUrl(tab.url)) continue;
+            if (!isSalesforceTab(tab.url)) continue;
 
             const origin = getSalesforceURL(tab.url);
             const storeId = tabIdToStoreId.get(tab.id);

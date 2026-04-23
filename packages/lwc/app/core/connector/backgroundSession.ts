@@ -37,9 +37,14 @@ export async function sendBackgroundSessionMessage(message: ChromeRuntimeMessage
         return undefined;
     }
     return await new Promise(resolve => {
+        const timer = setTimeout(() => resolve(undefined), 5000);
         try {
-            sendMessage(message, response => resolve(response));
+            sendMessage(message, response => {
+                clearTimeout(timer);
+                resolve(response);
+            });
         } catch {
+            clearTimeout(timer);
             resolve(undefined);
         }
     });

@@ -10,6 +10,19 @@
 
         <div lwc:dom="manual" class="custom-table"></div>
 
+        <template lwc:if={_isEditing}>
+            <div class="sftk-editor-overlay" style={_editorStyle}>
+                <soql-cell-editor
+                    editor-type={_editorProps.editorType}
+                    picklist-values={_editorProps.picklistValues}
+                    length={_editorProps.length}
+                    initial-value={_editorProps.initialValue}
+                    field-label={_editorProps.fieldLabel}
+                    oncommit={handleCellEditorCommit}
+                    oncancel={handleCellEditorCancel}></soql-cell-editor>
+            </div>
+        </template>
+
         <!--
         <div class="slds-table--header-fixed_container">
             <div class="slds-scrollable_y" onscroll={handleScroll}>

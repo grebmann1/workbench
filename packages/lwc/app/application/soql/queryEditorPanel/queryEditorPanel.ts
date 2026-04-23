@@ -21,6 +21,7 @@ import {
     extractErrorDetailsFromQuery,
 } from 'shared/utils';
 import LightningConfirm from 'lightning/confirm';
+import { confirmDiscardPendingEdits } from '../app/util';
 
 export default class QueryEditorPanel extends ToolkitElement {
     @api namespace: string | null = null;
@@ -43,6 +44,8 @@ export default class QueryEditorPanel extends ToolkitElement {
     currentFile: Record<string, any> | null = null;
     isDraft = false;
     draft = false;
+
+    _describe: Record<string, any> | null = null;
 
     get soql(): string | null {
         return this._soql;
@@ -70,15 +73,19 @@ export default class QueryEditorPanel extends ToolkitElement {
         query,
         queryFiles,
         application,
+        describe,
     }: {
         ui: any;
         sobject: any;
         query: any;
         queryFiles: any;
         application: any;
+        describe: any;
     }) {
         const isCurrentApp = this.verifyIsActive(application.currentApplication);
         if (!isCurrentApp) return;
+
+        this._describe = describe;
 
         const { soql, tabs, currentTab, includeDeletedRecords } = ui;
         if (ui.query) {
@@ -241,9 +248,15 @@ export default class QueryEditorPanel extends ToolkitElement {
 
     get formattedTabs() {
         return this.tabs.map((x, index) => {
+            let name = x.fileId;
+            if (!name) {
+                const apiName = x.sobject;
+                const meta = apiName && this._describe?.nameMap?.[lowerCaseKey(apiName)];
+                name = meta?.labelPlural || apiName || `Query ${index + 1}`;
+            }
             return {
                 ...x,
-                name: x.fileId || `Query ${index + 1}`,
+                name,
                 isCloseable: this.tabs.length > 1,
                 class: classSet('slds-tabs_scoped__item')
                     .add({ 'slds-is-active': x.path === this.currentFile })
@@ -273,8 +286,13 @@ export default class QueryEditorPanel extends ToolkitElement {
         );
     };
 
-    handleSelectTab = e => {
+    handleSelectTab = async e => {
         const tabId = e.target.value;
+        const { ui } = store.getState();
+        // Block switching away when the current tab has unsaved inline edits.
+        if (ui.currentTab?.id && ui.currentTab.id !== tabId) {
+            if (!(await confirmDiscardPendingEdits(ui, ui.currentTab.id))) return;
+        }
         store.dispatch(UI.reduxSlice.actions.selectionTab({ id: tabId, alias: this.alias }));
     };
 
@@ -285,6 +303,8 @@ export default class QueryEditorPanel extends ToolkitElement {
             variant: 'headerless',
             message: 'This query has unsaved changes ! Do you want delete it ?',
         };
+        const { ui } = store.getState();
+        if (!(await confirmDiscardPendingEdits(ui, tabId))) return;
         if (
             !currentTab.isDraft ||
             (currentTab.isDraft && isUndefinedOrNull(currentTab.fileId)) ||

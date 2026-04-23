@@ -32,8 +32,6 @@ td,
 }
 
 .slds-cell-fixed {
-    /*padding-left: 0.5rem;*/
-    /*transform: translate(-0.25rem);*/
     line-height: 2rem;
     position: relative;
 }
@@ -42,39 +40,108 @@ td,
     border-left: unset;
     position: absolute;
     height: 2rem;
-    /*left: calc(0.25rem - 1px);*/
 }
+
+/* ---------- Tabulator container ---------- */
 
 .tabulator {
     border: 1px solid #dddbda;
     border-radius: 4px;
+    font-size: 0.8125rem;
 }
+
+/* ---------- Header ---------- */
+
 .tabulator-header {
-    background-color: #f3f2f2;
-    border-bottom: 1px solid #dddbda;
+    background-color: #f8f7f6;
+    border-bottom: 1px solid #c9c7c5;
 }
 .tabulator-header .tabulator-col {
     color: #3e3e3c;
-    font-weight: bold;
-    border-right: 1px solid #dddbda;
+    font-weight: 600;
+    border-right: 1px solid #e5e5e5;
+    background-color: transparent;
 }
+.tabulator .tabulator-header .tabulator-col .tabulator-col-content {
+    padding: 0.25rem 0.5rem;
+}
+.tabulator .tabulator-header .tabulator-col .tabulator-col-content .tabulator-col-title {
+    white-space: normal;
+    font-size: 0.6875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #444442;
+}
+.tabulator-col.tabulator-col-sortable .tabulator-arrow {
+    border-color: #706e6b;
+}
+.slds-is-sortable__icon {
+    display: inline-block;
+}
+.tabulator-col-sorter-element:hover .slds-is-sortable__icon {
+    fill: #0176d3;
+}
+
+/* ---------- Rows ---------- */
+
 .tabulator-row {
-    border-bottom: 1px solid #dddbda;
+    border-bottom: 1px solid #ecebea;
+    min-height: 28px;
+    transition: background-color 0.08s ease-in-out;
+}
+.tabulator-row.tabulator-row-even {
+    background-color: #fafaf9;
 }
 .tabulator-row:hover {
-    background-color: #e0e5ee;
+    background-color: #ebf3fe;
 }
+.tabulator-row.tabulator-selected {
+    background-color: #d6e9ff;
+    box-shadow: inset 3px 0 0 0 #0176d3;
+    color: #181818;
+}
+.tabulator-row.tabulator-selected:hover {
+    background-color: #c2dcfb;
+    color: #181818;
+}
+.tabulator-row.tabulator-highlight-row {
+    background-color: #d8edff;
+    box-shadow: inset 3px 0 0 0 #0176d3;
+    color: #181818;
+}
+.tabulator-row.tabulator-selected .tabulator-cell,
+.tabulator-row.tabulator-highlight-row .tabulator-cell {
+    background-color: transparent;
+}
+.tabulator-row.tabulator-selected .sftk-cell-value,
+.tabulator-row.tabulator-highlight-row .sftk-cell-value {
+    color: #181818;
+}
+.tabulator-row.tabulator-selected .sftk-cell-link,
+.tabulator-row.tabulator-highlight-row .sftk-cell-link {
+    color: #014486;
+    font-weight: 600;
+}
+.tabulator-row.tabulator-selected .sftk-cell-link:hover,
+.tabulator-row.tabulator-highlight-row .sftk-cell-link:hover {
+    color: #032d5f;
+}
+
+/* ---------- Cells ---------- */
+
 .tabulator-cell {
     padding: 0px !important;
-    border-right: 1px solid #dddbda !important;
+    border-right: 1px solid #ecebea !important;
+    height: 28px;
 }
 
 .sftk-cell {
     display: flex;
     align-items: center;
     gap: 0.25rem;
-    padding: 0 0.25rem;
-    min-height: 28px;
+    padding: 0 0.5rem;
+    min-height: 24px;
+    height: 100%;
 }
 
 .sftk-cell-main {
@@ -82,14 +149,8 @@ td,
     min-width: 0;
 }
 
-.sftk-cell-actions {
-    flex: 0 0 auto;
-    display: flex;
-    gap: 0.125rem;
-}
-
-.sftk-cell-btn {
-    line-height: 1;
+.sftk-cell-value {
+    color: #2e2e2c;
 }
 
 .sftk-cell-link {
@@ -98,19 +159,115 @@ td,
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    color: #0176d3;
+    text-decoration: none;
 }
-.tabulator-col.tabulator-col-sortable .tabulator-arrow {
-    border-color: #3e3e3c;
-}
-
-.tabulator .tabulator-header .tabulator-col .tabulator-col-content .tabulator-col-title {
-    white-space: normal;
+.sftk-cell-link:hover {
+    text-decoration: underline;
 }
 
-.slds-is-sortable__icon {
-    display: inline-block;
+/* ---------- Inline action buttons (fade-in on row hover) ---------- */
+
+.sftk-cell-actions {
+    flex: 0 0 auto;
+    display: flex;
+    gap: 0.125rem;
+    opacity: 0;
+    transition: opacity 0.1s ease-in-out;
+}
+.tabulator-row:hover .sftk-cell-actions,
+.tabulator-row.tabulator-selected .sftk-cell-actions,
+.tabulator-row.tabulator-highlight-row .sftk-cell-actions {
+    opacity: 1;
 }
 
-.tabulator-col-sorter-element:hover .slds-is-sortable__icon {
-    fill: #0176d3;
+.sftk-cell-btn {
+    line-height: 1;
+    width: 20px;
+    height: 20px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 3px;
+    color: #706e6b;
+}
+.sftk-cell-btn:hover {
+    background-color: rgba(1, 118, 211, 0.1);
+    color: #0176d3;
+}
+.sftk-cell-btn .slds-button__icon {
+    width: 12px;
+    height: 12px;
+}
+
+/* ---------- Child relationship badge ---------- */
+
+.sftk-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0 0.5rem;
+    height: 18px;
+    border-radius: 9px;
+    background: #e8f4ff;
+    border: 1px solid #b0d5f8;
+    color: #0176d3;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background-color 0.1s ease-in-out;
+    user-select: none;
+}
+.sftk-badge:hover {
+    background: #d0e9ff;
+    border-color: #7ab9ee;
+}
+
+/* ---------- Inline edit: dirty / error state ---------- */
+
+.tabulator-row.sftk-row-dirty {
+    box-shadow: inset 3px 0 0 0 #fe9339;
+}
+/* When a dirty row is also selected, show both the selection bar and the
+   dirty bar stacked on the left edge so neither cue is lost. */
+.tabulator-row.sftk-row-dirty.tabulator-selected {
+    box-shadow:
+        inset 3px 0 0 0 #fe9339,
+        inset 6px 0 0 0 #0176d3;
+}
+.tabulator-cell.sftk-cell-dirty {
+    background-color: #fff4e5 !important;
+    position: relative;
+}
+.tabulator-cell.sftk-cell-dirty::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #fe9339;
+    pointer-events: none;
+}
+.tabulator-cell.sftk-cell-error {
+    background-color: #fde2e2 !important;
+    box-shadow: inset 0 0 0 1px #ba0517;
+}
+
+/* ---------- Inline edit overlay ---------- */
+
+.sftk-editor-overlay {
+    position: absolute;
+    z-index: 30;
+    background: #ffffff;
+    border: 1px solid #0176d3;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+    border-radius: 2px;
+    display: flex;
+    align-items: stretch;
+}
+.sftk-editor-overlay > soql-cell-editor {
+    width: 100%;
+    display: block;
 }

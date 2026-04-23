@@ -9,12 +9,22 @@
     </template>
 
     <template lwc:if={isResponseTableDisplayed}>
-        <!--
-        <div class="slds-p-around_xx-small slds-grid">
-            <div class="slds-p-around_x-small">{i18n.OUTPUT_PANEL_TOTAL}: {response.totalSize}</div>
-            <lightning-button class="slds-col_bump-left" label={i18n.OUTPUT_PANEL_EXPORT_CSV} onclick={exportCsv}></lightning-button>
-        </div>
-        -->
+        <template lwc:if={hasPendingEdits}>
+            <div class="sftk-edit-toolbar">
+                <span class="sftk-edit-summary">{pendingEditsLabel}</span>
+                <lightning-button-group>
+                    <lightning-button
+                        variant="brand"
+                        label={saveLabel}
+                        disabled={isSavingPendingEdits}
+                        onclick={handleSaveEdits}></lightning-button>
+                    <lightning-button
+                        label="Discard"
+                        disabled={isSavingPendingEdits}
+                        onclick={handleDiscardEdits}></lightning-button>
+                </lightning-button-group>
+            </div>
+        </template>
         <div class="table-splitter slds-fill-height">
             <soql-output-table
                 lwc:ref="maintable"

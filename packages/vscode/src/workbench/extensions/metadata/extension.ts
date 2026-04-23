@@ -13,6 +13,10 @@ import { registerQueryAndApexTools } from './commands/queryAndApexTools';
 import { registerShellIntegration } from './commands/shellIntegration';
 import { registerConnectionCommands } from './runtime/connectionRuntime';
 import { registerSchemaTools } from './runtime/schemaTools';
+import { createConflictDetectionService } from './services/conflictDetectionService';
+import { registerConflictView } from './services/conflictView';
+import { registerSourceTrackingStatusBar } from './services/sourceTrackingStatusBar';
+import { saveSourceTracking } from 'vscode/sourceTracking';
 
 export const EXTENSION_ID = 'salesforce.sf-metadata';
 
@@ -64,6 +68,13 @@ const METADATA_EXTENSION_BASE_CONFIG = buildSalesforceExtensionConfig({
                     icon: '/workspace/vscode/salesforce-panel-icon.svg',
                 },
             ],
+            activitybar: [
+                {
+                    id: 'salesforceMetadataConflicts',
+                    title: 'Salesforce Conflicts',
+                    icon: '$(warning)',
+                },
+            ],
         },
         views: {
                 salesforcePanel: [
@@ -73,11 +84,38 @@ const METADATA_EXTENSION_BASE_CONFIG = buildSalesforceExtensionConfig({
                         type: 'webview',
                     },
                 ],
+                salesforceMetadataConflicts: [
+                    {
+                        id: 'salesforceMetadata.view.conflicts',
+                        name: 'Conflicts',
+                    },
+                ],
             },
         commands: [
             {
                 command: 'salesforceMetadata.setWorkspaceApiVersion',
                 title: 'Salesforce: Set Workspace API Version',
+            },
+            {
+                command: 'salesforceMetadata.view.conflicts',
+                title: 'Salesforce: View Source Tracking Conflicts',
+            },
+            {
+                command: 'salesforceMetadata.source.tracking.reset.remote',
+                title: 'Salesforce: Reset Remote Source Tracking',
+            },
+            {
+                command: 'salesforceMetadata.conflict.refresh',
+                title: 'Salesforce: Refresh Conflicts',
+                icon: '$(refresh)',
+            },
+            {
+                command: 'salesforceMetadata.conflict.open',
+                title: 'Salesforce: Open Conflicting File',
+            },
+            {
+                command: 'salesforceMetadata.conflict.diff',
+                title: 'Salesforce: Show Conflict Diff',
             },
             {
                 command: 'salesforceMetadata.fetchMetadata',
@@ -167,6 +205,16 @@ const METADATA_EXTENSION_BASE_CONFIG = buildSalesforceExtensionConfig({
                 { command: 'salesforceMetadata.openNamespaceReport' },
                 { command: 'salesforceMetadata.togglePreferToolingApi' },
                 { command: 'salesforceMetadata.toggleDeployNotifyOnSuccess' },
+                { command: 'salesforceMetadata.view.conflicts' },
+                { command: 'salesforceMetadata.source.tracking.reset.remote' },
+                { command: 'salesforceMetadata.conflict.refresh' },
+            ],
+            'view/title': [
+                {
+                    command: 'salesforceMetadata.conflict.refresh',
+                    group: 'navigation@0',
+                    when: 'view == salesforceMetadata.view.conflicts',
+                },
             ],
             'editor/context': [
                 {
@@ -1058,6 +1106,66 @@ function getApiExplorerWebviewHtml(url: string) {
 </html>`;
 }
 
+function registerSourceTrackingFeatures({
+    connectionRuntime,
+    context,
+    deployTools,
+}: {
+    connectionRuntime: any;
+    context: any;
+    deployTools: any;
+}) {
+    const { vscode } = context;
+    const conflictService = createConflictDetectionService({ deployTools });
+
+    registerConflictView({ context, vscode, conflictService });
+    registerSourceTrackingStatusBar({
+        context,
+        vscode,
+        connectionRuntime,
+        conflictService,
+    });
+
+    if (typeof deployTools?.onDeploySuccess === 'function') {
+        const deploySuccessSub = deployTools.onDeploySuccess(() => {
+            void conflictService.detect({ force: true }).catch(() => null);
+        });
+        context.addDisposable(deploySuccessSub);
+    }
+
+    registerCommand(
+        context,
+        vscode,
+        'salesforceMetadata.source.tracking.reset.remote',
+        async () => {
+            const confirm = await vscode.window.showWarningMessage(
+                'Reset remote source tracking? The local source-tracking snapshot will be cleared. After reset, run Sync Project to rebuild the snapshot.',
+                { modal: true },
+                'Reset'
+            );
+            if (confirm !== 'Reset') {
+                return;
+            }
+            try {
+                await saveSourceTracking(vscode, {
+                    instanceUrl: '',
+                    apiVersion: '',
+                    generatedAt: new Date().toISOString(),
+                    items: {},
+                });
+                conflictService.reset();
+                await vscode.window.showInformationMessage(
+                    'Remote source tracking cleared. Run Salesforce: Sync Project to rebuild it.'
+                );
+            } catch (error) {
+                await vscode.window.showErrorMessage(
+                    `Failed to reset remote source tracking: ${error instanceof Error ? error.message : String(error)}`
+                );
+            }
+        }
+    );
+}
+
 export async function register(
     vscodeBundle,
     { coreServices }: { coreServices?: CoreServices } = {}
@@ -1104,6 +1212,7 @@ export async function register(
                     deployTools,
                     commandGroups: ['metadata'],
                 });
+                registerSourceTrackingFeatures({ connectionRuntime, context, deployTools });
             });
         }
     );
