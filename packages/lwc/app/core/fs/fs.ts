@@ -38,7 +38,7 @@ function getSkillsBaseUrl() {
  */
 async function fetchSkillManifest(): Promise<string[]> {
     try {
-        const url = `${getSkillsBaseUrl()}/manifest.json`;
+        const url = `${getSkillsBaseUrl()}/skill.manifest.json`;
         const res = await fetch(url);
         if (!res.ok) return [];
         const data = await res.json();
@@ -92,7 +92,7 @@ function seedDefaultFilesIfNeeded(fs, dbName) {
         try {
             await fs.ready;
 
-            // Discover skill paths from the generated manifest (assets/skills/manifest.json).
+            // Discover skill paths from the generated manifest (assets/skills/skill.manifest.json).
             const skillPaths = await fetchSkillManifest();
             const coreDefaultFiles = buildFileProvidersFromRelativePaths(skillPaths);
             const coreEnsureDirs = getParentDirectoriesForFilePaths(Object.keys(coreDefaultFiles));

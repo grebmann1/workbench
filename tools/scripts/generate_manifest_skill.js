@@ -1,6 +1,6 @@
 /**
  * Walks ALL *.SKILL.md files under assets/skills/ and writes
- * assets/skills/manifest.json so fs.ts can discover them dynamically
+ * assets/skills/skill.manifest.json so fs.ts can discover them dynamically
  * without any hardcoded path list.
  *
  * Usage: node tools/scripts/generate_manifest_skill.js
@@ -11,7 +11,7 @@ const path = require('path');
 
 const PROJECT_ROOT = path.resolve(__dirname, '../..');
 const ALL_SKILLS_ROOT = path.join(PROJECT_ROOT, 'assets/shared/skills');
-const MANIFEST_FILE = path.join(PROJECT_ROOT, 'assets/shared/skills/manifest.json');
+const MANIFEST_FILE = path.join(PROJECT_ROOT, 'assets/shared/skills/skill.manifest.json');
 
 /** Recursively collect all *.SKILL.md paths relative to `baseDir`. */
 function collectSkillPaths(dir, baseDir) {
