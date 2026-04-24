@@ -61,42 +61,56 @@
                 </template>
                 <!-- Active Browser Sessions (card/side-panel only) -->
                 <div class="browser-sessions" lwc:if={isBrowserSessionsVisible}>
-                    <p class="browser-sessions__title">Active Browser Sessions</p>
+                    <div class="browser-sessions__header">
+                        <h2 class="browser-sessions__title">Active Browser Sessions</h2>
+                        <p class="browser-sessions__desc">Salesforce orgs currently open in your browser</p>
+                    </div>
                     <template lwc:if={isLoadingSessions}>
-                        <div class="browser-sessions__skeleton" aria-hidden="true">
-                            <div class="browser-sessions__skeleton-row"></div>
-                            <div class="browser-sessions__skeleton-row"></div>
+                        <div class="sessions-skeleton" aria-hidden="true">
+                            <div class="sessions-skeleton__row"></div>
+                            <div class="sessions-skeleton__row"></div>
                         </div>
                     </template>
                     <template lwc:elseif={hasSessions}>
-                        <ul class="browser-sessions__list" role="list">
+                        <ul class="sessions-list" role="list">
                             <template for:each={sessions} for:item="session">
                                 <li
                                     key={session.serverUrl}
-                                    class="browser-session-item"
+                                    class="session-item"
                                     role="button"
                                     tabindex="0"
                                     data-server-url={session.serverUrl}
                                     data-session-id={session.sessionId}
-                                    onclick={handleSessionClick}>
-                                    <lightning-icon
-                                        icon-name="utility:salesforce1"
-                                        size="x-small"
-                                        class="browser-session-item__icon"></lightning-icon>
-                                    <div class="browser-session-item__body">
-                                        <span class="browser-session-item__label">{session.label}</span>
-                                        <span class="browser-session-item__detail">{session.detail}</span>
+                                    onclick={handleSessionClick}
+                                    onkeydown={handleSessionKeydown}>
+                                    <span class="session-item__avatar" aria-hidden="true">
+                                        <lightning-icon
+                                            icon-name="utility:salesforce1"
+                                            size="small"></lightning-icon>
+                                    </span>
+                                    <div class="session-item__body">
+                                        <span class="session-item__label">{session.label}</span>
+                                        <span class="session-item__detail">{session.detail}</span>
                                     </div>
                                     <lightning-icon
                                         icon-name="utility:chevronright"
                                         size="x-small"
-                                        class="browser-session-item__chevron"></lightning-icon>
+                                        class="session-item__chevron"></lightning-icon>
                                 </li>
                             </template>
                         </ul>
                     </template>
                     <template lwc:else>
-                        <p class="browser-sessions__empty">No active Salesforce tab found</p>
+                        <div class="sessions-empty">
+                            <lightning-icon
+                                icon-name="utility:connected_apps"
+                                size="medium"
+                                class="sessions-empty__icon"></lightning-icon>
+                            <p class="sessions-empty__title">No active sessions found</p>
+                            <p class="sessions-empty__hint">
+                                Open a Salesforce org in a browser tab to see it here
+                            </p>
+                        </div>
                     </template>
                 </div>
             </div>
@@ -287,42 +301,56 @@
 
                         <!-- Active Browser Sessions (full-panel) -->
                         <div class="browser-sessions browser-sessions--full" lwc:if={isBrowserSessionsVisible}>
-                            <p class="browser-sessions__title">Active Browser Sessions</p>
+                            <div class="browser-sessions__header">
+                                <h2 class="browser-sessions__title">Active Browser Sessions</h2>
+                                <p class="browser-sessions__desc">Salesforce orgs currently open in your browser</p>
+                            </div>
                             <template lwc:if={isLoadingSessions}>
-                                <div class="browser-sessions__skeleton" aria-hidden="true">
-                                    <div class="browser-sessions__skeleton-row"></div>
-                                    <div class="browser-sessions__skeleton-row"></div>
+                                <div class="sessions-skeleton" aria-hidden="true">
+                                    <div class="sessions-skeleton__row"></div>
+                                    <div class="sessions-skeleton__row"></div>
                                 </div>
                             </template>
                             <template lwc:elseif={hasSessions}>
-                                <ul class="browser-sessions__list browser-sessions__list--full" role="list">
+                                <ul class="sessions-list sessions-list--full" role="list">
                                     <template for:each={sessions} for:item="session">
                                         <li
                                             key={session.serverUrl}
-                                            class="browser-session-item"
+                                            class="session-item"
                                             role="button"
                                             tabindex="0"
                                             data-server-url={session.serverUrl}
                                             data-session-id={session.sessionId}
-                                            onclick={handleSessionClick}>
-                                            <lightning-icon
-                                                icon-name="utility:salesforce1"
-                                                size="x-small"
-                                                class="browser-session-item__icon"></lightning-icon>
-                                            <div class="browser-session-item__body">
-                                                <span class="browser-session-item__label">{session.label}</span>
-                                                <span class="browser-session-item__detail">{session.detail}</span>
+                                            onclick={handleSessionClick}
+                                            onkeydown={handleSessionKeydown}>
+                                            <span class="session-item__avatar" aria-hidden="true">
+                                                <lightning-icon
+                                                    icon-name="utility:salesforce1"
+                                                    size="small"></lightning-icon>
+                                            </span>
+                                            <div class="session-item__body">
+                                                <span class="session-item__label">{session.label}</span>
+                                                <span class="session-item__detail">{session.detail}</span>
                                             </div>
                                             <lightning-icon
                                                 icon-name="utility:chevronright"
                                                 size="x-small"
-                                                class="browser-session-item__chevron"></lightning-icon>
+                                                class="session-item__chevron"></lightning-icon>
                                         </li>
                                     </template>
                                 </ul>
                             </template>
                             <template lwc:else>
-                                <p class="browser-sessions__empty">No active Salesforce tab found</p>
+                                <div class="sessions-empty">
+                                    <lightning-icon
+                                        icon-name="utility:connected_apps"
+                                        size="medium"
+                                        class="sessions-empty__icon"></lightning-icon>
+                                    <p class="sessions-empty__title">No active sessions found</p>
+                                    <p class="sessions-empty__hint">
+                                        Open a Salesforce org in a browser tab to see it here
+                                    </p>
+                                </div>
                             </template>
                         </div>
                     </div>

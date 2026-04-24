@@ -13,7 +13,7 @@ import {
     getProviderModelOptions,
     buildAvailableAgentModelOptions,
     resolveAgentProviderBaseUrl,
-    isInternalProviderBaseUrl,
+    isOpenAiCompatibleGateway,
 } from 'shared/llm';
 import {
     getAiProviderFromConfig,
@@ -92,7 +92,7 @@ async function* streamCompletionViaProvider(
         return;
     }
 
-    const isInternal = isInternalProviderBaseUrl(baseUrl);
+    const isInternal = isOpenAiCompatibleGateway(provider, baseUrl);
     const reasoningConfig = getReasoningConfigFromSelection(reasoning);
     const providerInstance = createProviderInstance({ provider, apiKey, baseUrl, isInternal });
     const systemPrompt = buildSystemPrompt(

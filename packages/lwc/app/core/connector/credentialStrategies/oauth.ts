@@ -91,7 +91,7 @@ export async function connect(
         return connector;
     }
 
-    const normalizedUrl = getSalesforceURL(loginUrl || 'https://login.salesforce.com');
+    const normalizedUrl = getSalesforceURL(loginUrl || configuration?.loginUrl || 'https://login.salesforce.com');
     LOGGER.log('normalizedUrl -> ', normalizedUrl);
 
     if (platform === PLATFORM.CHROME) {
@@ -148,7 +148,7 @@ export async function connect(
                 }
             );
         });
-    } else if ([PLATFORM.WEB, PLATFORM.ELECTRON].includes(platform)) {
+    } else if ([PLATFORM.WEB].includes(platform)) { // PLATFORM.ELECTRON removed for now
         LOGGER.log('Web OAuth');
         // Web OAuth: use authorization code flow so the server can exchange code for tokens
         // and redirect to /callback#...; jsforce's default login() uses response_type=token
@@ -268,6 +268,14 @@ export async function connect(
                     reject(e);
                 }
             }, 500);
+        });
+    } else if (platform === PLATFORM.ELECTRON) {
+        LOGGER.log('Electron OAuth');
+        // Electron OAuth
+        return new Promise(async (resolve, reject) => {
+            const connector = await directConnect(configuration);
+            console.log('connect -> connector', connector);
+            resolve(connector);
         });
     } else {
         throw new Error('OAuth connect is not implemented for this platform');

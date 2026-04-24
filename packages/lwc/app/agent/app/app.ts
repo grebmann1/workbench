@@ -5,7 +5,7 @@ import {
     buildAvailableAgentModelOptions,
     getProviderForModel,
     getProviderLabel,
-    isInternalProviderBaseUrl,
+    isOpenAiCompatibleGateway,
     normalizeLlmProvider,
 } from 'shared/llm';
 import { CACHE_CONFIG, saveSingleExtensionConfigToCache } from 'shared/cacheManager';
@@ -158,7 +158,7 @@ export default class App extends ToolkitElement {
         this._setIfChanged('activeProvider', activeProvider);
         this._setIfChanged(
             'isInternal',
-            isInternalProviderBaseUrl(activeProviderConfig?.baseUrl)
+            isOpenAiCompatibleGateway(activeProvider, activeProviderConfig?.baseUrl)
         );
         if (agent) {
             this._setIfChanged('selectedModel', agent.selectedModel);
@@ -374,7 +374,7 @@ You have full access to the toolkit UI. All navigation and display tools work no
         const state = store.getState();
         const activeProvider = getProviderForModel(model, this.availableModels);
         const activeProviderConfig = state.application?.providerConfigs?.[activeProvider];
-        const isInternal = isInternalProviderBaseUrl(activeProviderConfig?.baseUrl);
+        const isInternal = isOpenAiCompatibleGateway(activeProvider, activeProviderConfig?.baseUrl);
         const currentMessages = Array.isArray(state.agent?.messagesById?.[conversationId])
             ? state.agent.messagesById[conversationId]
             : [];
@@ -391,6 +391,7 @@ You have full access to the toolkit UI. All navigation and display tools work no
                 apiKey: activeProviderConfig?.apiKey ?? '',
                 baseUrl: activeProviderConfig?.baseUrl,
                 isInternal,
+                useResponsesApi: activeProviderConfig?.useResponsesApi ?? false,
                 selectedModel:
                     model ||
                     state.agent?.selectedModel ||

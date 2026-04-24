@@ -19,7 +19,7 @@ export async function getConfigurations() {
     let configurations = [];
     switch (getCurrentPlatform()) {
         case PLATFORM.ELECTRON:
-            configurations = await electron.getConfigurations();
+            configurations = await electron.getConfigurations() as any[];
             break;
         /* case PLATFORM.CHROME:
             configurations = await chrome.getConfigurations(); */

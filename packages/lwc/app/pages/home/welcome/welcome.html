@@ -30,37 +30,6 @@
 
         <!-- Two-column grid on wider screens -->
         <div class="welcome-grid">
-            <div class="welcome-card welcome-card_sessions">
-                <div class="welcome-card__header">
-                    <h2 class="welcome-card__title">Registered Connections</h2>
-                    <p class="welcome-card__desc">Your saved Salesforce org connections</p>
-                </div>
-                <div class="welcome-card__body">
-                    <div class="sessions-empty">
-                        <lightning-icon
-                            icon-name="utility:connected_apps"
-                            size="medium"
-                            class="sessions-empty__icon"></lightning-icon>
-                        <p class="sessions-empty__title">Manage your org connections</p>
-                        <p class="sessions-empty__hint">
-                            View, add, and connect to your registered Salesforce orgs
-                        </p>
-                    </div>
-                </div>
-                <div class="welcome-card__footer">
-                    <button
-                        class="welcome-cta-btn"
-                        type="button"
-                        onclick={handleGoToConnections}>
-                        <lightning-icon
-                            icon-name="utility:list"
-                            size="x-small"
-                            class="welcome-cta-btn__icon"></lightning-icon>
-                        View Registered Connections
-                    </button>
-                </div>
-            </div>
-
             <!-- Chrome Extension: Active Sessions card -->
             <div class="welcome-card welcome-card_sessions" lwc:if={isBrowserSessionsVisible}>
                 <div class="welcome-card__header">

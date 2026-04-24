@@ -122,6 +122,7 @@ type AgentSettings = {
     maxToolRounds?: number;
     isStoreEnabled?: boolean;
     isInternal?: boolean;
+    useResponsesApi?: boolean;
     extraTools?: Array<{
         name: string;
         description?: string;
@@ -297,6 +298,7 @@ export class Agent {
     private messages: ModelMessage[] = [];
     private planContext: string | null = null;
     private isInternal: boolean;
+    private useResponsesApi: boolean;
     private subagentStatusListeners = new Set<(status: SubagentStatus | null) => void>();
     private _lastContextStats: {
         contextWindow: number;
@@ -322,6 +324,7 @@ export class Agent {
         maxToolRounds,
         isStoreEnabled,
         isInternal,
+        useResponsesApi,
         store,
     }: {
         conversationId: string;
@@ -338,6 +341,7 @@ export class Agent {
         maxToolRounds: number;
         isStoreEnabled: boolean;
         isInternal?: boolean;
+        useResponsesApi?: boolean;
         store: Store;
     }) {
         this.conversationId = conversationId;
@@ -354,6 +358,7 @@ export class Agent {
         this.maxToolRounds = maxToolRounds;
         this.isStoreEnabled = isStoreEnabled;
         this.isInternal = !!isInternal;
+        this.useResponsesApi = !!useResponsesApi;
         this.store = store;
     }
 
@@ -420,6 +425,7 @@ export class Agent {
             maxToolRounds: settings.maxToolRounds || MAX_TOOL_ROUNDS,
             isStoreEnabled: settings.isStoreEnabled || false,
             isInternal: settings.isInternal,
+            useResponsesApi: settings.useResponsesApi,
             store: store,
         });
     }
@@ -658,11 +664,14 @@ export class Agent {
                         didCompact,
                     });
 
+                    console.log('processMessage -> tools', this.tools);
+
                     const result = streamText({
                         model: resolveProviderModelInstance(this.providerInstance, {
                             provider: this.provider,
                             modelId: this.model,
                             isInternal: this.isInternal,
+                            useResponsesApi: this.useResponsesApi,
                         }),
                         system: systemText,
                         messages: this.messages,
@@ -675,6 +684,7 @@ export class Agent {
                             provider: this.provider,
                             reasoningConfig: this.reasoningConfig,
                             isInternal: this.isInternal,
+                            
                         }),
                         experimental_onStepStart: (event: unknown) => {
                             notifyObserver(observer?.onStepStart, {

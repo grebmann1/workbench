@@ -38,14 +38,7 @@ export default class App extends ToolkitElement {
         return this._isInternal;
     }
     set isInternal(value) {
-        const prev = this._isInternal;
         this._isInternal = !!value;
-        // When switching to an internal provider, reasoning is not supported.
-        // Reset the local selection so the next `send` emits 'none' and the
-        // hidden reasoning selector doesn't leak a stale value into the store.
-        if (!prev && this._isInternal && this.selectedReasoning !== 'none') {
-            this.selectedReasoning = 'none';
-        }
     }
 
     @track selectedModel = DEFAULT_MODEL;
@@ -118,7 +111,7 @@ export default class App extends ToolkitElement {
     }
 
     get isReasoningReadOnly() {
-        return !!this.isInternal;
+        return false;//!!this.isInternal;
     }
 
     get showReasoningSelect() {

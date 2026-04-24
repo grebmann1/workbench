@@ -117,6 +117,30 @@ export function isInternalProviderBaseUrl(baseUrl: unknown): boolean {
     return normalizeString(baseUrl).includes('eng-ai-model-gateway');
 }
 
+// Native API domain patterns for each non-OpenAI provider.
+// When a provider is configured with a baseUrl that doesn't match its native
+// domain, it's assumed to point at an OpenAI-compatible gateway (e.g. LiteLLM).
+const NATIVE_PROVIDER_DOMAINS: Partial<Record<LlmProvider, string>> = {
+    anthropic: 'api.anthropic.com',
+    gemini: 'generativelanguage.googleapis.com',
+    grok: 'api.x.ai',
+    mistral: 'api.mistral.ai',
+};
+
+/**
+ * Returns true when the provider is pointing at an OpenAI-compatible gateway
+ * rather than its own native API.  This covers both the internal Salesforce
+ * eng-ai-model-gateway and any external proxy (e.g. LiteLLM) that exposes an
+ * OpenAI-compatible `/chat/completions` or `/responses` surface.
+ */
+export function isOpenAiCompatibleGateway(provider: unknown, baseUrl: unknown): boolean {
+    if (isInternalProviderBaseUrl(baseUrl)) return true;
+    const normalized = normalizeString(baseUrl).toLowerCase();
+    if (!normalized) return false;
+    const nativeDomain = NATIVE_PROVIDER_DOMAINS[normalizeLlmProvider(provider)];
+    return !!nativeDomain && !normalized.includes(nativeDomain);
+}
+
 export function resolveOpenAiCompatibleModels(isInternal = false): LlmModelOption[] {
     return isInternal ? INTERNAL_MODEL_OPTIONS : OPENAI_MODEL_OPTIONS;
 }

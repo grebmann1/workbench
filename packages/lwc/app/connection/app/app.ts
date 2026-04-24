@@ -110,9 +110,7 @@ export default class App extends ToolkitElement {
         await this._loadConnectionFiltersFromCache();
         await this.fetchAllConnections();
         this.checkForInjected();
-        if (this.isHeaderLess) {
-            this._loadBrowserSessions();
-        }
+        this._loadBrowserSessions();
         window.setTimeout(() => {
             this.openNewConnectionModalFromPrefill();
         }, 10);
@@ -143,6 +141,13 @@ export default class App extends ToolkitElement {
             serverUrl,
             isNewTab: true,
         });
+    };
+
+    handleSessionKeydown = event => {
+        if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            this.handleSessionClick(event);
+        }
     };
 
     get hasSessions() {

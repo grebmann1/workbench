@@ -5,6 +5,11 @@ export type LlmProvider = (typeof LLM_PROVIDERS)[number];
 export type LlmProviderConfig = {
     apiKey: string | null;
     baseUrl: string;
+    /** When true, use the OpenAI Responses API (/v1/responses) instead of
+     *  chat completions (/v1/chat/completions).  Enable this when the gateway
+     *  (e.g. LiteLLM) routes to OpenAI's Responses API endpoint, which
+     *  requires tools with a flat `name` field rather than nested `function.name`. */
+    useResponsesApi?: boolean;
 };
 
 export type LlmProviderConfigMap = Record<LlmProvider, LlmProviderConfig>;
@@ -69,22 +74,20 @@ export const OPENAI_MODEL_OPTIONS: LlmModelOption[] = [
 ];
 
 export const INTERNAL_MODEL_OPTIONS: LlmModelOption[] = [
-    // Anthropic
-    { label: 'claude-sonnet-4-20250514', value: 'claude-sonnet-4-20250514', provider: 'anthropic', maxOutputTokens: 16000 },
-    { label: 'claude-sonnet-4-5-20250929', value: 'claude-sonnet-4-5-20250929', provider: 'anthropic', maxOutputTokens: 16000 },
-    { label: 'claude-sonnet-4-6', value: 'claude-sonnet-4-6', provider: 'anthropic', maxOutputTokens: 16000 },
-    { label: 'claude-opus-4-5-20251101', value: 'claude-opus-4-5-20251101', provider: 'anthropic', maxOutputTokens: 16000 },
-    { label: 'claude-opus-4-6-v1', value: 'claude-opus-4-6-v1', provider: 'anthropic', maxOutputTokens: 16000 },
-    { label: 'claude-opus-4-7', value: 'claude-opus-4-7', provider: 'anthropic', maxOutputTokens: 16000 },
-    { label: 'claude-haiku-4-5-20251001', value: 'claude-haiku-4-5-20251001', provider: 'anthropic', maxOutputTokens: 8192 },
-    // Gemini
-    { label: 'gemini-2.0-flash', value: 'gemini-2.0-flash', provider: 'gemini', maxOutputTokens: 8192 },
-    { label: 'gemini-2.5-pro', value: 'gemini-2.5-pro', provider: 'gemini', maxOutputTokens: 16000 },
-    { label: 'gemini-2.5-flash', value: 'gemini-2.5-flash', provider: 'gemini', maxOutputTokens: 16000 },
-    { label: 'gemini-3-pro-preview', value: 'gemini-3-pro-preview', provider: 'gemini', maxOutputTokens: 16000 },
-    { label: 'gemini-3-flash-preview', value: 'gemini-3-flash-preview', provider: 'gemini', maxOutputTokens: 16000 },
-    { label: 'gemini-3.1-pro-preview', value: 'gemini-3.1-pro-preview', provider: 'gemini', maxOutputTokens: 16000 },
-    // OpenAI
+    // All internal models route through the OpenAI-compatible gateway
+    /* { label: 'claude-sonnet-4-20250514', value: 'claude-sonnet-4-20250514', provider: 'openai', maxOutputTokens: 16000 },
+    { label: 'claude-sonnet-4-5-20250929', value: 'claude-sonnet-4-5-20250929', provider: 'openai', maxOutputTokens: 16000 },
+    { label: 'claude-sonnet-4-6', value: 'us.anthropic.claude-sonnet-4-6', provider: 'openai', maxOutputTokens: 16000 },
+    { label: 'claude-opus-4-5-20251101', value: 'claude-opus-4-5-20251101', provider: 'openai', maxOutputTokens: 16000 },
+    { label: 'claude-opus-4-6-v1', value: 'claude-opus-4-6-v1', provider: 'openai', maxOutputTokens: 16000 },
+    { label: 'claude-opus-4-7', value: 'claude-opus-4-7', provider: 'openai', maxOutputTokens: 16000 },
+    { label: 'claude-haiku-4-5-20251001', value: 'claude-haiku-4-5-20251001', provider: 'openai', maxOutputTokens: 8192 },
+    { label: 'gemini-2.0-flash', value: 'gemini-2.0-flash', provider: 'openai', maxOutputTokens: 8192 },
+    { label: 'gemini-2.5-pro', value: 'gemini-2.5-pro', provider: 'openai', maxOutputTokens: 16000 },
+    { label: 'gemini-2.5-flash', value: 'gemini-2.5-flash', provider: 'openai', maxOutputTokens: 16000 },
+    { label: 'gemini-3-pro-preview', value: 'gemini-3-pro-preview', provider: 'openai', maxOutputTokens: 16000 },
+    { label: 'gemini-3-flash-preview', value: 'gemini-3-flash-preview', provider: 'openai', maxOutputTokens: 16000 },
+    { label: 'gemini-3.1-pro-preview', value: 'gemini-3.1-pro-preview', provider: 'openai', maxOutputTokens: 16000 }, */
     { label: 'gpt-4o', value: 'gpt-4o', provider: 'openai', maxOutputTokens: 16000 },
     { label: 'gpt-4o-mini', value: 'gpt-4o-mini', provider: 'openai', maxOutputTokens: 16000 },
     { label: 'gpt-5', value: 'gpt-5', provider: 'openai', maxOutputTokens: 16000 },

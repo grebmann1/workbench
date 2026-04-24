@@ -65,6 +65,10 @@ type AgentSettings = {
     provider?: string;
     apiKey?: string;
     baseUrl?: string;
+    isInternal?: boolean;
+    /** Use OpenAI Responses API instead of chat completions.  Enable when the
+     *  gateway (e.g. LiteLLM) routes to OpenAI's /v1/responses endpoint. */
+    useResponsesApi?: boolean;
     selectedModel?: string;
     selectedReasoning?: string;
     modelContextWindow?: number;

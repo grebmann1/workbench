@@ -200,67 +200,6 @@
                                 </settings-card>
                             </div>
                         </slds-tab>
-                        <!-- User tab -->
-                        <slds-tab label="User" value="user" lwc:if={isChrome}>
-                            <div class="slds-grid slds-wrap slds-grid_vertical-stretch">
-                                <lightning-card
-                                    class="settings slds-col slds-size_1-of-1 slds-large-size_1-of-1 slds-p-around_medium">
-                                    <div slot="title">
-                                        <h1>User Informations</h1>
-                                    </div>
-                                    <div class="slds-grid slds-wrap">
-                                        <settings-card
-                                            class="slds-col slds-size_1-of-1 slds-p-horizontal_small"
-                                            is-first>
-                                            <div slot="title">
-                                                <h1>Google Account</h1>
-                                                <p class="description slds-truncate">
-                                                    Sign in via the AI Agent to link your Google
-                                                    account.
-                                                </p>
-                                            </div>
-                                            <div slot="actions">
-                                                <template lwc:if={googleConnected}>
-                                                    <lightning-button
-                                                        label="Disconnect"
-                                                        variant="destructive-text"
-                                                        onclick={handleDisconnectGoogle}></lightning-button>
-                                                </template>
-                                                <template lwc:else>
-                                                    <lightning-button
-                                                        label="Connect to Google"
-                                                        variant="brand"
-                                                        onclick={handleConnectGoogle}></lightning-button>
-                                                </template>
-                                            </div>
-                                            <template lwc:if={googleConnected}>
-                                                <div class="google-user-info slds-grid slds-grid_vertical-align-center slds-m-top_small">
-                                                    <template lwc:if={googleUserPicture}>
-                                                        <img
-                                                            src={googleUserPicture}
-                                                            alt="Google profile"
-                                                            class="google-user-avatar slds-m-right_small" />
-                                                    </template>
-                                                    <div class="slds-flex-column">
-                                                        <span class="slds-text-body_regular slds-text-color_default">{googleUserDisplayName}</span>
-                                                        <span class="slds-text-body_small slds-text-color_weak">{googleUserEmail}</span>
-                                                    </div>
-                                                    <lightning-badge
-                                                        label="Connected"
-                                                        class="slds-m-left_small google-badge--connected"></lightning-badge>
-                                                </div>
-                                            </template>
-                                            <template lwc:else>
-                                                <slds-information-block>
-                                                    Sign in to Google via the AI Agent tab first.
-                                                    Your account will appear here once authenticated.
-                                                </slds-information-block>
-                                            </template>
-                                        </settings-card>
-                                    </div>
-                                </lightning-card>
-                            </div>
-                        </slds-tab>
                         <slds-tab label="UI Interface" value="ui">
                             <div class="slds-grid slds-wrap slds-grid_vertical-stretch">
                                 <settings-card
@@ -529,7 +468,6 @@
                                         </settings-card>
                                     </div>
                                 </lightning-card>
-                                <template lwc:if={googleConnected}>
                                 <lightning-card
                                     class="settings slds-col slds-size_1-of-1 slds-p-around_medium">
                                     <div slot="title">
@@ -712,19 +650,6 @@
                                         </slds-tab>
                                     </slds-tabset>
                                 </lightning-card>
-                                </template>
-                                <template lwc:else>
-                                    <div class="slds-col slds-size_1-of-1 slds-p-around_medium">
-                                        <div class="slds-box slds-theme_shade slds-text-align_center slds-p-around_large">
-                                            <lightning-icon icon-name="utility:lock" size="medium" class="slds-m-bottom_small"></lightning-icon>
-                                            <p class="slds-text-heading_small slds-m-bottom_x-small">Google account required</p>
-                                            <p class="slds-text-body_regular slds-text-color_weak">
-                                                Connect your Google account to access the AI Providers settings.
-                                                Go to <strong>Settings &rarr; User</strong> to set up your Google connection.
-                                            </p>
-                                        </div>
-                                    </div>
-                                </template>
                                 <!-- Tools -->
                                 <lightning-card
                                     class="settings slds-col slds-size_1-of-1 slds-p-around_medium">

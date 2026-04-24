@@ -20,9 +20,18 @@ function normalizeBaseUrl(value: unknown) {
     return typeof value === 'string' ? value.trim().replace(/\/+$/, '') : '';
 }
 
-function createSanitizedFetch() {
+function createSanitizedFetch(isInternal = false) {
     return (url, options) =>
-        fetch(url, {
+    {
+        let formattedUrl = url;
+        if (isInternal) {
+            // just keep the domain and add '/responses'
+            const urlObj = new URL(url);
+            formattedUrl = `${urlObj.origin}/responses`;
+    
+        }
+   
+        return fetch(formattedUrl, {
             ...options,
             credentials: 'omit',
             headers: {
@@ -31,6 +40,7 @@ function createSanitizedFetch() {
                 ),
             },
         });
+    }
 }
 
 function resolveGoogleBaseUrl(baseUrl: unknown) {
@@ -81,14 +91,14 @@ export function createProviderInstance({
         return createOpenAI({
             apiKey: apiKey || '',
             baseURL: resolveProviderRuntimeBaseUrl('openai', baseUrl),
-            fetch: createSanitizedFetch(),
+            fetch: createSanitizedFetch(isInternal),
         });
     }
 
     const settings = {
         apiKey: apiKey || '',
         baseURL: resolveProviderRuntimeBaseUrl(normalizedProvider, baseUrl),
-        fetch: createSanitizedFetch(),
+        fetch: createSanitizedFetch(isInternal),
     };
 
     switch (normalizedProvider) {
@@ -112,19 +122,25 @@ export function resolveProviderModelInstance(
         provider,
         modelId,
         isInternal = false,
+        useResponsesApi = false,
     }: {
         provider: unknown;
         modelId: string;
         isInternal?: boolean;
+        /** When true, use the OpenAI Responses API (.responses()) instead of
+         *  chat completions (.chat()).  Required for gateways (e.g. LiteLLM)
+         *  that route to OpenAI's /v1/responses endpoint, which expects tools
+         *  with a flat `name` field rather than nested under `function.name`. */
+        useResponsesApi?: boolean;
     }
 ) {
     const normalizedProvider = normalizeLlmProvider(provider);
 
     // In internal gateway mode, the provider instance is the OpenAI SDK regardless
     // of the logical provider, so route every call through .chat(modelId).
-    if (isInternal && typeof providerInstance.chat === 'function') {
-        return providerInstance.chat(modelId);
-    }
+    /* if (isInternal) {
+        return providerInstance.responses(modelId);
+    } */
 
     if (normalizedProvider === 'openai') {
         return providerInstance(modelId);
@@ -156,8 +172,8 @@ const GEMINI_THINKING_LEVEL_MAP: Record<string, 'minimal' | 'low' | 'medium' | '
     xhigh: 'high',
 };
 
-export function supportsReasoningProvider(provider: unknown, isInternal = false) {
-    return normalizeLlmProvider(provider) === 'openai' && !isInternal;
+export function supportsReasoningProvider(provider: unknown) {
+    return normalizeLlmProvider(provider) === 'openai';
 }
 
 export function resolveProviderOptions({
@@ -171,16 +187,16 @@ export function resolveProviderOptions({
 }) {
     const normalizedProvider = normalizeLlmProvider(provider);
 
-    // Internal Gemini goes through @ai-sdk/openai (OpenAI-compatible gateway).
-    // That SDK cannot preserve Gemini's thought_signature across multi-turn tool
-    // calls, causing BadRequestError. Disabling thinking avoids the problem.
-    if (normalizedProvider === 'gemini' && isInternal) {
-        return { openai: { thinking: { type: 'disabled' } } };
-    }
+    // Gateway mode (isInternal=true): all providers go through the OpenAI SDK,
+    // so pass reasoning in OpenAI format and let the gateway (e.g. LiteLLM)
+    // translate it for the downstream provider.
+    /* if (isInternal) {
+        return reasoningConfig != null ? { openai: reasoningConfig } : undefined;
+    } */
 
-    // Non-internal Gemini: map reasoning effort to thinkingLevel, or disable
+    // Native Gemini SDK: map reasoning effort to thinkingLevel, or disable
     // thinking explicitly when effort is none (Gemini has thinking on by default).
-    if (normalizedProvider === 'gemini' && !isInternal) {
+    if (normalizedProvider === 'gemini') {
         const level =
             reasoningConfig?.reasoningEffort != null
                 ? GEMINI_THINKING_LEVEL_MAP[reasoningConfig.reasoningEffort]
@@ -190,15 +206,15 @@ export function resolveProviderOptions({
             : { google: { thinkingConfig: { thinkingBudget: 0 } } };
     }
 
-    // Non-internal Anthropic: map reasoning effort to a thinking budget.
-    if (normalizedProvider === 'anthropic' && !isInternal && reasoningConfig != null) {
+    // Native Anthropic SDK: map reasoning effort to a thinking budget.
+    if (normalizedProvider === 'anthropic' && reasoningConfig != null) {
         const budget = ANTHROPIC_THINKING_BUDGETS[reasoningConfig.reasoningEffort];
         if (budget != null) {
             return { anthropic: { thinking: { type: 'enabled', budgetTokens: budget } } };
         }
     }
 
-    return !supportsReasoningProvider(provider, isInternal) || reasoningConfig == null
+    return !supportsReasoningProvider(provider) || reasoningConfig == null
         ? undefined
         : { openai: reasoningConfig };
 }

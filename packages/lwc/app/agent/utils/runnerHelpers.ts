@@ -1,6 +1,10 @@
 export function getReasoningConfigFromSelection(selection) {
     if (selection === 'off' || selection === 'none' || !selection) return undefined;
-    return { reasoningEffort: selection, reasoningSummary: 'auto' };
+    return { 
+        reasoningEffort: selection,
+        reasoningSummary: 'auto',
+        store: false
+    };
 }
 
 export function sanitizePathSegment(value, fallback = 'item') {
