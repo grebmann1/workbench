@@ -45,7 +45,7 @@ class WindowManager {
             height: 960,
             minWidth: 1100,
             minHeight: 700,
-            title: 'SF Toolkit Desktop',
+            title: 'Workbench Desktop',
             show: false,
             autoHideMenuBar: false,
             webPreferences: {
@@ -119,15 +119,15 @@ class WindowManager {
         const username = String(payload.username || '').trim();
         const message = String(payload.message || '').trim();
         if (payload.isLoggedIn === true && username) {
-            matchingWindow.setTitle(`SF Toolkit Desktop - ${username}`);
+            matchingWindow.setTitle(`Workbench Desktop - ${username}`);
             return;
         }
         if (payload.isLoggedIn === false && message) {
-            matchingWindow.setTitle(`SF Toolkit Desktop - ${message}`);
+            matchingWindow.setTitle(`Workbench Desktop - ${message}`);
         }
     }
     buildInstanceRendererUrl(payload) {
-        const url = new URL('/extension', this.rendererUrl);
+        const url = new URL('/views/direct.html', this.rendererUrl);
         const alias = String(payload.alias || '').trim();
         const sessionId = String(payload.sessionId || '').trim();
         const serverUrl = String(payload.serverUrl || '').trim();
@@ -158,7 +158,7 @@ class WindowManager {
         const alias = String(payload.alias || '').trim();
         const username = String(payload.username || '').trim();
         const titleSuffix = alias || username;
-        return titleSuffix ? `SF Toolkit Desktop - ${titleSuffix}` : 'SF Toolkit Desktop';
+        return titleSuffix ? `Workbench Desktop - ${titleSuffix}` : 'Workbench Desktop';
     }
     focusWindow(window) {
         if (window.isMinimized()) {

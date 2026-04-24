@@ -19,5 +19,5 @@ export function getDesktopTemplatePath(...segments: string[]): string {
 }
 
 export function getPackagedWebRoot(): string {
-    return app.isPackaged ? path.join(process.resourcesPath, 'web') : path.join(getRepoRoot(), 'dist', 'web');
+    return app.isPackaged ? path.join(process.resourcesPath, 'extension') : path.join(getRepoRoot(), 'dist', 'extension');
 }

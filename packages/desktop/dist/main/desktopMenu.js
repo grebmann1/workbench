@@ -5,7 +5,7 @@ const electron_1 = require("electron");
 function registerDesktopMenu(options) {
     const template = [
         {
-            label: 'SF Toolkit Desktop',
+            label: 'Workbench Desktop',
             submenu: [
                 { role: 'about' },
                 { type: 'separator' },
@@ -68,7 +68,7 @@ function registerDesktopMenu(options) {
             label: 'Help',
             submenu: [
                 {
-                    label: 'SF Toolkit Web',
+                    label: 'Workbench Web',
                     click: () => {
                         void electron_1.shell.openExternal('https://www.sf-workbench.com');
                     },

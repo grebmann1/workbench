@@ -401,7 +401,7 @@ export default class App extends LightningElement {
     };
 
     loadVersion = async () => {
-        let url = isChromeExtension() ? '/manifest.json' : '/version';
+        let url = isChromeExtension() || isElectronApp() ? '/manifest.json' : '/version';
         const data = await (await fetch(url)).json();
         this.version = `v${data.version || '1.0.0'}`;
     };
@@ -620,7 +620,7 @@ export default class App extends LightningElement {
     }
 
     get isAgentVisible() {
-        return isChromeExtension();
+        return isChromeExtension() || isElectronApp();
     }
 
     /** Dynamic Loading */

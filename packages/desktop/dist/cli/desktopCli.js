@@ -12,10 +12,10 @@ const node_fs_1 = __importDefault(require("node:fs"));
 const node_path_1 = __importDefault(require("node:path"));
 const launchIntent_1 = require("../main/launchIntent");
 function printHelp() {
-    process.stdout.write(`sf-toolkit-desktop\n\n`);
+    process.stdout.write(`workbench-desktop\n\n`);
     process.stdout.write(`Usage:\n`);
-    process.stdout.write(`  sf-toolkit-desktop\n`);
-    process.stdout.write(`  sf-toolkit-desktop --org <alias>\n`);
+    process.stdout.write(`  workbench-desktop\n`);
+    process.stdout.write(`  workbench-desktop --org <alias>\n`);
 }
 function parseCliArgs(argv) {
     if (argv.includes('--help') || argv.includes('-h')) {

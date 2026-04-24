@@ -60,7 +60,7 @@
                     </template>
                 </template>
                 <!-- Active Browser Sessions (card/side-panel only) -->
-                <div class="browser-sessions">
+                <div class="browser-sessions" lwc:if={isBrowserSessionsVisible}>
                     <p class="browser-sessions__title">Active Browser Sessions</p>
                     <template lwc:if={isLoadingSessions}>
                         <div class="browser-sessions__skeleton" aria-hidden="true">
@@ -286,7 +286,7 @@
                         </template>
 
                         <!-- Active Browser Sessions (full-panel) -->
-                        <div class="browser-sessions browser-sessions--full">
+                        <div class="browser-sessions browser-sessions--full" lwc:if={isBrowserSessionsVisible}>
                             <p class="browser-sessions__title">Active Browser Sessions</p>
                             <template lwc:if={isLoadingSessions}>
                                 <div class="browser-sessions__skeleton" aria-hidden="true">

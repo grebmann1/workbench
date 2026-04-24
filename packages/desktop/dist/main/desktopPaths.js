@@ -22,5 +22,5 @@ function getDesktopTemplatePath(...segments) {
     return node_path_1.default.join(getDesktopResourcesRoot(), 'templates', ...segments);
 }
 function getPackagedWebRoot() {
-    return electron_1.app.isPackaged ? node_path_1.default.join(process.resourcesPath, 'web') : node_path_1.default.join(getRepoRoot(), 'dist', 'web');
+    return electron_1.app.isPackaged ? node_path_1.default.join(process.resourcesPath, 'extension') : node_path_1.default.join(getRepoRoot(), 'dist', 'extension');
 }

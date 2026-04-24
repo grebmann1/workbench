@@ -28,6 +28,7 @@ cert/
 /packages/server/dist/
 /packages/shared/dist/
 /packages/vscode/dist/
+/packages/desktop/dist/
 /packages/lwc/web-extension/**/*.js
 /packages/lwc/web-extension/**/*.js.map
 .cursor/rules/do-not-edit-these-rules-from-mcp-gateway/

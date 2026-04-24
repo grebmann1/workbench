@@ -1,4 +1,6 @@
 import '@lwc/synthetic-shadow';
+import './desktop/chromeEnrich.js';
+
 import extensionRoot from 'extension/root';
 import jsforce from 'imported/jsforce';
 import { createElement } from 'lwc';
@@ -18,10 +20,10 @@ const init = async () => {
         clientId:
             '3MVG9_kZcLde7U5oNdaqndT3T9qa54eaA.ycC6APuOkYzRP286pPeOvwOqAQ2ue7l5ejNAxPYj4xTbWn3zS6Y',
         chromeId: 'konbmllgicfccombdckckakhnmejjoei',
-        redirectUri: chrome.identity.getRedirectURL(), //'https://www.sf-workbench.com/chrome/callback',
-        //proxyUrl:   'https://www.sf-workbench.com/proxy/',
-        //redirectUri: `http://localhost:3000/chrome/callback`,
-        //proxyUrl: `http://localhost:3000/proxy/`,
+        redirectUri:
+            typeof chrome !== 'undefined' && chrome.identity?.getRedirectURL
+                ? chrome.identity.getRedirectURL()
+                : 'https://www.sf-workbench.com/chrome/callback',
     };
     window.jsforce = jsforce;
     // window.OpenAIAgentsBundle = openaiAgent;
@@ -52,6 +54,16 @@ window.extension_initVscode = async () => {
     const elm = createElement('skeleton-direct-view', { is: skeletonDirectView });
     Object.assign(elm, {
         variant: 'vscode',
+    });
+    document.body.appendChild(elm);
+};
+
+window.extension_singleInstance = async () => {
+    await init();
+    const elm = createElement('skeleton-direct-view', { is: skeletonDirectView });
+    Object.assign(elm, {
+        variant: 'electron',
+        isSingleInstance: true,
     });
     document.body.appendChild(elm);
 };

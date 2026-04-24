@@ -1,7 +1,7 @@
 import { wire } from 'lwc';
 import ToolkitElement from 'core/toolkitElement';
 import { NavigationContext, navigate } from 'lwr/navigation';
-import { isChromeExtension } from 'shared/utils';
+import { isChromeExtension, isElectronApp } from 'shared/utils';
 import { listOrgSessionsViaBackground } from 'core/connector';
 import { GITHUB_DISCUSSIONS_URL, QUICK_TIPS } from './constants.js';
 
@@ -33,8 +33,8 @@ export default class Welcome extends ToolkitElement {
 
     async _loadLatestRelease() {
         try {
-            const url = isChromeExtension()
-                ? `${chrome.runtime.getURL('releaseNotes.json')}`
+            const url = isChromeExtension() || isElectronApp()
+                ? chrome.runtime.getURL('releaseNotes.json')
                 : '/public/releaseNotes.json';
             const res = await fetch(url);
             if (!res.ok) return;
@@ -51,6 +51,10 @@ export default class Welcome extends ToolkitElement {
 
     get hasSessions() {
         return this.sessions.length > 0;
+    }
+
+    get isBrowserSessionsVisible() {
+        return !isElectronApp();
     }
 
     get hasLatestRelease() {

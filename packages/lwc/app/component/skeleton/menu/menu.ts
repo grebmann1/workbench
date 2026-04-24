@@ -402,7 +402,7 @@ export default class Menu extends ToolkitElement {
     }
 
     get isUnlimitedMode() {
-        return !isElectronApp();
+        return true; //!isElectronApp();
     }
 
     get formattedVersion() {

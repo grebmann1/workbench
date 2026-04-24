@@ -35,7 +35,7 @@
         "start:dev:vscode:debug": "npm --prefix packages/vscode run start:debug",
         "start:dev:extension:vscode": "npm-run-all --parallel watch:extension start:dev:vscode",
         "start:dev:desktop": "npm --prefix packages/desktop run start:dev",
-        "start:dev:desktop:all": "npm-run-all --parallel start:dev:server start:dev:desktop",
+        "start:dev:desktop:all": "npm-run-all --parallel watch:extension start:dev:desktop",
         "watch:workers": "npm-run-all --parallel watch:shared watch:workers:rollup",
         "watch:workers:rollup": "rollup -c tools/build/rollup.workers.mjs --bundleConfigAsCjs --environment NODE_ENV:development --watch --watch.buildDelay 3000 --logLevel error",
         "build:workers": "npm run build:shared && rollup -c tools/build/rollup.workers.mjs --bundleConfigAsCjs --environment NODE_ENV:production",

@@ -149,6 +149,10 @@ export default class App extends ToolkitElement {
         return this.sessions.length > 0;
     }
 
+    get isBrowserSessionsVisible() {
+        return !isElectronApp();
+    }
+
     openNewConnectionModalFromPrefill = () => {
         try {
             const raw = sessionStorage.getItem('connectionNewModalPrefill');

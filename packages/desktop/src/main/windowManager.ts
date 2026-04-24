@@ -163,7 +163,7 @@ export class WindowManager {
     }
 
     private buildInstanceRendererUrl(payload: Record<string, any>): string {
-        const url = new URL('/extension', this.rendererUrl);
+        const url = new URL('/views/direct.html', this.rendererUrl);
 
         const alias = String(payload.alias || '').trim();
         const sessionId = String(payload.sessionId || '').trim();

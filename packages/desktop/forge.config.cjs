@@ -9,7 +9,7 @@ const { FusesPlugin } = require('@electron-forge/plugin-fuses');
 const { PublisherGithub } = require('@electron-forge/publisher-github');
 
 const repoRoot = path.resolve(__dirname, '../..');
-const packagedWebRoot = path.join(repoRoot, 'dist', 'web');
+const packagedWebRoot = path.join(repoRoot, 'dist', 'extension');
 const desktopResourcesRoot = path.join(__dirname, 'resources');
 const configuredIcon = process.env.DESKTOP_APP_ICON;
 const hasConfiguredIcon = configuredIcon && fs.existsSync(configuredIcon);

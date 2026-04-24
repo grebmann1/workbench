@@ -9,10 +9,10 @@
     },
     "scripts": {
         "build": "tsc -p tsconfig.json",
-        "build:renderer": "npm --prefix ../.. run build:web",
+        "build:renderer": "npm --prefix ../.. run build:extension",
         "test": "npm run build && node --test dist/**/*.test.js",
         "start": "npm run build && electron .",
-        "start:dev": "npm run build && wait-on http://localhost:3000 && electron .",
+        "start:dev": "npm run build && wait-on file:../../dist/extension/views/app.html && electron .",
         "cli": "npm run build && node dist/cli/desktopCli.js",
         "package": "npm run build:renderer && npm run build && electron-forge package",
         "make": "npm run build:renderer && npm run build && electron-forge make"
