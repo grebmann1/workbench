@@ -43,6 +43,7 @@ class DesktopRendererServer {
         this.server = node_http_1.default.createServer((request, response) => {
             void this.handleRequest(request, response);
         });
+        const port = Number(process.env.DESKTOP_RENDERER_PORT || '47321');
         await new Promise((resolve, reject) => {
             const server = this.server;
             if (!server) {
@@ -50,7 +51,7 @@ class DesktopRendererServer {
                 return;
             }
             server.once('error', reject);
-            server.listen(0, '127.0.0.1', () => {
+            server.listen(port, '127.0.0.1', () => {
                 server.off('error', reject);
                 resolve();
             });

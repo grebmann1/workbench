@@ -156,7 +156,7 @@ export default class OutputPanel extends ToolkitElement {
     };
 
     handleError = (e: any): void => {
-        reportError(e, { source: 'soql' });
+        //reportError(e, { source: 'soql' });
         let errors = e.message.split(':');
         if (errors.length > 1) {
             this.error_title = errors.shift();

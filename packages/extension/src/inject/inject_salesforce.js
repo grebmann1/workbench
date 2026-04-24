@@ -248,7 +248,7 @@ const injectShortCuts = async () => {
                 const params = {
                     type: 'application',
                     state: {
-                        applicationName: 'home',
+                        applicationName: 'org',
                     },
                 };
                 if (injectorPort) {

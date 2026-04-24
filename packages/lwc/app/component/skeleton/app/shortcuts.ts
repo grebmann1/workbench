@@ -42,7 +42,7 @@ export async function initShortcuts(context) {
                 event.preventDefault();
                 navigate(navContext, {
                     type: 'application',
-                    state: { applicationName: 'home' },
+                    state: { applicationName: 'org' },
                 });
             },
         },

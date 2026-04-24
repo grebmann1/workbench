@@ -171,6 +171,7 @@ export default class App extends LightningElement {
         this.loadVersion();
         await this.initMode();
         this.initDragDrop();
+        this.initShortcuts();
     };
 
     disconnectedCallback() {

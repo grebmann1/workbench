@@ -8,10 +8,12 @@
  */
 
 if (typeof window !== 'undefined' && window.desktop && typeof chrome !== 'undefined') {
-    // chrome.runtime.getURL — maps extension-relative paths to the app:// protocol
+    // chrome.runtime.getURL — maps extension-relative paths to the renderer HTTP origin
     if (chrome.runtime && !chrome.runtime.getURL) {
-        chrome.runtime.getURL = path =>
-            `app://app/${path.startsWith('/') ? path.slice(1) : path}`;
+        chrome.runtime.getURL = path => {
+            const normalized = path.startsWith('/') ? path : `/${path}`;
+            return `${window.location.origin}${normalized}`;
+        };
     }
 
     // chrome.storage — backed by Web Storage APIs for Electron

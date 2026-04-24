@@ -133,7 +133,7 @@ export default class QueryEditorPanel extends ToolkitElement {
     }
 
     handleError = (e: any): void => {
-        reportError(e, { source: 'soql' });
+        //reportError(e, { source: 'soql' });
         const error = extractErrorDetailsFromQuery(e.message);
         if (
             error &&

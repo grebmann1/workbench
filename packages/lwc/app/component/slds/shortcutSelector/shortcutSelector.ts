@@ -31,8 +31,20 @@ export default class ShortcutSelector extends LightningElement {
 
     shortcutHandler = (e, handler) => {
         e.preventDefault();
-        const keyString = hotkeys.getPressedKeyString();
-        this._value = !keyString || keyString === 'backspace' ? [] : keyString.split('+');
+        // getPressedKeyString() returns string[] with possible Mac symbol chars
+        const keyArray = hotkeys.getPressedKeyString();
+        const symbolToName: Record<string, string> = {
+            '⇧': 'shift',
+            '⌥': 'alt',
+            '⌃': 'ctrl',
+            '⌘': 'cmd',
+        };
+        const normalized = keyArray.map(k => symbolToName[k] ?? k.toLowerCase());
+        this._value =
+            normalized.length === 0 ||
+            (normalized.length === 1 && normalized[0] === 'backspace')
+                ? []
+                : normalized;
         this.dispatchEvent(
             new CustomEvent('change', {
                 detail: {

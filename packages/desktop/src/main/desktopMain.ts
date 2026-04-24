@@ -1,11 +1,12 @@
 import path from 'node:path';
 
-import { app, shell, session, net, protocol, type WebContents } from 'electron';
+import { app, shell, session, type WebContents } from 'electron';
 
 import { DesktopAutomationServer } from './desktopAutomationServer';
 import { DesktopLegacyBus } from './desktopLegacyBus';
 import { registerDesktopMenu } from './desktopMenu';
 import { getPackagedWebRoot } from './desktopPaths';
+import { DesktopRendererServer } from './desktopRendererServer';
 import { registerDesktopIpcRouter } from './ipcRouter';
 import {
     createDefaultLaunchIntent,
@@ -14,57 +15,15 @@ import {
 } from './launchIntent';
 import { WindowManager } from './windowManager';
 
-// Must be called before app is ready.
-protocol.registerSchemesAsPrivileged([
-    { scheme: 'app', privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true } },
-]);
-
-const APP_RENDERER_URL = 'app://app/views/app.html';
-
-function normalizeRendererUrl(rawUrl: string): string {
-    try {
-        const parsedUrl = new URL(rawUrl);
-        if (!parsedUrl.pathname || parsedUrl.pathname === '/') {
-            parsedUrl.pathname = '/views/app.html';
-        }
-        return parsedUrl.toString();
-    } catch {
-        return APP_RENDERER_URL;
-    }
-}
-
-let lastLaunchIntent: DesktopLaunchIntent = parseLaunchIntent(process.argv);
 const preloadPath = path.join(__dirname, '../preload/desktopPreload.js');
 const legacyBus = new DesktopLegacyBus();
-let rendererUrl = APP_RENDERER_URL;
+
+let lastLaunchIntent: DesktopLaunchIntent = parseLaunchIntent(process.argv);
+let rendererUrl = '';
 let automationServer: DesktopAutomationServer | null = null;
+let rendererServer: DesktopRendererServer | null = null;
 
-function resolveRendererUrl(): string {
-    const configuredUrl = process.env.DESKTOP_RENDERER_URL?.trim();
-    if (configuredUrl) {
-        return normalizeRendererUrl(configuredUrl);
-    }
-    return APP_RENDERER_URL;
-}
-
-function registerAppProtocol(): void {
-    const webRoot = getPackagedWebRoot();
-    const appShell = `file://${path.join(webRoot, 'views', 'app.html')}`;
-
-    protocol.handle('app', async request => {
-        const { pathname } = new URL(request.url);
-        const safePath = path.normalize(pathname)
-            .replace(/^(\.\.(\/|\\|$))+/, '')
-            .replace(/^[/\\]+/, '');
-
-        // Paths without a file extension are SPA navigations — serve the app shell.
-        if (!path.extname(safePath)) {
-            return net.fetch(appShell);
-        }
-
-        return net.fetch(`file://${path.join(webRoot, safePath)}`);
-    });
-}
+const windowManager = new WindowManager({ preloadPath, rendererUrl });
 
 function isSafeExternalUrl(url: string): boolean {
     try {
@@ -112,8 +71,6 @@ function registerWebContentsGuards(rendererUrl: string): void {
 }
 
 app.setName('Workbench Desktop');
-
-const windowManager = new WindowManager({ preloadPath, rendererUrl });
 
 async function openInstance(payload: Record<string, any>): Promise<void> {
     const orgAlias =
@@ -168,10 +125,15 @@ app.on('second-instance', async (_event, argv, _workingDirectory, additionalData
 });
 
 app.whenReady().then(async () => {
-    registerAppProtocol();
-    rendererUrl = resolveRendererUrl();
+    rendererServer = new DesktopRendererServer({
+        webRoot: getPackagedWebRoot(),
+        appVersion: app.getVersion(),
+    });
+    const baseUrl = await rendererServer.start();
+    rendererUrl = `${baseUrl}/views/app.html`;
     windowManager.setRendererUrl(rendererUrl);
     registerWebContentsGuards(rendererUrl);
+
     automationServer = new DesktopAutomationServer({
         host: process.env.API_HOST?.replace(/^https?:\/\//, '') || '127.0.0.1',
         legacyBus,
@@ -204,6 +166,7 @@ app.whenReady().then(async () => {
 app.on('before-quit', async () => {
     legacyBus.rejectAll('The desktop app is shutting down.');
     await automationServer?.stop();
+    await rendererServer?.stop();
 });
 
 app.on('window-all-closed', () => {
