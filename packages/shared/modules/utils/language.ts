@@ -24,7 +24,10 @@ const languageMapping: Record<string, string> = {
 };
 
 export function getLanguage(extension?: string | null): string | null {
-    return languageMapping.hasOwnProperty(extension) ? languageMapping[extension] : null;
+    if (extension == null) return null;
+    return Object.prototype.hasOwnProperty.call(languageMapping, extension)
+        ? languageMapping[extension]
+        : null;
 }
 
 export function formatFiles<T extends { name?: string }>(
@@ -32,13 +35,12 @@ export function formatFiles<T extends { name?: string }>(
     defaultLanguage: string
 ): Array<T & { extension: string | null; language: string | null }> {
     return Array.from(files).map(file => {
-        const extension = file?.name.includes('.') ? file?.name.split('.').pop() : null;
+        const name = file?.name;
+        const extension = name && name.includes('.') ? name.split('.').pop() || null : null;
         return {
             ...file,
-            ...{
-                extension: extension, // we remove the '.' for the editor
-                language: getLanguage(extension) || defaultLanguage,
-            },
+            extension, // we remove the '.' for the editor
+            language: getLanguage(extension) || defaultLanguage,
         };
     });
 }

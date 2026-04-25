@@ -11,7 +11,7 @@ type TruncationOptions = {
     tailChars?: number;
 };
 
-export function buildCapNotice(path, totalChars) {
+export function buildCapNotice(path: string, totalChars: number) {
     return [
         `${TOOL_OUTPUT_TRUNCATED_MARKER} Full output (${totalChars} chars) saved to ${path}.`,
         'Page through it with bash:',
@@ -21,7 +21,7 @@ export function buildCapNotice(path, totalChars) {
     ].join('\n');
 }
 
-export function buildHeadSectionHeader(chars) {
+export function buildHeadSectionHeader(chars: number) {
     return `[HEAD: first ${chars} chars of output]`;
 }
 
@@ -29,17 +29,22 @@ export function buildTailSectionHeader() {
     return `[TAIL: last ${TAIL_CHARS} chars of output]`;
 }
 
-export function buildTruncationSummary(path, totalChars) {
+export function buildTruncationSummary(path: string, totalChars: number) {
     return `[... TRUNCATED (${totalChars} chars total, saved to ${path}) ...]`;
 }
 
-export function buildTruncatedText(text, savedPath, notice, options: TruncationOptions = {}) {
+export function buildTruncatedText(
+    text: string,
+    savedPath: string,
+    notice: string,
+    options: TruncationOptions = {}
+) {
     const maxToolOutputChars = options.maxToolOutputChars ?? MAX_TOOL_OUTPUT_CHARS;
     const totalLength = text.length;
     const tail = text.slice(-(options.tailChars ?? TAIL_CHARS));
     const tailHeader = buildTailSectionHeader();
     const truncationSummary = buildTruncationSummary(savedPath, totalLength);
-    const maxHeadLength = (headHeaderLength) =>
+    const maxHeadLength = (headHeaderLength: number) =>
         Math.max(
             0,
             maxToolOutputChars -

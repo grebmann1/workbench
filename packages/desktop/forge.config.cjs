@@ -1,4 +1,3 @@
-const fs = require('node:fs');
 const path = require('node:path');
 
 const { FuseV1Options, FuseVersion } = require('@electron/fuses');
@@ -11,8 +10,7 @@ const { PublisherGithub } = require('@electron-forge/publisher-github');
 const repoRoot = path.resolve(__dirname, '../..');
 const packagedWebRoot = path.join(repoRoot, 'dist', 'extension');
 const desktopResourcesRoot = path.join(__dirname, 'resources');
-const configuredIcon = process.env.DESKTOP_APP_ICON;
-const hasConfiguredIcon = configuredIcon && fs.existsSync(configuredIcon);
+const desktopIcon = process.env.DESKTOP_APP_ICON || path.join(desktopResourcesRoot, 'icons', 'icon');
 
 const publishers = process.env.GITHUB_TOKEN
     ? [
@@ -35,6 +33,7 @@ module.exports = {
         executableName: 'Workbench Desktop',
         extraResource: [packagedWebRoot, desktopResourcesRoot],
         ignore: [/^\/src($|\/)/, /^\/resources($|\/)/],
+        icon: desktopIcon,
         name: 'Workbench Desktop',
         osxNotarize:
             process.env.APPLE_ID && process.env.APPLE_ID_PASSWORD && process.env.APPLE_TEAM_ID
@@ -53,7 +52,6 @@ module.exports = {
                       teamId: process.env.APPLE_TEAM_ID || undefined,
                   }
                 : undefined,
-        ...(hasConfiguredIcon ? { icon: configuredIcon } : {}),
     },
     rebuildConfig: {},
     makers: [new MakerDMG({}, ['darwin']), new MakerZIP({}, ['darwin'])],

@@ -44,7 +44,15 @@ export async function loadLimitedMode(context) {
             LOGGER.debug('load_limitedMode - OAUTH');
             let configuration = await getConfiguration(alias);
             if (configuration && configuration.credentialType === OAUTH_TYPES.OAUTH) {
-                connector = await credentialStrategies.OAUTH.connect({ alias });
+                if (isElectronApp() && configuration.accessToken && configuration.instanceUrl) {
+                    connector = await credentialStrategies.SESSION.connect({
+                        alias,
+                        sessionId: configuration.accessToken,
+                        serverUrl: configuration.instanceUrl,
+                    });
+                } else {
+                    connector = await credentialStrategies.OAUTH.connect({ alias });
+                }
             } else if (configuration && configuration.credentialType === OAUTH_TYPES.USERNAME) {
                 connector = await credentialStrategies.USERNAME.connect({
                     username: configuration.username,
@@ -59,6 +67,7 @@ export async function loadLimitedMode(context) {
         } else if (isNotUndefinedOrNull(sessionId) && isNotUndefinedOrNull(serverUrl)) {
             LOGGER.debug('load_limitedMode - SESSION');
             connector = await credentialStrategies.SESSION.connect({
+                alias,
                 sessionId,
                 serverUrl,
             });

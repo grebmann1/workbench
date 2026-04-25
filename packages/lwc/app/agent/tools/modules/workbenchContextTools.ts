@@ -17,12 +17,6 @@ import {
 } from '../constants';
 import { waitForLoaded, wrappedNavigate } from '../utils/utils';
 
-/**
- * Plain-object tool definitions compatible with the Vercel AI SDK execution path
- * (Agent.ts extraTools / toAiSdkTools). These mirror the OpenAI-bundle domain tool
- * modules but do not depend on window.OpenAIAgentsBundle.
- */
-
 export const getCurrentConnectionTool = {
     name: 'get_current_connection',
     description: GENERAL_TOOL_DESCRIPTIONS.currentConnection,

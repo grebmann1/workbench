@@ -1,11 +1,11 @@
-export type DesktopLaunchIntent =
-    | {
-          target: 'app';
-      }
-    | {
-          target: 'org';
-          orgAlias: string;
-      };
+import {
+    isDesktopCommand,
+    normalizeDesktopCommand,
+    type DesktopCommand,
+    type DesktopLaunchIntent,
+} from './desktopCommand';
+
+export { normalizeDesktopCommand, type DesktopCommand, type DesktopLaunchIntent };
 
 const LAUNCH_INTENT_ARG_PREFIX = '--desktop-intent=';
 
@@ -37,7 +37,9 @@ export function parseLaunchIntent(argv: string[]): DesktopLaunchIntent {
 
     try {
         const payload = JSON.parse(Buffer.from(base64Payload, 'base64url').toString('utf8'));
-        return isDesktopLaunchIntent(payload) ? payload : createDefaultLaunchIntent();
+        return isDesktopCommand(payload) || isDesktopLaunchIntent(payload)
+            ? payload
+            : createDefaultLaunchIntent();
     } catch {
         return createDefaultLaunchIntent();
     }

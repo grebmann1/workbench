@@ -26,8 +26,6 @@ const init = async () => {
                 : 'https://www.sf-workbench.com/chrome/callback',
     };
     window.jsforce = jsforce;
-    // window.OpenAIAgentsBundle = openaiAgent;
-    //await ensureOpenAIAgentsBundleLoaded();
 };
 
 /** Init **/

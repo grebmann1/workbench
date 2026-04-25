@@ -3,18 +3,14 @@ import logger from 'shared/middleware';
 
 import application from './modules/application/reducers';
 
+const isProd =
+    typeof process !== 'undefined' && process.env?.NODE_ENV === 'production';
+
 export const store = configureStore({
     reducer: {
         application,
     },
-    middleware: getDefaultMiddleware => {
-        const middlewares = getDefaultMiddleware();
-        // eslint-disable-next-line no-undef
-        if (process.env.NODE_ENV !== 'production') {
-            return middlewares.concat(logger);
-        }
-        return middlewares;
-    },
-    // eslint-disable-next-line no-undef
-    devTools: process.env.NODE_ENV !== 'production',
+    middleware: getDefaultMiddleware =>
+        isProd ? getDefaultMiddleware() : getDefaultMiddleware().concat(logger),
+    devTools: !isProd,
 });

@@ -22,14 +22,13 @@ const CHROME_SYNC_SETTINGS_STORAGE_KEY = 'chrome_syncSettingsEnabled';
 class CacheManager {
     static instance: CacheManager | null = null;
     isChrome = isChromeExtension();
-    configKeyMap: Record<string, CONFIG_OBJECT> | null;
+    configKeyMap: Record<string, CONFIG_OBJECT> | null = null;
 
     constructor() {
         if (CacheManager.instance) {
             return CacheManager.instance;
         }
 
-        this.configKeyMap = null;
         CacheManager.instance = this;
     }
 
@@ -141,8 +140,8 @@ class CacheManager {
     getConfigKeyMap(): Record<string, CONFIG_OBJECT> {
         if (!this.configKeyMap) {
             this.configKeyMap = {};
-            for (const configKey in CACHE_CONFIG) {
-                const configObj = CACHE_CONFIG[configKey];
+            const entries = Object.entries(CACHE_CONFIG) as Array<[string, CONFIG_OBJECT]>;
+            for (const [, configObj] of entries) {
                 this.configKeyMap[configObj.key] = configObj;
             }
         }
@@ -215,7 +214,12 @@ export const CACHE_CONFIG = {
     CONTENT_SCRIPT_INCLUDE_PATTERNS: new CONFIG_OBJECT('content_script_include_patterns', null),
     CONTENT_SCRIPT_EXCLUDE_PATTERNS: new CONFIG_OBJECT('content_script_exclude_patterns', null),
     // Google Auth Session
-    GOOGLE_SESSION: new CONFIG_OBJECT<{ token: string; email: string; name: string; picture: string } | null>('google_session', null),
+    GOOGLE_SESSION: new CONFIG_OBJECT<{
+        token: string;
+        email: string;
+        name: string;
+        picture: string;
+    } | null>('google_session', null),
     // AI Settings
     PROVIDER_CONFIGS: new CONFIG_OBJECT('llm_provider_configs', null),
     OPENAI_KEY: new CONFIG_OBJECT('openai_key', null),
@@ -229,6 +233,7 @@ export const CACHE_CONFIG = {
     GROK_KEY: new CONFIG_OBJECT('grok_key', null),
     GROK_URL: new CONFIG_OBJECT('grok_url', 'https://api.x.ai/v1'),
     AI_PROVIDER: new CONFIG_OBJECT('ai_provider', 'openai'),
+    MCP_SERVERS: new CONFIG_OBJECT('mcp_servers', []),
     EXPERIENCE_CLOUD_LOGINAS_INCOGNITO: new CONFIG_OBJECT('experienceCloudLoginAsIncognito', false),
     UI_IS_APPLICATION_TAB_VISIBLE: new CONFIG_OBJECT('ui_isApplicationTabVisible', true),
     CHROME_SYNC_SETTINGS_INITIALIZED_STORAGE_KEY: new CONFIG_OBJECT(
@@ -319,7 +324,7 @@ export const CACHE_ORG_DATA_TYPES = {
     CONNECTIONS: 'connections',
     SESSION_SETTINGS: 'session_settings',
     ELECTRON_ORG_LIST: 'electron_org_list', // Added for electron org list caching
-};
+} as const;
 
 export const CACHE_DOCUMENTS = {
     QUERYFILES: 'QUERYFILES',
@@ -327,7 +332,7 @@ export const CACHE_DOCUMENTS = {
     OPENAPI_SCHEMAS_FILES: 'OPENAPI_SCHEMAS_FILES',
     APEXFILES: 'APEXFILES',
     RECENT: 'RECENTS',
-};
+} as const;
 // Backward compatibility functions
 export async function loadExtensionConfigFromCache(keys: string[]) {
     return cacheManager.loadConfig(keys);

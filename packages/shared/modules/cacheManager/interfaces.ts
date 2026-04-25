@@ -76,7 +76,9 @@ const basicStore = (variant: 'local' | 'session' = 'local'): StorageStore => {
         },
         setItem: function (key: string, value: unknown, callback?: StoreCallback) {
             try {
-                storage.setItem(key, value != null ? JSON.stringify(value) : null);
+                // Web Storage API requires a string value; coerce `null` to the
+                // literal "null" so legacy readers that check for it still work.
+                storage.setItem(key, value != null ? JSON.stringify(value) : 'null');
                 if (callback) {
                     callback();
                 }

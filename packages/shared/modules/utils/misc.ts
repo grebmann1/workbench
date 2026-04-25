@@ -31,7 +31,7 @@ export const ROLES = {
     SYSTEM: 'system',
     TOOL: 'tool',
     ASSISTANT: 'assistant',
-};
+} as const;
 
 export const forceVariableSave = (variable: unknown, value: unknown): void => {
     variable = null;
@@ -45,13 +45,14 @@ type ConnectorAlias = {
 export const generateExternalId = (connector: ConnectorAlias, key: string): string =>
     `${connector.alias}_${key}`;
 
-export const isObject = (obj: unknown): boolean => typeof obj === 'object' && obj !== null;
+export const isObject = (obj: unknown): obj is Record<string, unknown> =>
+    typeof obj === 'object' && obj !== null;
 
 export const getFieldValue = (field: string, record: Record<string, unknown>): unknown => {
     let value: unknown = record;
     field.split('.').forEach(name => {
-        if (value && typeof value === 'object' && name in value) {
-            value = (value as Record<string, unknown>)[name];
+        if (isObject(value) && name in value) {
+            value = value[name];
         }
     });
     return value;
@@ -76,14 +77,12 @@ export const extractErrorDetailsFromQuery = (errorMessage: string) => {
 };
 
 export const isMonacoLanguageSetup = (language: string): boolean => {
-    const windowWithMonaco = window as Window & {
-        _monacoCompletionProviders?: Record<string, boolean>;
-    };
-    if (!windowWithMonaco._monacoCompletionProviders) {
-        windowWithMonaco._monacoCompletionProviders = {};
+    // _monacoCompletionProviders is declared on the global Window interface in types/global.d.ts
+    if (!window._monacoCompletionProviders) {
+        window._monacoCompletionProviders = {};
     }
-    const _isSetup = windowWithMonaco._monacoCompletionProviders[language] === true;
-    windowWithMonaco._monacoCompletionProviders[language] = true;
+    const _isSetup = window._monacoCompletionProviders[language] === true;
+    window._monacoCompletionProviders[language] = true;
     return _isSetup;
 };
 

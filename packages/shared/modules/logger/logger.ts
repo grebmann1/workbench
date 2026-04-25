@@ -1,73 +1,55 @@
 class Logger {
-    isProduction: boolean;
-    colors: {
-        reset: string;
-        blue: string;
-        green: string;
-        yellow: string;
-        red: string;
-        magenta: string;
-        cyan?: string;
-    };
+    readonly isProduction =
+        typeof process !== 'undefined' && process.env?.NODE_ENV === 'production';
 
-    constructor() {
-        this.isProduction = process.env.NODE_ENV === 'production';
-        this.colors = {
-            reset: '\x1b[0m',
-            blue: '\x1b[34m',
-            green: '\x1b[32m',
-            yellow: '\x1b[33m',
-            red: '\x1b[31m',
-            magenta: '\x1b[35m',
-            cyan: '\x1b[36m',
-        };
-    }
+    private readonly colors = {
+        reset: '\x1b[0m',
+        blue: '\x1b[34m',
+        green: '\x1b[32m',
+        yellow: '\x1b[33m',
+        red: '\x1b[31m',
+        magenta: '\x1b[35m',
+        cyan: '\x1b[36m',
+    } as const;
 
-    log(...args: unknown[]): void {
+    log(...args: unknown[]) {
         if (!this.isProduction) {
-            //const [firstMessage, ...rest] = args;
             console.log(...args);
         }
     }
 
-    info(...args: unknown[]): void {
+    info(...args: unknown[]) {
         if (!this.isProduction) {
-            //const [firstMessage, ...rest] = args;
             console.log(`${this.colors.blue}INFO:`, ...args);
         }
     }
 
-    success(...args: unknown[]): void {
+    success(...args: unknown[]) {
         if (!this.isProduction) {
-            //const [firstMessage, ...rest] = args;
             console.log(`${this.colors.green}SUCCESS:`, ...args);
         }
     }
 
-    agent(...args: unknown[]): void {
+    agent(...args: unknown[]) {
         if (!this.isProduction) {
-            //const [firstMessage, ...rest] = args;
             console.log(`${this.colors.cyan}[AGENT]:`, ...args);
         }
     }
 
-    warn(...args: unknown[]): void {
+    warn(...args: unknown[]) {
         if (!this.isProduction) {
-            //const [firstMessage, ...rest] = args;
             console.log(`${this.colors.yellow}WARNING:`, ...args);
         }
     }
 
-    error(...args: unknown[]): void {
+    error(...args: unknown[]) {
         if (!this.isProduction) {
-            //const [firstMessage, ...rest] = args;
             console.log(`${this.colors.red}ERROR:`, ...args);
         }
     }
 
-    debug(...args: unknown[]): void {
+    debug(...args: unknown[]) {
         if (!this.isProduction) {
-            //const [firstMessage, ...rest] = args;
             console.log(`${this.colors.magenta}DEBUG:`, ...args);
         }
     }

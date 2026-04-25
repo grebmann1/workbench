@@ -7,6 +7,26 @@ type DesktopLaunchIntent =
     | {
           target: 'org';
           orgAlias: string;
+      }
+    | {
+          type: 'openApp';
+          v: 2;
+      }
+    | {
+          org: Record<string, unknown>;
+          route?: {
+              applicationName: string;
+              state?: Record<string, string>;
+          };
+          type: 'openOrg' | 'openPage';
+          v: 2;
+      }
+    | {
+          action: Record<string, unknown>;
+          org: Record<string, unknown>;
+          output?: 'json' | 'text';
+          type: 'execute';
+          v: 2;
       };
 
 type DesktopAppInfo = {
@@ -51,6 +71,10 @@ const desktopApi = {
     getStoredOrg: (alias: string): Promise<any> =>
         ipcRenderer.invoke('desktop:get-stored-org', alias),
     getAllOrgs: (): Promise<any> => ipcRenderer.invoke('desktop:get-all-orgs'),
+    openExternal: (url: string): Promise<{ success: true }> =>
+        ipcRenderer.invoke('desktop:open-external', url),
+    openLogsFolder: (): Promise<{ success: true }> =>
+        ipcRenderer.invoke('desktop:open-logs-folder'),
     getCodeInitialConfig: (
         alias: string
     ): Promise<{ projectPath: string | null; metadataLoaded: boolean }> =>

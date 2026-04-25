@@ -1,8 +1,16 @@
 import OpenAI from 'openai';
+import type {
+    ChatCompletionCreateParamsNonStreaming,
+    ChatCompletionCreateParamsStreaming,
+} from 'openai/resources/chat/completions';
+import type {
+    ResponseCreateParamsNonStreaming,
+    ResponseCreateParamsStreaming,
+} from 'openai/resources/responses/responses';
 
 type OpenAiBaseOptions = {
-    pre?: (req: unknown) => unknown;
-    createClient: (req: unknown) => OpenAI;
+    pre?: (req: ModelRequest) => ModelRequest;
+    createClient: (req: ModelRequest) => OpenAI;
 };
 
 type ModelRequest = {
@@ -12,26 +20,26 @@ type ModelRequest = {
 };
 
 function openaiBase(options: OpenAiBaseOptions) {
-    const pre = options.pre ?? (req => req);
+    const pre = options.pre ?? ((req: ModelRequest) => req);
     return {
         name: 'openai',
-        supportModels: [],
+        supportModels: [] as string[],
         requiredEnv: ['OPENAI_KEY'],
         async invoke(req: ModelRequest) {
-            const _req = pre(req) as ModelRequest;
+            const _req = pre(req);
             const client = options.createClient(_req);
-            return (client.chat.completions as any).create({
+            return client.chat.completions.create({
                 ..._req,
                 stream: false,
-            });
+            } as ChatCompletionCreateParamsNonStreaming);
         },
         async *stream(req: ModelRequest, signal: AbortSignal) {
-            const _req = pre(req) as ModelRequest;
+            const _req = pre(req);
             const client = options.createClient(_req);
-            const stream = await (client.chat.completions as any).create({
+            const stream = await client.chat.completions.create({
                 ..._req,
                 stream: true,
-            });
+            } as ChatCompletionCreateParamsStreaming);
             for await (const it of stream) {
                 if (signal?.aborted) {
                     throw new Error('Aborted');
@@ -40,20 +48,20 @@ function openaiBase(options: OpenAiBaseOptions) {
             }
         },
         async invokeResponse(req: ModelRequest) {
-            const _req = pre(req) as ModelRequest;
+            const _req = pre(req);
             const client = options.createClient(_req);
             return client.responses.create({
                 ..._req,
                 stream: false,
-            });
+            } as ResponseCreateParamsNonStreaming);
         },
         async *streamResponse(req: ModelRequest, signal: AbortSignal) {
-            const _req = pre(req) as ModelRequest;
+            const _req = pre(req);
             const client = options.createClient(_req);
             const stream = await client.responses.create({
                 ..._req,
                 stream: true,
-            });
+            } as ResponseCreateParamsStreaming);
             for await (const it of stream) {
                 if (signal?.aborted) {
                     throw new Error('Aborted');

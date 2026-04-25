@@ -168,8 +168,9 @@ export const formatApiRequest = ({
                 .filter(line => line.length > 0)
                 .forEach(line => {
                     const lineArr = line.split(':');
-                    if (lineArr.length >= 2) {
-                        const key = lineArr.shift().trim(); // Get the header name
+                    const firstSegment = lineArr.shift();
+                    if (lineArr.length >= 1 && firstSegment != null) {
+                        const key = firstSegment.trim(); // Get the header name
                         headers[key] = lineArr.join(':').trim(); // Combine the remaining parts of the header value
                         headers[key] = replaceVariableValues
                             ? replaceVariableValues(headers[key])

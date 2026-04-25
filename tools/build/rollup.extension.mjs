@@ -292,6 +292,7 @@ const sharedModules = [
     { name: 'shared/middleware', path: getSharedModulePath('middleware') },
     { name: 'shared/sf', path: getSharedModulePath('sf') },
     { name: 'shared/store', path: getSharedModulePath('store') },
+    { name: 'shared/types', path: r('../../packages/shared/modules/types/index.ts') },
     { name: 'shared/utils', path: getSharedModulePath('utils') },
     { name: 'shared/salesforceUrl', path: getSharedModulePath('salesforceUrl') },
 ];

@@ -22,3 +22,44 @@ const launchIntent_1 = require("./launchIntent");
 (0, node_test_1.default)('parseLaunchIntent falls back to the default app intent for invalid payloads', () => {
     strict_1.default.deepEqual((0, launchIntent_1.parseLaunchIntent)(['electron', '.', '--desktop-intent=not-a-valid-payload']), (0, launchIntent_1.createDefaultLaunchIntent)());
 });
+(0, node_test_1.default)('parseLaunchIntent restores a serialized v2 open page command', () => {
+    const serializedIntent = (0, launchIntent_1.serializeLaunchIntent)({
+        v: 2,
+        type: 'openPage',
+        org: {
+            kind: 'alias',
+            alias: 'demo-org',
+        },
+        route: {
+            applicationName: 'soql',
+            state: {
+                query: 'SELECT Id FROM Account LIMIT 10',
+            },
+        },
+    });
+    strict_1.default.deepEqual((0, launchIntent_1.parseLaunchIntent)(['electron', '.', serializedIntent]), {
+        v: 2,
+        type: 'openPage',
+        org: {
+            kind: 'alias',
+            alias: 'demo-org',
+        },
+        route: {
+            applicationName: 'soql',
+            state: {
+                query: 'SELECT Id FROM Account LIMIT 10',
+            },
+        },
+    });
+});
+(0, node_test_1.default)('normalizeDesktopCommand converts legacy app and org intents to v2 commands', () => {
+    strict_1.default.deepEqual((0, launchIntent_1.normalizeDesktopCommand)({ target: 'app' }), { v: 2, type: 'openApp' });
+    strict_1.default.deepEqual((0, launchIntent_1.normalizeDesktopCommand)({ target: 'org', orgAlias: 'demo-org' }), {
+        v: 2,
+        type: 'openOrg',
+        org: {
+            kind: 'alias',
+            alias: 'demo-org',
+        },
+    });
+});

@@ -31,7 +31,13 @@ const getQueryStringValue = (value: unknown): string => {
     return typeof value === 'string' ? value : '';
 };
 
-const getOAuth2Instance = params => {
+type OAuthParams = {
+    redirectUri?: string;
+    loginUrl?: string;
+    [key: string]: unknown;
+};
+
+const getOAuth2Instance = (params: OAuthParams) => {
     return new jsforce.OAuth2({
         clientId: process.env.CLIENT_ID,
         clientSecret: process.env.CLIENT_SECRET,
@@ -77,9 +83,9 @@ app.get('/documentation/search', async (req, res) => {
         const results = await searchDocumentation({ keywords, filters });
         const mappedResults = results.map(({ id, title, doc }) => ({
             id,
-            name: isFullTextSearch ? doc.title : title,
-            text: isFullTextSearch ? doc.content : doc.title,
-            documentationId: doc.documentationId,
+            name: isFullTextSearch ? doc?.title : title,
+            text: isFullTextSearch ? doc?.content : doc?.title,
+            documentationId: doc?.documentationId,
         }));
         res.json(mappedResults);
     } catch (error) {

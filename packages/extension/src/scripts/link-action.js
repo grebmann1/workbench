@@ -26,6 +26,7 @@ const ALLOWED_SETTING_KEYS = new Set([
     'mistral_url',
     'grok_key',
     'grok_url',
+    'mcp_servers',
     'einstein_agent_conversation_model',
     'einstein_agent_conversation_reasoning',
     // Metadata storage settings

@@ -67,7 +67,9 @@
                             <template for:each={filteredCacheEntries} for:item="entry">
                                 <div key={entry.key} class="cache-entry">
                                     <div class="cache-entry__header">
-                                        <span class="cache-entry__key" title={entry.key}>{entry.key}</span>
+                                        <span class="cache-entry__key" title={entry.key}>
+                                            {entry.key}
+                                        </span>
                                         <lightning-button-icon
                                             data-key={entry.key}
                                             icon-name="utility:delete"
@@ -82,7 +84,8 @@
                             </template>
                         </template>
                         <template lwc:else>
-                            <div class="slds-p-around_medium slds-text-color_weak slds-text-align_center">
+                            <div
+                                class="slds-p-around_medium slds-text-color_weak slds-text-align_center">
                                 No cache entries found.
                             </div>
                         </template>
@@ -106,21 +109,28 @@
                         <slds-tab label="Session" value="session" lwc:if={isUserLoggedIn}>
                             <!-- User / Org summary -->
                             <div class="session-banner slds-m-bottom_medium">
-                                <div class="session-banner__body slds-grid slds-grid_vertical-align-center slds-p-around_medium">
+                                <div
+                                    class="session-banner__body slds-grid slds-grid_vertical-align-center slds-p-around_medium">
                                     <lightning-icon
                                         icon-name="standard:people"
                                         size="small"
                                         class="slds-m-right_small session-banner__icon"></lightning-icon>
                                     <div class="slds-has-flexi-truncate">
-                                        <p class="slds-text-heading_small slds-truncate">{userName}</p>
-                                        <div class="slds-grid slds-grid_vertical-align-center slds-m-top_xx-small session-banner__meta">
+                                        <p class="slds-text-heading_small slds-truncate">
+                                            {userName}
+                                        </p>
+                                        <div
+                                            class="slds-grid slds-grid_vertical-align-center slds-m-top_xx-small session-banner__meta">
                                             <template lwc:if={alias}>
                                                 <lightning-badge
                                                     label={alias}
                                                     class="slds-m-right_x-small session-banner__badge"></lightning-badge>
                                             </template>
                                             <template lwc:if={instanceUrl}>
-                                                <span class="slds-text-body_small slds-text-color_weak slds-truncate">{instanceUrl}</span>
+                                                <span
+                                                    class="slds-text-body_small slds-text-color_weak slds-truncate">
+                                                    {instanceUrl}
+                                                </span>
                                             </template>
                                         </div>
                                     </div>
@@ -140,7 +150,8 @@
                                         </p>
                                     </div>
                                     <div slot="actions">
-                                        <lightning-button-stateful class="slds-m-right_small"
+                                        <lightning-button-stateful
+                                            class="slds-m-right_small"
                                             label-when-off="Enable QA Mode"
                                             label-when-on="QA Mode Active"
                                             label-when-hover="Disable QA Mode"
@@ -233,9 +244,11 @@
                         </slds-tab>
                         <slds-tab label="Shortcuts" value="shortcuts">
                             <div class="slds-grid slds-wrap slds-grid_vertical-stretch">
-                                <div class="slds-col slds-size_1-of-1 slds-p-horizontal_medium slds-p-top_medium">
+                                <div
+                                    class="slds-col slds-size_1-of-1 slds-p-horizontal_medium slds-p-top_medium">
                                     <slds-information-block>
-                                        After saving shortcut changes, refresh the page for the new shortcuts to take effect.
+                                        After saving shortcut changes, refresh the page for the new
+                                        shortcuts to take effect.
                                     </slds-information-block>
                                 </div>
                                 <lightning-card
@@ -457,7 +470,9 @@
                                             <div slot="title">
                                                 <h1>
                                                     Autocomplete
-                                                    <lightning-badge label="Disabled" class="slds-m-left_x-small"></lightning-badge>
+                                                    <lightning-badge
+                                                        label="Disabled"
+                                                        class="slds-m-left_x-small"></lightning-badge>
                                                 </h1>
                                                 <p class="description slds-truncate">
                                                     Select the AI provider to use for the
@@ -490,7 +505,8 @@
                                     <slds-tabset variant="vertical">
                                         <slds-tab label="OpenAI" value="openai">
                                             <div class="slds-grid slds-wrap slds-p-around_small">
-                                                <div class="slds-col slds-size_1-of-1 slds-large-size_1-of-2 slds-p-right_x-small">
+                                                <div
+                                                    class="slds-col slds-size_1-of-1 slds-large-size_1-of-2 slds-p-right_x-small">
                                                     <div class="provider-key-row">
                                                         <lightning-input
                                                             data-key="openai_key"
@@ -509,7 +525,8 @@
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <div class="slds-col slds-size_1-of-1 slds-large-size_1-of-2 slds-p-left_x-small">
+                                                <div
+                                                    class="slds-col slds-size_1-of-1 slds-large-size_1-of-2 slds-p-left_x-small">
                                                     <lightning-input
                                                         data-key="openai_url"
                                                         label="Endpoint"
@@ -523,7 +540,8 @@
                                         </slds-tab>
                                         <slds-tab label="Anthropic" value="anthropic">
                                             <div class="slds-grid slds-wrap slds-p-around_small">
-                                                <div class="slds-col slds-size_1-of-1 slds-large-size_1-of-2 slds-p-right_x-small">
+                                                <div
+                                                    class="slds-col slds-size_1-of-1 slds-large-size_1-of-2 slds-p-right_x-small">
                                                     <div class="provider-key-row">
                                                         <lightning-input
                                                             data-key="anthropic_key"
@@ -542,7 +560,8 @@
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <div class="slds-col slds-size_1-of-1 slds-large-size_1-of-2 slds-p-left_x-small">
+                                                <div
+                                                    class="slds-col slds-size_1-of-1 slds-large-size_1-of-2 slds-p-left_x-small">
                                                     <lightning-input
                                                         data-key="anthropic_url"
                                                         label="Endpoint"
@@ -556,7 +575,8 @@
                                         </slds-tab>
                                         <slds-tab label="Gemini" value="gemini">
                                             <div class="slds-grid slds-wrap slds-p-around_small">
-                                                <div class="slds-col slds-size_1-of-1 slds-large-size_1-of-2 slds-p-right_x-small">
+                                                <div
+                                                    class="slds-col slds-size_1-of-1 slds-large-size_1-of-2 slds-p-right_x-small">
                                                     <div class="provider-key-row">
                                                         <lightning-input
                                                             data-key="gemini_key"
@@ -575,7 +595,8 @@
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <div class="slds-col slds-size_1-of-1 slds-large-size_1-of-2 slds-p-left_x-small">
+                                                <div
+                                                    class="slds-col slds-size_1-of-1 slds-large-size_1-of-2 slds-p-left_x-small">
                                                     <lightning-input
                                                         data-key="gemini_url"
                                                         label="Endpoint"
@@ -589,7 +610,8 @@
                                         </slds-tab>
                                         <slds-tab label="Mistral" value="mistral">
                                             <div class="slds-grid slds-wrap slds-p-around_small">
-                                                <div class="slds-col slds-size_1-of-1 slds-large-size_1-of-2 slds-p-right_x-small">
+                                                <div
+                                                    class="slds-col slds-size_1-of-1 slds-large-size_1-of-2 slds-p-right_x-small">
                                                     <div class="provider-key-row">
                                                         <lightning-input
                                                             data-key="mistral_key"
@@ -608,7 +630,8 @@
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <div class="slds-col slds-size_1-of-1 slds-large-size_1-of-2 slds-p-left_x-small">
+                                                <div
+                                                    class="slds-col slds-size_1-of-1 slds-large-size_1-of-2 slds-p-left_x-small">
                                                     <lightning-input
                                                         data-key="mistral_url"
                                                         label="Endpoint"
@@ -622,7 +645,8 @@
                                         </slds-tab>
                                         <slds-tab label="xAI Grok" value="grok">
                                             <div class="slds-grid slds-wrap slds-p-around_small">
-                                                <div class="slds-col slds-size_1-of-1 slds-large-size_1-of-2 slds-p-right_x-small">
+                                                <div
+                                                    class="slds-col slds-size_1-of-1 slds-large-size_1-of-2 slds-p-right_x-small">
                                                     <div class="provider-key-row">
                                                         <lightning-input
                                                             data-key="grok_key"
@@ -641,7 +665,8 @@
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <div class="slds-col slds-size_1-of-1 slds-large-size_1-of-2 slds-p-left_x-small">
+                                                <div
+                                                    class="slds-col slds-size_1-of-1 slds-large-size_1-of-2 slds-p-left_x-small">
                                                     <lightning-input
                                                         data-key="grok_url"
                                                         label="Endpoint"
@@ -650,6 +675,238 @@
                                                         value={config.grok_url}
                                                         variant="label-stacked"
                                                         class="slds-full-width"></lightning-input>
+                                                </div>
+                                            </div>
+                                        </slds-tab>
+                                        <slds-tab label="MCP" value="mcp">
+                                            <div class="mcp-settings slds-p-around_small">
+                                                <div class="mcp-server-layout slds-grid slds-wrap">
+                                                    <div
+                                                        class="slds-col slds-size_1-of-1 slds-large-size_1-of-3 slds-p-right_small">
+                                                        <template lwc:if={hasMcpServers}>
+                                                            <slds-vertical-navigation
+                                                                sections={mcpServerSections}
+                                                                selected-item-name={selectedMcpServerId}
+                                                                onselect={handleMcpServerSelect}></slds-vertical-navigation>
+                                                        </template>
+                                                        <template lwc:else>
+                                                            <div class="mcp-empty-state">
+                                                                <p class="description">
+                                                                    Add MCP server JSON in the
+                                                                    Config tab to start discovering
+                                                                    tools.
+                                                                </p>
+                                                            </div>
+                                                        </template>
+                                                    </div>
+                                                    <div
+                                                        class="slds-col slds-size_1-of-1 slds-large-size_2-of-3">
+                                                        <slds-tabset>
+                                                            <slds-tab
+                                                                label="Overview"
+                                                                value="overview">
+                                                                <template
+                                                                    lwc:if={selectedMcpServer}>
+                                                                    <div
+                                                                        class="mcp-panel slds-p-around_small">
+                                                                        <div
+                                                                            class="mcp-server-summary">
+                                                                            <div>
+                                                                                <h2>
+                                                                                    {selectedMcpServerName}
+                                                                                </h2>
+                                                                                <p
+                                                                                    class="description">
+                                                                                    {selectedMcpServerUrl}
+                                                                                </p>
+                                                                            </div>
+                                                                            <div>
+                                                                                <lightning-badge
+                                                                                    label={selectedMcpServerStatusLabel}></lightning-badge>
+                                                                            </div>
+                                                                        </div>
+                                                                        <div
+                                                                            class="mcp-kpi-grid slds-m-top_medium">
+                                                                            <div class="mcp-kpi">
+                                                                                <span
+                                                                                    class="mcp-kpi__value">
+                                                                                    {selectedMcpServerToolCount}
+                                                                                </span>
+                                                                                <span
+                                                                                    class="mcp-kpi__label">
+                                                                                    Tools
+                                                                                </span>
+                                                                            </div>
+                                                                            <div class="mcp-kpi">
+                                                                                <span
+                                                                                    class="mcp-kpi__value">
+                                                                                    {selectedMcpServerEnabledToolCount}
+                                                                                </span>
+                                                                                <span
+                                                                                    class="mcp-kpi__label">
+                                                                                    Enabled
+                                                                                </span>
+                                                                            </div>
+                                                                            <div class="mcp-kpi">
+                                                                                <span
+                                                                                    class="mcp-kpi__value">
+                                                                                    {selectedMcpServerDisabledToolCount}
+                                                                                </span>
+                                                                                <span
+                                                                                    class="mcp-kpi__label">
+                                                                                    Disabled
+                                                                                </span>
+                                                                            </div>
+                                                                        </div>
+                                                                        <dl
+                                                                            class="mcp-detail-list slds-m-top_medium">
+                                                                            <div>
+                                                                                <dt>Transport</dt>
+                                                                                <dd>
+                                                                                    {selectedMcpServerTransportLabel}
+                                                                                </dd>
+                                                                            </div>
+                                                                            <div>
+                                                                                <dt>Headers</dt>
+                                                                                <dd>
+                                                                                    {selectedMcpServerHeadersLabel}
+                                                                                </dd>
+                                                                            </div>
+                                                                            <div>
+                                                                                <dt>
+                                                                                    Last tool
+                                                                                    refresh
+                                                                                </dt>
+                                                                                <dd>
+                                                                                    {selectedMcpServerLastRefreshLabel}
+                                                                                </dd>
+                                                                            </div>
+                                                                        </dl>
+                                                                        <template
+                                                                            lwc:if={selectedMcpServerError}>
+                                                                            <div
+                                                                                class="slds-notify slds-notify_alert slds-alert_error slds-m-top_medium"
+                                                                                role="alert">
+                                                                                <span>
+                                                                                    {selectedMcpServerError}
+                                                                                </span>
+                                                                            </div>
+                                                                        </template>
+                                                                        <div
+                                                                            class="slds-grid slds-grid_align-spread slds-m-top_medium">
+                                                                            <lightning-input
+                                                                                type="toggle"
+                                                                                label="Server enabled"
+                                                                                checked={selectedMcpServerEnabled}
+                                                                                data-id={selectedMcpServer.id}
+                                                                                onchange={handleToggleMcpServerEnabled}></lightning-input>
+                                                                            <div>
+                                                                                <lightning-button
+                                                                                    label="Test Connection"
+                                                                                    data-id={selectedMcpServer.id}
+                                                                                    onclick={handleTestMcpServerClick}
+                                                                                    disabled={isTestingSelectedMcpServer}></lightning-button>
+                                                                                <lightning-button
+                                                                                    label="Refresh Tools"
+                                                                                    data-id={selectedMcpServer.id}
+                                                                                    onclick={handleRefreshMcpToolsClick}
+                                                                                    disabled={isRefreshingSelectedMcpServer}
+                                                                                    class="slds-m-left_x-small"></lightning-button>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </template>
+                                                            </slds-tab>
+                                                            <slds-tab label="Tools" value="tools">
+                                                                <div
+                                                                    class="mcp-panel slds-p-around_small">
+                                                                    <template
+                                                                        lwc:if={hasSelectedMcpServerTools}>
+                                                                        <div
+                                                                            class="slds-grid slds-grid_align-spread slds-m-bottom_small">
+                                                                            <p class="description">
+                                                                                Choose which
+                                                                                discovered MCP tools
+                                                                                are available to the
+                                                                                agent.
+                                                                            </p>
+                                                                            <div>
+                                                                                <lightning-button
+                                                                                    label="Enable All"
+                                                                                    onclick={handleEnableAllMcpToolsClick}></lightning-button>
+                                                                                <lightning-button
+                                                                                    label="Disable All"
+                                                                                    onclick={handleDisableAllMcpToolsClick}
+                                                                                    class="slds-m-left_x-small"></lightning-button>
+                                                                            </div>
+                                                                        </div>
+                                                                        <template
+                                                                            for:each={selectedMcpServerTools}
+                                                                            for:item="tool">
+                                                                            <article
+                                                                                key={tool.key}
+                                                                                class="mcp-tool-row">
+                                                                                <div>
+                                                                                    <h3>
+                                                                                        {tool.name}
+                                                                                    </h3>
+                                                                                    <p
+                                                                                        class="description">
+                                                                                        {tool.description}
+                                                                                    </p>
+                                                                                </div>
+                                                                                <lightning-input
+                                                                                    type="toggle"
+                                                                                    label="Enabled"
+                                                                                    checked={tool.enabled}
+                                                                                    data-name={tool.name}
+                                                                                    onchange={handleToggleMcpToolEnabled}></lightning-input>
+                                                                            </article>
+                                                                        </template>
+                                                                    </template>
+                                                                    <template lwc:else>
+                                                                        <div
+                                                                            class="mcp-empty-state">
+                                                                            <p class="description">
+                                                                                No tools discovered
+                                                                                yet. Use Refresh
+                                                                                Tools from the
+                                                                                Overview tab.
+                                                                            </p>
+                                                                        </div>
+                                                                    </template>
+                                                                </div>
+                                                            </slds-tab>
+                                                            <slds-tab label="Config" value="config">
+                                                                <div
+                                                                    class="mcp-panel slds-p-around_small">
+                                                                    <lightning-textarea
+                                                                        label="MCP JSON Configuration"
+                                                                        value={mcpServersJson}
+                                                                        placeholder={mcpServersJsonPlaceholder}
+                                                                        onchange={handleMcpJsonChange}
+                                                                        variant="label-stacked"></lightning-textarea>
+                                                                    <p
+                                                                        class="description slds-m-top_x-small">
+                                                                        Use Claude Desktop-style
+                                                                        JSON with an
+                                                                        <code>mcpServers</code>
+                                                                        object. Tool metadata is
+                                                                        preserved after refreshes.
+                                                                        Use HTTP transport when
+                                                                        running in the Chrome
+                                                                        extension.
+                                                                    </p>
+                                                                    <div class="slds-m-top_small">
+                                                                        <lightning-button
+                                                                            label="Parse & Save"
+                                                                            variant="brand"
+                                                                            onclick={handleParseMcpServersClick}></lightning-button>
+                                                                    </div>
+                                                                </div>
+                                                            </slds-tab>
+                                                        </slds-tabset>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </slds-tab>
@@ -668,11 +925,14 @@
                                         <!-- Bright Data -->
                                         <slds-tab label="Bright Data" value="bright_data">
                                             <div class="slds-grid slds-wrap slds-p-around_small">
-                                                <settings-card is-first class="slds-col slds-size_1-of-1 slds-large-size_1-of-2">
+                                                <settings-card
+                                                    is-first
+                                                    class="slds-col slds-size_1-of-1 slds-large-size_1-of-2">
                                                     <div slot="title">
                                                         <h1>Bright Data</h1>
                                                         <p class="description slds-truncate">
-                                                            Real-time web search via Bright Data's SERP API.
+                                                            Real-time web search via Bright Data's
+                                                            SERP API.
                                                         </p>
                                                     </div>
                                                     <div slot="actions">
@@ -709,11 +969,14 @@
                                         <!-- Google Sheet -->
                                         <slds-tab label="Google Sheet" value="google_sheet">
                                             <div class="slds-grid slds-wrap slds-p-around_small">
-                                                <settings-card is-first class="slds-col slds-size_1-of-1 slds-large-size_1-of-2">
+                                                <settings-card
+                                                    is-first
+                                                    class="slds-col slds-size_1-of-1 slds-large-size_1-of-2">
                                                     <div slot="title">
                                                         <h1>Google Drive &amp; Sheets</h1>
                                                         <p class="description slds-truncate">
-                                                            Read and write Google Sheets and Drive files on your behalf.
+                                                            Read and write Google Sheets and Drive
+                                                            files on your behalf.
                                                         </p>
                                                     </div>
                                                     <div slot="actions">
@@ -727,7 +990,8 @@
                                                             checked={config.tool_google_sheet_enabled}
                                                             onchange={inputfield_change}></lightning-input>
                                                     </div>
-                                                    <div class="slds-grid slds-grid_vertical-align-center slds-m-bottom_small">
+                                                    <div
+                                                        class="slds-grid slds-grid_vertical-align-center slds-m-bottom_small">
                                                         <template lwc:if={googleDriveConnected}>
                                                             <lightning-badge
                                                                 label="Connected"
@@ -746,14 +1010,18 @@
                                                         </template>
                                                     </div>
                                                     <template lwc:if={googleDriveConnected}>
-                                                        <p class="slds-text-body_small slds-text-color_weak">
-                                                            The AI agent can access Google Sheets and Drive
-                                                            files using your account.
+                                                        <p
+                                                            class="slds-text-body_small slds-text-color_weak">
+                                                            The AI agent can access Google Sheets
+                                                            and Drive files using your account.
                                                         </p>
                                                     </template>
                                                     <template lwc:else>
                                                         <slds-information-block>
-                                                            Requires Google sign-in. Connect your Google account in the User tab first, then click "Connect Drive &amp; Sheets" to grant access.
+                                                            Requires Google sign-in. Connect your
+                                                            Google account in the User tab first,
+                                                            then click "Connect Drive &amp; Sheets"
+                                                            to grant access.
                                                         </slds-information-block>
                                                     </template>
                                                 </settings-card>
@@ -771,7 +1039,9 @@
                                     <div slot="title">
                                         <h1>
                                             Smart Input
-                                            <lightning-badge label="Disabled" class="slds-m-left_x-small"></lightning-badge>
+                                            <lightning-badge
+                                                label="Disabled"
+                                                class="slds-m-left_x-small"></lightning-badge>
                                         </h1>
                                         <p
                                             class="description slds-truncate"
@@ -808,7 +1078,8 @@
                                             <div slot="title">
                                                 <h1>Cache</h1>
                                                 <p class="description slds-truncate">
-                                                    Inspect and manage raw data stored in the browser cache.
+                                                    Inspect and manage raw data stored in the
+                                                    browser cache.
                                                 </p>
                                             </div>
                                             <div slot="actions">
@@ -842,7 +1113,10 @@
                                                     size="x-small"
                                                     variant="warning"
                                                     class="slds-m-right_x-small"></lightning-icon>
-                                                Modifying or deleting cache entries manually can corrupt your settings, lose conversation history, or break active sessions. Only proceed if you know what you are doing.
+                                                Modifying or deleting cache entries manually can
+                                                corrupt your settings, lose conversation history, or
+                                                break active sessions. Only proceed if you know what
+                                                you are doing.
                                             </slds-information-block>
                                         </settings-card>
                                         <settings-card
@@ -851,7 +1125,8 @@
                                             <div slot="title">
                                                 <h1>File System</h1>
                                                 <p class="description slds-truncate">
-                                                    Browse files persisted in the local file system via the Files Explorer.
+                                                    Browse files persisted in the local file system
+                                                    via the Files Explorer.
                                                 </p>
                                             </div>
                                             <div slot="actions">
@@ -867,7 +1142,9 @@
                                             <div slot="title">
                                                 <h1>Migrate Cache to File System</h1>
                                                 <p class="description slds-truncate">
-                                                    Export all settings and data from the browser cache into the file system for portability and backup.
+                                                    Export all settings and data from the browser
+                                                    cache into the file system for portability and
+                                                    backup.
                                                 </p>
                                             </div>
                                             <div slot="actions">
@@ -878,7 +1155,9 @@
                                                     disabled></lightning-button>
                                             </div>
                                             <slds-information-block>
-                                                This feature is not yet available. It will allow a full one-time migration of all cached data to the file system storage.
+                                                This feature is not yet available. It will allow a
+                                                full one-time migration of all cached data to the
+                                                file system storage.
                                             </slds-information-block>
                                         </settings-card>
                                     </div>
@@ -961,7 +1240,8 @@
                                         <div slot="title">
                                             <h1>Overlay</h1>
                                             <p class="description slds-truncate">
-                                                Configure the Workbench overlay injected into Salesforce pages.
+                                                Configure the Workbench overlay injected into
+                                                Salesforce pages.
                                             </p>
                                         </div>
                                         <div class="slds-grid slds-wrap">
@@ -971,8 +1251,8 @@
                                                 <div slot="title">
                                                     <h1>Overlay Visibility</h1>
                                                     <p class="description slds-truncate">
-                                                        Show or hide the Workbench overlay
-                                                        in Salesforce pages.
+                                                        Show or hide the Workbench overlay in
+                                                        Salesforce pages.
                                                     </p>
                                                 </div>
                                                 <div slot="actions">
@@ -993,8 +1273,8 @@
                                                 <div slot="title">
                                                     <h1>Content Script URL Patterns</h1>
                                                     <p class="description slds-truncate">
-                                                        Manage the URL patterns for content
-                                                        script injection. One regex per line.
+                                                        Manage the URL patterns for content script
+                                                        injection. One regex per line.
                                                     </p>
                                                 </div>
                                                 <div slot="actions">
@@ -1093,7 +1373,6 @@
                                                     </slds-information-block>
                                                 </settings-card>
                                             </div>
-
                                         </div>
                                     </lightning-card>
                                 </div>

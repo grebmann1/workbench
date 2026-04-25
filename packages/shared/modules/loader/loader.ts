@@ -15,8 +15,9 @@ function loadScriptOnce(src: string): Promise<void> {
     if (!src) {
         return Promise.reject(new Error('Missing script src'));
     }
-    if (scriptPromisesBySrc.has(src)) {
-        return scriptPromisesBySrc.get(src);
+    const cached = scriptPromisesBySrc.get(src);
+    if (cached) {
+        return cached;
     }
 
     const promise = new Promise<void>((resolve, reject) => {
@@ -45,15 +46,6 @@ export async function ensureMonacoLoaded(): Promise<unknown> {
     const src = getAssetUrl('/libs/monaco/monaco.bundle.js');
     await loadScriptOnce(src);
     return window.monaco;
-}
-
-export async function ensureOpenAIAgentsBundleLoaded(): Promise<unknown> {
-    if (typeof window !== 'undefined' && window.OpenAIAgentsBundle) {
-        return window.OpenAIAgentsBundle;
-    }
-    const src = getAssetUrl('/libs/openai/bundle.min.js');
-    await loadScriptOnce(src);
-    return window.OpenAIAgentsBundle;
 }
 
 export async function ensureMermaidLoaded(): Promise<unknown> {

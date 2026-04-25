@@ -3,6 +3,15 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.registerDesktopIpcRouter = registerDesktopIpcRouter;
 const electron_1 = require("electron");
 const desktopServices_1 = require("./desktopServices");
+function isSafeExternalUrl(url) {
+    try {
+        const parsedUrl = new URL(url);
+        return parsedUrl.protocol === 'https:' || parsedUrl.protocol === 'mailto:';
+    }
+    catch {
+        return false;
+    }
+}
 function registerDesktopIpcRouter({ getLaunchIntent, getRendererUrl, handleLegacyMessage, openInstance, updateLimitedModeStatus, }) {
     const sendLegacyEvent = (event, channel, payload) => {
         event.sender.send(`desktop:legacy:${channel}`, payload);
@@ -16,6 +25,17 @@ function registerDesktopIpcRouter({ getLaunchIntent, getRendererUrl, handleLegac
     }));
     electron_1.ipcMain.handle('desktop:get-launch-intent', () => getLaunchIntent());
     electron_1.ipcMain.handle('desktop:check-commands', async () => (0, desktopServices_1.getCommandAvailability)());
+    electron_1.ipcMain.handle('desktop:open-external', async (_event, url) => {
+        if (!isSafeExternalUrl(url)) {
+            throw new Error('Only https: and mailto: URLs can be opened externally.');
+        }
+        await electron_1.shell.openExternal(url);
+        return { success: true };
+    });
+    electron_1.ipcMain.handle('desktop:open-logs-folder', async () => {
+        await electron_1.shell.openPath(electron_1.app.getPath('logs'));
+        return { success: true };
+    });
     electron_1.ipcMain.handle('desktop:open-instance', async (_event, payload) => {
         await openInstance(payload);
         return { success: true };

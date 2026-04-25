@@ -1,12 +1,44 @@
+/**
+ * Source-tracking helpers for the VSCode extension. These read/write a small
+ * JSON file inside the workspace to remember last-known remote stamps for
+ * Salesforce metadata. Runs inside the VSCode extension host so we import
+ * VSCode lazily as an opaque type.
+ */
+
 const SOURCE_TRACKING_PATH = '/workspace/.salesforce/source-tracking.json';
 
-function parentPath(p) {
+/** Narrow slice of the VSCode API surface we actually use. */
+type VscodeLike = {
+    Uri: { file: (path: string) => unknown };
+    workspace: {
+        fs: {
+            createDirectory: (uri: unknown) => Thenable<void>;
+            readFile: (uri: unknown) => Thenable<Uint8Array>;
+            writeFile: (uri: unknown, content: Uint8Array) => Thenable<void>;
+        };
+    };
+};
+
+/** Salesforce record fields we look at to derive a remote modification stamp. */
+type SalesforceStampRecord = {
+    SystemModstamp?: string | null;
+    LastModifiedDate?: string | null;
+    /** Some legacy responses use camelCase `LastModifieddate`. */
+    LastModifieddate?: string | null;
+};
+
+/** Raw tracking data keyed arbitrarily by consumer; we don't interpret values. */
+type SourceTrackingData = Record<string, unknown>;
+
+type Thenable<T> = { then: Promise<T>['then'] };
+
+function parentPath(p: string) {
     const path = String(p || '');
     const idx = path.lastIndexOf('/');
     return idx > 0 ? path.slice(0, idx) : '/';
 }
 
-async function ensureDir(vscode, absPath) {
+async function ensureDir(vscode: VscodeLike, absPath: string): Promise<void> {
     try {
         await vscode.workspace.fs.createDirectory(vscode.Uri.file(absPath));
     } catch {
@@ -14,15 +46,15 @@ async function ensureDir(vscode, absPath) {
     }
 }
 
-export function pickRemoteStamp(rec) {
+export function pickRemoteStamp(rec: SalesforceStampRecord | null | undefined): string | null {
     const v = rec?.SystemModstamp || rec?.LastModifiedDate || rec?.LastModifieddate || null;
     if (!v) return null;
     // Salesforce typically returns ISO strings; keep it as a string.
     return String(v);
 }
 
-// Fast, deterministic, non-cryptographic hash for change detection.
-export function hashText(text) {
+/** Fast, deterministic, non-cryptographic hash for change detection. */
+export function hashText(text: string | null | undefined): string {
     const s = String(text ?? '');
     let h = 5381;
     for (let i = 0; i < s.length; i++) {
@@ -31,20 +63,25 @@ export function hashText(text) {
     return (h >>> 0).toString(16).padStart(8, '0');
 }
 
-export async function loadSourceTracking(vscode) {
+export async function loadSourceTracking(
+    vscode: VscodeLike
+): Promise<SourceTrackingData | null> {
     try {
         const uri = vscode.Uri.file(SOURCE_TRACKING_PATH);
         const bytes = await vscode.workspace.fs.readFile(uri);
         const text = new TextDecoder().decode(bytes || new Uint8Array());
         const parsed = JSON.parse(text || '{}');
-        return parsed && typeof parsed === 'object' ? parsed : null;
+        return parsed && typeof parsed === 'object' ? (parsed as SourceTrackingData) : null;
     } catch {
         return null;
     }
 }
 
-export async function saveSourceTracking(vscode, tracking) {
-    const payload = tracking && typeof tracking === 'object' ? tracking : {};
+export async function saveSourceTracking(
+    vscode: VscodeLike,
+    tracking: SourceTrackingData | null | undefined
+): Promise<void> {
+    const payload: SourceTrackingData = tracking && typeof tracking === 'object' ? tracking : {};
     const text = JSON.stringify(payload, null, 2);
     await ensureDir(vscode, parentPath(SOURCE_TRACKING_PATH));
     await vscode.workspace.fs.writeFile(

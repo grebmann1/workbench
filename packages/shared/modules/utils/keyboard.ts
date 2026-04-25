@@ -23,7 +23,7 @@ export const keyCodes = {
     shift: 16,
 };
 
-export function normalizeKeyValue(value: string): string {
+export function normalizeKeyValue(value: string) {
     switch (value) {
         case 'Spacebar':
             return ' ';
@@ -51,14 +51,14 @@ type KeyBufferState = {
 
 const buffer: KeyBufferState = {};
 
-export function isShiftMetaOrControlKey(event: KeyboardEvent): boolean {
+export function isShiftMetaOrControlKey(event: KeyboardEvent) {
     return event.shiftKey || event.metaKey || event.ctrlKey;
 }
 
 export function runActionOnBufferedTypedCharacters(
     event: KeyboardEvent,
     action: (text: string) => void
-): void {
+) {
     const letter = event.key;
 
     if (letter.length > 1) {

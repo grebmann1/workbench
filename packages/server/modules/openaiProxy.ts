@@ -68,6 +68,13 @@ function streamSSE(res: Response, streamFn: StreamFn, errorFn?: ErrorFn) {
     })();
 }
 
+/** Flush buffered SSE data if the response supports it (e.g. compression middleware). */
+function tryFlush(res: Response) {
+    if ('flush' in res && typeof (res as Record<string, unknown>).flush === 'function') {
+        (res as Record<string, unknown> & { flush: () => void }).flush();
+    }
+}
+
 type OpenAiProxyOptions = {
     path?: string;
 };
@@ -100,7 +107,7 @@ export default function openaiProxy(app: Application, options: OpenAiProxyOption
                     async signal => {
                         for await (const chunk of openaiModel.stream(body, signal)) {
                             res.write(`data: ${JSON.stringify(chunk)}\n\n`);
-                            (res as any).flush && (res as any).flush();
+                            tryFlush(res);
                         }
                     },
                     async (err, response) => {
@@ -133,7 +140,7 @@ export default function openaiProxy(app: Application, options: OpenAiProxyOption
                     async signal => {
                         for await (const chunk of openaiModel.streamResponse(body, signal)) {
                             res.write(`data: ${JSON.stringify(chunk)}\n\n`);
-                            (res as any).flush && (res as any).flush();
+                            tryFlush(res);
                         }
                     },
                     async (err, response) => {

@@ -1,5 +1,7 @@
 import { BrowserWindow, type BrowserWindowConstructorOptions } from 'electron';
 
+import { desktopLog } from './desktopLogger';
+import { getDesktopIconPath } from './desktopPaths';
 import type { DesktopLaunchIntent } from './launchIntent';
 
 type WindowManagerOptions = {
@@ -7,11 +9,23 @@ type WindowManagerOptions = {
     rendererUrl: string;
 };
 
+function redactRendererMessage(message: string): string {
+    return message
+        .replace(/force:\/\/[^@\s]+@[^\s]+/g, 'force://<redacted>@<redacted>')
+        .replace(/Bearer\s+[A-Za-z0-9._~+/=-]+/gi, 'Bearer <redacted>')
+        .replace(/(accessToken|refreshToken|sessionId)["':=\s]+[A-Za-z0-9._~!+/=-]+/gi, '$1=<redacted>');
+}
+
 export class WindowManager {
     private readonly preloadPath: string;
     private rendererUrl: string;
     private mainWindow: BrowserWindow | null = null;
     private readonly instanceWindows = new Map<string, BrowserWindow>();
+    private readonly instanceLoginStatus = new Map<string, boolean>();
+    private readonly instanceLoginWaiters = new Map<
+        string,
+        Array<(status: boolean) => void>
+    >();
 
     constructor({ preloadPath, rendererUrl }: WindowManagerOptions) {
         this.preloadPath = preloadPath;
@@ -64,6 +78,7 @@ export class WindowManager {
             minWidth: 1100,
             minHeight: 700,
             title: 'Workbench Desktop',
+            icon: getDesktopIconPath('png'),
             show: false,
             autoHideMenuBar: false,
             webPreferences: {
@@ -72,10 +87,12 @@ export class WindowManager {
                 sandbox: true,
                 nodeIntegration: false,
                 spellcheck: false,
+                webSecurity: false,
             },
         };
 
         this.mainWindow = new BrowserWindow(browserWindowOptions);
+        this.registerWindowDiagnostics(this.mainWindow, 'home');
 
         this.mainWindow.on('closed', () => {
             this.mainWindow = null;
@@ -109,6 +126,7 @@ export class WindowManager {
             minWidth: 1100,
             minHeight: 700,
             title: this.formatInstanceTitle(payload),
+            icon: getDesktopIconPath('png'),
             show: false,
             autoHideMenuBar: false,
             parent: this.mainWindow || undefined,
@@ -118,14 +136,17 @@ export class WindowManager {
                 sandbox: true,
                 nodeIntegration: false,
                 spellcheck: false,
+                webSecurity: false,
             },
         };
 
         const instanceWindow = new BrowserWindow(browserWindowOptions);
+        this.registerWindowDiagnostics(instanceWindow, instanceKey);
         this.instanceWindows.set(instanceKey, instanceWindow);
 
         instanceWindow.on('closed', () => {
             this.instanceWindows.delete(instanceKey);
+            this.instanceLoginStatus.delete(instanceKey);
         });
 
         instanceWindow.webContents.once('did-finish-load', () => {
@@ -142,9 +163,18 @@ export class WindowManager {
     }
 
     updateInstanceWindowStatus(sender: Electron.WebContents, payload: Record<string, any>): void {
-        const matchingWindow = Array.from(this.instanceWindows.values()).find(window => {
+        desktopLog.info('Instance window status update', {
+            isLoggedIn: payload.isLoggedIn,
+            message: payload.message,
+            username: payload.username,
+            webContentsId: sender.id,
+        });
+
+        const matchingEntry = Array.from(this.instanceWindows.entries()).find(([_key, window]) => {
             return !window.isDestroyed() && window.webContents.id === sender.id;
         });
+        const matchingWindow = matchingEntry?.[1] || null;
+        const matchingKey = matchingEntry?.[0] || null;
 
         if (!matchingWindow) {
             return;
@@ -153,13 +183,50 @@ export class WindowManager {
         const username = String(payload.username || '').trim();
         const message = String(payload.message || '').trim();
         if (payload.isLoggedIn === true && username) {
+            if (matchingKey) {
+                this.setInstanceLoginStatus(matchingKey, true);
+            }
             matchingWindow.setTitle(`Workbench Desktop - ${username}`);
             return;
         }
 
         if (payload.isLoggedIn === false && message) {
+            if (matchingKey) {
+                this.setInstanceLoginStatus(matchingKey, false);
+            }
             matchingWindow.setTitle(`Workbench Desktop - ${message}`);
         }
+    }
+
+    async waitForInstanceLogin(payload: Record<string, any>, timeoutMs = 15_000): Promise<boolean> {
+        const instanceKey = this.getInstanceWindowKey(payload);
+        if (!instanceKey) {
+            return false;
+        }
+
+        if (this.instanceLoginStatus.get(instanceKey) === true) {
+            return true;
+        }
+
+        return new Promise(resolve => {
+            const timeout = setTimeout(() => {
+                const waiters = this.instanceLoginWaiters.get(instanceKey) || [];
+                this.instanceLoginWaiters.set(
+                    instanceKey,
+                    waiters.filter(candidate => candidate !== waiter)
+                );
+                resolve(false);
+            }, timeoutMs);
+
+            const waiter = (status: boolean) => {
+                clearTimeout(timeout);
+                resolve(status);
+            };
+            this.instanceLoginWaiters.set(instanceKey, [
+                ...(this.instanceLoginWaiters.get(instanceKey) || []),
+                waiter,
+            ]);
+        });
     }
 
     private buildInstanceRendererUrl(payload: Record<string, any>): string {
@@ -227,5 +294,33 @@ export class WindowManager {
         }
 
         return null;
+    }
+
+    private setInstanceLoginStatus(instanceKey: string, status: boolean): void {
+        this.instanceLoginStatus.set(instanceKey, status);
+        const waiters = this.instanceLoginWaiters.get(instanceKey) || [];
+        this.instanceLoginWaiters.delete(instanceKey);
+        waiters.forEach(waiter => waiter(status));
+    }
+
+    private registerWindowDiagnostics(window: BrowserWindow, windowKey: string): void {
+        window.webContents.on('console-message', (_event, level, message, line, sourceId) => {
+            desktopLog.info('Renderer console message', {
+                level,
+                line,
+                message: redactRendererMessage(message),
+                sourceId,
+                windowKey,
+            });
+        });
+
+        window.webContents.on('did-fail-load', (_event, errorCode, errorDescription, validatedURL) => {
+            desktopLog.error('Renderer failed to load', {
+                errorCode,
+                errorDescription,
+                validatedURL,
+                windowKey,
+            });
+        });
     }
 }

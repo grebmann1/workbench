@@ -41,7 +41,7 @@ type MetadataException = {
 };
 
 export const formatName = (x: MetadataRecord): string => {
-    const name = x.DeveloperName || x.MasterLabel || x.Name || x.Id;
+    const name = x.DeveloperName || x.MasterLabel || x.Name || x.Id || '';
     return x.NamespacePrefix ? `${x.NamespacePrefix}__${name}` : name;
 };
 
@@ -62,7 +62,7 @@ export const METADATA_EXCEPTION_LIST: MetadataException[] = [
         labelFunc: formatName,
         filterFunc: x => " WHERE ActiveVersion.ProcessType <> 'Workflow'",
         field_id: 'Id',
-        selectDefaultFunc: x => x.ActiveVersionId,
+        selectDefaultFunc: x => x.ActiveVersionId ?? '',
         selectDefaultLabelFunc: x => 'Active',
         badgeFunc: x => {
             return x.ActiveVersion?.Status
@@ -93,7 +93,7 @@ export const METADATA_EXCEPTION_LIST: MetadataException[] = [
         labelFunc: formatName,
         filterFunc: x => " WHERE ActiveVersion.ProcessType = 'Workflow'",
         field_id: 'Id',
-        selectDefaultFunc: x => x.ActiveVersionId,
+        selectDefaultFunc: x => x.ActiveVersionId ?? '',
         selectDefaultLabelFunc: x => 'Active',
         badgeFunc: x => {
             return x.ActiveVersion?.Status
@@ -129,13 +129,13 @@ export const METADATA_EXCEPTION_LIST: MetadataException[] = [
                       class: 'slds-theme_success',
                   }
                 : {
-                      label: x.Status,
+                      label: x.Status ?? '',
                       class: '',
                   };
         },
         manualFilter: x => {
             return true;
         },
-        compareFunc: (a, b) => (a.Status || '').localeCompare(b.Status),
+        compareFunc: (a, b) => (a.Status || '').localeCompare(b.Status ?? ''),
     },
 ];

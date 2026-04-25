@@ -7,15 +7,23 @@
 
 type ClassSetValue = Record<string, boolean>;
 
-type ClassSet = {
+/**
+ * A ClassSet is a mutable bag of `className -> boolean` pairs with a few
+ * helper methods. Keeping the shape loose with an index signature lets us
+ * both call `set.add(...)` and also read arbitrary class flags with
+ * `set[className]`.
+ */
+type ClassSet = ClassSetValue & {
     add: (className: string | ClassSetValue) => ClassSet;
     invert: () => ClassSet;
     toString: () => string;
-    [key: string]: boolean | ((...args: unknown[]) => unknown);
 };
 
-const proto: ClassSet = {
-    add(className: string | ClassSetValue) {
+// Internal proto object. Methods assign back into `this` which at runtime is
+// the ClassSet instance; we cast as `unknown as ClassSet` so the declaration
+// doesn't require a mixed value/method index signature.
+const proto = {
+    add(this: ClassSet, className: string | ClassSetValue) {
         if (typeof className === 'string') {
             this[className] = true;
         } else {
@@ -23,23 +31,22 @@ const proto: ClassSet = {
         }
         return this;
     },
-    invert() {
+    invert(this: ClassSet) {
         Object.keys(this).forEach(key => {
-            this[key] = !this[key];
+            if (typeof this[key] === 'boolean') {
+                this[key] = !this[key];
+            }
         });
         return this;
     },
-    toString() {
+    toString(this: ClassSet) {
         return Object.keys(this)
-            .filter(key => this[key])
+            .filter(key => this[key] === true)
             .join(' ');
     },
 };
 
 export function classSet(config: string | ClassSetValue): ClassSet {
-    if (typeof config === 'string') {
-        const key = config;
-        config = { [key]: true };
-    }
-    return Object.assign(Object.create(proto), config) as ClassSet;
+    const initial: ClassSetValue = typeof config === 'string' ? { [config]: true } : config;
+    return Object.assign(Object.create(proto), initial) as ClassSet;
 }

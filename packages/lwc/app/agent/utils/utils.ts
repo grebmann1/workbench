@@ -1,6 +1,3 @@
-import { isNotUndefinedOrNull } from 'shared/utils';
-
-
 export * from './constants';
 export * from './generateTitle';
 export * from './models';
@@ -45,23 +42,3 @@ export const readFileContent = (file: File) => {
     });
 };
 
-/* export const CONVERSATION_CACHE_KEY = 'einsteinAgentConversation';
-
-export async function loadConversationFromCache() {
-    const key = CONVERSATION_CACHE_KEY;
-    const configMap = await loadExtensionConfigFromCache([key]);
-    const configText = configMap ? configMap[key] : null;
-    const cachedConversation = configText ? JSON.parse(configText) : null;
-    return cachedConversation;
-}
-
-export async function saveConversationToCache(conversation) {
-    const key = CONVERSATION_CACHE_KEY;
-    const data = JSON.stringify(conversation);
-    await saveExtensionConfigToCache({ [key]: data });
-}
-
-export async function clearConversationCache() {
-    const key = CONVERSATION_CACHE_KEY;
-    await saveExtensionConfigToCache({ [key]: null });
-} */

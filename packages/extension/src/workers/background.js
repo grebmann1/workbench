@@ -491,10 +491,9 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
         Object.prototype.hasOwnProperty.call(changes, 'content_script_include_patterns') ||
         Object.prototype.hasOwnProperty.call(changes, 'content_script_exclude_patterns')
     ) {
-        refreshContentScriptPatternsCache(
-            DEFAULT_INCLUDE_PATTERNS,
-            DEFAULT_EXCLUDE_PATTERNS
-        ).catch(() => {});
+        refreshContentScriptPatternsCache(DEFAULT_INCLUDE_PATTERNS, DEFAULT_EXCLUDE_PATTERNS).catch(
+            () => {}
+        );
     }
 });
 
@@ -531,10 +530,14 @@ function injectToolkit(tabId) {
 }
 
 /** Action Button  */
-/* chrome.action.onClicked.addListener(async tab => {
-    //console.log('onClicked');
-    //handleTabOpening(tab);
-}); */
+chrome.action.onClicked.addListener(tab => {
+    // setOptions and open must NOT be awaited before open() — any async suspension
+    // before sidePanel.open() drops the user gesture context and Chrome rejects the call.
+    chrome.sidePanel.setOptions({ path: STABLE_SIDEPANEL_PATH, enabled: true });
+    chrome.sidePanel.open({ tabId: tab.id }).catch(e => {
+        console.error('[SF-TOOLKIT][BG] Failed to open side panel on action click', e);
+    });
+});
 
 /** Browser event handlers. */
 function handleContextMenuClick(info, tab) {
@@ -665,7 +668,9 @@ async function handleSmartInputMessage(message, sender) {
     const isExtensionPageSender =
         typeof senderUrl === 'string' && senderUrl.startsWith(chrome.runtime.getURL(''));
     const isInjectedSalesforceSender =
-        !isExtensionPageSender && !!sender?.tab?.url && (await shouldInjectScriptAsync(sender.tab.url));
+        !isExtensionPageSender &&
+        !!sender?.tab?.url &&
+        (await shouldInjectScriptAsync(sender.tab.url));
     if (!isExtensionPageSender && !isInjectedSalesforceSender) {
         safeDebug('[SmartInput AI] background rejected: untrusted sender');
         return { error: 'Untrusted sender' };
@@ -763,8 +768,7 @@ async function handleSmartInputMessage(message, sender) {
             return { error: `OpenAI error: ${text}` };
         }
         const json = await resp.json();
-        const suggestion =
-            json?.choices?.[0]?.message?.content || '';
+        const suggestion = json?.choices?.[0]?.message?.content || '';
         const result = suggestion.trim();
         safeDebug('[SmartInput AI] background success', {
             suggestionLength: result.length,
@@ -776,6 +780,115 @@ async function handleSmartInputMessage(message, sender) {
             name: e?.name,
         });
         return { error: e.message };
+    }
+}
+
+function normalizeMcpUrl(value) {
+    try {
+        const url = new URL(typeof value === 'string' ? value.trim() : '');
+        if (url.username || url.password) {
+            return null;
+        }
+        if (url.protocol !== 'https:' && url.protocol !== 'http:') {
+            return null;
+        }
+        if (url.protocol === 'http:' && !['localhost', '127.0.0.1'].includes(url.hostname)) {
+            return null;
+        }
+        url.hash = '';
+        url.search = '';
+        url.pathname = url.pathname.replace(/\/+$/, '') || '/';
+        return url.toString();
+    } catch (e) {
+        return null;
+    }
+}
+
+function getMcpServerConfigs(value) {
+    if (!Array.isArray(value)) {
+        return [];
+    }
+    return value.filter(server => server && typeof server === 'object' && server.url);
+}
+
+function isMcpRequestUrlAllowed(requestUrl, serverConfigs) {
+    const normalizedRequestUrl = normalizeMcpUrl(requestUrl);
+    if (!normalizedRequestUrl) {
+        return false;
+    }
+    return getMcpServerConfigs(serverConfigs).some(server => {
+        const normalizedServerUrl = normalizeMcpUrl(server.url);
+        if (!normalizedServerUrl) {
+            return false;
+        }
+        if (normalizedServerUrl === normalizedRequestUrl) {
+            return true;
+        }
+        try {
+            const serverUrl = new URL(normalizedServerUrl);
+            const url = new URL(normalizedRequestUrl);
+            return serverUrl.origin === url.origin;
+        } catch (e) {
+            return false;
+        }
+    });
+}
+
+async function handleMcpHttpRequestMessage(message, sender) {
+    const senderUrl = sender?.url || '';
+    const isExtensionPageSender =
+        typeof senderUrl === 'string' && senderUrl.startsWith(chrome.runtime.getURL(''));
+    if (!isExtensionPageSender) {
+        safeDebug('[MCP] background rejected: untrusted sender');
+        return { error: 'Untrusted sender' };
+    }
+
+    const requestUrl = typeof message?.url === 'string' ? message.url : '';
+    const method = typeof message?.method === 'string' ? message.method.toUpperCase() : 'GET';
+    const allowedMethods = new Set(['GET', 'POST', 'PUT', 'PATCH', 'DELETE']);
+    if (!requestUrl || !allowedMethods.has(method)) {
+        return { error: 'Invalid MCP request' };
+    }
+
+    const mcpServersKey = CACHE_CONFIG.MCP_SERVERS?.key || 'mcp_servers';
+    const storedConfig = await chrome.storage.local.get([mcpServersKey]);
+    if (!isMcpRequestUrlAllowed(requestUrl, storedConfig[mcpServersKey])) {
+        safeDebug('[MCP] background rejected: URL not configured', { requestUrl });
+        return { error: 'MCP server URL is not configured' };
+    }
+
+    const headers =
+        message?.headers && typeof message.headers === 'object' && !Array.isArray(message.headers)
+            ? message.headers
+            : {};
+    const body = typeof message?.body === 'string' ? message.body : undefined;
+    const timeoutMs =
+        typeof message?.timeoutMs === 'number' && Number.isFinite(message.timeoutMs)
+            ? Math.max(1000, Math.min(message.timeoutMs, 120000))
+            : 30000;
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+        const response = await fetch(requestUrl, {
+            method,
+            headers,
+            body,
+            redirect: 'error',
+            signal: controller.signal,
+        });
+        const responseBody = await response.text();
+        return {
+            ok: response.ok,
+            status: response.status,
+            statusText: response.statusText,
+            headers: Object.fromEntries(response.headers.entries()),
+            body: responseBody,
+        };
+    } catch (e) {
+        return { error: e?.message || String(e) };
+    } finally {
+        clearTimeout(timeoutId);
     }
 }
 
@@ -839,6 +952,9 @@ async function handleRuntimeMessage(message, sender) {
     }
     if (message.action === 'smartinput_enhance_single') {
         return await handleSmartInputMessage(message, sender);
+    }
+    if (message.action === 'mcp_http_request') {
+        return await handleMcpHttpRequestMessage(message, sender);
     }
     if (message.action.startsWith('chrome_')) {
         return await handleChromeInteraction(message);
@@ -913,10 +1029,7 @@ chrome.runtime.onInstalled.addListener(async details => {
             content_script_exclude_patterns: DEFAULT_EXCLUDE_PATTERNS.join('\n'),
         });
     }
-    await refreshContentScriptPatternsCache(
-        DEFAULT_INCLUDE_PATTERNS,
-        DEFAULT_EXCLUDE_PATTERNS
-    );
+    await refreshContentScriptPatternsCache(DEFAULT_INCLUDE_PATTERNS, DEFAULT_EXCLUDE_PATTERNS);
 });
 
 chrome.commands.onCommand.addListener((command, tab) => {
@@ -933,14 +1046,15 @@ chrome.commands.onCommand.addListener((command, tab) => {
 
 /** Service worker bootstrap. */
 const init = async () => {
+    // Disable the passive auto-open behavior so chrome.action.onClicked always fires.
+    // The onClicked handler explicitly calls sidePanel.open(), which is more reliable.
     chrome.sidePanel
-        .setPanelBehavior({ openPanelOnActionClick: true })
+        .setPanelBehavior({ openPanelOnActionClick: false })
         .catch(error => console.error(error));
     ensureContextMenu().catch(() => {});
-    refreshContentScriptPatternsCache(
-        DEFAULT_INCLUDE_PATTERNS,
-        DEFAULT_EXCLUDE_PATTERNS
-    ).catch(() => {});
+    refreshContentScriptPatternsCache(DEFAULT_INCLUDE_PATTERNS, DEFAULT_EXCLUDE_PATTERNS).catch(
+        () => {}
+    );
 };
 
 chrome.runtime.setUninstallURL('https://forms.gle/cd8SkEPe5RGTVijJA');
@@ -984,7 +1098,12 @@ function broadcastMessageToAllSidePanelInstances(message) {
 // Send to only the injected connection that matches the provided tabId. Returns true if a port was found and messaged.
 function sendMessageToInjectedInTab(tabId, message) {
     let sent = false;
-    safeLog('[BG] Attempting to send to injected in tab', tabId, 'message.action=', message?.action);
+    safeLog(
+        '[BG] Attempting to send to injected in tab',
+        tabId,
+        'message.action=',
+        message?.action
+    );
     for (const port of injectedConnections.values()) {
         const portTabId = port && port.sender && port.sender.tab && port.sender.tab.id;
         if (portTabId === tabId) {

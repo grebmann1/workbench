@@ -2,7 +2,7 @@
  * Formatting utilities
  */
 
-export function formatBytes(bytes: number, decimals: number = 2): string {
+export function formatBytes(bytes: number, decimals = 2) {
     if (!+bytes) return '0 Bytes';
 
     const k = 1024;
@@ -14,7 +14,7 @@ export function formatBytes(bytes: number, decimals: number = 2): string {
     return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
 }
 
-export function basicTextFormatter(text: string, filter: string): string {
+export function basicTextFormatter(text: string, filter: string) {
     var regex = new RegExp('(' + filter + ')', 'gim');
     if (regex.test(text)) {
         text = text
@@ -30,7 +30,7 @@ export const shortFormatter = new Intl.NumberFormat('en-US', {
     maximumFractionDigits: 1,
 });
 
-export function detectLanguageFromContentType(header?: string | null): string | null {
+export function detectLanguageFromContentType(header?: string | null) {
     if (!header) return null;
     const contentTypeLine = header
         .split('\n')

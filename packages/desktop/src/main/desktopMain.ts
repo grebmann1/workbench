@@ -1,16 +1,21 @@
+import fs from 'node:fs';
 import path from 'node:path';
 
-import { app, shell, session, type WebContents } from 'electron';
+import { app, dialog, nativeImage, shell, session, type WebContents } from 'electron';
 
 import { DesktopAutomationServer } from './desktopAutomationServer';
 import { DesktopLegacyBus } from './desktopLegacyBus';
+import { desktopLog, registerDesktopLoggerProcessHandlers } from './desktopLogger';
 import { registerDesktopMenu } from './desktopMenu';
-import { getPackagedWebRoot } from './desktopPaths';
+import { getDesktopIconPath, getPackagedWebRoot } from './desktopPaths';
 import { DesktopRendererServer } from './desktopRendererServer';
+import { saveSfdxAuthUrlOrg } from './desktopServices';
 import { registerDesktopIpcRouter } from './ipcRouter';
 import {
     createDefaultLaunchIntent,
+    normalizeDesktopCommand,
     parseLaunchIntent,
+    type DesktopCommand,
     type DesktopLaunchIntent,
 } from './launchIntent';
 import { WindowManager } from './windowManager';
@@ -70,25 +75,98 @@ function registerWebContentsGuards(rendererUrl: string): void {
     });
 }
 
+function getBundledMcpPath(): string | null {
+    const mcpPath = path.join(process.resourcesPath, 'mcp.js');
+    return app.isPackaged && fs.existsSync(mcpPath) ? mcpPath : null;
+}
+
 app.setName('Workbench Desktop');
+app.setAppUserModelId('com.sftoolkit.desktop');
+registerDesktopLoggerProcessHandlers();
 
 async function openInstance(payload: Record<string, any>): Promise<void> {
-    const orgAlias =
-        typeof payload.alias === 'string' && payload.alias.trim()
-            ? payload.alias
-            : typeof payload.username === 'string' && payload.username.trim()
-              ? payload.username
-              : null;
+    try {
+        const sfdxAuthUrl = typeof payload.sfdxAuthUrl === 'string' ? payload.sfdxAuthUrl.trim() : '';
+        if (sfdxAuthUrl) {
+            const alias = String(payload.alias || '').trim();
+            if (!alias) {
+                throw new Error('Alias is required when opening an org from sfdxAuthUrl.');
+            }
 
-    lastLaunchIntent = orgAlias
-        ? {
-              target: 'org',
-              orgAlias,
-          }
-        : createDefaultLaunchIntent();
+            await saveSfdxAuthUrlOrg(alias, sfdxAuthUrl);
+            delete payload.sfdxAuthUrl;
+        }
 
-    await windowManager.ensureMainWindow(createDefaultLaunchIntent());
-    await windowManager.openInstanceWindow(payload);
+        const orgAlias =
+            typeof payload.alias === 'string' && payload.alias.trim()
+                ? payload.alias
+                : typeof payload.username === 'string' && payload.username.trim()
+                  ? payload.username
+                  : null;
+
+        lastLaunchIntent = orgAlias
+            ? {
+                  target: 'org',
+                  orgAlias,
+              }
+            : createDefaultLaunchIntent();
+
+        await windowManager.ensureMainWindow(createDefaultLaunchIntent());
+        await windowManager.openInstanceWindow(payload);
+    } catch (error) {
+        desktopLog.error('openInstance failed', error);
+        await dialog.showMessageBox({
+            type: 'error',
+            title: 'Unable to open org',
+            message: error instanceof Error ? error.message : 'Unknown error',
+            detail: 'The org was not opened. See Help -> Open Logs Folder for details.',
+            buttons: ['OK'],
+        });
+        throw error;
+    }
+}
+
+function getOpenInstancePayload(command: Extract<DesktopCommand, { type: 'execute' | 'openOrg' | 'openPage' }>): Record<string, any> {
+    const payload: Record<string, any> = {};
+    if (command.org.kind === 'alias') {
+        payload.alias = command.org.alias;
+    } else if (command.org.kind === 'session') {
+        payload.alias = command.org.alias;
+        payload.sessionId = command.org.sessionId;
+        payload.serverUrl = command.org.serverUrl;
+    } else if (command.org.kind === 'sfdxAuthUrl') {
+        payload.alias = command.org.alias;
+        payload.sfdxAuthUrl = command.org.sfdxAuthUrl;
+    }
+
+    const route =
+        command.type === 'openOrg'
+            ? command.route
+            : command.type === 'openPage'
+              ? command.route
+              : command.action.kind === 'navigate'
+                ? { applicationName: command.action.applicationName, state: command.action.state }
+                : undefined;
+    if (route?.applicationName) {
+        const routeParams = new URLSearchParams({
+            applicationName: route.applicationName,
+            ...(route.state || {}),
+        });
+        payload.redirectUrl = routeParams.toString();
+    }
+
+    return payload;
+}
+
+async function handleLaunchIntent(intent: DesktopLaunchIntent): Promise<void> {
+    const command = normalizeDesktopCommand(intent);
+    if (command.type === 'openOrg' || command.type === 'openPage' || command.type === 'execute') {
+        await openInstance(getOpenInstancePayload(command));
+        return;
+    }
+
+    windowManager.focusMainWindow();
+    windowManager.dispatchLaunchIntent(intent);
 }
 
 registerDesktopIpcRouter({
@@ -115,16 +193,17 @@ app.on('second-instance', async (_event, argv, _workingDirectory, additionalData
 
     await windowManager.ensureMainWindow(createDefaultLaunchIntent());
 
-    if (lastLaunchIntent.target === 'org') {
-        await openInstance({ alias: lastLaunchIntent.orgAlias });
-        return;
-    }
-
-    windowManager.focusMainWindow();
-    windowManager.dispatchLaunchIntent(lastLaunchIntent);
+    await handleLaunchIntent(lastLaunchIntent);
 });
 
 app.whenReady().then(async () => {
+    desktopLog.info('Workbench Desktop starting');
+
+    if (process.platform === 'darwin') {
+        app.dock?.setIcon(nativeImage.createFromPath(getDesktopIconPath('png')));
+    }
+    await session.defaultSession.clearCache();
+
     rendererServer = new DesktopRendererServer({
         webRoot: getPackagedWebRoot(),
         appVersion: app.getVersion(),
@@ -145,18 +224,21 @@ app.whenReady().then(async () => {
     let automationBaseUrl: string | null = null;
     try {
         automationBaseUrl = await automationServer.start();
-    } catch {
+    } catch (error) {
+        desktopLog.error('Failed to start desktop automation server', error);
         automationBaseUrl = null;
     }
 
-    registerDesktopMenu({ apiBaseUrl: automationBaseUrl });
+    registerDesktopMenu({
+        apiBaseUrl: automationBaseUrl,
+        createHomeWindow: () => windowManager.ensureMainWindow(createDefaultLaunchIntent()),
+        mcpConfigPath: getBundledMcpPath(),
+    });
     await windowManager.ensureMainWindow(createDefaultLaunchIntent());
 
-    if (lastLaunchIntent.target === 'org') {
-        await openInstance({ alias: lastLaunchIntent.orgAlias });
-    } else {
-        windowManager.dispatchLaunchIntent(lastLaunchIntent);
-    }
+    await handleLaunchIntent(lastLaunchIntent);
+
+    desktopLog.info('Workbench Desktop ready', { automationBaseUrl, rendererUrl });
 
     app.on('activate', async () => {
         await windowManager.ensureMainWindow(createDefaultLaunchIntent());
@@ -164,6 +246,7 @@ app.whenReady().then(async () => {
 });
 
 app.on('before-quit', async () => {
+    desktopLog.info('Workbench Desktop shutting down');
     legacyBus.rejectAll('The desktop app is shutting down.');
     await automationServer?.stop();
     await rendererServer?.stop();

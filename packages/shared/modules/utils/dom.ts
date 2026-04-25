@@ -16,14 +16,14 @@ export function disableBodyScroll(): void {
     }
 }
 
-export function timeout(interval: number): Promise<void> {
+export function timeout(interval: number) {
     return new Promise<void>(resolve => {
         // eslint-disable-next-line @lwc/lwc/no-async-operation
         setTimeout(resolve, interval);
     });
 }
 
-export function animationFrame(): Promise<number> {
+export function animationFrame() {
     return new Promise<number>(resolve => {
         // eslint-disable-next-line @lwc/lwc/no-async-operation
         window.requestAnimationFrame(resolve);

@@ -86,17 +86,14 @@ export async function getAllOrgs(debugMode: boolean = false): Promise<MappedOrg[
     const response = await window.electron?.invoke('org-getAllOrgs');
     const res = Array.isArray(response) ? (response as RawOrg[]) : [];
     const sorted = res.sort((a, b) => a.alias.localeCompare(b.alias));
-    const mapped = sorted.map(item => {
+    const mapped: MappedOrg[] = sorted.map(item => {
+        const aliasParts = item.alias.split('-');
         return {
             ...item,
-            ...{
-                id: item.alias,
-                username: item.value ?? '',
-                company: `${
-                    item.alias.split('-').length > 1 ? item.alias.split('-').shift() : ''
-                }`.toUpperCase(),
-                name: item.alias.split('-').pop(),
-            },
+            id: item.alias,
+            username: item.value ?? '',
+            company: `${aliasParts.length > 1 ? aliasParts.shift() : ''}`.toUpperCase(),
+            name: aliasParts.pop() ?? item.alias,
         };
     });
     return mapped;
@@ -149,9 +146,10 @@ export async function getCurrentTab(): Promise<ChromeTab | null> {
 }
 
 export const refreshCurrentTab = (): void => {
-    if (!isChromeExtension() || !chrome.tabs?.query || !chrome.tabs?.reload) return;
+    const tabs = chrome.tabs;
+    if (!isChromeExtension() || !tabs?.query || !tabs?.reload) return;
 
-    chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-        chrome.tabs.reload(tabs[0]?.id);
+    tabs.query({ active: true, currentWindow: true }, function (result) {
+        tabs.reload(result[0]?.id);
     });
 };

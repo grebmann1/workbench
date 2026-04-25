@@ -32,6 +32,8 @@ import { browserAgentInstructions } from 'agent/agents';
 import { askUserTool, resolveQuestion, rejectQuestion, workbenchContextTools } from 'agent/tools';
 import type { ModelMessage, UIMessage } from 'ai';
 
+import { normalizeMcpServerConfigs } from '../mcp/mcpJsonParser';
+
 export default class App extends ToolkitElement {
     quickPromptSuggestions = [
         {
@@ -118,8 +120,14 @@ export default class App extends ToolkitElement {
         this._setIfChanged('aiProvider', application.aiProvider);
 
         const settings = application?.settings || {};
-        this._setIfChanged('brightDataApiKey', (settings[CACHE_CONFIG.TOOL_BRIGHT_DATA_KEY.key] as string) ?? null);
-        this._setIfChanged('googleSheetEnabled', !!(settings[CACHE_CONFIG.TOOL_GOOGLE_SHEET_ENABLED.key]));
+        this._setIfChanged(
+            'brightDataApiKey',
+            (settings[CACHE_CONFIG.TOOL_BRIGHT_DATA_KEY.key] as string) ?? null
+        );
+        this._setIfChanged(
+            'googleSheetEnabled',
+            !!settings[CACHE_CONFIG.TOOL_GOOGLE_SHEET_ENABLED.key]
+        );
         const nextAvailableModels = buildAvailableAgentModelOptions({
             availableModelsByProvider: application?.availableModelsByProvider,
             providerConfigs: application?.providerConfigs,
@@ -323,7 +331,9 @@ export default class App extends ToolkitElement {
         const loginStatus = isLoggedIn
             ? `Connected org: ${connector.toPublic?.()?.alias ?? connector.toPublic?.()?.instanceUrl ?? 'unknown'}`
             : 'Not connected to any Salesforce org.';
-        const appLine = currentApplication ? `\nCurrently visible panel: ${currentApplication}` : '';
+        const appLine = currentApplication
+            ? `\nCurrently visible panel: ${currentApplication}`
+            : '';
 
         if (isSidePanel) {
             return `
@@ -380,8 +390,10 @@ You have full access to the toolkit UI. All navigation and display tools work no
             : [];
 
         const appSettings = state.application?.settings || {};
-        const brightDataApiKey = (appSettings[CACHE_CONFIG.TOOL_BRIGHT_DATA_KEY.key] as string) ?? null;
-        const googleSheetEnabled = !!(appSettings[CACHE_CONFIG.TOOL_GOOGLE_SHEET_ENABLED.key]);
+        const brightDataApiKey =
+            (appSettings[CACHE_CONFIG.TOOL_BRIGHT_DATA_KEY.key] as string) ?? null;
+        const googleSheetEnabled = !!appSettings[CACHE_CONFIG.TOOL_GOOGLE_SHEET_ENABLED.key];
+        const mcpServers = normalizeMcpServerConfigs(appSettings[CACHE_CONFIG.MCP_SERVERS.key]);
 
         return {
             conversationId,
@@ -403,24 +415,20 @@ You have full access to the toolkit UI. All navigation and display tools work no
                 extraTools: [askUserTool, ...workbenchContextTools],
                 brightDataApiKey: brightDataApiKey ?? null,
                 googleSheetEnabled: googleSheetEnabled ?? false,
+                mcpServers,
             },
         };
     }
 
     executeAgent = async (prompt, files = [], model = this.selectedModel) => {
-        console.log('executeAgent', prompt, files, model);
-        const { conversationId, currentMessages, settings } = await this.buildAgentExecutionContext(model);
+        const { conversationId, currentMessages, settings } =
+            await this.buildAgentExecutionContext(model);
         const fs = getIndexedDbFileSystem();
         let filesData = [];
         if (files && files.length > 0) {
             filesData = await Promise.all(files.map(readFileContent));
             filesData = await persistPromptImageFiles(filesData, fs, conversationId, LOGGER);
         }
-
-        console.log('### currentMessages', {
-            original: currentMessages,
-            current: currentMessages,
-        });
 
         // Auto-generate a title on the first message of a conversation
         if (currentMessages.length === 0) {
@@ -468,8 +476,8 @@ You have full access to the toolkit UI. All navigation and display tools work no
         directMessages: ModelMessage[],
         model = this.selectedModel
     ) => {
-        console.log('executeAgentWithDirectMessages', directMessages);
-        const { conversationId, currentMessages, settings } = await this.buildAgentExecutionContext(model);
+        const { conversationId, currentMessages, settings } =
+            await this.buildAgentExecutionContext(model);
         const agent = await Agent.create({
             messages: currentMessages as ModelMessage[],
             conversationId,
@@ -532,7 +540,6 @@ You have full access to the toolkit UI. All navigation and display tools work no
 
     handleClearClick = async e => {
         store.dispatch(AGENT.reduxSlice.actions.clearMessages({ id: this.activeConversationId }));
-        //this.saveConversationsToCache();
     };
 
     handleModelChange = e => {
@@ -657,14 +664,12 @@ You have full access to the toolkit UI. All navigation and display tools work no
         await store.dispatch(AGENT.reduxSlice.actions.addConversation({ conversation: newConv }));
         await store.dispatch(AGENT.reduxSlice.actions.setActiveConversationId({ id: newId }));
         this.isSidePanelOpen = false;
-        //this.saveConversationsToCache();
     };
 
     handleConversationSelect = event => {
         const id = event.detail.item.id;
         if (id && id !== this.activeConversationId) {
             store.dispatch(AGENT.reduxSlice.actions.setActiveConversationId({ id }));
-            //this.saveConversationsToCache();
         }
         this.isSidePanelOpen = false;
     };
@@ -675,14 +680,6 @@ You have full access to the toolkit UI. All navigation and display tools work no
             this.deleteConversation(id);
         }
     };
-
-    getConversationItemClass(id) {
-        let base = 'side-panel-list-item slds-p-vertical_x-small';
-        if (id === this.activeConversationId) {
-            base += ' slds-theme_shade';
-        }
-        return base;
-    }
 
     startEditingTitle = () => {
         const conv = this.conversations.find(c => c.id === this.activeConversationId);
@@ -710,7 +707,6 @@ You have full access to the toolkit UI. All navigation and display tools work no
                     title: this.pendingTitle.trim(),
                 })
             );
-            //this.saveConversationsToCache();
         }
         this.isEditingTitle = false;
     };
@@ -740,7 +736,6 @@ You have full access to the toolkit UI. All navigation and display tools work no
                 );
             }
         }
-        //this.saveConversationsToCache();
     };
 
     /** Getters **/

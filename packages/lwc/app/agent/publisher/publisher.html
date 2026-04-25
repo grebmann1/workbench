@@ -71,14 +71,12 @@
                                     </template>
                                 </select>
                             </div>
-                            <template lwc:if={showReasoningSelect}>
-                                <div class="chat-reasoning-col">
-                                    <slds-reasoning
-                                        class="chat-reasoning-control"
-                                        value={selectedReasoning}
-                                        onchange={handleReasoningChange}></slds-reasoning>
-                                </div>
-                            </template>
+                            <div class="chat-reasoning-col">
+                                <slds-reasoning
+                                    class="chat-reasoning-control"
+                                    value={selectedReasoning}
+                                    onchange={handleReasoningChange}></slds-reasoning>
+                            </div>
                         </div>
                     </div>
                     <template lwc:if={hasFiles}>
@@ -194,30 +192,6 @@
                         <div class="file-upload-drag-overlay">Drop images here</div>
                     </template>
                 </div>
-                <!-- <div class="slds-publisher__actions slds-grid slds-grid_align-spread">
-                    <ul class="slds-grid slds-publisher__toggle-visibility">
-                        <li lwc:if={isAudioRecorderDisplayed}>
-                            <agent-audio-recorder
-                                openai-key={openaiKey}
-                                onchange={handleSpeechChange}
-                            ></agent-audio-recorder>
-                        </li>
-                    </ul>
-                    <div>
-                        <lightning-button
-                            label="Clear Dialog"
-                            onclick={handleClearClick}
-                            disabled={isClearButtonDisabled}
-                        ></lightning-button>
-                        <lightning-button
-                            label="Send"
-                            onclick={handleSendClick}
-                            disabled={isSendButtonDisabled}
-                            class="slds-p-left_x-small"
-                            variant="brand"
-                        ></lightning-button>
-                    </div>
-                </div> -->
             </div>
         </div>
     </div>

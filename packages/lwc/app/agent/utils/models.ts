@@ -32,7 +32,7 @@ function isLightweightSummaryModel(modelId: string) {
     return /mini|nano|lite|flash|haiku|small|fast/i.test(modelId);
 }
 
-export function getModelsForProvider(provider: unknown, isInternal = false) {
+function getModelsForProvider(provider: unknown, isInternal = false) {
     if (isInternal) {
         return INTERNAL_MODELS;
     }
@@ -59,8 +59,7 @@ export function getSummaryModelForAgentProvider(
     const normalizedProvider = normalizeLlmProvider(provider);
     const models = getModelsForProvider(normalizedProvider, isInternal);
     const availableModelIds = new Set(models.map(model => model.value));
-    const normalizedSelectedModel =
-        typeof selectedModel === 'string' ? selectedModel.trim() : '';
+    const normalizedSelectedModel = typeof selectedModel === 'string' ? selectedModel.trim() : '';
 
     if (
         normalizedSelectedModel &&

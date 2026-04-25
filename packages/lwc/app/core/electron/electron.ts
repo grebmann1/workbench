@@ -63,6 +63,13 @@ export default class Electron extends ToolkitElement {
                 window.electron.send(callBackChannel, payload);
             });
 
+            this.listener_on('desktop-command', async args => {
+                const [payload, callBackChannel] = args;
+                LOGGER.info('[Electron] @desktop-command call:', payload?.command?.type);
+                const output = await this.handleDesktopCommand(payload?.command);
+                window.electron.send(callBackChannel, output);
+            });
+
             // Listen for getSettings requests and reply with settings
             this.listener_on('electron-get-settings', event => {
                 // Fetch settings from the store
@@ -72,6 +79,142 @@ export default class Electron extends ToolkitElement {
             });
         }
         this.initialized = true;
+    };
+
+    handleDesktopCommand = async command => {
+        try {
+            if (command?.type === 'openPage') {
+                const route = command.route || {};
+                await this.openPage(route.applicationName, route.state || {});
+                return { status: 'success' };
+            }
+
+            if (command?.type === 'execute' && command.action?.kind === 'soqlQuery') {
+                return await this.executeDesktopSoql(command.action);
+            }
+
+            if (command?.type === 'execute' && command.action?.kind === 'apiRequest') {
+                return await this.executeDesktopApi(command.action);
+            }
+
+            if (command?.type === 'execute' && command.action?.kind === 'apexRun') {
+                return await this.executeDesktopApex(command.action);
+            }
+
+            throw new Error(`Unsupported desktop command: ${command?.type || '<missing>'}`);
+        } catch (error) {
+            return {
+                error: {
+                    message: error instanceof Error ? error.message : String(error),
+                    name: error instanceof Error ? error.name : 'Error',
+                },
+            };
+        }
+    };
+
+    openPage = async (applicationName, state = {}) => {
+        if (!applicationName) {
+            throw new Error('Application name is required.');
+        }
+
+        navigate(this.navContext, {
+            type: 'application',
+            state: {
+                applicationName,
+                ...state,
+            },
+        });
+    };
+
+    requireConnector = () => {
+        if (!this.connector) {
+            throw new Error('No active org connector found.');
+        }
+
+        return this.connector;
+    };
+
+    executeDesktopSoql = async action => {
+        const connector = this.requireConnector();
+        const tabId = `cli-${Date.now()}`;
+        await this.openPage('soql');
+        const res = await store.dispatch(
+            QUERY.executeQuery({
+                connector,
+                soql: action.query,
+                tabId,
+                useToolingApi: Boolean(action.useToolingApi),
+                includeDeletedRecords: Boolean(action.includeDeletedRecords),
+            })
+        );
+        await store.dispatch(UI.reduxSlice.actions.selectionTab({ id: tabId }));
+        return {
+            ...(res.payload || {}),
+            ...(res.error ? { error: res.error } : {}),
+            tabId,
+        };
+    };
+
+    executeDesktopApi = async action => {
+        const connector = this.requireConnector();
+        const tabId = `cli-${Date.now()}`;
+        await this.openPage('api');
+        const { request, error } = API_UTILS.formatApiRequest({
+            endpoint: action.endpoint,
+            method: action.method || 'GET',
+            body: action.body || '',
+            header: action.headerText || API_UTILS.DEFAULT.HEADER,
+            connector,
+        });
+        if (error) {
+            throw new Error(error);
+        }
+
+        const apiPromise = store.dispatch(
+            API.executeApiRequest({
+                connector,
+                request: {
+                    endpoint: request.endpoint,
+                    method: request.method,
+                    body: request.body,
+                    header: request.header,
+                },
+                formattedRequest: request,
+                tabId,
+                createdDate: Date.now(),
+            })
+        );
+        store.dispatch(API.reduxSlice.actions.setAbortingPromise({ tabId, promise: apiPromise }));
+        const res = await apiPromise;
+        return {
+            ...(res.payload?.response || res.payload || {}),
+            ...(res.error ? { error: res.error } : {}),
+            tabId,
+        };
+    };
+
+    executeDesktopApex = async action => {
+        const connector = this.requireConnector();
+        const tabId = `cli-${Date.now()}`;
+        if (action.shouldOpenUi !== false) {
+            await this.openPage('anonymousapex');
+        }
+
+        const apexPromise = store.dispatch(
+            APEX.executeApexAnonymous({
+                connector,
+                body: action.apexCode,
+                tabId,
+                createdDate: Date.now(),
+            })
+        );
+        store.dispatch(APEX.reduxSlice.actions.setAbortingPromise({ tabId, promise: apexPromise }));
+        const res = await apexPromise;
+        return {
+            ...(res.payload?.response || res.payload || {}),
+            ...(res.error ? { error: res.error } : {}),
+            tabId,
+        };
     };
 
     handleSOQL = (listener: ElectronListener) => {

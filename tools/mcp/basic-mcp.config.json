@@ -1,0 +1,8 @@
+{
+    "mcpServers": {
+        "basic-test": {
+            "url": "http://localhost:3999/mcp",
+            "transport": "http"
+        }
+    }
+}

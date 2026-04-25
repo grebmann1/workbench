@@ -1,4 +1,4 @@
-import { app, ipcMain } from 'electron';
+import { app, ipcMain, shell } from 'electron';
 
 import {
     exportCodeWorkspace,
@@ -30,6 +30,15 @@ type DesktopIpcRouterOptions = {
     updateLimitedModeStatus: (sender: Electron.WebContents, payload: Record<string, any>) => void;
 };
 
+function isSafeExternalUrl(url: string): boolean {
+    try {
+        const parsedUrl = new URL(url);
+        return parsedUrl.protocol === 'https:' || parsedUrl.protocol === 'mailto:';
+    } catch {
+        return false;
+    }
+}
+
 export function registerDesktopIpcRouter({
     getLaunchIntent,
     getRendererUrl,
@@ -55,6 +64,18 @@ export function registerDesktopIpcRouter({
 
     ipcMain.handle('desktop:get-launch-intent', () => getLaunchIntent());
     ipcMain.handle('desktop:check-commands', async () => getCommandAvailability());
+    ipcMain.handle('desktop:open-external', async (_event, url: string) => {
+        if (!isSafeExternalUrl(url)) {
+            throw new Error('Only https: and mailto: URLs can be opened externally.');
+        }
+
+        await shell.openExternal(url);
+        return { success: true };
+    });
+    ipcMain.handle('desktop:open-logs-folder', async () => {
+        await shell.openPath(app.getPath('logs'));
+        return { success: true };
+    });
     ipcMain.handle('desktop:open-instance', async (_event, payload: Record<string, any>) => {
         await openInstance(payload);
         return { success: true };

@@ -30,12 +30,13 @@ export class connectStore {
     }
 
     subscribeToStore(): void {
-        if (this.connected && this.store) {
+        const store = this.store;
+        if (this.connected && store) {
             const notifyStateChange = () => {
-                const state = this.store.getState();
+                const state = store.getState();
                 this.dataCallback(state);
             };
-            this.subscription = this.store.subscribe(notifyStateChange);
+            this.subscription = store.subscribe(notifyStateChange);
             notifyStateChange();
         }
     }

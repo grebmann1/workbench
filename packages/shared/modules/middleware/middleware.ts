@@ -1,10 +1,13 @@
 import type { Middleware } from '@reduxjs/toolkit';
 
-const loggerMiddleware: Middleware = store => next => (action: any) => {
-    console.group(action.type);
+const loggerMiddleware: Middleware = store => next => (action: unknown) => {
+    const actionType = action && typeof action === 'object' && 'type' in action
+        ? (action as { type: string }).type
+        : 'unknown';
+    console.group(actionType);
     console.info('dispatching', action);
 
-    let result = next(action);
+    const result = next(action);
 
     //console.log('next state', store.getState());
     console.groupEnd();

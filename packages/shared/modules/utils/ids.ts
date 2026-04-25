@@ -2,8 +2,8 @@
  * ID generation utilities
  */
 
-export function guid(): string {
-    function s4(): string {
+export function guid() {
+    function s4() {
         return Math.floor((1 + Math.random()) * 0x10000)
             .toString(16)
             .substring(1);
@@ -12,7 +12,7 @@ export function guid(): string {
     return s4() + s4() + '-' + s4() + '-' + s4() + '-' + s4() + '-' + s4() + s4() + s4();
 }
 
-export function guidFromHash(input?: string): string {
+export function guidFromHash(input?: string) {
     // Generate a hash from the input string
     let hash = 0;
     if (input) {
@@ -26,7 +26,7 @@ export function guidFromHash(input?: string): string {
     const hashHex = Math.abs(hash).toString(16).padStart(8, '0'); // Ensure consistent length
 
     // Use the existing `guid` structure, injecting part of the hash
-    function s4(): string {
+    function s4() {
         return Math.floor((1 + Math.random()) * 0x10000)
             .toString(16)
             .substring(1);

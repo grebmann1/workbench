@@ -27,7 +27,7 @@ export function parseCsvText(
         skipEmptyLines: 'greedy',
         delimiter,
         // Normalize headers to avoid BOM/whitespace breaking mapping.
-        transformHeader: header =>
+        transformHeader: (header: string) =>
             String(header || '')
                 .replace(/^\uFEFF/, '')
                 .trim(),

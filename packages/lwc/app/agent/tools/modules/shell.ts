@@ -1646,5 +1646,3 @@ export function createBashTools(shell, fs, opts: BashToolOptions = {}) {
         }),
     ];
 }
-
-export const sharedTools = [];

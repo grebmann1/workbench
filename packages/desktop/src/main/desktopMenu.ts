@@ -1,23 +1,55 @@
-import { Menu, shell } from 'electron';
+import { app, clipboard, Menu, shell } from 'electron';
 
 type DesktopMenuOptions = {
     apiBaseUrl: string | null;
+    createHomeWindow: () => Promise<unknown>;
+    mcpConfigPath?: string | null;
+    reportIssueUrl?: string;
 };
 
 export function registerDesktopMenu(options: DesktopMenuOptions): void {
+    const isMac = process.platform === 'darwin';
+    const reportIssueUrl = options.reportIssueUrl || 'https://github.com/grebmann/workbench/issues';
+    const appMenu: Electron.MenuItemConstructorOptions[] = isMac
+        ? [
+              {
+                  label: app.name,
+                  submenu: [
+                      { role: 'about' },
+                      { type: 'separator' },
+                      { role: 'services' },
+                      { type: 'separator' },
+                      { role: 'hide' },
+                      { role: 'hideOthers' },
+                      { role: 'unhide' },
+                      { type: 'separator' },
+                      { role: 'quit' },
+                  ],
+              },
+          ]
+        : [];
+    const fileQuitItems: Electron.MenuItemConstructorOptions[] = isMac ? [] : [{ role: 'quit' }];
+    const editPlatformItems: Electron.MenuItemConstructorOptions[] = isMac
+        ? [{ role: 'pasteAndMatchStyle' }, { role: 'delete' }, { role: 'selectAll' }]
+        : [{ role: 'delete' }, { type: 'separator' }, { role: 'selectAll' }];
+    const windowPlatformItems: Electron.MenuItemConstructorOptions[] = isMac
+        ? [{ type: 'separator' }, { role: 'front' }]
+        : [{ role: 'close' }];
     const template: Electron.MenuItemConstructorOptions[] = [
+        ...appMenu,
         {
-            label: 'Workbench Desktop',
+            label: 'File',
             submenu: [
-                { role: 'about' },
+                {
+                    label: 'New Home Window',
+                    accelerator: 'CmdOrCtrl+N',
+                    click: () => {
+                        void options.createHomeWindow();
+                    },
+                },
                 { type: 'separator' },
-                { role: 'services' },
-                { type: 'separator' },
-                { role: 'hide' },
-                { role: 'hideOthers' },
-                { role: 'unhide' },
-                { type: 'separator' },
-                { role: 'quit' },
+                { role: 'close' },
+                ...fileQuitItems,
             ],
         },
         {
@@ -29,7 +61,7 @@ export function registerDesktopMenu(options: DesktopMenuOptions): void {
                 { role: 'cut' },
                 { role: 'copy' },
                 { role: 'paste' },
-                { role: 'selectAll' },
+                ...editPlatformItems,
             ],
         },
         {
@@ -48,7 +80,11 @@ export function registerDesktopMenu(options: DesktopMenuOptions): void {
         },
         {
             label: 'Window',
-            submenu: [{ role: 'minimize' }, { role: 'close' }, { role: 'front' }],
+            submenu: [
+                { role: 'minimize' },
+                { role: 'zoom' },
+                ...windowPlatformItems,
+            ],
         },
         {
             label: 'Automation',
@@ -64,6 +100,13 @@ export function registerDesktopMenu(options: DesktopMenuOptions): void {
                         }
                     },
                 },
+                {
+                    label: 'Copy MCP Config',
+                    enabled: Boolean(options.apiBaseUrl),
+                    click: () => {
+                        clipboard.writeText(buildMcpConfig(options));
+                    },
+                },
             ],
         },
         {
@@ -75,9 +118,37 @@ export function registerDesktopMenu(options: DesktopMenuOptions): void {
                         void shell.openExternal('https://www.sf-workbench.com');
                     },
                 },
+                {
+                    label: 'Open Logs Folder',
+                    click: () => {
+                        void shell.openPath(app.getPath('logs'));
+                    },
+                },
+                {
+                    label: 'Report Issue',
+                    click: () => {
+                        void shell.openExternal(reportIssueUrl);
+                    },
+                },
             ],
         },
     ];
 
     Menu.setApplicationMenu(Menu.buildFromTemplate(template));
+}
+
+function buildMcpConfig(options: DesktopMenuOptions): string {
+    if (options.mcpConfigPath) {
+        return `"sf-toolkit-mcp": {
+  "command": "node",
+  "args": ["${options.mcpConfigPath}"],
+  "env": {
+    "SF_TOOLKIT_DESKTOP_API_URL": "${options.apiBaseUrl || ''}"
+  }
+}`;
+    }
+
+    return `"sf-toolkit-desktop-api": {
+  "url": "${options.apiBaseUrl || ''}"
+}`;
 }

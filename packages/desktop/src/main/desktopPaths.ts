@@ -11,13 +11,21 @@ export function getRepoRoot(): string {
 }
 
 export function getDesktopResourcesRoot(): string {
-    return app.isPackaged ? path.join(process.resourcesPath, 'resources') : path.join(getPackageRoot(), 'resources');
+    return app.isPackaged
+        ? path.join(process.resourcesPath, 'resources')
+        : path.join(getPackageRoot(), 'resources');
 }
 
 export function getDesktopTemplatePath(...segments: string[]): string {
     return path.join(getDesktopResourcesRoot(), 'templates', ...segments);
 }
 
+export function getDesktopIconPath(kind: 'icns' | 'png'): string {
+    return path.join(getDesktopResourcesRoot(), 'icons', `icon.${kind}`);
+}
+
 export function getPackagedWebRoot(): string {
-    return app.isPackaged ? path.join(process.resourcesPath, 'extension') : path.join(getRepoRoot(), 'dist', 'extension');
+    return app.isPackaged
+        ? path.join(process.resourcesPath, 'extension')
+        : path.join(getRepoRoot(), 'dist', 'extension');
 }

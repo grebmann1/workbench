@@ -2,6 +2,8 @@ import { randomUUID } from 'node:crypto';
 
 import type { WebContents } from 'electron';
 
+import { desktopLog } from './desktopLogger';
+
 type PendingLegacyResponse = {
     reject: (error: Error) => void;
     resolve: (payload: unknown) => void;
@@ -43,7 +45,9 @@ export class DesktopLegacyBus {
         return new Promise((resolve, reject) => {
             const timeout = setTimeout(() => {
                 this.pendingResponses.delete(callbackChannel);
-                reject(new Error(`Timed out waiting for renderer response on ${channel}.`));
+                const error = new Error(`Timed out waiting for renderer response on ${channel}.`);
+                desktopLog.warn('Desktop legacy bus timeout', { callbackChannel, channel });
+                reject(error);
             }, timeoutMs);
 
             this.pendingResponses.set(callbackChannel, {
@@ -59,6 +63,7 @@ export class DesktopLegacyBus {
     rejectAll(reason: string): void {
         for (const [channel, pending] of this.pendingResponses.entries()) {
             clearTimeout(pending.timeout);
+            desktopLog.warn('Rejecting pending desktop legacy response', { channel, reason });
             pending.reject(new Error(reason));
             this.pendingResponses.delete(channel);
         }

@@ -15,6 +15,7 @@ exports.exportCodeWorkspace = exportCodeWorkspace;
 exports.runShellCommand = runShellCommand;
 exports.runSfdxAnalyzerCommand = runSfdxAnalyzerCommand;
 exports.saveStoredOrg = saveStoredOrg;
+exports.saveSfdxAuthUrlOrg = saveSfdxAuthUrlOrg;
 exports.installLatestPmd = installLatestPmd;
 exports.getStoredOrg = getStoredOrg;
 exports.getAllStoredOrgs = getAllStoredOrgs;
@@ -27,7 +28,9 @@ const node_child_process_1 = require("node:child_process");
 const promises_1 = __importDefault(require("node:fs/promises"));
 const node_path_1 = __importDefault(require("node:path"));
 const electron_1 = require("electron");
+const desktopLogger_1 = require("./desktopLogger");
 const desktopPaths_1 = require("./desktopPaths");
+const desktopOrgCliUtils_1 = require("./desktopOrgCliUtils");
 const desktopServiceUtils_1 = require("./desktopServiceUtils");
 const DEFAULT_STORE = {
     storedOrgs: {},
@@ -74,17 +77,28 @@ function runJsonCommand(command, args) {
         encoding: 'utf8',
     });
     if (result.status !== 0 || !result.stdout) {
+        desktopLogger_1.desktopLog.warn('CLI JSON command failed', {
+            args,
+            command,
+            status: result.status,
+            stderr: result.stderr,
+        });
         return null;
     }
     try {
         return JSON.parse(result.stdout);
     }
-    catch {
+    catch (error) {
+        desktopLogger_1.desktopLog.warn('CLI JSON command returned invalid JSON', {
+            args,
+            command,
+            error,
+        });
         return null;
     }
 }
 function getCliOrgList() {
-    const sfResult = commandExists('sf') && runJsonCommand('sf', ['org', 'list', '--json']);
+    const sfResult = commandExists('sf') && runJsonCommand('sf', (0, desktopOrgCliUtils_1.buildSfOrgListArgs)());
     if (sfResult?.result) {
         return {
             result: {
@@ -93,7 +107,7 @@ function getCliOrgList() {
             },
         };
     }
-    const sfdxResult = commandExists('sfdx') && runJsonCommand('sfdx', ['force:org:list', '--json']);
+    const sfdxResult = commandExists('sfdx') && runJsonCommand('sfdx', (0, desktopOrgCliUtils_1.buildSfdxOrgListArgs)());
     if (sfdxResult?.result) {
         return {
             result: {
@@ -519,6 +533,17 @@ async function saveStoredOrg(alias, configuration) {
     await writeDesktopStore(store);
     return store.storedOrgs[normalizedAlias];
 }
+async function saveSfdxAuthUrlOrg(alias, sfdxAuthUrl) {
+    const { instanceUrl, refreshToken } = (0, desktopOrgCliUtils_1.parseSfdxAuthUrl)(sfdxAuthUrl);
+    return saveStoredOrg(alias, {
+        alias,
+        credentialType: 'OAUTH',
+        instanceUrl,
+        loginUrl: instanceUrl,
+        refreshToken,
+        sfdxAuthUrl,
+    });
+}
 async function installLatestPmd(projectPath) {
     if (!projectPath) {
         throw new Error('Project path is required');
@@ -639,14 +664,14 @@ async function seeOrgDetails(alias) {
         return storedOrg;
     }
     const sfDisplay = commandExists('sf') &&
-        runJsonCommand('sf', ['org', 'display', '--target-org', alias, '--json']);
+        runJsonCommand('sf', (0, desktopOrgCliUtils_1.buildSfOrgDisplayArgs)(alias));
     if (sfDisplay?.result) {
-        return sfDisplay.result;
+        return (0, desktopOrgCliUtils_1.assertCliOrgHasOAuthCredentials)(alias, sfDisplay.result);
     }
     const sfdxDisplay = commandExists('sfdx') &&
-        runJsonCommand('sfdx', ['force:org:display', '--targetusername', alias, '--json']);
+        runJsonCommand('sfdx', (0, desktopOrgCliUtils_1.buildSfdxOrgDisplayArgs)(alias));
     if (sfdxDisplay?.result) {
-        return sfdxDisplay.result;
+        return (0, desktopOrgCliUtils_1.assertCliOrgHasOAuthCredentials)(alias, sfdxDisplay.result);
     }
     throw new Error(`No org details found for alias ${alias}`);
 }

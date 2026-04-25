@@ -47,6 +47,9 @@ import {
 import { createStreamMessageBuilder } from 'agent/streamBuilder';
 import type { Store } from '@reduxjs/toolkit';
 
+import { createMcpToolset } from '../mcp/mcpManager';
+import type { McpServerConfig, McpToolset } from '../mcp/mcpTypes';
+
 const MAX_TOOL_ROUNDS = 400;
 
 export type ProcessMessageFinishReason =
@@ -131,6 +134,7 @@ type AgentSettings = {
     }>;
     brightDataApiKey?: string | null;
     googleSheetEnabled?: boolean;
+    mcpServers?: McpServerConfig[];
     store: Store;
 };
 
@@ -299,6 +303,7 @@ export class Agent {
     private planContext: string | null = null;
     private isInternal: boolean;
     private useResponsesApi: boolean;
+    private mcpToolset: McpToolset | null;
     private subagentStatusListeners = new Set<(status: SubagentStatus | null) => void>();
     private _lastContextStats: {
         contextWindow: number;
@@ -325,6 +330,7 @@ export class Agent {
         isStoreEnabled,
         isInternal,
         useResponsesApi,
+        mcpToolset,
         store,
     }: {
         conversationId: string;
@@ -342,6 +348,7 @@ export class Agent {
         isStoreEnabled: boolean;
         isInternal?: boolean;
         useResponsesApi?: boolean;
+        mcpToolset?: McpToolset | null;
         store: Store;
     }) {
         this.conversationId = conversationId;
@@ -359,6 +366,7 @@ export class Agent {
         this.isStoreEnabled = isStoreEnabled;
         this.isInternal = !!isInternal;
         this.useResponsesApi = !!useResponsesApi;
+        this.mcpToolset = mcpToolset || null;
         this.store = store;
     }
 
@@ -394,6 +402,13 @@ export class Agent {
         ];
         const filteredTools = filterToolsByModel(availableTools, currentModel);
         const aiTools = toAiSdkTools(filteredTools, { conversationId: id });
+        const mcpToolset = await createMcpToolset(settings.mcpServers ?? []);
+        Object.assign(aiTools, mcpToolset.tools);
+        if (mcpToolset.errors.length) {
+            LOGGER.warn('[agent:mcp] MCP toolset initialized with errors', {
+                errors: mcpToolset.errors,
+            });
+        }
         const reasoningConfig = getReasoningConfigFromSelection(
             settings.selectedReasoning || DEFAULT_REASONING
         );
@@ -426,6 +441,7 @@ export class Agent {
             isStoreEnabled: settings.isStoreEnabled || false,
             isInternal: settings.isInternal,
             useResponsesApi: settings.useResponsesApi,
+            mcpToolset,
             store: store,
         });
     }
@@ -434,6 +450,9 @@ export class Agent {
         this.abortController?.abort();
         this.emitSubagentStatus(null);
         clearCdpHandlerForConversation(this.conversationId);
+        this.closeMcpToolset().catch(error => {
+            LOGGER.warn('[agent:mcp] failed to close MCP clients after abort', { error });
+        });
     }
 
     get contextStats() {
@@ -541,6 +560,15 @@ export class Agent {
         cleanupBashInstanceForConversation(conversationId);
         clearCdpHandlerForConversation(conversationId);
         Agent.unregisterAgent(conversationId);
+    }
+
+    private async closeMcpToolset(): Promise<void> {
+        const mcpToolset = this.mcpToolset;
+        this.mcpToolset = null;
+        if (!mcpToolset) {
+            return;
+        }
+        await mcpToolset.close();
     }
 
     onSubagentStatus(listener: (status: SubagentStatus | null) => void): () => void {
@@ -684,7 +712,6 @@ export class Agent {
                             provider: this.provider,
                             reasoningConfig: this.reasoningConfig,
                             isInternal: this.isInternal,
-                            
                         }),
                         experimental_onStepStart: (event: unknown) => {
                             notifyObserver(observer?.onStepStart, {
@@ -964,6 +991,7 @@ export class Agent {
             if (this.abortController?.signal === signal) {
                 this.abortController = null;
             }
+            await this.closeMcpToolset();
             Agent.unregisterAgent(this.conversationId);
             clearCdpHandlerForConversation(this.conversationId);
         }
@@ -1147,8 +1175,7 @@ function sanitizeIncompleteToolExchanges(messages: ModelMessage[]): ModelMessage
                 if (preceding.role === 'assistant') {
                     const content = Array.isArray(preceding.content) ? preceding.content : [];
                     const hasText = content.some(
-                        (p: any) =>
-                            p.type === 'text' && typeof p.text === 'string' && p.text.trim()
+                        (p: any) => p.type === 'text' && typeof p.text === 'string' && p.text.trim()
                     );
                     if (!hasText) {
                         // Incomplete exchange: assistant issued tool calls but never gave a text response

@@ -2,11 +2,21 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.WindowManager = void 0;
 const electron_1 = require("electron");
+const desktopLogger_1 = require("./desktopLogger");
+const desktopPaths_1 = require("./desktopPaths");
+function redactRendererMessage(message) {
+    return message
+        .replace(/force:\/\/[^@\s]+@[^\s]+/g, 'force://<redacted>@<redacted>')
+        .replace(/Bearer\s+[A-Za-z0-9._~+/=-]+/gi, 'Bearer <redacted>')
+        .replace(/(accessToken|refreshToken|sessionId)["':=\s]+[A-Za-z0-9._~!+/=-]+/gi, '$1=<redacted>');
+}
 class WindowManager {
     preloadPath;
     rendererUrl;
     mainWindow = null;
     instanceWindows = new Map();
+    instanceLoginStatus = new Map();
+    instanceLoginWaiters = new Map();
     constructor({ preloadPath, rendererUrl }) {
         this.preloadPath = preloadPath;
         this.rendererUrl = rendererUrl;
@@ -46,6 +56,7 @@ class WindowManager {
             minWidth: 1100,
             minHeight: 700,
             title: 'Workbench Desktop',
+            icon: (0, desktopPaths_1.getDesktopIconPath)('png'),
             show: false,
             autoHideMenuBar: false,
             webPreferences: {
@@ -54,9 +65,11 @@ class WindowManager {
                 sandbox: true,
                 nodeIntegration: false,
                 spellcheck: false,
+                webSecurity: false,
             },
         };
         this.mainWindow = new electron_1.BrowserWindow(browserWindowOptions);
+        this.registerWindowDiagnostics(this.mainWindow, 'home');
         this.mainWindow.on('closed', () => {
             this.mainWindow = null;
         });
@@ -83,6 +96,7 @@ class WindowManager {
             minWidth: 1100,
             minHeight: 700,
             title: this.formatInstanceTitle(payload),
+            icon: (0, desktopPaths_1.getDesktopIconPath)('png'),
             show: false,
             autoHideMenuBar: false,
             parent: this.mainWindow || undefined,
@@ -92,12 +106,15 @@ class WindowManager {
                 sandbox: true,
                 nodeIntegration: false,
                 spellcheck: false,
+                webSecurity: false,
             },
         };
         const instanceWindow = new electron_1.BrowserWindow(browserWindowOptions);
+        this.registerWindowDiagnostics(instanceWindow, instanceKey);
         this.instanceWindows.set(instanceKey, instanceWindow);
         instanceWindow.on('closed', () => {
             this.instanceWindows.delete(instanceKey);
+            this.instanceLoginStatus.delete(instanceKey);
         });
         instanceWindow.webContents.once('did-finish-load', () => {
             instanceWindow.show();
@@ -110,21 +127,59 @@ class WindowManager {
         this.mainWindow?.webContents.send('desktop:launch-intent', intent);
     }
     updateInstanceWindowStatus(sender, payload) {
-        const matchingWindow = Array.from(this.instanceWindows.values()).find(window => {
+        desktopLogger_1.desktopLog.info('Instance window status update', {
+            isLoggedIn: payload.isLoggedIn,
+            message: payload.message,
+            username: payload.username,
+            webContentsId: sender.id,
+        });
+        const matchingEntry = Array.from(this.instanceWindows.entries()).find(([_key, window]) => {
             return !window.isDestroyed() && window.webContents.id === sender.id;
         });
+        const matchingWindow = matchingEntry?.[1] || null;
+        const matchingKey = matchingEntry?.[0] || null;
         if (!matchingWindow) {
             return;
         }
         const username = String(payload.username || '').trim();
         const message = String(payload.message || '').trim();
         if (payload.isLoggedIn === true && username) {
+            if (matchingKey) {
+                this.setInstanceLoginStatus(matchingKey, true);
+            }
             matchingWindow.setTitle(`Workbench Desktop - ${username}`);
             return;
         }
         if (payload.isLoggedIn === false && message) {
+            if (matchingKey) {
+                this.setInstanceLoginStatus(matchingKey, false);
+            }
             matchingWindow.setTitle(`Workbench Desktop - ${message}`);
         }
+    }
+    async waitForInstanceLogin(payload, timeoutMs = 15_000) {
+        const instanceKey = this.getInstanceWindowKey(payload);
+        if (!instanceKey) {
+            return false;
+        }
+        if (this.instanceLoginStatus.get(instanceKey) === true) {
+            return true;
+        }
+        return new Promise(resolve => {
+            const timeout = setTimeout(() => {
+                const waiters = this.instanceLoginWaiters.get(instanceKey) || [];
+                this.instanceLoginWaiters.set(instanceKey, waiters.filter(candidate => candidate !== waiter));
+                resolve(false);
+            }, timeoutMs);
+            const waiter = (status) => {
+                clearTimeout(timeout);
+                resolve(status);
+            };
+            this.instanceLoginWaiters.set(instanceKey, [
+                ...(this.instanceLoginWaiters.get(instanceKey) || []),
+                waiter,
+            ]);
+        });
     }
     buildInstanceRendererUrl(payload) {
         const url = new URL('/views/direct.html', this.rendererUrl);
@@ -180,6 +235,31 @@ class WindowManager {
             return `session:${sessionId}`;
         }
         return null;
+    }
+    setInstanceLoginStatus(instanceKey, status) {
+        this.instanceLoginStatus.set(instanceKey, status);
+        const waiters = this.instanceLoginWaiters.get(instanceKey) || [];
+        this.instanceLoginWaiters.delete(instanceKey);
+        waiters.forEach(waiter => waiter(status));
+    }
+    registerWindowDiagnostics(window, windowKey) {
+        window.webContents.on('console-message', (_event, level, message, line, sourceId) => {
+            desktopLogger_1.desktopLog.info('Renderer console message', {
+                level,
+                line,
+                message: redactRendererMessage(message),
+                sourceId,
+                windowKey,
+            });
+        });
+        window.webContents.on('did-fail-load', (_event, errorCode, errorDescription, validatedURL) => {
+            desktopLogger_1.desktopLog.error('Renderer failed to load', {
+                errorCode,
+                errorDescription,
+                validatedURL,
+                windowKey,
+            });
+        });
     }
 }
 exports.WindowManager = WindowManager;

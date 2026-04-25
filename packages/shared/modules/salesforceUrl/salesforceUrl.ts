@@ -1,4 +1,4 @@
-export function normalizeInstanceUrl(instanceUrl: unknown): string {
+export function normalizeInstanceUrl(instanceUrl: unknown) {
     const raw = String(instanceUrl ?? '').trim();
     if (!raw) {
         return '';
@@ -7,7 +7,7 @@ export function normalizeInstanceUrl(instanceUrl: unknown): string {
     return withScheme.replace(/\/+$/, '');
 }
 
-export function normalizeProxyUrl(proxyUrl: unknown): string {
+export function normalizeProxyUrl(proxyUrl: unknown) {
     const raw = String(proxyUrl ?? '').trim();
     if (!raw) {
         return '';
@@ -16,12 +16,12 @@ export function normalizeProxyUrl(proxyUrl: unknown): string {
     return withScheme.replace(/\/+$/, '');
 }
 
-export function normalizeApiVersion(apiVersion: unknown, fallback = '63.0'): string {
+export function normalizeApiVersion(apiVersion: unknown, fallback = '63.0') {
     const value = String(apiVersion ?? '').trim();
     return value || String(fallback || '63.0').trim() || '63.0';
 }
 
-export function toSalesforcePath(urlOrPath: unknown, instanceUrl: string): string {
+export function toSalesforcePath(urlOrPath: unknown, instanceUrl: string) {
     const raw = String(urlOrPath ?? '');
     if (/^https?:\/\//i.test(raw)) {
         try {

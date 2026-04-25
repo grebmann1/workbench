@@ -3,7 +3,6 @@ import { cacheManager, CACHE_CONFIG } from 'shared/cacheManager';
 import {
     createDefaultProviderConfigMap,
     DEFAULT_LLM_PROVIDER,
-    isInternalProviderBaseUrl,
     normalizeLlmProvider,
     normalizeProviderConfigMap,
     type LlmModelOption,
@@ -43,21 +42,15 @@ type ApplicationState = {
     openaiKey: string | null;
     openaiUrl: string;
     mistralKey: string | null;
-    isInternal: boolean;
     /** Flat mirror of CACHE_CONFIG. Written on startup and whenever settings are saved.
      *  Components subscribe via storeChange instead of reading from cache directly. */
     settings: Record<string, unknown>;
 };
 
-const INTERNAL_GATEWAY_PROVIDERS = ['openai', 'anthropic', 'gemini'] as const;
-
 function syncLegacyProviderFields(state: ApplicationState) {
     state.openaiKey = state.providerConfigs.openai.apiKey;
     state.openaiUrl = state.providerConfigs.openai.baseUrl;
     state.mistralKey = state.providerConfigs.mistral.apiKey;
-    state.isInternal = INTERNAL_GATEWAY_PROVIDERS.some(provider =>
-        isInternalProviderBaseUrl(state.providerConfigs[provider]?.baseUrl || '')
-    );
 }
 
 const initialState: ApplicationState = {
@@ -88,7 +81,6 @@ const initialState: ApplicationState = {
     openaiKey: null,
     openaiUrl: createDefaultProviderConfigMap().openai.baseUrl,
     mistralKey: null,
-    isInternal: false,
     settings: {},
 };
 
@@ -174,29 +166,6 @@ const applicationSlice = createSlice({
                     error: catalog.error ?? null,
                 };
             }
-        },
-        updateOpenAIKey: (state, action) => {
-            const { openaiKey, openaiUrl } = action.payload;
-            state.providerConfigs = normalizeProviderConfigMap({
-                ...state.providerConfigs,
-                openai: {
-                    ...state.providerConfigs.openai,
-                    apiKey: openaiKey ?? null,
-                    baseUrl: openaiUrl ?? state.providerConfigs.openai.baseUrl,
-                },
-            });
-            syncLegacyProviderFields(state);
-        },
-        updateMistralKey: (state, action) => {
-            const { mistralKey } = action.payload;
-            state.providerConfigs = normalizeProviderConfigMap({
-                ...state.providerConfigs,
-                mistral: {
-                    ...state.providerConfigs.mistral,
-                    apiKey: mistralKey ?? null,
-                },
-            });
-            syncLegacyProviderFields(state);
         },
         /** Merges a partial settings patch into `state.settings`.
          *  Pass the full saved config object or a single-key patch. */

@@ -59,9 +59,50 @@ interface Window {
             platform: string;
             rendererUrl: string;
         }>;
-        getLaunchIntent: () => Promise<{ target: 'app' } | { target: 'org'; orgAlias: string }>;
+        getLaunchIntent: () => Promise<
+            | { target: 'app' }
+            | { target: 'org'; orgAlias: string }
+            | { type: 'openApp'; v: 2 }
+            | {
+                  org: Record<string, unknown>;
+                  route?: {
+                      applicationName: string;
+                      state?: Record<string, string>;
+                  };
+                  type: 'openOrg' | 'openPage';
+                  v: 2;
+              }
+            | {
+                  action: Record<string, unknown>;
+                  org: Record<string, unknown>;
+                  output?: 'json' | 'text';
+                  type: 'execute';
+                  v: 2;
+              }
+        >;
         onLaunchIntent: (
-            listener: (intent: { target: 'app' } | { target: 'org'; orgAlias: string }) => void
+            listener: (
+                intent:
+                    | { target: 'app' }
+                    | { target: 'org'; orgAlias: string }
+                    | { type: 'openApp'; v: 2 }
+                    | {
+                          org: Record<string, unknown>;
+                          route?: {
+                              applicationName: string;
+                              state?: Record<string, string>;
+                          };
+                          type: 'openOrg' | 'openPage';
+                          v: 2;
+                      }
+                    | {
+                          action: Record<string, unknown>;
+                          org: Record<string, unknown>;
+                          output?: 'json' | 'text';
+                          type: 'execute';
+                          v: 2;
+                      }
+            ) => void
         ) => () => void;
         checkCommands: () => Promise<{ sfdx: boolean; java: boolean }>;
         openInstance: (payload: Record<string, unknown>) => Promise<{ success: true }>;
@@ -109,7 +150,6 @@ interface Window {
         getChannel?: () => string | null;
     };
     monaco?: unknown;
-    OpenAIAgentsBundle?: unknown;
     mermaid?: unknown;
     _monacoCompletionProviders?: Record<string, boolean>;
 }

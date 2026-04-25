@@ -84,24 +84,24 @@ const GROK_MODEL_OPTIONS: LlmModelOption[] = [
     },
 ];
 
-function normalizeString(value: unknown): string {
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+function normalizeString(value: unknown) {
     return typeof value === 'string' ? value.trim() : '';
 }
 
 function normalizeLlmProvider(value: unknown): LlmProvider {
-    return LLM_PROVIDERS.includes(value as LlmProvider)
+    return typeof value === 'string' && LLM_PROVIDERS.includes(value as LlmProvider)
         ? (value as LlmProvider)
         : DEFAULT_LLM_PROVIDER;
 }
 
 function normalizeProviderConfigMap(configs: unknown): LlmProviderConfigMap {
-    const record =
-        configs && typeof configs === 'object' ? (configs as Record<string, unknown>) : {};
+    const record = isRecord(configs) ? configs : {};
     return LLM_PROVIDERS.reduce((normalized, provider) => {
-        const current =
-            record[provider] && typeof record[provider] === 'object'
-                ? (record[provider] as Record<string, unknown>)
-                : {};
+        const current = isRecord(record[provider]) ? record[provider] : {};
         normalized[provider] = {
             apiKey: normalizeString(current.apiKey) || null,
             baseUrl: normalizeString(current.baseUrl) || DEFAULT_PROVIDER_BASE_URLS[provider],
@@ -110,7 +110,7 @@ function normalizeProviderConfigMap(configs: unknown): LlmProviderConfigMap {
     }, {} as LlmProviderConfigMap);
 }
 
-function getProviderModelOptions(provider: LlmProvider): LlmModelOption[] {
+function getProviderModelOptions(provider: LlmProvider) {
     switch (provider) {
         case 'openai':
             return OPENAI_MODEL_OPTIONS;
@@ -127,11 +127,11 @@ function getProviderModelOptions(provider: LlmProvider): LlmModelOption[] {
     }
 }
 
-function getDefaultModelForProvider(provider: LlmProvider): string | null {
+function getDefaultModelForProvider(provider: LlmProvider) {
     return getProviderModelOptions(provider)[0]?.value || null;
 }
 
-function isInternalProviderBaseUrl(baseUrl: unknown): boolean {
+function isInternalProviderBaseUrl(baseUrl: unknown) {
     return normalizeString(baseUrl).includes('eng-ai-model-gateway');
 }
 
@@ -140,7 +140,7 @@ type LlmModelsRequestBody = {
     providerConfigs?: LlmProviderConfigMap;
 };
 
-function toBaseUrl(baseUrl: string): string {
+function toBaseUrl(baseUrl: string) {
     return baseUrl.replace(/\/+$/, '');
 }
 
@@ -174,10 +174,10 @@ async function fetchGatewayModels(
                 error: `Gateway model lookup failed with status ${response.status}.`,
             };
         }
-        const payload = await response.json();
+        const payload = (await response.json()) as { data?: Array<{ id?: unknown }> } | null;
         const upstreamModels: LlmModelOption[] = Array.isArray(payload?.data)
             ? payload.data
-                  .map(item => {
+                  .map((item): LlmModelOption | null => {
                       const id = typeof item?.id === 'string' ? item.id.trim() : '';
                       return id ? { label: id, value: id, provider: 'openai' as const } : null;
                   })

@@ -5,6 +5,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.DesktopAutomationServer = void 0;
 const node_http_1 = __importDefault(require("node:http"));
+const desktopCommand_1 = require("./desktopCommand");
+const desktopLogger_1 = require("./desktopLogger");
 const desktopServices_1 = require("./desktopServices");
 const DEFAULT_HOST = '127.0.0.1';
 const DEFAULT_PORT = 12346;
@@ -67,11 +69,19 @@ class DesktopAutomationServer {
         const requestUrl = new URL(request.url || '/', 'http://localhost');
         try {
             if (method === 'GET' && requestUrl.pathname === '/health') {
-                this.writeJson(response, 200, { status: 'ok' });
+                this.writeJson(response, 200, { commandRouter: true, status: 'ok' });
                 return;
             }
             if (method !== 'POST') {
                 this.writeJson(response, 405, { status: 'error', message: 'Method Not Allowed' });
+                return;
+            }
+            const contentType = String(request.headers['content-type'] || '').toLowerCase();
+            if (!contentType.includes('application/json')) {
+                this.writeJson(response, 415, {
+                    status: 'error',
+                    message: 'Content-Type must be application/json',
+                });
                 return;
             }
             const body = await this.readJsonBody(request);
@@ -84,6 +94,9 @@ class DesktopAutomationServer {
                     this.writeJson(response, 200, {
                         windows: this.windowManager.listWindowAliases(),
                     });
+                    return;
+                case '/command/execute':
+                    this.writeJson(response, 200, await this.executeDesktopCommand(body));
                     return;
                 case '/org/list': {
                     const orgs = await (0, desktopServices_1.getAllOrgs)();
@@ -156,11 +169,80 @@ class DesktopAutomationServer {
             }
         }
         catch (error) {
+            desktopLogger_1.desktopLog.error('Desktop automation request failed', {
+                error,
+                method,
+                path: requestUrl.pathname,
+            });
             this.writeJson(response, 500, {
                 status: 'error',
                 message: error instanceof Error ? error.message : 'Desktop automation request failed.',
             });
         }
+    }
+    async executeDesktopCommand(command) {
+        if (!(0, desktopCommand_1.isDesktopCommand)(command)) {
+            throw new Error('Invalid desktop command payload.');
+        }
+        if (command.type === 'openApp') {
+            await this.windowManager.ensureMainWindow({ target: 'app' });
+            return { status: 'success' };
+        }
+        const payload = this.buildOpenInstancePayload(command);
+        if (command.org.kind === 'session' &&
+            !command.org.alias &&
+            (command.type === 'openPage' || command.type === 'execute')) {
+            throw new Error('Session-based page and execute commands require an alias.');
+        }
+        await this.openInstance(payload);
+        if (command.type === 'openOrg') {
+            return { status: 'success', window: payload.alias || payload.username || null };
+        }
+        const alias = String(payload.alias || '').trim();
+        if (alias) {
+            await this.windowManager.waitForInstanceLogin(payload);
+        }
+        return this.forwardToAliasWindow(alias, 'desktop-command', {
+            command: command.type === 'openPage'
+                ? { type: 'openPage', route: command.route }
+                : { type: 'execute', action: command.action, output: command.output },
+        });
+    }
+    buildOpenInstancePayload(command) {
+        const payload = {};
+        if (command.org.kind === 'alias') {
+            payload.alias = command.org.alias;
+        }
+        else if (command.org.kind === 'session') {
+            payload.alias = command.org.alias;
+            payload.sessionId = command.org.sessionId;
+            payload.serverUrl = command.org.serverUrl;
+        }
+        else if (command.org.kind === 'sfdxAuthUrl') {
+            payload.alias = command.org.alias;
+            payload.sfdxAuthUrl = command.org.sfdxAuthUrl;
+        }
+        const route = command.type === 'openOrg'
+            ? command.route
+            : command.type === 'openPage'
+                ? command.route
+                : this.routeFromAction(command.action);
+        if (route?.applicationName) {
+            payload.redirectUrl = new URLSearchParams({
+                applicationName: route.applicationName,
+                ...(route.state || {}),
+            }).toString();
+        }
+        return payload;
+    }
+    routeFromAction(action) {
+        if (action.kind === 'navigate') {
+            return {
+                applicationName: action.applicationName,
+                state: action.state,
+            };
+        }
+        return undefined;
     }
     async forwardToAliasWindow(alias, channel, payload) {
         const normalizedAlias = String(alias || '').trim();

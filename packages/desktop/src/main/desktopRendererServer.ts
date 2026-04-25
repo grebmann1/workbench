@@ -22,6 +22,11 @@ const CONTENT_TYPES: Record<string, string> = {
     '.xml': 'application/xml; charset=utf-8',
 };
 
+const NO_STORE_HEADERS = {
+    'Cache-Control': 'no-store, max-age=0',
+    Pragma: 'no-cache',
+};
+
 export class DesktopRendererServer {
     private readonly appVersion: string;
     private readonly webRoot: string;
@@ -93,14 +98,20 @@ export class DesktopRendererServer {
     private async handleRequest(request: IncomingMessage, response: ServerResponse): Promise<void> {
         const method = String(request.method || 'GET').toUpperCase();
         if (!['GET', 'HEAD'].includes(method)) {
-            response.writeHead(405, { 'Content-Type': 'text/plain; charset=utf-8' });
+            response.writeHead(405, {
+                ...NO_STORE_HEADERS,
+                'Content-Type': 'text/plain; charset=utf-8',
+            });
             response.end('Method Not Allowed');
             return;
         }
 
         const requestUrl = new URL(request.url || '/', 'http://127.0.0.1');
         if (requestUrl.pathname === '/version') {
-            response.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+            response.writeHead(200, {
+                ...NO_STORE_HEADERS,
+                'Content-Type': 'application/json; charset=utf-8',
+            });
             response.end(
                 JSON.stringify({
                     version: this.appVersion,
@@ -111,7 +122,10 @@ export class DesktopRendererServer {
 
         const filePath = await this.resolveRequestPath(requestUrl.pathname);
         if (!filePath) {
-            response.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+            response.writeHead(404, {
+                ...NO_STORE_HEADERS,
+                'Content-Type': 'text/plain; charset=utf-8',
+            });
             response.end('Not Found');
             return;
         }
@@ -121,7 +135,7 @@ export class DesktopRendererServer {
 
         try {
             const content = await fs.readFile(filePath);
-            response.writeHead(200, { 'Content-Type': contentType });
+            response.writeHead(200, { ...NO_STORE_HEADERS, 'Content-Type': contentType });
             if (method === 'HEAD') {
                 response.end();
                 return;
@@ -129,7 +143,10 @@ export class DesktopRendererServer {
 
             response.end(content);
         } catch (error) {
-            response.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' });
+            response.writeHead(500, {
+                ...NO_STORE_HEADERS,
+                'Content-Type': 'text/plain; charset=utf-8',
+            });
             response.end(
                 error instanceof Error ? error.message : 'Failed to serve renderer asset.'
             );

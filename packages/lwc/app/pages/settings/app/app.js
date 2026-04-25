@@ -18,6 +18,12 @@ import LOGGER from 'shared/logger';
 import { store, APPLICATION, connectStore } from 'core/store';
 import { NavigationContext, navigate } from 'lwr/navigation';
 import { METADATA as METADATA_UTILS } from 'shared/utils';
+import {
+    discoverMcpServerTools,
+    formatMcpServersJson,
+    normalizeMcpServerConfigs,
+    parseMcpServersJson,
+} from 'agent/tools';
 
 function buildEditableProviderConfigs(config) {
     const currentProviderConfigs = resolveLlmProviderConfigMap(config);
@@ -113,6 +119,11 @@ export default class App extends ToolkitElement {
 
     // AI Provider Onboarding
     @track showOnboardAiProvider = false;
+    @track mcpServersJson = '';
+    @track mcpServers = [];
+    @track selectedMcpServerId = null;
+    @track mcpTestingServerId = null;
+    @track mcpRefreshingServerId = null;
 
     @track metadataStorageTypeOptions = App.DEFAULT_METADATA_STORAGE_TYPES.map(type => ({
         label: type,
@@ -128,7 +139,7 @@ export default class App extends ToolkitElement {
         const session = settings[CACHE_CONFIG.GOOGLE_SESSION.key] || null;
         this.googleUser = session;
         this.googleDriveConnected =
-            !!session?.token && !!(settings[CACHE_CONFIG.GOOGLE_DRIVE_CONNECTED.key]);
+            !!session?.token && !!settings[CACHE_CONFIG.GOOGLE_DRIVE_CONNECTED.key];
     }
 
     connectedCallback() {
@@ -235,6 +246,115 @@ export default class App extends ToolkitElement {
                 }
             });
         }
+    };
+
+    handleMcpJsonChange = e => {
+        this.mcpServersJson = e.detail?.value ?? e.target?.value ?? '';
+    };
+
+    handleMcpServerSelect = event => {
+        this.selectedMcpServerId = event.detail?.name || null;
+    };
+
+    handleParseMcpServersClick = async () => {
+        const { servers, errors } = parseMcpServersJson(this.mcpServersJson);
+        if (errors.length) {
+            Toast.show({
+                label: errors[0],
+                variant: 'error',
+            });
+            return;
+        }
+        await this.saveMcpServers(servers);
+        Toast.show({
+            label: `Saved ${servers.length} MCP server${servers.length === 1 ? '' : 's'}.`,
+            variant: 'success',
+        });
+    };
+
+    handleToggleMcpServerEnabled = async e => {
+        const serverId = e.currentTarget.dataset.id;
+        const enabled = e.currentTarget.checked;
+        const servers = this.mcpServers.map(server =>
+            server.id === serverId ? { ...server, enabled } : server
+        );
+        await this.saveMcpServers(servers);
+    };
+
+    handleTestMcpServerClick = async e => {
+        const serverId = e.currentTarget.dataset.id;
+        const server = this.mcpServers.find(item => item.id === serverId);
+        if (!server) {
+            return;
+        }
+        this.mcpTestingServerId = serverId;
+        try {
+            const refreshedServer = await discoverMcpServerTools(server);
+            await this.saveMcpServer(refreshedServer);
+            if (refreshedServer.lastConnectionStatus === 'error') {
+                throw new Error(refreshedServer.lastConnectionError || 'Unable to connect');
+            }
+            const toolCount = refreshedServer.tools?.length || 0;
+            Toast.show({
+                label: `${server.name} connected (${toolCount} tool${toolCount === 1 ? '' : 's'}).`,
+                variant: 'success',
+            });
+        } catch (err) {
+            LOGGER.error('MCP connection test failed', err);
+            Toast.show({
+                label: `MCP connection failed: ${err.message}`,
+                variant: 'error',
+            });
+        } finally {
+            this.mcpTestingServerId = null;
+        }
+    };
+
+    handleRefreshMcpToolsClick = async e => {
+        const serverId = e.currentTarget.dataset.id;
+        const server = this.mcpServers.find(item => item.id === serverId);
+        if (!server) {
+            return;
+        }
+        this.mcpRefreshingServerId = serverId;
+        try {
+            const refreshedServer = await discoverMcpServerTools(server);
+            await this.saveMcpServer(refreshedServer);
+            if (refreshedServer.lastConnectionStatus === 'error') {
+                Toast.show({
+                    label: `Tool refresh failed: ${refreshedServer.lastConnectionError}`,
+                    variant: 'error',
+                });
+                return;
+            }
+            Toast.show({
+                label: `Refreshed ${refreshedServer.tools?.length || 0} MCP tool${refreshedServer.tools?.length === 1 ? '' : 's'}.`,
+                variant: 'success',
+            });
+        } finally {
+            this.mcpRefreshingServerId = null;
+        }
+    };
+
+    handleToggleMcpToolEnabled = async e => {
+        const toolName = e.currentTarget.dataset.name;
+        const enabled = e.currentTarget.checked;
+        const server = this.selectedMcpServer;
+        if (!server || !toolName) {
+            return;
+        }
+        const tools = (server.tools || []).map(tool =>
+            tool.name === toolName ? { ...tool, enabled } : tool
+        );
+        await this.saveMcpServer({ ...server, tools });
+    };
+
+    handleEnableAllMcpToolsClick = async () => {
+        await this.setAllSelectedMcpToolsEnabled(true);
+    };
+
+    handleDisableAllMcpToolsClick = async () => {
+        await this.setAllSelectedMcpToolsEnabled(false);
     };
 
     handleToggleQaMode = () => {
@@ -417,24 +537,36 @@ export default class App extends ToolkitElement {
 
     handleConnectGoogle = async () => {
         if (!this.isChrome || typeof chrome?.identity?.getAuthToken !== 'function') {
-            Toast.show({ label: 'Google sign-in is only available in the Chrome extension.', variant: 'error' });
+            Toast.show({
+                label: 'Google sign-in is only available in the Chrome extension.',
+                variant: 'error',
+            });
             return;
         }
         try {
             const oauthToken = await new Promise((resolve, reject) => {
-                chrome.identity.getAuthToken({ interactive: true, scopes: GOOGLE_SIGNIN_SCOPES }, t => {
-                    if (chrome.runtime.lastError || !t) {
-                        reject(new Error(chrome.runtime.lastError?.message || 'Authorization failed'));
-                    } else {
-                        resolve(t);
+                chrome.identity.getAuthToken(
+                    { interactive: true, scopes: GOOGLE_SIGNIN_SCOPES },
+                    t => {
+                        if (chrome.runtime.lastError || !t) {
+                            reject(
+                                new Error(
+                                    chrome.runtime.lastError?.message || 'Authorization failed'
+                                )
+                            );
+                        } else {
+                            resolve(t);
+                        }
                     }
-                });
+                );
             });
 
             // Verify with the backend to get a session JWT — same flow as the AI panel's
             // googleAuth component — so both entry points share the same stored token format.
             let serverUrl = '';
-            try { serverUrl = (process.env.WORKBENCH_BASE_URL || '').replace(/\/+$/, ''); } catch {}
+            try {
+                serverUrl = (process.env.WORKBENCH_BASE_URL || '').replace(/\/+$/, '');
+            } catch {}
             serverUrl = serverUrl || window.location.origin;
 
             const resp = await fetch(`${serverUrl}/google/oauth/verify-token`, {
@@ -445,11 +577,18 @@ export default class App extends ToolkitElement {
             if (!resp.ok) throw new Error(`Backend verification failed (${resp.status})`);
             const data = await resp.json();
 
-            const session = { token: data.token, email: data.email, name: data.name, picture: data.picture };
+            const session = {
+                token: data.token,
+                email: data.email,
+                name: data.name,
+                picture: data.picture,
+            };
             await saveSingleExtensionConfigToCache(CACHE_CONFIG.GOOGLE_SESSION.key, session);
-            store.dispatch(APPLICATION.reduxSlice.actions.updateSettings({
-                [CACHE_CONFIG.GOOGLE_SESSION.key]: session,
-            }));
+            store.dispatch(
+                APPLICATION.reduxSlice.actions.updateSettings({
+                    [CACHE_CONFIG.GOOGLE_SESSION.key]: session,
+                })
+            );
             Toast.show({ label: `Connected as ${data.name || data.email}`, variant: 'success' });
         } catch (err) {
             LOGGER.error('Google OAuth error', err);
@@ -461,17 +600,24 @@ export default class App extends ToolkitElement {
         if (!this.isChrome || typeof chrome?.identity?.getAuthToken !== 'function') return;
         try {
             const token = await new Promise(resolve => {
-                chrome.identity.getAuthToken({ interactive: false, scopes: GOOGLE_SIGNIN_SCOPES }, t => resolve(t || null));
+                chrome.identity.getAuthToken(
+                    { interactive: false, scopes: GOOGLE_SIGNIN_SCOPES },
+                    t => resolve(t || null)
+                );
             });
             if (token) {
-                await new Promise(resolve => chrome.identity.removeCachedAuthToken({ token }, resolve));
+                await new Promise(resolve =>
+                    chrome.identity.removeCachedAuthToken({ token }, resolve)
+                );
             }
             await saveSingleExtensionConfigToCache(CACHE_CONFIG.GOOGLE_SESSION.key, null);
             await saveSingleExtensionConfigToCache(CACHE_CONFIG.GOOGLE_DRIVE_CONNECTED.key, false);
-            store.dispatch(APPLICATION.reduxSlice.actions.updateSettings({
-                [CACHE_CONFIG.GOOGLE_SESSION.key]: null,
-                [CACHE_CONFIG.GOOGLE_DRIVE_CONNECTED.key]: false,
-            }));
+            store.dispatch(
+                APPLICATION.reduxSlice.actions.updateSettings({
+                    [CACHE_CONFIG.GOOGLE_SESSION.key]: null,
+                    [CACHE_CONFIG.GOOGLE_DRIVE_CONNECTED.key]: false,
+                })
+            );
             Toast.show({ label: 'Disconnected from Google', variant: 'success' });
         } catch (err) {
             LOGGER.error('Google disconnect error', err);
@@ -481,23 +627,36 @@ export default class App extends ToolkitElement {
 
     handleConnectGoogleDrive = async () => {
         if (!this.isChrome || typeof chrome?.identity?.getAuthToken !== 'function') {
-            Toast.show({ label: 'Google Drive is only available in the Chrome extension.', variant: 'error' });
+            Toast.show({
+                label: 'Google Drive is only available in the Chrome extension.',
+                variant: 'error',
+            });
             return;
         }
         try {
             await new Promise((resolve, reject) => {
-                chrome.identity.getAuthToken({ interactive: true, scopes: GOOGLE_DRIVE_SCOPES }, token => {
-                    if (chrome.runtime.lastError || !token) {
-                        reject(new Error(chrome.runtime.lastError?.message || 'Drive authorization failed'));
-                    } else {
-                        resolve(token);
+                chrome.identity.getAuthToken(
+                    { interactive: true, scopes: GOOGLE_DRIVE_SCOPES },
+                    token => {
+                        if (chrome.runtime.lastError || !token) {
+                            reject(
+                                new Error(
+                                    chrome.runtime.lastError?.message ||
+                                        'Drive authorization failed'
+                                )
+                            );
+                        } else {
+                            resolve(token);
+                        }
                     }
-                });
+                );
             });
             await saveSingleExtensionConfigToCache(CACHE_CONFIG.GOOGLE_DRIVE_CONNECTED.key, true);
-            store.dispatch(APPLICATION.reduxSlice.actions.updateSettings({
-                [CACHE_CONFIG.GOOGLE_DRIVE_CONNECTED.key]: true,
-            }));
+            store.dispatch(
+                APPLICATION.reduxSlice.actions.updateSettings({
+                    [CACHE_CONFIG.GOOGLE_DRIVE_CONNECTED.key]: true,
+                })
+            );
             Toast.show({ label: 'Google Drive & Sheets connected', variant: 'success' });
         } catch (err) {
             LOGGER.error('Google Drive OAuth error', err);
@@ -507,9 +666,11 @@ export default class App extends ToolkitElement {
 
     handleDisconnectGoogleDrive = async () => {
         await saveSingleExtensionConfigToCache(CACHE_CONFIG.GOOGLE_DRIVE_CONNECTED.key, false);
-        store.dispatch(APPLICATION.reduxSlice.actions.updateSettings({
-            [CACHE_CONFIG.GOOGLE_DRIVE_CONNECTED.key]: false,
-        }));
+        store.dispatch(
+            APPLICATION.reduxSlice.actions.updateSettings({
+                [CACHE_CONFIG.GOOGLE_DRIVE_CONNECTED.key]: false,
+            })
+        );
         Toast.show({ label: 'Google Drive & Sheets disconnected', variant: 'success' });
     };
 
@@ -607,6 +768,41 @@ export default class App extends ToolkitElement {
         });
     };
 
+    saveMcpServers = async servers => {
+        const normalizedServers = normalizeMcpServerConfigs(servers);
+        await saveSingleExtensionConfigToCache(CACHE_CONFIG.MCP_SERVERS.key, normalizedServers);
+        this.config = {
+            ...this.config,
+            [CACHE_CONFIG.MCP_SERVERS.key]: normalizedServers,
+        };
+        this.originalConfig = {
+            ...this.originalConfig,
+            [CACHE_CONFIG.MCP_SERVERS.key]: normalizedServers,
+        };
+        this.syncMcpStateFromConfig(this.config);
+        store.dispatch(
+            APPLICATION.reduxSlice.actions.updateSettings({
+                [CACHE_CONFIG.MCP_SERVERS.key]: normalizedServers,
+            })
+        );
+    };
+
+    saveMcpServer = async server => {
+        const servers = this.mcpServers.map(item => (item.id === server.id ? server : item));
+        await this.saveMcpServers(servers);
+    };
+
+    setAllSelectedMcpToolsEnabled = async enabled => {
+        const server = this.selectedMcpServer;
+        if (!server || !server.tools?.length) {
+            return;
+        }
+        await this.saveMcpServer({
+            ...server,
+            tools: server.tools.map(tool => ({ ...tool, enabled })),
+        });
+    };
+
     saveSessionConfigToCache = async () => {
         const sessionConfigurationList = Object.values(CACHE_SESSION_CONFIG);
         const sessionConfig = {};
@@ -643,6 +839,7 @@ export default class App extends ToolkitElement {
         }
         this.config = config;
         this.originalConfig = { ...config };
+        this.syncMcpStateFromConfig(config);
 
         // Load the session specific settings from the cache
 
@@ -670,6 +867,15 @@ export default class App extends ToolkitElement {
 
         // Google session state is now driven by application.settings via storeChange;
         // no manual assignment needed here.
+    };
+
+    syncMcpStateFromConfig = config => {
+        const servers = normalizeMcpServerConfigs(config?.[CACHE_CONFIG.MCP_SERVERS.key]);
+        this.mcpServers = servers;
+        this.mcpServersJson = formatMcpServersJson(servers);
+        if (!servers.some(server => server.id === this.selectedMcpServerId)) {
+            this.selectedMcpServerId = servers[0]?.id || null;
+        }
     };
 
     loadMetadataStorageTypeOptions = async () => {
@@ -742,6 +948,129 @@ export default class App extends ToolkitElement {
         return !this.hasChanged;
     }
 
+    get mcpServersJsonPlaceholder() {
+        return JSON.stringify(
+            {
+                mcpServers: {
+                    'basic-test': {
+                        url: 'http://localhost:3999/mcp',
+                        transport: 'http',
+                    },
+                },
+            },
+            null,
+            2
+        );
+    }
+
+    get hasMcpServers() {
+        return this.mcpServers.length > 0;
+    }
+
+    get mcpServerSections() {
+        return [
+            {
+                label: 'MCP Servers',
+                items: this.mcpServers.map(server => ({
+                    name: server.id,
+                    label: server.name,
+                    iconName: server.enabled ? 'utility:connected_apps' : 'utility:ban',
+                    badgeText: server.transport.toUpperCase(),
+                    isSelected: server.id === this.selectedMcpServerId,
+                })),
+            },
+        ];
+    }
+
+    get selectedMcpServer() {
+        return (
+            this.mcpServers.find(server => server.id === this.selectedMcpServerId) ||
+            this.mcpServers[0] ||
+            null
+        );
+    }
+
+    get selectedMcpServerName() {
+        return this.selectedMcpServer?.name || '';
+    }
+
+    get selectedMcpServerUrl() {
+        return this.selectedMcpServer?.url || '';
+    }
+
+    get selectedMcpServerTransportLabel() {
+        return (this.selectedMcpServer?.transport || '').toUpperCase();
+    }
+
+    get selectedMcpServerEnabled() {
+        return !!this.selectedMcpServer?.enabled;
+    }
+
+    get selectedMcpServerHeadersLabel() {
+        const headers = this.selectedMcpServer?.headers || {};
+        const count = Object.keys(headers).length;
+        return `${count} custom header${count === 1 ? '' : 's'}`;
+    }
+
+    get selectedMcpServerStatusLabel() {
+        const status = this.selectedMcpServer?.lastConnectionStatus || 'unknown';
+        if (status === 'connected') {
+            return 'Connected';
+        }
+        if (status === 'error') {
+            return 'Error';
+        }
+        return 'Not tested';
+    }
+
+    get selectedMcpServerLastRefreshLabel() {
+        const value = this.selectedMcpServer?.lastToolRefreshAt;
+        if (!value) {
+            return 'Never refreshed';
+        }
+        try {
+            return new Date(value).toLocaleString();
+        } catch {
+            return value;
+        }
+    }
+
+    get selectedMcpServerError() {
+        return this.selectedMcpServer?.lastConnectionError || '';
+    }
+
+    get selectedMcpServerTools() {
+        return (this.selectedMcpServer?.tools || []).map(tool => ({
+            ...tool,
+            description: tool.description || 'No description provided by this MCP server.',
+            key: `${this.selectedMcpServer?.id || 'server'}:${tool.name}`,
+        }));
+    }
+
+    get hasSelectedMcpServerTools() {
+        return this.selectedMcpServerTools.length > 0;
+    }
+
+    get selectedMcpServerToolCount() {
+        return this.selectedMcpServerTools.length;
+    }
+
+    get selectedMcpServerEnabledToolCount() {
+        return this.selectedMcpServerTools.filter(tool => tool.enabled !== false).length;
+    }
+
+    get selectedMcpServerDisabledToolCount() {
+        return this.selectedMcpServerToolCount - this.selectedMcpServerEnabledToolCount;
+    }
+
+    get isTestingSelectedMcpServer() {
+        return this.mcpTestingServerId === this.selectedMcpServer?.id;
+    }
+
+    get isRefreshingSelectedMcpServer() {
+        return this.mcpRefreshingServerId === this.selectedMcpServer?.id;
+    }
+
     get isFullIncognitoAccess() {
         return this.hasIncognitoAccess;
     }
@@ -759,6 +1088,8 @@ export default class App extends ToolkitElement {
     }
 
     get instanceUrl() {
-        return this.connector?.conn?.instanceUrl || this.connector?.configuration?.instanceUrl || '';
+        return (
+            this.connector?.conn?.instanceUrl || this.connector?.configuration?.instanceUrl || ''
+        );
     }
 }

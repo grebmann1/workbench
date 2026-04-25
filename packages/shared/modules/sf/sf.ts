@@ -15,6 +15,7 @@ import {
     UserPermission,
     User,
 } from './mapping';
+import type { JsforceQueryExecution, JsforceDescribeSObjectResult } from '../types';
 
 type QueryRunOptions = {
     responseTarget: 'Records';
@@ -22,23 +23,16 @@ type QueryRunOptions = {
     maxFetch: number;
 };
 
-type QueryLike<T = any> = {
-    records?: T[];
-    run: (options: QueryRunOptions) => Promise<T[]>;
-};
-
-type SObjectDescribeField = {
-    name: string;
-    label: string;
-};
+// Local alias so we can continue to write `QueryLike<Foo>` throughout the file.
+type QueryLike<T = Record<string, unknown>> = JsforceQueryExecution<T>;
 
 type SalesforceConnection = {
-    query: <T = any>(soql: string) => QueryLike<T>;
+    query: <T = Record<string, unknown>>(soql: string) => QueryLike<T>;
     tooling: {
-        query: <T = any>(soql: string) => QueryLike<T>;
+        query: <T = Record<string, unknown>>(soql: string) => QueryLike<T>;
     };
     sobject: (name: string) => {
-        describe: () => Promise<{ fields: SObjectDescribeField[] }>;
+        describe: () => Promise<JsforceDescribeSObjectResult>;
     };
 };
 
@@ -243,7 +237,9 @@ export const getPermissionSet = async (
 async function getApexClass(conn: SalesforceConnection): Promise<ApexClassMap> {
     //console.log('getApexClass');
     const apexClasses: ApexClassMap = {};
-    let query = conn.query('SELECT Id,Name,NamespacePrefix FROM ApexClass');
+    let query = conn.query<{ Id: string; Name: string; NamespacePrefix?: string }>(
+        'SELECT Id,Name,NamespacePrefix FROM ApexClass'
+    );
     let records =
         (await query.run({ responseTarget: 'Records', autoFetch: true, maxFetch: 100000 })) || [];
     records.forEach(record => {
@@ -256,16 +252,21 @@ async function getApexClass(conn: SalesforceConnection): Promise<ApexClassMap> {
 async function getPermissionGroups(conn: SalesforceConnection): Promise<PermissionGroupsMap> {
     //console.log('getPermissionGroups');
     const permissionGroups: PermissionGroupsMap = {};
-    let query = conn.query(
-        'SELECT Description, DeveloperName,  Id, MasterLabel, NamespacePrefix, Status FROM PermissionSetGroup'
-    );
+    let query = conn.query<{
+        Id: string;
+        DeveloperName: string;
+        MasterLabel: string;
+        Description?: string;
+        NamespacePrefix?: string;
+        Status?: string;
+    }>('SELECT Description, DeveloperName,  Id, MasterLabel, NamespacePrefix, Status FROM PermissionSetGroup');
     let records =
         (await query.run({ responseTarget: 'Records', autoFetch: true, maxFetch: 100000 })) || [];
     records.forEach(record => {
         permissionGroups[record.Id] = new PermissionGroups(record);
     });
 
-    let query_2 = conn.query(
+    let query_2 = conn.query<{ Id: string; PermissionSetGroupId: string; PermissionSetId: string }>(
         'SELECT Id, PermissionSetGroupId, PermissionSetId FROM PermissionSetGroupComponent'
     );
     let records2 =
@@ -279,7 +280,12 @@ async function getPermissionGroups(conn: SalesforceConnection): Promise<Permissi
 async function getApexPage(conn: SalesforceConnection): Promise<ApexPageMap> {
     //console.log('getApexPage');
     const apexPages: ApexPageMap = {};
-    let query = conn.query('SELECT Id,Name,MasterLabel FROM ApexPage');
+    let query = conn.query<{
+        Id: string;
+        Name: string;
+        MasterLabel: string;
+        NamespacePrefix?: string;
+    }>('SELECT Id,Name,MasterLabel FROM ApexPage');
     let records =
         (await query.run({ responseTarget: 'Records', autoFetch: true, maxFetch: 100000 })) || [];
     records.forEach(record => {
@@ -293,15 +299,23 @@ async function getAppDefinition(conn: SalesforceConnection): Promise<AppDefiniti
     //console.log('getAppDefinition');
     const appDefinitions: AppDefinitionMap = {};
 
+    type AppDefRecord = {
+        Id: string;
+        DeveloperName: string;
+        Label: string;
+        NamespacePrefix?: string;
+        Name?: string;
+    };
+
     let records =
-        (
-            await conn.tooling.query(
+        (await conn.tooling
+            .query<AppDefRecord>(
                 'select Id, DeveloperName,Label,NamespacePrefix FROM CustomApplication'
             )
-        ).records || [];
+            .records) || [];
     records.forEach(record => {
         record.Name = record.NamespacePrefix + '__' + record.DeveloperName;
-        appDefinitions[record.Id] = new AppDefinition(record);
+        appDefinitions[record.Id] = new AppDefinition(record as Required<AppDefRecord>);
     });
 
     return appDefinitions;
@@ -310,7 +324,17 @@ async function getAppDefinition(conn: SalesforceConnection): Promise<AppDefiniti
 async function getLayouts(conn: SalesforceConnection): Promise<LayoutMap> {
     //console.log('getLayouts');
     const layouts: LayoutMap = {};
-    let query = conn.tooling.query(
+    type LayoutRecord = {
+        Id: string;
+        Name: string;
+        EntityDefinition: {
+            QualifiedApiName: string;
+            Label: string;
+            IsCustomizable?: boolean;
+            IsCompactLayoutable?: boolean;
+        };
+    };
+    let query = conn.tooling.query<LayoutRecord>(
         'SELECT Id, Name, EntityDefinition.QualifiedApiName, EntityDefinition.Label,EntityDefinition.IsCustomizable,EntityDefinition.IsCompactLayoutable from Layout'
     );
     let records =
@@ -332,7 +356,7 @@ async function getLayouts(conn: SalesforceConnection): Promise<LayoutMap> {
 const getEntityDefinition = async (conn: SalesforceConnection): Promise<SobjectMap> => {
     //console.log('getEntityDefinition');
     const sobjects: SobjectMap = {};
-    let query = conn.query(
+    let query = conn.query<{ QualifiedApiName: string; Label: string }>(
         'select QualifiedApiName,Label from EntityDefinition where IsCustomizable=true and IsCompactLayoutable=true'
     );
     let records =
@@ -346,7 +370,10 @@ const getEntityDefinition = async (conn: SalesforceConnection): Promise<SobjectM
 const getTabDefinitions = async (conn: SalesforceConnection): Promise<TabDefinitionMap> => {
     //console.log('getTabDefinitions');
     const tabDefinitions: TabDefinitionMap = {};
-    let records = (await conn.tooling.query('select Name, Label from TabDefinition')).records || [];
+    let records =
+        (await conn.tooling
+            .query<{ Name: string; Label: string }>('select Name, Label from TabDefinition')
+            .records) || [];
     records.forEach(record => {
         tabDefinitions[record.Name] = new TabDefinition(record);
     });
@@ -356,8 +383,14 @@ const getTabDefinitions = async (conn: SalesforceConnection): Promise<TabDefinit
 const setRecordTypes = async (conn: SalesforceConnection, sobjects: SobjectMap): Promise<void> => {
     //console.log('setRecordTypes');
     let records =
-        (await conn.query('select Id, DeveloperName, Name, SobjectType from RecordType')).records ||
-        [];
+        (
+            await conn.query<{
+                Id: string;
+                DeveloperName: string;
+                Name: string;
+                SobjectType: string;
+            }>('select Id, DeveloperName, Name, SobjectType from RecordType')
+        ).records || [];
     records
         .filter(record => sobjects[record.SobjectType])
         .forEach(
@@ -379,9 +412,11 @@ const setLayoutAssignments = async (
     }: { permissionSetProfileMapping: Record<string, string>; layouts: LayoutMap }
 ): Promise<void> => {
     //console.log('setLayoutAssignments');
-    let query = conn.tooling.query(
-        'select Profile.Id, LayoutId, RecordTypeId from ProfileLayout where Profile.Id != null'
-    );
+    let query = conn.tooling.query<{
+        Profile: { Id: string };
+        LayoutId: string;
+        RecordTypeId?: string;
+    }>('select Profile.Id, LayoutId, RecordTypeId from ProfileLayout where Profile.Id != null');
     let records =
         (await query.run({ responseTarget: 'Records', autoFetch: true, maxFetch: 200000 })) || [];
     records.forEach(record => {
@@ -415,13 +450,15 @@ const setUserPermissions = async (
     //console.log('permissionDescribe',permissionDescribe);
     const profileFieldsToArray = Object.values(profileFields);
     /* Might need to split this to improve the performances (Profiles & PermissionSets) **/
-    let query = conn.query(`SELECT FIELDS(STANDARD) FROM PermissionSet`);
+    let query = conn.query<{ Id: string } & Record<string, unknown>>(
+        `SELECT FIELDS(STANDARD) FROM PermissionSet`
+    );
     let records =
         (await query.run({ responseTarget: 'Records', autoFetch: true, maxFetch: 200000 })) || [];
     records.forEach(record => {
         if (permissionSets[record.Id]) {
             const userPermissions = profileFieldsToArray.map(
-                item => new UserPermission(item.name, item.label, record[item.name])
+                item => new UserPermission(item.name, item.label, Boolean(record[item.name]))
             );
             permissionSets[record.Id].userPermissions = userPermissions;
         }
@@ -435,7 +472,16 @@ const setObjectPermissions = async (
 ): Promise<void> => {
     //console.log('setObjectPermissions');
 
-    let query = conn.query(
+    let query = conn.query<{
+        ParentId: string;
+        SobjectType: string;
+        PermissionsCreate: boolean;
+        PermissionsRead: boolean;
+        PermissionsEdit: boolean;
+        PermissionsDelete: boolean;
+        PermissionsViewAllRecords: boolean;
+        PermissionsModifyAllRecords: boolean;
+    }>(
         `select ParentId,SobjectType,PermissionsCreate,PermissionsRead,PermissionsEdit,PermissionsDelete,PermissionsViewAllRecords,PermissionsModifyAllRecords from ObjectPermissions`
     );
 
@@ -464,8 +510,9 @@ const setPermissionSetTabSetting = async (
     { tabDefinitions }: { tabDefinitions: TabDefinitionMap }
 ): Promise<void> => {
     //console.log('setPermissionSetTabSetting');
-    const fetchPermissionSetTabSetting = async ids => {
-        let query = conn.query(
+    type TabSettingRecord = { ParentId: string; Name: string; Visibility: string };
+    const fetchPermissionSetTabSetting = async (ids: string[]) => {
+        let query = conn.query<TabSettingRecord>(
             `select ParentId, Name, Visibility from PermissionSetTabSetting where ParentId in ('${ids.join(
                 "','"
             )}')`
@@ -503,8 +550,13 @@ const getSetupEntityAccess = async (
 ): Promise<EntityAccessMap> => {
     //console.log('getSetupEntityAccess');
     const CHUNK_SIZE = 50;
-    const fetchEntityAccess = async ids => {
-        let query = conn.query(
+    type SetupEntityRecord = {
+        ParentId: string;
+        SetupEntityType: string;
+        SetupEntityId: string;
+    };
+    const fetchEntityAccess = async (ids: string[]) => {
+        let query = conn.query<SetupEntityRecord>(
             `SELECT ParentId, SetupEntityType, SetupEntityId FROM SetupEntityAccess WHERE SetupEntityId in ('${ids.join(
                 "','"
             )}')`
@@ -578,9 +630,16 @@ export const setFieldDefinition = async (
     targetObject: Sobject
 ): Promise<void> => {
     //console.log('setFieldDefinition')
+    type FieldDefinitionRecord = {
+        EntityDefinitionId: string;
+        MasterLabel: string;
+        IsNillable: boolean;
+        QualifiedApiName: string;
+        DataType: string;
+    };
     let records_fieldDefinition =
         (
-            await conn.tooling.query(
+            await conn.tooling.query<FieldDefinitionRecord>(
                 `select EntityDefinitionId,MasterLabel,IsNillable, QualifiedApiName, DataType from FieldDefinition where EntityDefinition.QualifiedApiName ='${targetObject.name}'`
             )
         ).records || [];
@@ -605,9 +664,16 @@ export const setFieldPermission = async (
     // Set field Definition
     await setFieldDefinition(conn, targetObject);
 
+    type FieldPermissionRecord = {
+        ParentId: string;
+        Field: string;
+        SobjectType: string;
+        PermissionsEdit: boolean;
+        PermissionsRead: boolean;
+    };
     let records_fieldPermissions =
         (
-            await conn.query(
+            await conn.query<FieldPermissionRecord>(
                 `select ParentId, Field, SobjectType, PermissionsEdit, PermissionsRead from FieldPermissions where SobjectType ='${targetObject.name}'`
             )
         ).records || [];
@@ -623,25 +689,33 @@ export const setFieldPermission = async (
     });
 };
 
-/** Utils for worker */
+/**
+ * Worker bundles of this file historically inlined local copies of these
+ * helpers; the worker bundler can't resolve `shared/*` aliases. Keep tiny
+ * local wrappers so the shape stays the same.
+ */
 
-function isUndefinedOrNull(value: unknown): boolean {
+function isUndefinedOrNull(value: unknown): value is null | undefined {
     return value === null || value === undefined;
 }
 
-function isNotUndefinedOrNull(value: unknown): boolean {
-    return !isUndefinedOrNull(value);
+function isNotUndefinedOrNull<T>(value: T): value is NonNullable<T> {
+    return value !== null && value !== undefined;
 }
-function chunkPromises<T, R>(arr: T[], size: number, method: (item: T) => Promise<R>) {
+
+function chunkPromises<T, R>(
+    arr: T[],
+    size: number,
+    method: (item: T) => Promise<R>
+): Promise<R[]> {
     if (!Array.isArray(arr) || !arr.length) {
         return Promise.resolve([]);
     }
+    const resolvedSize = size || 10;
 
-    size = size ? size : 10;
-
-    const chunks = [];
-    for (let i = 0, j = arr.length; i < j; i += size) {
-        chunks.push(arr.slice(i, i + size));
+    const chunks: T[][] = [];
+    for (let i = 0, j = arr.length; i < j; i += resolvedSize) {
+        chunks.push(arr.slice(i, i + resolvedSize));
     }
 
     let collector: Promise<R[]> = Promise.resolve([]);
@@ -655,7 +729,7 @@ function chunkPromises<T, R>(arr: T[], size: number, method: (item: T) => Promis
     return collector;
 }
 
-export function chunkArray<T>(arr: T[], chunkSize: number = 5): T[][] {
+export function chunkArray<T>(arr: T[], chunkSize = 5): T[][] {
     const chunks: T[][] = [];
     for (let i = 0; i < arr.length; i += chunkSize) {
         const chunk = arr.slice(i, i + chunkSize);

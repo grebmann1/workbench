@@ -4,7 +4,16 @@ import path from 'node:path';
 
 import { app, dialog, shell } from 'electron';
 
+import { desktopLog } from './desktopLogger';
 import { getDesktopTemplatePath } from './desktopPaths';
+import {
+    assertCliOrgHasOAuthCredentials,
+    buildSfOrgDisplayArgs,
+    buildSfOrgListArgs,
+    buildSfdxOrgDisplayArgs,
+    buildSfdxOrgListArgs,
+    parseSfdxAuthUrl,
+} from './desktopOrgCliUtils';
 import { buildOrgOpenUrl } from './desktopServiceUtils';
 
 type DesktopStore = {
@@ -67,18 +76,29 @@ function runJsonCommand(command: string, args: string[]): any | null {
     });
 
     if (result.status !== 0 || !result.stdout) {
+        desktopLog.warn('CLI JSON command failed', {
+            args,
+            command,
+            status: result.status,
+            stderr: result.stderr,
+        });
         return null;
     }
 
     try {
         return JSON.parse(result.stdout);
-    } catch {
+    } catch (error) {
+        desktopLog.warn('CLI JSON command returned invalid JSON', {
+            args,
+            command,
+            error,
+        });
         return null;
     }
 }
 
 function getCliOrgList(): { result: { nonScratchOrgs: any[]; scratchOrgs: any[] } } {
-    const sfResult = commandExists('sf') && runJsonCommand('sf', ['org', 'list', '--json']);
+    const sfResult = commandExists('sf') && runJsonCommand('sf', buildSfOrgListArgs());
     if (sfResult?.result) {
         return {
             result: {
@@ -89,7 +109,7 @@ function getCliOrgList(): { result: { nonScratchOrgs: any[]; scratchOrgs: any[] 
     }
 
     const sfdxResult =
-        commandExists('sfdx') && runJsonCommand('sfdx', ['force:org:list', '--json']);
+        commandExists('sfdx') && runJsonCommand('sfdx', buildSfdxOrgListArgs());
     if (sfdxResult?.result) {
         return {
             result: {
@@ -692,6 +712,18 @@ export async function saveStoredOrg(alias: string, configuration: any): Promise<
     return store.storedOrgs[normalizedAlias];
 }
 
+export async function saveSfdxAuthUrlOrg(alias: string, sfdxAuthUrl: string): Promise<any> {
+    const { instanceUrl, refreshToken } = parseSfdxAuthUrl(sfdxAuthUrl);
+    return saveStoredOrg(alias, {
+        alias,
+        credentialType: 'OAUTH',
+        instanceUrl,
+        loginUrl: instanceUrl,
+        refreshToken,
+        sfdxAuthUrl,
+    });
+}
+
 export async function installLatestPmd(projectPath: string | null | undefined): Promise<{
     installationPath: string | null;
     executablePath: string | null;
@@ -850,16 +882,16 @@ export async function seeOrgDetails(alias: string): Promise<any> {
 
     const sfDisplay =
         commandExists('sf') &&
-        runJsonCommand('sf', ['org', 'display', '--target-org', alias, '--json']);
+        runJsonCommand('sf', buildSfOrgDisplayArgs(alias));
     if (sfDisplay?.result) {
-        return sfDisplay.result;
+        return assertCliOrgHasOAuthCredentials(alias, sfDisplay.result);
     }
 
     const sfdxDisplay =
         commandExists('sfdx') &&
-        runJsonCommand('sfdx', ['force:org:display', '--targetusername', alias, '--json']);
+        runJsonCommand('sfdx', buildSfdxOrgDisplayArgs(alias));
     if (sfdxDisplay?.result) {
-        return sfdxDisplay.result;
+        return assertCliOrgHasOAuthCredentials(alias, sfdxDisplay.result);
     }
 
     throw new Error(`No org details found for alias ${alias}`);

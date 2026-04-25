@@ -80,10 +80,10 @@ Workbench is a Salesforce administration toolkit that embeds directly into your 
 
 ## Available Platforms
 
-| Platform | Status | Link |
-|---|---|---|
-| **Web Extension** | Recommended | [Add to Chrome](https://chromewebstore.google.com/detail/salesforce-toolkit/konbmllgicfccombdckckakhnmejjoei?hl=en) |
-| **Desktop** (macOS / Windows) | In development | Coming soon |
+| Platform                      | Status         | Link                                                                                                                |
+| ----------------------------- | -------------- | ------------------------------------------------------------------------------------------------------------------- |
+| **Web Extension**             | Recommended    | [Add to Chrome](https://chromewebstore.google.com/detail/salesforce-toolkit/konbmllgicfccombdckckakhnmejjoei?hl=en) |
+| **Desktop** (macOS / Windows) | In development | Coming soon                                                                                                         |
 
 ---
 
@@ -121,6 +121,20 @@ cd workbench
 npm install
 ```
 
+### Salesforce Connected App
+
+The app authenticates with Salesforce via OAuth 2.0. You need a **Connected App** in your Salesforce org to obtain a `CLIENT_ID` and `CLIENT_SECRET`.
+
+1. In Salesforce Setup, go to **App Manager** → **New Connected App**.
+2. Enable **OAuth Settings** and set the **Callback URL** to your local redirect URI (e.g. `http://localhost:3000/oauth/callback`).
+3. Add the following **OAuth Scopes**:
+    - `Full access (full)` — or at minimum `api`, `refresh_token`, `offline_access`
+4. Save and copy the **Consumer Key** (`CLIENT_ID`) and **Consumer Secret** (`CLIENT_SECRET`).
+
+> Connected App credentials may take a few minutes to activate in Salesforce after creation.
+
+### Environment Variables
+
 Create a `.env` file in the project root:
 
 ```sh
@@ -130,13 +144,13 @@ CLIENT_ID='YOUR_CLIENT_ID'
 
 Optional vars:
 
-| Variable | Default | Description |
-|---|---|---|
-| `PORT` | `3000` | Server port |
-| `REDIRECT_URI` | — | OAuth redirect URI |
-| `DOC_VERSION` | — | Documentation version |
-| `CHROME_ID` | — | Chrome extension ID |
-| `PROXY_URL` | — | Proxy URL |
+| Variable       | Default | Description                                                            |
+| -------------- | ------- | ---------------------------------------------------------------------- |
+| `PORT`         | `3000`  | Server port                                                            |
+| `REDIRECT_URI` | —       | OAuth redirect URI (must match the Callback URL in your Connected App) |
+| `DOC_VERSION`  | —       | Documentation version                                                  |
+| `CHROME_ID`    | —       | Chrome extension ID                                                    |
+| `PROXY_URL`    | —       | Proxy URL                                                              |
 
 ---
 
@@ -189,14 +203,13 @@ npm run build:extension:main
 
 ### Vendor Bundles
 
-Some features depend on pre-built vendor bundles (OpenAI SDK, just-bash). These bundles are not committed and must be generated before building the extension:
+Some features depend on pre-built vendor bundles (just-bash). These bundles are not committed and must be generated before building the extension:
 
 ```sh
 # Build all vendor bundles
 npm run build:vendor
 
 # Build individual bundles
-npm run build:vendor:openai
 npm run build:vendor:just-bash
 ```
 
@@ -208,6 +221,20 @@ Run this once after cloning, and again whenever a vendor package is updated.
 npm run watch:workers
 npm run build:workers
 ```
+
+### Local MCP Test Server
+
+Use the local MCP server to verify MCP configuration, tool discovery, and tool execution without depending on an external service.
+
+```sh
+# Start the local MCP server on http://localhost:3999/mcp
+npm run start:test:mcp
+
+# Run an automated MCP smoke test (starts the server on an ephemeral port)
+npm run test:mcp
+```
+
+To test through the app, open Settings → AI → MCP → Config and paste the sample config from `tools/mcp/basic-mcp.config.json`. Then use Overview → Refresh Tools to discover `echo`, `add_numbers`, and `get_test_context`.
 
 ### Quality / Validation
 
@@ -253,13 +280,13 @@ npm run start:dev:web
 
 ## Where To Add Code
 
-| Area | Location |
-|---|---|
-| New app-level pages / features | `packages/lwc/app/pages` and `packages/lwc/app/application` |
-| Shared LWC UI shell elements | `packages/lwc/app/component` |
-| Extension-only components | `packages/lwc/web-extension` |
-| Cross-target reusable modules | `packages/shared/modules` |
-| Server hooks / routes / content / layout | `packages/server` |
+| Area                                     | Location                                                    |
+| ---------------------------------------- | ----------------------------------------------------------- |
+| New app-level pages / features           | `packages/lwc/app/pages` and `packages/lwc/app/application` |
+| Shared LWC UI shell elements             | `packages/lwc/app/component`                                |
+| Extension-only components                | `packages/lwc/web-extension`                                |
+| Cross-target reusable modules            | `packages/shared/modules`                                   |
+| Server hooks / routes / content / layout | `packages/server`                                           |
 
 ---
 

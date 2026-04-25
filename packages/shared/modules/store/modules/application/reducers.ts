@@ -17,12 +17,19 @@ type ApplicationState = {
     type?: string;
 };
 
+/**
+ * Redux Toolkit's `configureStore` types reducers against `UnknownAction`. We
+ * accept that here and narrow internally to our {@link ApplicationAction} union.
+ */
+type AnyAction = { type: string; payload?: unknown };
+
 export default function application(
     state: ApplicationState = {
         connector: null,
     },
-    action: ApplicationAction
+    incoming: AnyAction
 ): ApplicationState {
+    const action = incoming as ApplicationAction;
     switch (action.type) {
         case CONST.LOGIN:
             return {

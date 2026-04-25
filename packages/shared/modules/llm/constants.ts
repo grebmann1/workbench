@@ -42,25 +42,25 @@ export type LlmModelsEndpointResponse = {
     catalogs: Record<LlmProvider, LlmProviderCatalog>;
 };
 
-export const DEFAULT_LLM_PROVIDER: LlmProvider = 'openai';
+export const DEFAULT_LLM_PROVIDER = 'openai' satisfies LlmProvider;
 
-export const DEFAULT_PROVIDER_BASE_URLS: Record<LlmProvider, string> = {
+export const DEFAULT_PROVIDER_BASE_URLS = {
     openai: 'https://api.openai.com/v1',
     anthropic: 'https://api.anthropic.com/v1',
     gemini: 'https://generativelanguage.googleapis.com',
     mistral: 'https://api.mistral.ai/v1',
     grok: 'https://api.x.ai/v1',
     workbench: '/openai/v1',
-};
+} satisfies Record<LlmProvider, string>;
 
-export const LLM_PROVIDER_OPTIONS: Array<{ label: string; value: LlmProvider }> = [
+export const LLM_PROVIDER_OPTIONS = [
     { label: 'OpenAI', value: 'openai' },
     { label: 'Anthropic', value: 'anthropic' },
     { label: 'Gemini', value: 'gemini' },
     { label: 'Mistral', value: 'mistral' },
     { label: 'xAI Grok', value: 'grok' },
     { label: 'Workbench (Free Tier)', value: 'workbench' },
-];
+] satisfies Array<{ label: string; value: LlmProvider }>;
 
 export const OPENAI_MODEL_OPTIONS: LlmModelOption[] = [
     { label: 'gpt-5-mini', value: 'gpt-5-mini', provider: 'openai', maxOutputTokens: 16000 },
@@ -74,20 +74,6 @@ export const OPENAI_MODEL_OPTIONS: LlmModelOption[] = [
 ];
 
 export const INTERNAL_MODEL_OPTIONS: LlmModelOption[] = [
-    // All internal models route through the OpenAI-compatible gateway
-    /* { label: 'claude-sonnet-4-20250514', value: 'claude-sonnet-4-20250514', provider: 'openai', maxOutputTokens: 16000 },
-    { label: 'claude-sonnet-4-5-20250929', value: 'claude-sonnet-4-5-20250929', provider: 'openai', maxOutputTokens: 16000 },
-    { label: 'claude-sonnet-4-6', value: 'us.anthropic.claude-sonnet-4-6', provider: 'openai', maxOutputTokens: 16000 },
-    { label: 'claude-opus-4-5-20251101', value: 'claude-opus-4-5-20251101', provider: 'openai', maxOutputTokens: 16000 },
-    { label: 'claude-opus-4-6-v1', value: 'claude-opus-4-6-v1', provider: 'openai', maxOutputTokens: 16000 },
-    { label: 'claude-opus-4-7', value: 'claude-opus-4-7', provider: 'openai', maxOutputTokens: 16000 },
-    { label: 'claude-haiku-4-5-20251001', value: 'claude-haiku-4-5-20251001', provider: 'openai', maxOutputTokens: 8192 },
-    { label: 'gemini-2.0-flash', value: 'gemini-2.0-flash', provider: 'openai', maxOutputTokens: 8192 },
-    { label: 'gemini-2.5-pro', value: 'gemini-2.5-pro', provider: 'openai', maxOutputTokens: 16000 },
-    { label: 'gemini-2.5-flash', value: 'gemini-2.5-flash', provider: 'openai', maxOutputTokens: 16000 },
-    { label: 'gemini-3-pro-preview', value: 'gemini-3-pro-preview', provider: 'openai', maxOutputTokens: 16000 },
-    { label: 'gemini-3-flash-preview', value: 'gemini-3-flash-preview', provider: 'openai', maxOutputTokens: 16000 },
-    { label: 'gemini-3.1-pro-preview', value: 'gemini-3.1-pro-preview', provider: 'openai', maxOutputTokens: 16000 }, */
     { label: 'gpt-4o', value: 'gpt-4o', provider: 'openai', maxOutputTokens: 16000 },
     { label: 'gpt-4o-mini', value: 'gpt-4o-mini', provider: 'openai', maxOutputTokens: 16000 },
     { label: 'gpt-5', value: 'gpt-5', provider: 'openai', maxOutputTokens: 16000 },
@@ -96,8 +82,6 @@ export const INTERNAL_MODEL_OPTIONS: LlmModelOption[] = [
     { label: 'gpt-5.3-codex', value: 'gpt-5.3-codex', provider: 'openai', maxOutputTokens: 16000 },
 ];
 
-/** @deprecated Use INTERNAL_MODEL_OPTIONS instead */
-export const INTERNAL_OPENAI_MODEL_OPTIONS = INTERNAL_MODEL_OPTIONS;
 
 export const ANTHROPIC_MODEL_OPTIONS: LlmModelOption[] = [
     { label: 'claude-opus-4-6', value: 'claude-opus-4-6', provider: 'anthropic', maxOutputTokens: 16000 },

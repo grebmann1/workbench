@@ -12,14 +12,15 @@ import {
     type LlmProviderConfig,
     type LlmProviderConfigMap,
 } from './constants';
+import { isRecord } from 'shared/utils';
 
-function getInternalModelsForProvider(provider: LlmProvider): LlmModelOption[] {
+function getInternalModelsForProvider(provider: LlmProvider) {
     return INTERNAL_MODEL_OPTIONS.filter(model => model.provider === provider);
 }
 
 export * from './constants';
 
-function normalizeString(value: unknown): string {
+function normalizeString(value: unknown) {
     return typeof value === 'string' ? value.trim() : '';
 }
 
@@ -47,7 +48,7 @@ export function createDefaultProviderConfigMap(): LlmProviderConfigMap {
 
 export function normalizeProviderConfig(provider: LlmProvider, config: unknown): LlmProviderConfig {
     const defaults = getDefaultProviderConfig(provider);
-    const record = config && typeof config === 'object' ? (config as Record<string, unknown>) : {};
+    const record = isRecord(config) ? config : {};
     const apiKey = normalizeString(record.apiKey);
     const baseUrl = normalizeString(record.baseUrl);
     return {
@@ -57,23 +58,18 @@ export function normalizeProviderConfig(provider: LlmProvider, config: unknown):
 }
 
 export function normalizeProviderConfigMap(configs: unknown): LlmProviderConfigMap {
-    const record =
-        configs && typeof configs === 'object' ? (configs as Record<string, unknown>) : {};
+    const record = isRecord(configs) ? configs : {};
     return LLM_PROVIDERS.reduce((normalizedConfigs, provider) => {
         normalizedConfigs[provider] = normalizeProviderConfig(provider, record[provider]);
         return normalizedConfigs;
     }, createDefaultProviderConfigMap());
 }
 
-export function getProviderOptions() {
-    return LLM_PROVIDER_OPTIONS;
-}
-
-export function getProviderModelOptions(provider: LlmProvider): LlmModelOption[] {
+export function getProviderModelOptions(provider: LlmProvider) {
     return PROVIDER_MODEL_OPTIONS[provider] || [];
 }
 
-export function getProviderLabel(provider: unknown): string {
+export function getProviderLabel(provider: unknown) {
     const normalized = normalizeLlmProvider(provider);
     return (
         LLM_PROVIDER_OPTIONS.find(option => option.value === normalized)?.label ||
@@ -81,7 +77,7 @@ export function getProviderLabel(provider: unknown): string {
     );
 }
 
-export function getDefaultModelForProvider(provider: LlmProvider): string | null {
+export function getDefaultModelForProvider(provider: LlmProvider) {
     return getProviderModelOptions(provider)[0]?.value || null;
 }
 
@@ -113,7 +109,7 @@ export function normalizeModelSelection(
     return fallback;
 }
 
-export function isInternalProviderBaseUrl(baseUrl: unknown): boolean {
+export function isInternalProviderBaseUrl(baseUrl: unknown) {
     return normalizeString(baseUrl).includes('eng-ai-model-gateway');
 }
 
@@ -133,16 +129,12 @@ const NATIVE_PROVIDER_DOMAINS: Partial<Record<LlmProvider, string>> = {
  * eng-ai-model-gateway and any external proxy (e.g. LiteLLM) that exposes an
  * OpenAI-compatible `/chat/completions` or `/responses` surface.
  */
-export function isOpenAiCompatibleGateway(provider: unknown, baseUrl: unknown): boolean {
+export function isOpenAiCompatibleGateway(provider: unknown, baseUrl: unknown) {
     if (isInternalProviderBaseUrl(baseUrl)) return true;
     const normalized = normalizeString(baseUrl).toLowerCase();
     if (!normalized) return false;
     const nativeDomain = NATIVE_PROVIDER_DOMAINS[normalizeLlmProvider(provider)];
     return !!nativeDomain && !normalized.includes(nativeDomain);
-}
-
-export function resolveOpenAiCompatibleModels(isInternal = false): LlmModelOption[] {
-    return isInternal ? INTERNAL_MODEL_OPTIONS : OPENAI_MODEL_OPTIONS;
 }
 
 function getWorkbenchBaseUrl(): string {

@@ -7,6 +7,26 @@ type DesktopLaunchIntent =
     | {
           target: 'org';
           orgAlias: string;
+      }
+    | {
+          type: 'openApp';
+          v: 2;
+      }
+    | {
+          org: Record<string, unknown>;
+          route?: {
+              applicationName: string;
+              state?: Record<string, string>;
+          };
+          type: 'openOrg' | 'openPage';
+          v: 2;
+      }
+    | {
+          action: Record<string, unknown>;
+          org: Record<string, unknown>;
+          output?: 'json' | 'text';
+          type: 'execute';
+          v: 2;
       };
 
 type LaunchIntentListener = (intent: DesktopLaunchIntent) => void;

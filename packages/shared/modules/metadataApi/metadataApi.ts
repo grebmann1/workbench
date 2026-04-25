@@ -5,37 +5,50 @@ import {
     normalizeInstanceUrl,
     normalizeProxyUrl,
 } from 'shared/salesforceUrl';
+import { HttpError, type JsforceConnection } from 'shared/types';
 
-
-interface ApiError extends Error {
-    status?: number;
-    payload?: string;
-}
-
-type JsforceConn = {
-    instanceUrl?: string;
-    version?: string;
-    accessToken?: string;
-    metadata?: {
-        describe: (asOfVersion?: string) => Promise<unknown>;
-        list: (queries: unknown[], asOfVersion?: string) => Promise<unknown[]>;
-        retrieve: (options: unknown) => Promise<{ id?: string; asyncProcessId?: string; zipFile?: string }>;
-        checkRetrieveStatus: (id: string, includeZip?: boolean) => Promise<unknown>;
-        deploy: (zipB64: string, options: unknown) => Promise<{ id?: string; asyncProcessId?: string; zipFile?: string }>;
-        checkDeployStatus: (id: string, includeDetails?: boolean) => Promise<unknown>;
-    };
+export type MetadataListQuery = {
+    type?: string;
+    folder?: string;
 };
 
-type MetadataClientOptions = {
+export type MetadataListResult = {
+    fullName: string;
+    type: string;
+    fileName: string;
+    namespacePrefix: string;
+    lastModifiedDate: string;
+};
+
+export type MetadataRetrieveStatus = {
+    done: boolean;
+    success: boolean;
+    status: string;
+    zipFile: string;
+    errorMessage: string;
+    raw: Document;
+};
+
+export type MetadataDeployStatus = {
+    done: boolean;
+    success: boolean;
+    status: string;
+    errorMessage: string;
+    raw: Document;
+};
+
+export type MetadataClientOptions = {
     instanceUrl?: string;
     accessToken?: string;
     apiVersion?: string;
     proxyUrl?: string;
-    connection?: JsforceConn;
-    connector?: { conn?: JsforceConn };
+    connection?: JsforceConnection;
+    connector?: { conn?: JsforceConnection | null };
 };
 
-function escapeXml(text) {
+type UnpackagedBytes = Record<string, Uint8Array>;
+
+function escapeXml(text: unknown) {
     return String(text ?? '')
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
@@ -44,35 +57,35 @@ function escapeXml(text) {
         .replace(/'/g, '&apos;');
 }
 
-function stripBom(text) {
-    return text && text.charCodeAt(0) === 0xfeff ? text.slice(1) : text;
+function stripBom(text: string | null | undefined) {
+    return text && text.charCodeAt(0) === 0xfeff ? text.slice(1) : text || '';
 }
 
-function firstText(doc, localName) {
+function firstText(doc: Document | Element, localName: string) {
     const el =
-        doc.getElementsByTagNameNS?.('*', localName)?.[0] ||
-        doc.getElementsByTagName(localName)?.[0];
+        (doc as Element).getElementsByTagNameNS?.('*', localName)?.[0] ||
+        (doc as Element).getElementsByTagName(localName)?.[0];
     const v = el?.textContent != null ? String(el.textContent) : '';
     return v.trim();
 }
 
-function firstEl(doc, localName) {
+function firstEl(doc: Document | Element, localName: string): Element | null {
     return (
-        doc.getElementsByTagNameNS?.('*', localName)?.[0] ||
-        doc.getElementsByTagName(localName)?.[0] ||
+        (doc as Element).getElementsByTagNameNS?.('*', localName)?.[0] ||
+        (doc as Element).getElementsByTagName(localName)?.[0] ||
         null
     );
 }
 
-function allEls(doc, localName) {
-    const list = doc.getElementsByTagNameNS?.('*', localName);
+function allEls(doc: Document | Element, localName: string): Element[] {
+    const list = (doc as Element).getElementsByTagNameNS?.('*', localName);
     if (list && typeof list.length === 'number') return Array.from(list);
-    const list2 = doc.getElementsByTagName(localName);
+    const list2 = (doc as Element).getElementsByTagName(localName);
     if (list2 && typeof list2.length === 'number') return Array.from(list2);
     return [];
 }
 
-function parseSoapError(xmlText) {
+function parseSoapError(xmlText: string): string | null {
     try {
         const doc = new DOMParser().parseFromString(
             stripBom(String(xmlText || '')),
@@ -90,14 +103,14 @@ function parseSoapError(xmlText) {
     }
 }
 
-function base64ToBytes(b64) {
+function base64ToBytes(b64: string): Uint8Array {
     const bin = atob(String(b64 || ''));
     const bytes = new Uint8Array(bin.length);
     for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i) & 0xff;
     return bytes;
 }
 
-function bytesToBase64(bytes) {
+function bytesToBase64(bytes: Uint8Array): string {
     const chunkSize = 0x8000;
     let out = '';
     for (let i = 0; i < bytes.length; i += chunkSize) {
@@ -107,14 +120,14 @@ function bytesToBase64(bytes) {
     return btoa(out);
 }
 
-export function unzipRetrieveZip(zipFileBase64) {
+export function unzipRetrieveZip(zipFileBase64: string) {
     const zipped = base64ToBytes(zipFileBase64);
     const files = unzipSync(zipped);
     return files;
 }
 
-export function zipUnpackagedFiles(pathToBytes) {
-    const out = {};
+export function zipUnpackagedFiles(pathToBytes: UnpackagedBytes) {
+    const out: UnpackagedBytes = {};
     for (const [path, bytes] of Object.entries(pathToBytes || {})) {
         out[String(path)] = bytes;
     }
@@ -123,7 +136,7 @@ export function zipUnpackagedFiles(pathToBytes) {
 
 export function createMetadataApiClient(options: MetadataClientOptions = {}) {
     const { instanceUrl, accessToken, apiVersion, proxyUrl } = options;
-    const jsforceConnection: JsforceConn | null =
+    const jsforceConnection: JsforceConnection | null =
         options.connection || options.connector?.conn || null;
     const normalizedInstanceUrl = normalizeInstanceUrl(instanceUrl);
     const normalizedApiVersion = normalizeApiVersion(apiVersion);
@@ -145,7 +158,7 @@ export function createMetadataApiClient(options: MetadataClientOptions = {}) {
     const proxyBase = normalizedProxyUrl ? `${normalizedProxyUrl}/proxy` : '';
     const url = normalizedProxyUrl ? `${proxyBase}${soapPath}` : upstreamUrl;
 
-    async function requestSoap(bodyInnerXml) {
+    async function requestSoap(bodyInnerXml: string): Promise<Document> {
         const envelope =
             `<?xml version="1.0" encoding="UTF-8"?>` +
             `<env:Envelope xmlns:env="http://schemas.xmlsoap.org/soap/envelope/" xmlns:met="http://soap.sforce.com/2006/04/metadata">` +
@@ -167,24 +180,18 @@ export function createMetadataApiClient(options: MetadataClientOptions = {}) {
         const text = await res.text();
         if (!res.ok) {
             const soapErr = parseSoapError(text);
-            const err = new Error(soapErr || `Metadata API error (${res.status})`) as ApiError;
-            err.status = res.status;
-            err.payload = text;
-            throw err;
+            throw new HttpError(soapErr || `Metadata API error (${res.status})`, res.status, text);
         }
         const doc = new DOMParser().parseFromString(stripBom(text), 'application/xml');
         const soapErr = parseSoapError(text);
         if (soapErr) {
-            const err = new Error(soapErr) as ApiError;
-            err.status = 500;
-            err.payload = text;
-            throw err;
+            throw new HttpError(soapErr, 500, text);
         }
         return doc;
     }
 
-    function xmlForTypes(typesMap) {
-        const parts = [];
+    function xmlForTypes(typesMap: Map<string, Iterable<string>>) {
+        const parts: string[] = [];
         for (const [typeName, membersSet] of typesMap.entries()) {
             const members = Array.isArray(membersSet) ? membersSet : Array.from(membersSet || []);
             if (!typeName || !members.length) continue;
@@ -280,7 +287,7 @@ export function createMetadataApiClient(options: MetadataClientOptions = {}) {
             return { id };
         },
 
-        async checkRetrieveStatus(id, { includeZip = true } = {}) {
+        async checkRetrieveStatus(id: string, { includeZip = true }: { includeZip?: boolean } = {}) {
             if (typeof jsforceConnection?.metadata?.checkRetrieveStatus === 'function') {
                 return await jsforceConnection.metadata.checkRetrieveStatus(id, includeZip);
             }
@@ -298,7 +305,10 @@ export function createMetadataApiClient(options: MetadataClientOptions = {}) {
             return { done, success, status, zipFile, errorMessage, raw: doc };
         },
 
-        async deploy(zipBytes, { checkOnly = false, testLevel = 'NoTestRun' } = {}) {
+        async deploy(
+            zipBytes: Uint8Array | ArrayLike<number>,
+            { checkOnly = false, testLevel = 'NoTestRun' }: { checkOnly?: boolean; testLevel?: string } = {}
+        ) {
             const zipB64 = bytesToBase64(
                 zipBytes instanceof Uint8Array ? zipBytes : new Uint8Array(zipBytes || [])
             );
@@ -329,7 +339,7 @@ export function createMetadataApiClient(options: MetadataClientOptions = {}) {
             return { id };
         },
 
-        async checkDeployStatus(id, { includeDetails = true } = {}) {
+        async checkDeployStatus(id: string, { includeDetails = true }: { includeDetails?: boolean } = {}) {
             if (typeof jsforceConnection?.metadata?.checkDeployStatus === 'function') {
                 return await jsforceConnection.metadata.checkDeployStatus(id, includeDetails);
             }

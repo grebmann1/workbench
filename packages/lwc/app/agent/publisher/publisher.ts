@@ -8,6 +8,7 @@ import {
     DEFAULT_REASONING,
     REASONING_OPTIONS,
 } from 'agent/utils';
+import { normalizeModelSelection } from 'shared/llm';
 import LOGGER from 'shared/logger';
 
 export default class App extends ToolkitElement {
@@ -54,27 +55,10 @@ export default class App extends ToolkitElement {
     }
 
     normalizeModelValue = value => {
-        const modelOptions = this.resolvedAvailableModels;
-        const fallbackModel = modelOptions[0]?.value || DEFAULT_MODEL;
-        const raw = typeof value === 'string' ? value.trim() : '';
-        if (!raw) return fallbackModel;
-        const lowered = raw.toLowerCase();
-        const exactValue = modelOptions.find(option => option.value === raw);
-        if (exactValue) return exactValue.value;
-        const valueCaseInsensitive = modelOptions.find(
-            option => String(option.value || '').toLowerCase() === lowered
-        );
-        if (valueCaseInsensitive) return valueCaseInsensitive.value;
-        const labelMatch = modelOptions.find(
-            option => String(option.label || '').toLowerCase() === lowered
-        );
-        if (labelMatch) return labelMatch.value;
-        const aliasMatch = modelOptions.find(option =>
-            String(option.value || '')
-                .toLowerCase()
-                .startsWith(`${lowered}-`)
-        );
-        return aliasMatch ? aliasMatch.value : fallbackModel;
+        const options = this.resolvedAvailableModels;
+        const fallback = options[0]?.value || DEFAULT_MODEL;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return normalizeModelSelection(value, options as any, fallback) ?? fallback;
     };
 
     normalizeReasoningValue = value => {
@@ -110,14 +94,6 @@ export default class App extends ToolkitElement {
         this.selectedReasoning = normalizedReasoning;
     }
 
-    get isReasoningReadOnly() {
-        return false;//!!this.isInternal;
-    }
-
-    get showReasoningSelect() {
-        return !this.isReasoningReadOnly;
-    }
-
     handleModelChange = event => {
         const model = this.normalizeModelValue(event.target.value);
         this.selectedModel = model;
@@ -127,9 +103,6 @@ export default class App extends ToolkitElement {
     };
 
     handleReasoningChange = event => {
-        if (this.isReasoningReadOnly) {
-            return;
-        }
         const reasoning = this.normalizeReasoningValue(event.detail?.value ?? event.target?.value);
         this.selectedReasoning = reasoning;
         this.dispatchEvent(
@@ -235,12 +208,6 @@ export default class App extends ToolkitElement {
         const previews = { ...this.imagePreviews };
         delete previews[name];
         this.imagePreviews = previews;
-    };
-
-    handleMicClick = () => {
-        // Optionally focus or trigger the audio recorder logic here
-        // If you want to open a modal or start recording, add logic here
-        // For now, this is a placeholder
     };
 
     handleStopClick = () => {
@@ -428,17 +395,6 @@ export default class App extends ToolkitElement {
             isImage: file.type && file.type.startsWith('image/'),
             preview: this.imagePreviews[file.name] || '',
         }));
-    }
-
-    get selectedFileName() {
-        return this.selectedFiles.length === 1 ? this.selectedFiles[0].name : '';
-    }
-    get hasImagePreview() {
-        return this.selectedFiles.some(f => f.type && f.type.startsWith('image/'));
-    }
-
-    get isAudioAssistantDisplayed() {
-        return !isEmpty(this.openaiKey) && !isChromeExtension();
     }
 
     get isClearButtonDisabled() {

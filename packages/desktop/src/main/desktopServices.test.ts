@@ -1,6 +1,14 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
+import {
+    assertCliOrgHasOAuthCredentials,
+    buildSfOrgDisplayArgs,
+    buildSfOrgListArgs,
+    buildSfdxOrgDisplayArgs,
+    buildSfdxOrgListArgs,
+    parseSfdxAuthUrl,
+} from './desktopOrgCliUtils';
 import { buildOrgOpenUrl } from './desktopServiceUtils';
 
 test('buildOrgOpenUrl prefers redirect URLs', () => {
@@ -35,4 +43,58 @@ test('buildOrgOpenUrl falls back to instanceUrl when serverUrl is absent', () =>
 
 test('buildOrgOpenUrl returns null when no usable URL exists', () => {
     assert.equal(buildOrgOpenUrl({}), null);
+});
+
+test('Salesforce CLI org list commands request verbose auth details', () => {
+    assert.deepEqual(buildSfOrgListArgs(), ['org', 'list', '--json', '--verbose']);
+    assert.deepEqual(buildSfdxOrgListArgs(), ['force:org:list', '--json', '--verbose']);
+});
+
+test('Salesforce CLI org display commands request verbose auth details for the alias', () => {
+    assert.deepEqual(buildSfOrgDisplayArgs('dev-org'), [
+        'org',
+        'display',
+        '--target-org',
+        'dev-org',
+        '--json',
+        '--verbose',
+    ]);
+    assert.deepEqual(buildSfdxOrgDisplayArgs('dev-org'), [
+        'force:org:display',
+        '--targetusername',
+        'dev-org',
+        '--json',
+        '--verbose',
+    ]);
+});
+
+test('assertCliOrgHasOAuthCredentials returns CLI orgs with usable OAuth credentials', () => {
+    const org = {
+        alias: 'dev-org',
+        sfdxAuthUrl: 'force://refresh-token@example.my.salesforce.com',
+    };
+
+    assert.equal(assertCliOrgHasOAuthCredentials('dev-org', org), org);
+});
+
+test('assertCliOrgHasOAuthCredentials throws an actionable login command when credentials are absent', () => {
+    assert.throws(
+        () =>
+            assertCliOrgHasOAuthCredentials('dev-org', {
+                alias: 'dev-org',
+                username: 'user@example.com',
+            }),
+        /No OAuth credentials found for alias "dev-org". Re-authenticate with: sf org login web --alias dev-org/
+    );
+});
+
+test('parseSfdxAuthUrl extracts the refresh token and instance URL', () => {
+    assert.deepEqual(parseSfdxAuthUrl('force://PlatformCLI::refresh-token@example.my.salesforce.com'), {
+        instanceUrl: 'https://example.my.salesforce.com',
+        refreshToken: 'refresh-token',
+    });
+});
+
+test('parseSfdxAuthUrl rejects malformed auth URLs without exposing token material', () => {
+    assert.throws(() => parseSfdxAuthUrl('not-a-force-url'), /Invalid sfdxAuthUrl format/);
 });

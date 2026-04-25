@@ -1,8 +1,11 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.normalizeDesktopCommand = void 0;
 exports.createDefaultLaunchIntent = createDefaultLaunchIntent;
 exports.parseLaunchIntent = parseLaunchIntent;
 exports.serializeLaunchIntent = serializeLaunchIntent;
+const desktopCommand_1 = require("./desktopCommand");
+Object.defineProperty(exports, "normalizeDesktopCommand", { enumerable: true, get: function () { return desktopCommand_1.normalizeDesktopCommand; } });
 const LAUNCH_INTENT_ARG_PREFIX = '--desktop-intent=';
 function isDesktopLaunchIntent(value) {
     if (!value || typeof value !== 'object') {
@@ -25,7 +28,9 @@ function parseLaunchIntent(argv) {
     const base64Payload = encodedIntent.slice(LAUNCH_INTENT_ARG_PREFIX.length);
     try {
         const payload = JSON.parse(Buffer.from(base64Payload, 'base64url').toString('utf8'));
-        return isDesktopLaunchIntent(payload) ? payload : createDefaultLaunchIntent();
+        return (0, desktopCommand_1.isDesktopCommand)(payload) || isDesktopLaunchIntent(payload)
+            ? payload
+            : createDefaultLaunchIntent();
     }
     catch {
         return createDefaultLaunchIntent();

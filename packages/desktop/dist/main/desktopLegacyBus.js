@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.DesktopLegacyBus = void 0;
 const node_crypto_1 = require("node:crypto");
+const desktopLogger_1 = require("./desktopLogger");
 class DesktopLegacyBus {
     pendingResponses = new Map();
     handleRendererMessage(payload) {
@@ -26,7 +27,9 @@ class DesktopLegacyBus {
         return new Promise((resolve, reject) => {
             const timeout = setTimeout(() => {
                 this.pendingResponses.delete(callbackChannel);
-                reject(new Error(`Timed out waiting for renderer response on ${channel}.`));
+                const error = new Error(`Timed out waiting for renderer response on ${channel}.`);
+                desktopLogger_1.desktopLog.warn('Desktop legacy bus timeout', { callbackChannel, channel });
+                reject(error);
             }, timeoutMs);
             this.pendingResponses.set(callbackChannel, {
                 resolve,
@@ -39,6 +42,7 @@ class DesktopLegacyBus {
     rejectAll(reason) {
         for (const [channel, pending] of this.pendingResponses.entries()) {
             clearTimeout(pending.timeout);
+            desktopLogger_1.desktopLog.warn('Rejecting pending desktop legacy response', { channel, reason });
             pending.reject(new Error(reason));
             this.pendingResponses.delete(channel);
         }
