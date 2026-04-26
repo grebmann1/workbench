@@ -39,7 +39,7 @@ const BASE_APP_MAPPING = {
         isOfflineAvailable: true,
         isTabVisible: false,
         type: i18n.CONNECTION,
-        menuIcon: 'utility:salesforce1',
+        menuIcon: 'utility:connected_apps',
         menuLabel: 'Connections',
         path: 'connections',
     },
