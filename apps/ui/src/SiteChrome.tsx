@@ -138,6 +138,7 @@ export function SiteFooter() {
             <span className="footer-brand">Workbench</span>
             <div className="footer-links">
                 <a href={DOCS_URL}>{t('chrome.footer.documentation')}</a>
+                <a href="/#faq">{t('chrome.footer.faq')}</a>
                 <a href={GITHUB_URL} target="_blank" rel="noopener noreferrer">
                     {t('chrome.footer.github')}
                 </a>
