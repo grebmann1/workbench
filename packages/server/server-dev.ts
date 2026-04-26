@@ -78,6 +78,15 @@ app.get('/documentation/search', async (req, res) => {
     }
 });
 
+/* Chrome extension launcher — bare hits to the API root (e.g. `/?applicationName=release`)
+ * come from nginx's /app → api.sf-workbench.com rewrite (see docker/nginx.conf.template).
+ * Forward the user into the installed extension, preserving the query string. */
+app.get('/', (req, res) => {
+    const queryIndex = req.originalUrl.indexOf('?');
+    const search = queryIndex >= 0 ? req.originalUrl.slice(queryIndex) : '';
+    res.redirect(`chrome-extension://${CHROME_ID}/views/app.html${search}`);
+});
+
 /* Chrome extension Salesforce OAuth callback — exchanges code and redirects back to extension */
 app.get('/chrome/callback', async (req, res) => {
     const code = Array.isArray(req.query.code) ? req.query.code[0] : req.query.code;
