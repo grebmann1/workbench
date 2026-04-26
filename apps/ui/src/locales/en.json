@@ -8,6 +8,7 @@
         },
         "footer": {
             "documentation": "Documentation",
+            "faq": "FAQ",
             "github": "GitHub",
             "copyright": "© {{year}} Workbench"
         },
@@ -67,6 +68,26 @@
             "title": "Get started in minutes",
             "body": "Add the web extension, connect your org, and get an overlay, a VS Code editor, metadata tools, and an AI agent — right inside your browser.",
             "cta": "Add Web Extension"
+        },
+        "faq": {
+            "kicker": "Questions",
+            "title": "Frequently asked",
+            "update": {
+                "question": "My Chrome extension didn't update — what should I do?",
+                "answer": "Chrome auto-updates extensions every few hours, but you can force it manually. Open chrome://extensions, turn on Developer mode in the top-right, then click the Update button. Restart Chrome afterwards. If you still don't see the latest features, remove and reinstall the extension from the Chrome Web Store — your saved sessions live in your browser, so nothing is lost."
+            },
+            "security": {
+                "question": "Is Workbench secure?",
+                "answer": "Yes. Workbench is fully open source — anyone can audit the code on GitHub. The extension talks to Salesforce directly using the OAuth tokens issued to your browser; it never asks for, sees, or stores your password. Sessions are kept only in your local Chrome storage. The api.sf-workbench.com proxy is stateless and used only when CORS blocks direct calls — it never logs or persists your tokens or your org data."
+            },
+            "official": {
+                "question": "Is it an official Salesforce tool?",
+                "answer": "No — Workbench is an independent, community-driven open-source project and is not affiliated with, endorsed by, or sponsored by Salesforce, Inc. That said, it is developed and maintained primarily by engineers from Salesforce, and it is the everyday tool many Salesforce engineers rely on internally. The name is inspired by the original Salesforce Workbench because this aims to be a modern replacement — but it is built and maintained independently."
+            },
+            "llmGateway": {
+                "question": "I'm a Salesforce employee using the internal LLM Gateway and I see <code>Authentication Error, Key is blocked</code>. How do I fix it?",
+                "answer": "This means your previous LLM Gateway key has been revoked — typically because you generated a new key for another internal app, which automatically blocks the old one. You don't need to call <code>/key/unblock</code>: just take the new key you generated and replace the old one in <strong>Settings → AI → AI Providers</strong>. Only the key needs to change — the endpoint URLs are already configured."
+            }
         }
     },
     "welcome": {

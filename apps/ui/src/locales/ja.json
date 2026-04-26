@@ -8,6 +8,7 @@
         },
         "footer": {
             "documentation": "ドキュメント",
+            "faq": "FAQ",
             "github": "GitHub",
             "copyright": "© {{year}} Workbench"
         },
@@ -67,6 +68,26 @@
             "title": "数分で始められます",
             "body": "拡張機能を追加して Org を接続するだけで、オーバーレイパネル、VS Code エディタ、メタデータツール、AI エージェントがブラウザ内で使えるようになります。",
             "cta": "拡張機能を追加"
+        },
+        "faq": {
+            "kicker": "よくある質問",
+            "title": "よくお寄せいただく質問",
+            "update": {
+                "question": "Chrome 拡張機能が更新されません — どうすればよいですか？",
+                "answer": "Chrome は数時間ごとに拡張機能を自動更新しますが、手動で更新することもできます。chrome://extensions を開き、右上の「デベロッパーモード」をオンにして、「更新」ボタンをクリックしてください。その後 Chrome を再起動します。それでも新機能が反映されない場合は、Chrome ウェブストアから拡張機能を一度削除して再インストールしてください — 保存済みのセッションはブラウザ側に保持されているため失われません。"
+            },
+            "security": {
+                "question": "Workbench は安全ですか？",
+                "answer": "はい。Workbench は完全にオープンソースで、誰でも GitHub 上のコードを検証できます。拡張機能はブラウザに発行された OAuth トークンを用いて Salesforce と直接通信します。パスワードを要求・参照・保存することは一切ありません。セッション情報はローカルの Chrome ストレージにのみ保存されます。プロキシ api.sf-workbench.com はステートレスで、CORS のために直接呼び出せない API のみを中継し、トークンや Org データを記録・保持することはありません。"
+            },
+            "official": {
+                "question": "Salesforce 公式のツールですか？",
+                "answer": "いいえ。Workbench はコミュニティ主導の独立したオープンソースプロジェクトで、Salesforce, Inc. と提携・推奨・スポンサー関係はありません。ただし、本プロジェクトは主に Salesforce に勤務するエンジニアによって開発・運営されており、Salesforce 社内では多くのエンジニアが日常的な管理ツールとして利用しています。名前はオリジナルの Salesforce Workbench に由来していますが、それはあくまで「現代的な代替」を目指しているためであり、本プロジェクトは独立して開発・運営されています。"
+            },
+            "llmGateway": {
+                "question": "Salesforce 社員で、内部 LLM Gateway を使用しています。<code>Authentication Error, Key is blocked</code> が表示されますが、どう対処すればよいですか？",
+                "answer": "これは、以前の LLM Gateway キーが失効したことを意味します。通常は別の社内アプリ用に新しいキーを発行した結果、以前のキーが自動的にブロックされたケースです。<code>/key/unblock</code> を呼び出す必要はありません。発行された新しいキーをそのまま <strong>Settings → AI → AI Providers</strong> に貼り付け、古いキーを置き換えてください。変更が必要なのはキーのみで、エンドポイント URL はすでに設定済みです。"
+            }
         }
     },
     "welcome": {

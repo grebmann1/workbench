@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useTranslation } from 'react-i18next';
+import { Trans, useTranslation } from 'react-i18next';
 import screenshotWelcome from '../../../assets/images/screenshots/screenshot-welcome.png';
 import screenshotOverlay from '../../../assets/images/screenshots/screenshot-overlay.png';
 import screenshotEditor from '../../../assets/images/screenshots/screenshot-editor.png';
@@ -70,6 +70,61 @@ const PLATFORM_META = [
         ),
     },
 ] as const;
+
+const FAQ_ITEMS = ['update', 'security', 'official', 'llmGateway'] as const;
+
+const FAQ_RICH_COMPONENTS = {
+    code: <code className="faq-code" />,
+    strong: <strong />,
+};
+
+function FAQSection() {
+    const { t } = useTranslation();
+    const [ref, inView] = useInView<HTMLElement>(0.12);
+    return (
+        <section
+            ref={ref}
+            id="faq"
+            className={`faq-section${inView ? ' is-visible' : ''}`}
+            aria-labelledby="faq-title"
+        >
+            <div className="section-heading">
+                <p className="section-kicker">{t('home.faq.kicker')}</p>
+                <h2 id="faq-title">{t('home.faq.title')}</h2>
+            </div>
+            <div className="faq-list">
+                {FAQ_ITEMS.map(id => (
+                    <details key={id} className="faq-item">
+                        <summary className="faq-question">
+                            <span>
+                                <Trans
+                                    t={t}
+                                    i18nKey={`home.faq.${id}.question`}
+                                    components={FAQ_RICH_COMPONENTS}
+                                />
+                            </span>
+                            <svg
+                                className="faq-chevron"
+                                width="16" height="16" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" strokeWidth="2"
+                                strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"
+                            >
+                                <polyline points="6 9 12 15 18 9" />
+                            </svg>
+                        </summary>
+                        <p className="faq-answer">
+                            <Trans
+                                t={t}
+                                i18nKey={`home.faq.${id}.answer`}
+                                components={FAQ_RICH_COMPONENTS}
+                            />
+                        </p>
+                    </details>
+                ))}
+            </div>
+        </section>
+    );
+}
 
 function FeatureSection({ section, index }: { section: typeof FEATURE_SECTIONS[number]; index: number }) {
     const { t } = useTranslation();
@@ -157,6 +212,8 @@ export default function App() {
                         ))}
                     </div>
                 </section>
+
+                <FAQSection />
 
                 <section className="download" aria-labelledby="download-title">
                     <h2 id="download-title">{t('home.download.title')}</h2>
