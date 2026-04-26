@@ -1,0 +1,20 @@
+{
+    "id": "dataImport",
+    "name": "dataImport/app",
+    "label": "Data Import",
+    "shortName": "Import",
+    "description": "Insert/Update/Upsert records from CSV using REST or Bulk APIs.",
+    "path": "dataimport",
+    "quickActionIcon": "standard:data_model",
+    "type": "data",
+    "menuGroup": "data",
+    "menuOrder": 20,
+    "flags": {
+        "isFullHeight": true,
+        "isDeletable": true,
+        "isElectronOnly": false,
+        "isOfflineAvailable": false,
+        "isMenuVisible": true,
+        "isTabVisible": true
+    }
+}

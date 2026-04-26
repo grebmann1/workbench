@@ -1,0 +1,20 @@
+{
+    "id": "code",
+    "name": "code/app",
+    "label": "Code Toolkit",
+    "shortName": "Code",
+    "description": "Retrieve Code, Run Static code analysis, Open visualforce. A perfect toolkit to simplify your life (Electron only).",
+    "path": "code",
+    "quickActionIcon": "standard:apex",
+    "type": "developer",
+    "menuGroup": "code",
+    "menuOrder": 40,
+    "flags": {
+        "isFullHeight": true,
+        "isDeletable": true,
+        "isElectronOnly": true,
+        "isOfflineAvailable": false,
+        "isMenuVisible": true,
+        "isTabVisible": true
+    }
+}

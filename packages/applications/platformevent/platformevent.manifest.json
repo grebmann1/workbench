@@ -1,0 +1,20 @@
+{
+    "id": "platformevent",
+    "name": "platformevent/app",
+    "label": "Event Explorer",
+    "shortName": "PLEV",
+    "description": "Subscribe to platform event to visualize them.",
+    "path": "platformevent",
+    "quickActionIcon": "standard:events",
+    "type": "developer",
+    "menuGroup": "code",
+    "menuOrder": 20,
+    "flags": {
+        "isFullHeight": true,
+        "isDeletable": true,
+        "isElectronOnly": false,
+        "isOfflineAvailable": false,
+        "isMenuVisible": true,
+        "isTabVisible": true
+    }
+}

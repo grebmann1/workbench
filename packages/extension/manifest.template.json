@@ -66,8 +66,6 @@
                 "styles/*",
                 "libs/*",
                 "views/*",
-                "openai/index.js",
-                "workers/openaiWorker/worker.js",
                 "*/*"
             ]
         }

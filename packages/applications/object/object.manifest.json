@@ -1,0 +1,20 @@
+{
+    "id": "object",
+    "name": "object/app",
+    "label": "SObject Explorer",
+    "shortName": "SObject",
+    "description": "Explore in details all your SObjects",
+    "path": "sobject",
+    "quickActionIcon": "standard:knowledge",
+    "type": "explorer",
+    "menuGroup": "explorers",
+    "menuOrder": 20,
+    "flags": {
+        "isFullHeight": true,
+        "isDeletable": true,
+        "isElectronOnly": false,
+        "isOfflineAvailable": false,
+        "isMenuVisible": true,
+        "isTabVisible": true
+    }
+}

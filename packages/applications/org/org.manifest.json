@@ -1,0 +1,20 @@
+{
+    "id": "org",
+    "name": "org/app",
+    "label": "Org. Overview",
+    "shortName": "Org",
+    "description": "Org. Overview",
+    "path": "org",
+    "quickActionIcon": "standard:account",
+    "type": "explorer",
+    "menuGroup": "explorers",
+    "menuOrder": 50,
+    "flags": {
+        "isFullHeight": true,
+        "isDeletable": false,
+        "isElectronOnly": false,
+        "isOfflineAvailable": false,
+        "isMenuVisible": false,
+        "isTabVisible": true
+    }
+}

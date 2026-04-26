@@ -1,0 +1,20 @@
+{
+    "id": "anonymousApex",
+    "name": "anonymousApex/app",
+    "label": "Anonymous Apex",
+    "shortName": "APEX",
+    "description": "Execute Apex Scripts",
+    "path": "anonymousapex",
+    "quickActionIcon": "standard:apex",
+    "type": "developer",
+    "menuGroup": "code",
+    "menuOrder": 30,
+    "flags": {
+        "isFullHeight": true,
+        "isDeletable": true,
+        "isElectronOnly": false,
+        "isOfflineAvailable": false,
+        "isMenuVisible": true,
+        "isTabVisible": true
+    }
+}

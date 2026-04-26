@@ -1,0 +1,20 @@
+{
+    "id": "accessAnalyzer",
+    "name": "accessAnalyzer/app",
+    "label": "Access Analyzer",
+    "shortName": "Access.",
+    "description": "Review/Compare the access provided by the Permission sets & Profiles.",
+    "path": "access",
+    "quickActionIcon": "standard:portal",
+    "type": "explorer",
+    "menuGroup": "explorers",
+    "menuOrder": 60,
+    "flags": {
+        "isFullHeight": true,
+        "isDeletable": true,
+        "isElectronOnly": false,
+        "isOfflineAvailable": false,
+        "isMenuVisible": true,
+        "isTabVisible": true
+    }
+}

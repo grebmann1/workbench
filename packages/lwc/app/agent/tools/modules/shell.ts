@@ -11,7 +11,8 @@ import {
     SOQL_HELP,
     detectMetadataType,
 } from 'core/bash';
-import { store, APEX, API, QUERY, ERROR, APPLICATION } from 'core/store';
+import { store, ERROR, APPLICATION } from 'core/store';
+import { invokeCommand } from 'host-api/commands';
 import {
     getConfiguration,
     getPublicConfigurations,
@@ -579,51 +580,34 @@ export function registerShellCommands({
             async executeApex({ apexCode, shouldOpenUi, targetOrg }) {
                 try {
                     const overrideConnector = targetOrg ? await resolveConnector(targetOrg) : null;
-                    const result = await store.dispatch(async (dispatch, getState) => {
-                        const { application, apex } = getState();
-                        const connector = overrideConnector || application?.connector;
-                        if (!connector) {
-                            throw new Error('No active org connector found.');
-                        }
-                        if (application.isLoading && shouldOpenUi) await waitForLoaded();
-                        if (shouldOpenUi) {
-                            await wrappedNavigate({ applicationName: 'anonymousapex' });
-                        }
-                        const { tabId: realTabId, isNewTab } = formatTabId(null, apex.tabs);
-                        if (isNewTab) {
-                            await dispatch(
-                                APEX.reduxSlice.actions.addTab({ tab: { id: realTabId, body: apexCode } })
-                            );
-                        } else {
-                            await dispatch(APEX.reduxSlice.actions.selectionTab({ id: realTabId }));
-                            await dispatch(APEX.reduxSlice.actions.updateBody({ body: apexCode }));
-                        }
-                        const apexPromise = dispatch(
-                            APEX.executeApexAnonymous({
-                                connector,
-                                body: apexCode,
-                                tabId: realTabId,
-                                createdDate: Date.now(),
-                            })
-                        );
-                        dispatch(
-                            APEX.reduxSlice.actions.setAbortingPromise({
-                                tabId: realTabId,
-                                promise: apexPromise,
-                            })
-                        );
-                        const res = (await apexPromise) as any;
-                        await dispatch(APEX.reduxSlice.actions.selectionTab({ id: realTabId }));
-                        let output = { ...(res.payload?.response || {}), tabId: realTabId };
-                        if (res.error) {
-                            output = { ...output, error: res.error };
-                        }
-                        return output;
-                    });
-
+                    const { application } = store.getState();
+                    const connector = overrideConnector || application?.connector;
+                    if (!connector) {
+                        throw new Error('No active org connector found.');
+                    }
+                    if (application.isLoading && shouldOpenUi) await waitForLoaded();
+                    if (shouldOpenUi) {
+                        await wrappedNavigate({ applicationName: 'anonymousapex' });
+                    }
+                    const tabId = `cli-${Date.now()}`;
+                    const res = (await invokeCommand('anonymousApex.executeApex', {
+                        connector,
+                        body: apexCode,
+                        tabId,
+                        isNewTab: true,
+                        createdDate: Date.now(),
+                    })) as { payload?: any; error?: any } | undefined;
+                    if (!res) {
+                        return {
+                            result: { error: 'Anonymous Apex extension is not available.', tabId },
+                            exitCode: 1,
+                        };
+                    }
+                    let output: any = { ...(res.payload?.response || {}), tabId };
+                    if (res.error) output = { ...output, error: res.error };
                     return {
-                        result,
-                        exitCode: getApexExecutionExitCode(result),
+                        result: output,
+                        exitCode: getApexExecutionExitCode(output),
                     };
                 } catch (err) {
                     const message = err instanceof Error ? err.message : String(err);
@@ -638,73 +622,55 @@ export function registerShellCommands({
             },
             async executeSoql({ query, useToolingApi, includeDeletedRecords, targetOrg }) {
                 const overrideConnector = targetOrg ? await resolveConnector(targetOrg) : null;
-                const result = await store.dispatch(async (dispatch, getState) => {
-                    const { application } = getState();
-                    const connector = overrideConnector || application?.connector;
-                    if (!connector) {
-                        throw new Error('No active org connector found.');
-                    }
-                    const res = (await dispatch(
-                        QUERY.executeQueryIncognito({
-                            connector,
-                            soql: query,
-                            tabId: `cli-${Date.now()}`,
-                            useToolingApi,
-                            includeDeletedRecords,
-                        })
-                    )) as any;
-                    let output = res.payload;
-                    if (res.error) {
-                        output = { error: res.error };
-                    }
-                    return output;
-                });
+                const { application } = store.getState();
+                const connector = overrideConnector || application?.connector;
+                if (!connector) {
+                    throw new Error('No active org connector found.');
+                }
+                const res = (await invokeCommand('soql.executeQueryIncognito', {
+                    connector,
+                    soql: query,
+                    tabId: `cli-${Date.now()}`,
+                    useToolingApi,
+                    includeDeletedRecords,
+                })) as { payload?: any; error?: any } | undefined;
+                if (!res) {
+                    return { result: { error: 'SOQL extension is not available.' } };
+                }
+                const result = res.error ? { error: res.error } : res.payload;
                 return { result };
             },
             async executeApi({ method, endpoint, body, headerText, targetOrg }) {
                 const overrideConnector = targetOrg ? await resolveConnector(targetOrg) : null;
-                const result = await store.dispatch(async (dispatch, getState) => {
-                    const { application } = getState();
-                    const connector = overrideConnector || application?.connector;
-                    if (!connector) {
-                        throw new Error('No active org connector found.');
-                    }
-                    const { request: formattedRequest, error } = API_UTILS.formatApiRequest({
-                        endpoint,
-                        method,
-                        body,
-                        header: headerText,
-                        connector: connector as any,
-                        replaceVariableValues: value => value,
-                    });
-                    if (error) {
-                        throw new Error(error);
-                    }
-                    const originalRequest = {
-                        endpoint,
-                        method,
-                        body,
-                        header: headerText,
-                    };
-                    const tabId = `cli-${Date.now()}`;
-                    const apiPromise = dispatch(
-                        API.executeApiRequest({
-                            connector,
-                            request: originalRequest,
-                            formattedRequest,
-                            tabId,
-                            createdDate: Date.now(),
-                        })
-                    );
-                    dispatch(
-                        API.reduxSlice.actions.setAbortingPromise({
-                            tabId,
-                            promise: apiPromise,
-                        })
-                    );
-                    const res = (await apiPromise) as any;
-                    return res.payload?.response || res.payload || res;
+                const { application } = store.getState();
+                const connector = overrideConnector || application?.connector;
+                if (!connector) {
+                    throw new Error('No active org connector found.');
+                }
+                const { request: formattedRequest, error } = API_UTILS.formatApiRequest({
+                    endpoint,
+                    method,
+                    body,
+                    header: headerText,
+                    connector: connector as any,
+                    replaceVariableValues: value => value,
                 });
+                if (error) {
+                    throw new Error(error);
+                }
+                const originalRequest = { endpoint, method, body, header: headerText };
+                const tabId = `cli-${Date.now()}`;
+                const res = (await invokeCommand('api.executeRequest', {
+                    connector,
+                    request: originalRequest,
+                    formattedRequest,
+                    tabId,
+                    createdDate: Date.now(),
+                })) as { payload?: any; error?: any } | undefined;
+                if (!res) {
+                    return { result: { error: 'API extension is not available.', tabId } };
+                }
+                const result = res.payload?.response || res.payload || res;
                 return { result };
             },
             async listOrgs() {

@@ -1,0 +1,6 @@
+{
+    "name": "@workbench/app-anonymousApex",
+    "version": "0.0.0",
+    "private": true,
+    "main": "app/app.ts"
+}

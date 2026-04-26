@@ -1,0 +1,20 @@
+{
+    "id": "soql",
+    "name": "soql/app",
+    "label": "SOQL Explorer",
+    "shortName": "SOQL",
+    "description": "Build SOQL queries with fields suggestion and export them.",
+    "path": "soql",
+    "quickActionIcon": "standard:data_model",
+    "type": "developer",
+    "menuGroup": "data",
+    "menuOrder": 10,
+    "flags": {
+        "isFullHeight": true,
+        "isDeletable": true,
+        "isElectronOnly": false,
+        "isOfflineAvailable": false,
+        "isMenuVisible": true,
+        "isTabVisible": true
+    }
+}

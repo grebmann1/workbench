@@ -1,0 +1,20 @@
+{
+    "id": "metadata",
+    "name": "metadata/app",
+    "label": "Metadata Explorer",
+    "shortName": "Metad.",
+    "description": "Review & Modify all your metadata. (Beta)",
+    "path": "metadata",
+    "quickActionIcon": "standard:knowledge",
+    "type": "explorer",
+    "menuGroup": "explorers",
+    "menuOrder": 10,
+    "flags": {
+        "isFullHeight": true,
+        "isDeletable": true,
+        "isElectronOnly": false,
+        "isOfflineAvailable": false,
+        "isMenuVisible": true,
+        "isTabVisible": true
+    }
+}

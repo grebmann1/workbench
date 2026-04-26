@@ -1,0 +1,20 @@
+{
+    "id": "package",
+    "name": "package/app",
+    "label": "Deploy/Retrieve",
+    "shortName": "PACK",
+    "description": "",
+    "path": "package",
+    "quickActionIcon": "standard:maintenance_asset",
+    "type": "data",
+    "menuGroup": "deploy",
+    "menuOrder": 10,
+    "flags": {
+        "isFullHeight": true,
+        "isDeletable": true,
+        "isElectronOnly": false,
+        "isOfflineAvailable": false,
+        "isMenuVisible": true,
+        "isTabVisible": true
+    }
+}

@@ -1,0 +1,20 @@
+{
+    "id": "files",
+    "name": "files/app",
+    "label": "Files",
+    "shortName": "Files",
+    "description": "Browse your virtual workspace",
+    "path": "files",
+    "quickActionIcon": "utility:open_folder",
+    "type": "explorer",
+    "menuGroup": "explorers",
+    "menuOrder": 5,
+    "flags": {
+        "isFullHeight": true,
+        "isDeletable": true,
+        "isElectronOnly": false,
+        "isOfflineAvailable": true,
+        "isMenuVisible": false,
+        "isTabVisible": true
+    }
+}

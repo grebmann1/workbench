@@ -1,0 +1,20 @@
+{
+    "id": "api",
+    "name": "api/app",
+    "label": "API Explorer",
+    "shortName": "API",
+    "description": "Explore Salesforce API",
+    "path": "api",
+    "quickActionIcon": "standard:apex",
+    "type": "developer",
+    "menuGroup": "code",
+    "menuOrder": 10,
+    "flags": {
+        "isFullHeight": true,
+        "isDeletable": true,
+        "isElectronOnly": false,
+        "isOfflineAvailable": false,
+        "isMenuVisible": true,
+        "isTabVisible": true
+    }
+}

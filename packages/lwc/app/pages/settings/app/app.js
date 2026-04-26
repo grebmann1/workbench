@@ -75,7 +75,6 @@ export default class App extends ToolkitElement {
 
     //openAsPopup_checked = false;
     //openai_key;
-    //openai_assistant_id;
     //experienceCloudLoginAsIncognito;
 
     // Cache

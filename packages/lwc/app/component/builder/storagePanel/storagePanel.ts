@@ -1,6 +1,6 @@
 import { wire, api } from 'lwc';
 import ToolkitElement from 'core/toolkitElement';
-import { store, connectStore, SELECTORS, DESCRIBE, SOBJECT, QUERY, UI } from 'core/store';
+import { store, connectStore, SELECTORS, DESCRIBE, SOBJECT } from 'core/store';
 export const CATEGORY_STORAGE = {
     RECENT: 'recent',
     SAVED: 'saved',
