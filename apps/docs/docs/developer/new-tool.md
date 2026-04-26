@@ -13,7 +13,7 @@ If you need a full-screen routed experience with its own URL, see [Adding a New 
 ## Overview
 
 ```
-packages/lwc/app/
+packages/lwc/main/
 ├── tools/
 │   └── myUtility/        ← your new folder
 │       └── app/
@@ -28,12 +28,12 @@ packages/lwc/app/
 
 ## Step 1 — Create the LWC component
 
-Create the folder and files under `packages/lwc/app/tools/`:
+Create the folder and files under `packages/lwc/main/tools/`:
 
 ```
-packages/lwc/app/tools/myUtility/app/app.js
-packages/lwc/app/tools/myUtility/app/app.html
-packages/lwc/app/tools/myUtility/app/app.css
+packages/lwc/main/tools/myUtility/app/app.js
+packages/lwc/main/tools/myUtility/app/app.html
+packages/lwc/main/tools/myUtility/app/app.css
 ```
 
 Existing utilities use plain `.js` (not TypeScript) — follow the same convention for consistency unless the area you are working in already uses `.ts`.
@@ -64,7 +64,7 @@ Unlike routed applications, tools do not need to extend `ToolkitElement` unless 
 
 ## Step 2 — Register the entry
 
-Open `packages/lwc/app/core/applications/applications.ts` and add your entry to the import block and `BASE_APP_MAPPING` object:
+Open `packages/lwc/main/core/applications/applications.ts` and add your entry to the import block and `BASE_APP_MAPPING` object:
 
 ```typescript
 // 1. Add the import at the top
@@ -127,7 +127,7 @@ import myUtility_app from 'myUtility/app';
 | | Tool / Utility | Application |
 | --- | --- | --- |
 | Registration file | `core/applications/applications.ts` | `skeleton/registry/registry.ts` |
-| Source folder | `packages/lwc/app/tools/` | `packages/lwc/app/application/` |
+| Source folder | `packages/lwc/main/tools/` | `packages/lwc/main/application/` |
 | Has its own route | No | Yes (`?applicationName=<path>`) |
 | Shown in menu groups | Optional (no group key) | Yes (requires `menuGroup`) |
 | Typical file language | `.js` | `.ts` |

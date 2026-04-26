@@ -91,12 +91,12 @@ Workbench is a Salesforce administration toolkit that embeds directly into your 
 
 ```
 packages/lwc/app              Main LWC application modules
-packages/lwc/web-extension    LWC modules specific to extension surfaces
+packages/lwc/extension    LWC modules specific to extension surfaces
 packages/server               Dev/prod backend server modules plus LWR assets/layouts/hooks/content
 packages/extension            Chrome extension entry points and manifest template
-packages/shared/modules       Shared cross-target modules (shared/*)
+packages/lwc/shared/modules       Shared cross-target modules (shared/*)
 packages/workers/src          Worker source files
-packages/vendor-bundles       Vendor build wrappers (OpenAI/just-bash)
+vendor-bundles       Vendor build wrappers (OpenAI/just-bash)
 tools/build                   Rollup configs
 tools/scripts                 Utility scripts and generators
 assets                        Shared repository assets (images, skills, data, docs/refactor notes)
@@ -262,8 +262,8 @@ npm run validate
 
 - `lwr.config.json` controls routes, module resolution, and static assets for the web app.
 - Rollup configs under `tools/build` control extension and worker bundles.
-- Vendor browser bundles are generated under `packages/vendor-bundles` and copied into `packages/server/assets/libs`.
-- Agent default skill content is generated into `packages/shared/modules/defaultAgentSkills`.
+- Vendor browser bundles are generated under `vendor-bundles` and copied into `packages/server/assets/libs`.
+- Agent default skill content is generated into `packages/lwc/shared/modules/defaultAgentSkills`.
 
 ### HMR Notes
 
@@ -282,10 +282,10 @@ npm run start:dev:web
 
 | Area                                     | Location                                                    |
 | ---------------------------------------- | ----------------------------------------------------------- |
-| New app-level pages / features           | `packages/lwc/app/pages` and `packages/lwc/app/application` |
-| Shared LWC UI shell elements             | `packages/lwc/app/component`                                |
-| Extension-only components                | `packages/lwc/web-extension`                                |
-| Cross-target reusable modules            | `packages/shared/modules`                                   |
+| New app-level pages / features           | `packages/lwc/main/pages` and `packages/lwc/main/application` |
+| Shared LWC UI shell elements             | `packages/lwc/main/component`                                |
+| Extension-only components                | `packages/lwc/extension`                                |
+| Cross-target reusable modules            | `packages/lwc/shared/modules`                                   |
 | Server hooks / routes / content / layout | `packages/server`                                           |
 
 ---

@@ -1,5 +1,5 @@
 /**
- * Walks packages/lwc/app/application/NAME/NAME.manifest.json and emits two
+ * Walks packages/lwc/main/application/NAME/NAME.manifest.json and emits two
  * files the host consumes:
  *
  *   1. application.manifest.json — aggregated manifest (data only)
@@ -17,11 +17,11 @@ const fs = require('fs');
 const path = require('path');
 
 const PROJECT_ROOT = path.resolve(__dirname, '../..');
-const APPLICATION_ROOT = path.join(PROJECT_ROOT, 'packages/lwc/app/application');
+const APPLICATION_ROOT = path.join(PROJECT_ROOT, 'packages/lwc/main/application');
 // Additional package roots that contribute App manifests (each root is scanned
 // like APPLICATION_ROOT — direct child folder name + `<name>.manifest.json`).
-// Extensions live outside packages/lwc/app so core can boot without them.
-const EXTENSION_ROOTS = [path.join(PROJECT_ROOT, 'packages/applications')];
+// Extensions live outside packages/lwc/main so core can boot without them.
+const EXTENSION_ROOTS = [path.join(PROJECT_ROOT, 'packages/lwc/applications')];
 const GENERATED_DIR = path.join(APPLICATION_ROOT, 'applicationRegistry');
 const AGGREGATED_MANIFEST = path.join(GENERATED_DIR, 'application.manifest.json');
 const GENERATED_REGISTRY = path.join(GENERATED_DIR, 'applicationRegistry.ts');

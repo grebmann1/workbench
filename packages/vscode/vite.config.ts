@@ -154,43 +154,43 @@ export default defineConfig({
       },
       {
         find: 'vscode/bridge/iframeFsBridgeContract',
-        replacement: path.resolve(__dirname, '../lwc/app/vscode/fullApp/bridge/iframeFsBridgeContract.ts')
+        replacement: path.resolve(__dirname, '../lwc/main/vscode/fullApp/bridge/iframeFsBridgeContract.ts')
       },
       {
         find: 'vscode/bridge/iframeFsBridgeClient',
-        replacement: path.resolve(__dirname, '../lwc/app/vscode/fullApp/bridge/iframeFsBridgeClient.ts')
+        replacement: path.resolve(__dirname, '../lwc/main/vscode/fullApp/bridge/iframeFsBridgeClient.ts')
       },
       {
         find: 'vscode/bridge/bootstrapIframeBridge',
-        replacement: path.resolve(__dirname, '../lwc/app/vscode/fullApp/bridge/bootstrapIframeBridge.ts')
+        replacement: path.resolve(__dirname, '../lwc/main/vscode/fullApp/bridge/bootstrapIframeBridge.ts')
       },
       {
         find: 'vscode/bridge/iframeJsforceBridgeContract',
-        replacement: path.resolve(__dirname, '../lwc/app/vscode/fullApp/bridge/iframeJsforceBridgeContract.ts')
+        replacement: path.resolve(__dirname, '../lwc/main/vscode/fullApp/bridge/iframeJsforceBridgeContract.ts')
       },
       {
         find: 'vscode/bridge/bootstrapIframeJsforceBridge',
-        replacement: path.resolve(__dirname, '../lwc/app/vscode/fullApp/bridge/bootstrapIframeJsforceBridge.ts')
+        replacement: path.resolve(__dirname, '../lwc/main/vscode/fullApp/bridge/bootstrapIframeJsforceBridge.ts')
       },
       {
         find: 'vscode/bridge/iframeJsforceBridgeClient',
-        replacement: path.resolve(__dirname, '../lwc/app/vscode/fullApp/bridge/iframeJsforceBridgeClient.ts')
+        replacement: path.resolve(__dirname, '../lwc/main/vscode/fullApp/bridge/iframeJsforceBridgeClient.ts')
       },
       {
         find: 'vscode/bridge/iframeAiBridgeContract',
-        replacement: path.resolve(__dirname, '../lwc/app/vscode/fullApp/bridge/iframeAiBridgeContract.ts')
+        replacement: path.resolve(__dirname, '../lwc/main/vscode/fullApp/bridge/iframeAiBridgeContract.ts')
       },
       {
         find: 'vscode/bridge/bootstrapIframeAiBridge',
-        replacement: path.resolve(__dirname, '../lwc/app/vscode/fullApp/bridge/bootstrapIframeAiBridge.ts')
+        replacement: path.resolve(__dirname, '../lwc/main/vscode/fullApp/bridge/bootstrapIframeAiBridge.ts')
       },
       {
         find: 'vscode/bridge/iframeAiBridgeClient',
-        replacement: path.resolve(__dirname, '../lwc/app/vscode/fullApp/bridge/iframeAiBridgeClient.ts')
+        replacement: path.resolve(__dirname, '../lwc/main/vscode/fullApp/bridge/iframeAiBridgeClient.ts')
       },
       {
         find: 'vscode/fullApp/bootstrapState',
-        replacement: path.resolve(__dirname, '../lwc/app/vscode/fullApp/bootstrapState.ts')
+        replacement: path.resolve(__dirname, '../lwc/main/vscode/fullApp/bootstrapState.ts')
       },
       {
         find: 'vscode/bridge/registerIframeWorkspaceProvider',

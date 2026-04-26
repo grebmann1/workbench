@@ -46,7 +46,7 @@ interface ImportMeta {
   glob(pattern: string): Record<string, () => Promise<any>>
 }
 
-// core/bash is resolved by Rollup to packages/lwc/app/core/bash/bash.ts.
+// core/bash is resolved by Rollup to packages/lwc/main/core/bash/bash.ts.
 // Declared here to avoid pulling that file's transitive LWC deps into the VSCode tsconfig.
 declare module 'core/bash' {
   export function createBashInstance(...args: any[]): any;

@@ -17,8 +17,8 @@ This document records the temporary bridge-backed mocks introduced during the fu
 ## Mocked Filesystem Contract
 
 - Bridge client integration is delegated to:
-  - `packages/lwc/app/vscode/tempForIframeContent/bridge/registerIframeWorkspaceProvider.ts`
-  - `packages/lwc/app/vscode/tempForIframeContent/bridge/iframeWorkspaceProvider.ts`
+  - `packages/lwc/main/vscode/tempForIframeContent/bridge/registerIframeWorkspaceProvider.ts`
+  - `packages/lwc/main/vscode/tempForIframeContent/bridge/iframeWorkspaceProvider.ts`
 - Local fallback keeps a seeded `/workspace` for startup.
 - Future backend swap:
   1. Keep provider registration entrypoint in `setup.common.ts`.

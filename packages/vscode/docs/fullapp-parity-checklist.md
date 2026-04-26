@@ -15,7 +15,7 @@ The runtime must register extensions in this exact sequence:
 7. `workbench-ai`
 8. `workbench-walkthrough`
 
-Reference source: `packages/lwc/app/vscode/fullApp/workbench/orchestration/extensionRegistry.ts`.
+Reference source: `packages/lwc/main/vscode/fullApp/workbench/orchestration/extensionRegistry.ts`.
 
 ## Command/View Surface Contract
 

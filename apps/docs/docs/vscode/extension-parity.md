@@ -4,7 +4,7 @@ title: VS Code Extension Parity
 
 # VS Code Extension Parity
 
-This document inventories the user-facing functionality exposed by the embedded workbench extensions under `packages/lwc/app/vscode/fullApp/extensions` and compares it with the user-facing functionality available in the upstream Salesforce VS Code packages under `/Users/grebmann/Documents/salesforce/projects/vscode-extensions/salesforcedx-vscode/packages`.
+This document inventories the user-facing functionality exposed by the embedded workbench extensions under `packages/lwc/main/vscode/fullApp/extensions` and compares it with the user-facing functionality available in the upstream Salesforce VS Code packages under `/Users/grebmann/Documents/salesforce/projects/vscode-extensions/salesforcedx-vscode/packages`.
 
 ## Scope
 

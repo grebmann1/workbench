@@ -110,7 +110,7 @@ Each bridge has a matching `*Contract.ts` file that defines all message types, m
 
 ## State management
 
-The LWC frontend uses **Redux Toolkit** (`@reduxjs/toolkit`) for global state, with store definitions shared via `packages/shared/store`. LWC components access the store through a custom `ToolkitElement` base class and a `core/storeContext` context pattern.
+The LWC frontend uses **Redux Toolkit** (`@reduxjs/toolkit`) for global state, with store definitions shared via `packages/lwc/shared/store`. LWC components access the store through a custom `ToolkitElement` base class and a `core/storeContext` context pattern.
 
 ## Build and deployment targets
 

@@ -1,0 +1,7 @@
+export const VIEWER_TABS = {
+    DEFAULT: 'Default',
+    CUSTOM: 'Custom',
+    JSON: 'JSON',
+    SCHEMA: 'Schema',
+};
+//# sourceMappingURL=platformEvent.js.map

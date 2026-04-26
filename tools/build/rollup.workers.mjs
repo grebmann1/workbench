@@ -81,7 +81,7 @@ export default (args) => {
 			entries: [
 				{ find: 'buffer', replacement: path.resolve(__dirname, "../../node_modules/buffer/index.js") },
 				{ find: 'imported/jsforce', replacement: path.resolve(__dirname, "../../assets/extension/libs/jsforce/jsforce.js") },
-					{ find: 'imported/sf', replacement: path.resolve(__dirname, "../../packages/shared/dist/modules/sf/sf.js") }
+					{ find: 'imported/sf', replacement: path.resolve(__dirname, "../../packages/lwc/shared/dist/modules/sf/sf.js") }
 				]
 			}),
 			inject({

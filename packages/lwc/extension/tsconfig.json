@@ -1,0 +1,46 @@
+{
+    "compilerOptions": {
+        "target": "ES2020",
+        "module": "ESNext",
+        "moduleResolution": "Node",
+        "lib": ["ES2020", "DOM"],
+        "baseUrl": ".",
+        "paths": {
+            "core/*": ["../main/core/*"],
+            "editor/*": ["../main/editor/*"],
+            "slds/*": ["../main/component/slds/*"],
+            "shared/*": ["../shared/modules/*"],
+            "core/applications": ["../main/core/applications/applications"],
+            "core/constant": ["../main/core/constant/constant"],
+            "editor/editorCompleteWidget": [
+                "../main/editor/editorCompleteWidget/editorCompleteWidget"
+            ],
+            "editor/languages": ["../main/editor/languages/languages"],
+            "editor/promptWidget": ["../main/editor/promptWidget/promptWidget"],
+            "editor/utils": ["../main/editor/utils/utils"],
+            "shared/analytics": ["../shared/modules/analytics/analytics"],
+            "shared/llm": ["../shared/modules/llm/llm"],
+            "shared/loader": ["../shared/modules/loader/loader"],
+            "shared/markdown": ["../shared/modules/markdown/markdown"],
+            "shared/sf": ["../shared/modules/sf/sf"],
+            "slds/MarkdownViewerEditorModal": [
+                "../main/component/slds/MarkdownViewerEditorModal/MarkdownViewerEditorModal"
+            ],
+            "slds/codeBlock": ["../main/component/slds/codeBlock/codeBlock"],
+            "slds/hashtagDropdown": ["../main/component/slds/hashtagDropdown/hashtagDropdown"],
+            "slds/modalUserSelector": ["../main/component/slds/modalUserSelector/modalUserSelector"]
+        },
+        "outDir": ".",
+        "sourceMap": true,
+        "declaration": false,
+        "noEmit": true,
+        "strict": false,
+        "noImplicitAny": false,
+        "skipLibCheck": true,
+        "esModuleInterop": true,
+        "resolveJsonModule": true,
+        "experimentalDecorators": true
+    },
+    "include": ["**/*.ts", "types/**/*.d.ts"],
+    "exclude": ["node_modules", "dist"]
+}

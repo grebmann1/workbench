@@ -6,12 +6,12 @@
         "lib": ["ES2020", "DOM"],
         "baseUrl": ".",
         "paths": {
-            "shared/*": ["../shared/modules/*"],
-            "shared/analytics": ["../shared/modules/analytics/analytics"],
-            "shared/llm": ["../shared/modules/llm/llm"],
-            "shared/loader": ["../shared/modules/loader/loader"],
-            "shared/markdown": ["../shared/modules/markdown/markdown"],
-            "shared/sf": ["../shared/modules/sf/sf"]
+            "shared/*": ["../lwc/shared/modules/*"],
+            "shared/analytics": ["../lwc/shared/modules/analytics/analytics"],
+            "shared/llm": ["../lwc/shared/modules/llm/llm"],
+            "shared/loader": ["../lwc/shared/modules/loader/loader"],
+            "shared/markdown": ["../lwc/shared/modules/markdown/markdown"],
+            "shared/sf": ["../lwc/shared/modules/sf/sf"]
         },
         "rootDir": ".",
         "outDir": "./dist",

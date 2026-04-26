@@ -13,7 +13,7 @@ This guide walks through adding one from scratch.
 ## Overview
 
 ```
-packages/lwc/app/
+packages/lwc/main/
 ├── application/
 │   └── myTool/          ← your new folder
 │       └── app/
@@ -28,12 +28,12 @@ packages/lwc/app/
 
 ## Step 1 — Create the LWC component
 
-Create the folder and files for your application under `packages/lwc/app/application/`:
+Create the folder and files for your application under `packages/lwc/main/application/`:
 
 ```
-packages/lwc/app/application/myTool/app/app.ts
-packages/lwc/app/application/myTool/app/app.html
-packages/lwc/app/application/myTool/app/app.css
+packages/lwc/main/application/myTool/app/app.ts
+packages/lwc/main/application/myTool/app/app.html
+packages/lwc/main/application/myTool/app/app.css
 ```
 
 The root component **must** be named `app` inside a folder matching your tool's namespace.
@@ -74,7 +74,7 @@ Extending `ToolkitElement` (from `core/toolkitElement`) gives you access to:
 
 ## Step 2 — Register the entry
 
-Open `packages/lwc/app/component/skeleton/registry/registry.ts` and add your entry to the top-level import block and `APPLICATION_ENTRIES` array:
+Open `packages/lwc/main/component/skeleton/registry/registry.ts` and add your entry to the top-level import block and `APPLICATION_ENTRIES` array:
 
 ```typescript
 // 1. Add the import at the top
@@ -126,7 +126,7 @@ import myTool_app from 'myTool/app';
 
 ## Step 3 — Add the LWR module alias
 
-Open `lwc.config.json` (or the relevant LWR config for the target surface) and ensure your namespace is mapped. Most applications under `packages/lwc/app/application/` are picked up automatically by the existing `@lwc/rollup-plugin` glob patterns — verify by checking the `modules` array in the build config for your target.
+Open `lwc.config.json` (or the relevant LWR config for the target surface) and ensure your namespace is mapped. Most applications under `packages/lwc/main/application/` are picked up automatically by the existing `@lwc/rollup-plugin` glob patterns — verify by checking the `modules` array in the build config for your target.
 
 ---
 
