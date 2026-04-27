@@ -14,31 +14,55 @@ workbench/
 │   ├── docs/          ← Docusaurus documentation site
 │   └── ui/            ← Welcome / marketing site (Vite + React)
 ├── packages/
-│   ├── lwc/           ← LWC OSS frontend (LWR + Rollup)
-│   ├── vscode/        ← Embedded VS Code workbench runtime
+│   ├── lwc/
+│   │   ├── main/         ← Host shell: chrome, routing, store, host-api, agent runtime
+│   │   ├── applications/ ← Pluggable feature apps (SOQL, metadata, utilities, …)
+│   │   ├── extension/    ← Chrome-extension-specific LWC surfaces (overlay, panels)
+│   │   └── shared/       ← Cross-target pure utilities (shared/* modules)
+│   ├── vscode/        ← Embedded VS Code workbench runtime (iframe, React + Monaco)
 │   ├── server/        ← Express + LWR Node server
-│   ├── shared/        ← Cross-package TypeScript modules
-│   ├── extension/     ← Chrome/browser extension entry
+│   ├── extension/     ← Chrome/browser extension entry + manifest template
 │   ├── desktop/       ← Electron desktop wrapper
 │   └── workers/       ← Web workers (metadata, AI, access analyzer)
 └── tools/
-    └── build/         ← Rollup config files for all targets
+    ├── build/         ← Rollup configs (extension, workers)
+    ├── scripts/       ← Manifest generators + LWR HMR patch + asset sync
+    └── mcp/           ← Local MCP test server + sample config
 ```
+
+## Core architectural split: host ↔ applications
+
+The frontend is organized as a **core host + pluggable applications** model (inspired by VS Code extensions). See [`packages/lwc/main/host-api/README.md`](https://github.com/tprouvot/sf-toolkit-web/blob/master/packages/lwc/main/host-api/README.md) for the authoritative boundary contract.
+
+- **Host** (`packages/lwc/main/`): shell/chrome, routing, Redux store, connector, design system, agent runtime, `host-api/`.
+- **Applications** (`packages/lwc/applications/<name>/`): self-contained launchable features — both full-screen tools (SOQL, Metadata, API Explorer) and utilities (URL Encoder, Text Compare, Smart Input). Each ships a single `<name>.manifest.json` and registers through the aggregated application registry.
+- **`host-api/`** is the stable import contract applications consume — e.g. `host-api/store`, `host-api/commands`, `host-api/element`, `host-api/connector`. Applications must **not** reach into `core/*` directly.
+- **`shared/*`** (`packages/lwc/shared/modules/`) holds pure, reusable utilities consumed across host, apps, and the VS Code workbench.
+
+For how to add a new application, see [Adding a New Application](../developer/new-application).
 
 ## Core packages
 
-### `packages/lwc` — LWC OSS frontend
+### `packages/lwc/main` — Host shell
 
-The main browser UI, built with [Lightning Web Components (open source)](https://lwc.dev/), LWR, and Rollup. It contains every feature surface users interact with:
+The LWC OSS host, built with [Lightning Web Components (open source)](https://lwc.dev/), LWR, and Rollup. Key areas:
 
-- **`app/application/`** — SOQL, metadata, API explorer, Apex runner, org browser, data import, code analyzer, platform events, record viewer, file explorer, packages
-- **`app/agent/`** — AI agent UI: streaming chat, tool calls, reasoning, audio recording
-- **`app/editor/`** — Monaco-based code editor, diff editor, file tree, SOQL editor
-- **`app/core/`** — Salesforce connector session, IndexedDB file system, Redux store, i18n, worker bridge
-- **`app/vscode/fullApp/`** — LWC component that owns the VS Code iframe and all bridge hosts
-- **`web-extension/`** — Browser-extension-specific UI panels
+- **`application/`** — application registry aggregator (generated) and shell wiring.
+- **`agent/`** — AI agent UI: streaming chat, tool calls, reasoning, audio recording.
+- **`editor/`** — Monaco-based code editor, diff editor, file tree, SOQL editor.
+- **`core/`** — Salesforce connector session, IndexedDB file system, Redux store, i18n, worker bridge.
+- **`host-api/`** — the stable contract exposed to applications.
+- **`vscode/`** — the LWC component that owns the VS Code iframe and all bridge hosts.
 
-The same `lwc` codebase compiles to all three surfaces. The Rollup build reads `BUNDLE_TARGET` to include or exclude surface-specific modules.
+### `packages/lwc/applications` — Pluggable applications
+
+Each subfolder is a self-contained app described by a `<name>.manifest.json`. The generator (`tools/scripts/generate_application_manifest.js`) aggregates every manifest into `main/application/applicationRegistry/applicationRegistry.ts` — the core host reads only that generated file.
+
+### `packages/lwc/shared/modules` — Cross-target utilities
+
+Pure TypeScript modules imported as `shared/<name>` across host, apps, and the VS Code workbench. Includes `utils`, `logger`, `analytics`, `llm`, `cacheManager`, `loader`, `markdown`, `middleware`, `metadataApi`, `toolingApi`, `salesforceUrl`, `sf`, `sourceTracking`, `store`, `types`.
+
+The same LWC codebase compiles to all surfaces. The Rollup build reads `BUNDLE_TARGET` to include or exclude surface-specific modules.
 
 ### `packages/vscode` — Embedded VS Code workbench
 
@@ -60,20 +84,6 @@ Serves the LWC SPA via LWR and exposes backend API routes:
 - LLM proxy (routes AI inference to OpenAI, Anthropic, Google, xAI based on config)
 - General Salesforce API proxy
 - Documentation search
-
-### `packages/shared` — Cross-package TypeScript library
-
-Pure TypeScript compiled with `tsc` and imported by both `lwc` and `vscode`. It is the canonical location for cross-cutting concerns:
-
-| Module | Purpose |
-|---|---|
-| `llm/` | LLM provider / model normalization |
-| `cacheManager/` | LocalForage-based cache |
-| `metadataApi/` | Salesforce Metadata API client helpers |
-| `toolingApi/` | Salesforce Tooling API client helpers |
-| `store/` | Redux store definitions |
-| `utils/` | String, DOM, async, formatting, env detection utilities |
-| `types/` | Shared TypeScript type definitions |
 
 ## Iframe + bridge architecture
 
@@ -110,20 +120,24 @@ Each bridge has a matching `*Contract.ts` file that defines all message types, m
 
 ## State management
 
-The LWC frontend uses **Redux Toolkit** (`@reduxjs/toolkit`) for global state, with store definitions shared via `packages/lwc/shared/store`. LWC components access the store through a custom `ToolkitElement` base class and a `core/storeContext` context pattern.
+The LWC frontend uses **Redux Toolkit** (`@reduxjs/toolkit`) for global state. The host store lives in `packages/lwc/main/core/store/` and is exposed to applications via `host-api/store`, which re-exports `store`, `injectReducer`, `removeReducer`, `connectStore`, and `reportError`.
+
+Applications attach their own slices at runtime with `injectReducer(key, reducer)` rather than registering statically on the root store — this keeps the host agnostic of which applications exist. LWC components access the store through the `ToolkitElement` base class (`host-api/element`) and the `connectStore` helper.
 
 ## Build and deployment targets
 
 | Target | Entry | Key build config |
 |---|---|---|
 | Browser extension | `packages/extension` | `tools/build/rollup.extension.mjs` |
-| Electron desktop | `packages/desktop` | `tools/build/rollup.desktop.mjs` |
-| Self-hosted server | `packages/server` + LWR | `tools/build/rollup.app.mjs` |
+| Electron desktop | `packages/desktop` | `packages/desktop/forge.config.cjs` (Electron Forge) |
+| Web app / server | `packages/server` + LWR | `lwr.config.json` |
+| Web workers | `packages/workers/src` | `tools/build/rollup.workers.mjs` |
 
-All targets consume the same compiled `packages/lwc` and `packages/shared` output.
+All targets consume the same LWC sources under `packages/lwc/`. The extension build reads `BUNDLE_TARGET=main|sandbox|all` to control which entry sets are emitted.
 
 ## Related docs
 
+- [Adding a New Application](../developer/new-application)
 - [VS Code workflows](../vscode/overview)
 - [IndexedDB virtual file system](../storage/indexeddb-workspace)
 - [AI Agent tools](../ai-agent/tools-overview)

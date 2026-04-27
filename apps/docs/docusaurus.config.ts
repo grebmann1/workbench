@@ -79,7 +79,6 @@ const config: Config = {
                         { label: 'Architecture', to: '/architecture/overview' },
                         { label: 'VS Code', to: '/vscode/overview' },
                         { label: 'New Application', to: '/developer/new-application' },
-                        { label: 'New Tool', to: '/developer/new-tool' },
                         { label: 'Local Storage', to: '/storage/indexeddb-workspace' },
                         { label: 'Contributing', to: '/contributing/how-to-contribute' },
                     ],

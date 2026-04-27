@@ -20,8 +20,12 @@ This guide walks through adding one from scratch.
 
 ## How the pieces fit together
 
-- Each extension is a folder under `packages/lwc/applications/<name>/` with its
-  own `package.json` and `<name>.manifest.json`.
+- Each extension is a folder under `packages/lwc/applications/<name>/`
+  described by a single `<name>.manifest.json`.
+- Full-screen apps and smaller utilities share the same shape — there is no
+  separate "tools" folder. Utilities are just applications with
+  `type: "utility"` (Text Compare, Smart Input, URL Encoder are all
+  examples).
 - `tools/scripts/generate_application_manifest.js` walks every manifest and
   emits `packages/lwc/main/application/applicationRegistry/applicationRegistry.ts`.
   The core host reads **only** that generated file — edits there are
@@ -55,11 +59,10 @@ mv packages/lwc/applications/myapp/urlencoder.manifest.json \
 Then edit:
 
 1. `myapp/myapp.manifest.json` — set `id`, `name` (to `myapp/app`), `label`,
-   `shortName`, `description`, `path`, `menuGroup`, `menuOrder`, and icons.
-2. `myapp/package.json` — update the `name` field (convention:
-   `@workbench/app-myapp`).
-3. `myapp/app/app.ts` — your component logic.
-4. `packages/lwc/main/tsconfig.json` — add two `paths` entries so
+   `shortName`, `description`, `path`, `type`, `menuGroup`, `menuOrder`,
+   and icons.
+2. `myapp/app/app.ts` — your component logic.
+3. `packages/lwc/main/tsconfig.json` — add two `paths` entries so
    TypeScript can resolve the module (see
    [Build and verify](#build-and-verify) below).
 
@@ -75,7 +78,6 @@ Use `packages/lwc/applications/soql/` as the canonical reference:
 
 ```
 packages/lwc/applications/myapp/
-├── package.json                 # minimal, declares the boundary
 ├── myapp.manifest.json          # declarative metadata (see below)
 ├── app/
 │   ├── app.ts                   # LWC entry, default export
@@ -90,19 +92,9 @@ The folder name **must** match the manifest `id` field (enforced by the
 validator) and the `app/` sub-folder **must** exist with `app.ts` as the
 default export — this maps to the `myapp/app` LWC module specifier.
 
-### `package.json`
-
-```json
-{
-    "name": "@workbench/app-myapp",
-    "version": "0.0.0",
-    "private": true,
-    "main": "app/app.ts"
-}
-```
-
-The `@workbench/app-*` prefix is convention; the package exists mainly to mark
-the extension boundary for tooling.
+There is no `package.json` per extension. The manifest is the single source
+of truth; module resolution happens through the root workspace and the LWC
+module aliases declared in `packages/lwc/main/tsconfig.json`.
 
 ---
 
@@ -144,7 +136,7 @@ manifest verbatim as a starting template:
 | `shortName` | yes | string | Abbreviated label used in narrow tabs. |
 | `description` | yes | string | Shown in Quick Actions and tooltips. |
 | `path` | yes | `^[a-z][a-z0-9-]*$` | Value of `?applicationName=<path>` and the URL router key. Must be unique. |
-| `type` | yes | enum | One of `developer`, `explorer`, `data`. Used for filtering/grouping. |
+| `type` | yes | enum | One of `developer`, `explorer`, `data`, `utility`. Drives the menu section the app appears in (utilities are grouped together under *Utilities*) and the quick-action filter chip. |
 | `menuGroup` | yes | enum | One of `data`, `code`, `explorers`, `deploy`. |
 | `menuOrder` | yes | integer ≥ 0 | Sort order within the menu group (lower = higher in list). |
 | `quickActionIcon` | yes | `namespace:icon_name` | SLDS icon. Namespace one of `standard`, `utility`, `custom`, `action`, `doctype`. |
@@ -225,7 +217,135 @@ extension is not loaded, so callers can safely fan out.
 - `this.connector` — the active jsforce-style connection (when an org is
   selected).
 - `this.alias` — the current org alias.
+- `this.pageClass` — SLDS-compatible class (`full-page` /
+  `full-page-connected`) to wrap your root element. Use it on the outermost
+  `<div>` of your template so the app plugs into the standard layout.
 - Standard LWC lifecycle hooks.
+
+---
+
+## UI shell: the builder components
+
+Every first-party app wraps its body in the **builder** component pair so it
+gets a consistent page header, toolbar, and optional left/right rails. The
+urlencoder template and Text Compare both use it — copy that shape for any
+new app unless you have a specific reason not to.
+
+```html
+<template>
+    <div class={pageClass}>
+        <builder-editor>
+            <builder-header
+                slot="header"
+                title="Tools"
+                sub-title="URL Encoder"
+                icon-name="utility:link">
+                <div slot="actions" class="slds-builder-toolbar__actions">
+                    <!-- primary action buttons: Run, Save, Export, … -->
+                </div>
+                <template lwc:if={showEmptyState}>
+                    <p slot="meta" class="slds-page-header__meta-text slds-text-color_weak">
+                        Paste a URL component into the input to encode or decode.
+                    </p>
+                </template>
+                <div slot="subactions" class="slds-builder-toolbar__actions">
+                    <!-- secondary controls: toggles, mode switch, filters -->
+                </div>
+            </builder-header>
+            <article class="full-page-body slds-card slds-p-around_medium">
+                <!-- your app body -->
+            </article>
+        </builder-editor>
+    </div>
+</template>
+```
+
+### `<builder-editor>` — the page shell
+
+Provides the outer layout grid. Named slots:
+
+| Slot | Purpose |
+| --- | --- |
+| `header` | The page header; place a `<builder-header>` here. |
+| `left` | Optional left rail — renders inside `<builder-left-panel>`. Only use if your app has navigable sections or a sidebar. |
+| `right` | Optional right rail (rendered when the right-panel state slice opts in). Typically for contextual inspectors. |
+| (default) | The main body — usually an `<article class="full-page-body">`. |
+
+### `<builder-header>` — the page header
+
+`@api` properties:
+
+| Prop | Type | Purpose |
+| --- | --- | --- |
+| `title` | string | Top-line group label (e.g. `"Tools"`). |
+| `sub-title` | string | The app name (e.g. `"URL Encoder"`). |
+| `icon-name` | string | SLDS icon (`namespace:name`). |
+| `meta-text` | string | Shortcut for a plain meta line (equivalent to the `meta` slot). |
+
+Named slots:
+
+| Slot | Purpose |
+| --- | --- |
+| `subtitle` | Inline badge or status next to the sub-title (e.g. unsaved marker). |
+| `actions` | Primary action toolbar — typically `<lightning-button>` items. |
+| `details` | Mid-row details (breadcrumbs, summary, etc.). |
+| `meta` | Meta-text row under the title; good for empty-state hints. |
+| `subactions` | Secondary controls row — toggles, mode switchers, inline filters. |
+
+**Reference implementations** (read these when building something new):
+
+- [`packages/lwc/applications/urlencoder/app/app.html`](https://github.com/tprouvot/sf-toolkit-web/blob/master/packages/lwc/applications/urlencoder/app/app.html)
+  — minimal template app using only the `actions`, `meta`, `subactions`
+  slots.
+- [`packages/lwc/applications/textCompare/app/app.html`](https://github.com/tprouvot/sf-toolkit-web/blob/master/packages/lwc/applications/textCompare/app/app.html)
+  — similar shape but demonstrates a richer toolbar and inline Monaco
+  editor.
+
+---
+
+## Reporting errors to the footer
+
+The app shell ships a footer error panel that subscribes to the global
+`error` Redux slice. **Dispatch errors through `reportError` and they
+surface there automatically** — never render your own inline error banner
+just for runtime failures.
+
+```ts
+import { reportError } from 'host-api/store';
+
+try {
+    await doTheThing();
+} catch (err) {
+    reportError(err, { source: 'myapp' });
+}
+```
+
+### Signature
+
+```ts
+reportError(
+    error: Error | string | { message: string; details?: string },
+    options?: { details?: string; source?: string },
+): void;
+```
+
+- Accepts an `Error`, a plain string, or an object with `message` /
+  optional `details`. When given an `Error`, the stack trace becomes the
+  default `details`.
+- `options.source` is a short identifier (usually your app's `id`) so the
+  footer can attribute the entry.
+- `options.details` overrides the auto-detected details — use this when
+  you want to surface a user-friendly explanation instead of the raw
+  stack.
+
+### When to use it
+
+- Any thrown exception in a user-initiated handler (run / save / load).
+- Failed network calls that the user should know about.
+- Validation failures you can't catch earlier in the form layer.
+
+Extensions must never dispatch to the `ERROR` slice directly — `reportError`
+is the only supported entry point so the payload shape stays consistent.
 
 ---
 
@@ -339,8 +459,6 @@ hand**; the pre-build step regenerates them.
 
 ## Related guides
 
-- [Adding a New Tool](./new-tool) — for utilities that live inside an existing
-  app rather than a full route.
 - [Architecture Overview](../architecture/overview) — monorepo layout and
   build targets.
 - [`host-api/` README](https://github.com/tprouvot/sf-toolkit-web/blob/master/packages/lwc/main/host-api/README.md)

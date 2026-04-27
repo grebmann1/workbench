@@ -48,7 +48,7 @@ const sidebars: SidebarsConfig = {
         {
             type: 'category',
             label: 'Extending Workbench',
-            items: ['developer/new-application', 'developer/new-tool'],
+            items: ['developer/new-application'],
         },
         {
             type: 'category',
