@@ -1,0 +1,66 @@
+<template>
+    <div class="slds-p-around_medium slds-grid slds-grid_vertical slds-gutters_direct-small">
+        <div class="slds-col">
+            <h1 class="slds-text-heading_medium">URL Encoder</h1>
+            <p class="slds-text-body_small slds-text-color_weak">
+                Encode and decode URL components. This is the reference starter extension —
+                pure client-side, no Salesforce connection required.
+            </p>
+        </div>
+
+        <div class="slds-col">
+            <lightning-radio-group
+                name="mode"
+                label="Mode"
+                options={modeOptions}
+                value={mode}
+                type="button"
+                onchange={handleModeChange}></lightning-radio-group>
+        </div>
+
+        <div class="slds-col">
+            <lightning-textarea
+                label="Input"
+                name="input"
+                value={input}
+                placeholder="Paste a URL component to encode or decode"
+                onchange={handleInputChange}></lightning-textarea>
+        </div>
+
+        <div class="slds-col">
+            <lightning-button-group>
+                <lightning-button
+                    label="Run"
+                    variant="brand"
+                    icon-name="utility:link"
+                    onclick={handleRun}></lightning-button>
+                <lightning-button
+                    label="Copy"
+                    icon-name="utility:copy"
+                    disabled={isCopyDisabled}
+                    onclick={handleCopy}></lightning-button>
+                <lightning-button
+                    label="Clear"
+                    icon-name="utility:clear"
+                    onclick={handleClear}></lightning-button>
+            </lightning-button-group>
+        </div>
+
+        <div class="slds-col">
+            <lightning-textarea
+                label="Output"
+                name="output"
+                value={output}
+                readonly></lightning-textarea>
+        </div>
+
+        <template lwc:if={hasError}>
+            <div class="slds-col">
+                <div class="slds-notify slds-notify_alert slds-theme_alert-texture slds-theme_error" role="alert">
+                    <span class="slds-assistive-text">Error</span>
+                    <h2>{errorMessage}</h2>
+                </div>
+            </div>
+        </template>
+    </div>
+</template>

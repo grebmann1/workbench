@@ -88,6 +88,8 @@
             "recordviewer/app": ["../applications/recordviewer/app/app"],
             "recordviewer/slices": ["../applications/recordviewer/slices/slices"],
             "recordviewer/slices/recordViewer": ["../applications/recordviewer/slices/recordViewer"],
+            "urlencoder/*": ["../applications/urlencoder/*"],
+            "urlencoder/app": ["../applications/urlencoder/app/app"],
             "connection/connectionDetailModal": [
                 "connection/connectionDetailModal/connectionDetailModal"
             ],

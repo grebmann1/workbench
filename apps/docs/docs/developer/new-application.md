@@ -36,6 +36,39 @@ This guide walks through adding one from scratch.
 
 ---
 
+## Starter template
+
+The repo ships a deliberately minimal reference extension at
+[`packages/lwc/applications/urlencoder/`](https://github.com/tprouvot/sf-toolkit-web/tree/master/packages/lwc/applications/urlencoder).
+It's a working URL encode / decode utility — no Redux state, no connector,
+no command registry — built as the smallest viable extension and
+exercised by every CI build so it can't rot.
+
+**Use it as your starting point**, not SOQL:
+
+```bash
+cp -r packages/lwc/applications/urlencoder packages/lwc/applications/myapp
+mv packages/lwc/applications/myapp/urlencoder.manifest.json \
+   packages/lwc/applications/myapp/myapp.manifest.json
+```
+
+Then edit:
+
+1. `myapp/myapp.manifest.json` — set `id`, `name` (to `myapp/app`), `label`,
+   `shortName`, `description`, `path`, `menuGroup`, `menuOrder`, and icons.
+2. `myapp/package.json` — update the `name` field (convention:
+   `@workbench/app-myapp`).
+3. `myapp/app/app.ts` — your component logic.
+4. `packages/lwc/main/tsconfig.json` — add two `paths` entries so
+   TypeScript can resolve the module (see
+   [Build and verify](#build-and-verify) below).
+
+Walk through the sections below to understand what each piece does. The
+SOQL extension is referenced throughout for larger patterns (Redux slices,
+command registry) when you outgrow the template.
+
+---
+
 ## Folder layout
 
 Use `packages/lwc/applications/soql/` as the canonical reference:
@@ -237,6 +270,30 @@ documents the claim for anyone grepping the registry.
 ---
 
 ## Build and verify
+
+Before building, wire up the TypeScript aliases. The Rollup config
+auto-discovers everything under `packages/lwc/applications/` via a
+wildcard, but the main tsconfig's `paths` list is explicit per app —
+without entries there, `tsc` fails with `Cannot find module 'myapp/app'`.
+Add to `packages/lwc/main/tsconfig.json`:
+
+```json
+"myapp/*": ["../applications/myapp/*"],
+"myapp/app": ["../applications/myapp/app/app"],
+```
+
+If you added a slices folder, also add:
+
+```json
+"myapp/slices": ["../applications/myapp/slices/slices"],
+"myapp/slices/myapp": ["../applications/myapp/slices/myapp"],
+```
+
+and register the slice paths in both module arrays of
+`tools/build/rollup.extension.mjs` (search for `soql/slices` for the
+pattern — only required for apps that ship their own reducers).
+
+Then:
 
 ```bash
 # Regenerate the aggregated manifest + registry. Must succeed and report

@@ -1,0 +1,20 @@
+{
+    "id": "urlencoder",
+    "name": "urlencoder/app",
+    "label": "URL Encoder",
+    "shortName": "URL",
+    "description": "Encode and decode URL components. A minimal reference extension.",
+    "path": "urlencoder",
+    "quickActionIcon": "utility:link",
+    "type": "developer",
+    "menuGroup": "code",
+    "menuOrder": 50,
+    "flags": {
+        "isFullHeight": true,
+        "isDeletable": true,
+        "isElectronOnly": false,
+        "isOfflineAvailable": true,
+        "isMenuVisible": true,
+        "isTabVisible": true
+    }
+}

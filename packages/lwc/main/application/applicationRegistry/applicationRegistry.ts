@@ -14,6 +14,7 @@ import package_app_module from 'package/app';
 import platformevent_app_module from 'platformevent/app';
 import recordviewer_app_module from 'recordviewer/app';
 import soql_app_module from 'soql/app';
+import urlencoder_app_module from 'urlencoder/app';
 
 const APPLICATION_APP_MAPPING = {
     'accessAnalyzer/app': {
@@ -236,6 +237,23 @@ const APPLICATION_APP_MAPPING = {
         path: "soql",
         menuGroup: "data",
         menuOrder: 10,
+    },
+    'urlencoder/app': {
+        module: urlencoder_app_module,
+        isFullHeight: true,
+        isDeletable: true,
+        isElectronOnly: false,
+        isOfflineAvailable: true,
+        isMenuVisible: true,
+        isTabVisible: true,
+        label: "URL Encoder",
+        type: "developer",
+        description: "Encode and decode URL components. A minimal reference extension.",
+        quickActionIcon: "utility:link",
+        shortName: "URL",
+        path: "urlencoder",
+        menuGroup: "code",
+        menuOrder: 50,
     },
 };
 
