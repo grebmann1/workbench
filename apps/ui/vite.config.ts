@@ -8,9 +8,9 @@ export default defineConfig({
     server: {
         host: '0.0.0.0',
         port: 27100,
+        // Cross-origin links (docs, vscode IDE) are env-driven absolute URLs — see .env.development.
+        // Only same-origin paths handled by the Express API need a dev proxy here.
         proxy: {
-            '/app': serverUrl,
-            '/docs': serverUrl,
             '/api': serverUrl,
             '/oauth2': serverUrl,
         },

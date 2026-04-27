@@ -3,6 +3,11 @@
 .env
 .env.dev
 .env.prod
+# apps/ui env files hold only public URLs (no secrets) and must ship with the repo
+# so cross-app links resolve correctly in dev and prod builds.
+!/apps/ui/.env
+!/apps/ui/.env.development
+!/apps/ui/.env.production
 .sfdx
 .DS_Store
 **/.cursor/*
