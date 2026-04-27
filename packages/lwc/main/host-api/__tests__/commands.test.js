@@ -77,3 +77,51 @@ test('handler errors propagate to the caller', async () => {
     });
     await assert.rejects(() => invokeCommand('boom'), /nope/);
 });
+
+test('concurrent invocations resolve independently with their own payloads', async () => {
+    __resetCommandsForTests();
+    let order = 0;
+    registerCommand('slow', async payload => {
+        const myOrder = ++order;
+        // Interleave resolution so the second call can overtake if state leaks.
+        await new Promise(r => setTimeout(r, payload.ms));
+        return { payload, myOrder };
+    });
+    const [slow, fast] = await Promise.all([
+        invokeCommand('slow', { id: 'A', ms: 30 }),
+        invokeCommand('slow', { id: 'B', ms: 5 }),
+    ]);
+    // Both resolve with their own payload (no cross-contamination).
+    assert.equal(slow.payload.id, 'A');
+    assert.equal(fast.payload.id, 'B');
+    // Order counter: A entered first (order 1), B entered second (order 2).
+    assert.equal(slow.myOrder, 1);
+    assert.equal(fast.myOrder, 2);
+});
+
+test('handlers registered to different ids do not share payload state', async () => {
+    __resetCommandsForTests();
+    const seen = [];
+    registerCommand('alpha', p => { seen.push(['alpha', p]); return 'alpha-result'; });
+    registerCommand('beta', p => { seen.push(['beta', p]); return 'beta-result'; });
+
+    const [a, b] = await Promise.all([
+        invokeCommand('alpha', { n: 1 }),
+        invokeCommand('beta', { n: 2 }),
+    ]);
+    assert.equal(a, 'alpha-result');
+    assert.equal(b, 'beta-result');
+    assert.deepEqual(
+        seen.sort((x, y) => x[0].localeCompare(y[0])),
+        [['alpha', { n: 1 }], ['beta', { n: 2 }]],
+    );
+});
+
+test('async handler rejection propagates as a rejected promise', async () => {
+    __resetCommandsForTests();
+    registerCommand('asyncBoom', async () => {
+        await Promise.resolve();
+        throw new Error('async failure');
+    });
+    await assert.rejects(() => invokeCommand('asyncBoom'), /async failure/);
+});
