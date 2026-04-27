@@ -1,0 +1,10 @@
+{
+    "extends": "../../packages/lwc/shared/tsconfig.json",
+    "compilerOptions": {
+        "types": ["node"],
+        "noEmit": true,
+        "allowImportingTsExtensions": true,
+        "moduleResolution": "bundler"
+    },
+    "include": ["**/*.ts"]
+}

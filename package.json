@@ -20,7 +20,7 @@
         "format:check": "prettier --check \"{packages,tools}/**/*.{js,jsx,ts,tsx,json,css,scss,html,mjs}\"",
         "lint:eslint": "eslint \"{packages,tools}/**/*.{js,jsx,ts,tsx,mjs}\"",
         "lint:eslint:fix": "eslint \"{packages,tools}/**/*.{js,jsx,ts,tsx,mjs}\" --fix",
-        "test": "node --experimental-strip-types --test \"packages/lwc/main/**/__tests__/*.test.js\"",
+        "test": "node --experimental-strip-types --test \"packages/lwc/shared/**/__tests__/*.test.@(ts|js|mjs)\" \"packages/lwc/main/**/__tests__/*.test.@(ts|js|mjs)\" \"packages/lwc/extension/**/__tests__/*.test.@(ts|js|mjs)\" \"packages/server/**/__tests__/*.test.@(ts|js|mjs)\" \"packages/extension/**/__tests__/*.test.@(ts|js|mjs)\" \"tools/testing/**/__tests__/*.test.@(ts|js|mjs)\"",
         "validate": "npm-run-all lint test build:all",
         "start:prod:server": "npm run build:server && NODE_ENV=production DOTENV_CONFIG_PATH=.env.prod node -r dotenv/config packages/server/dist/server-prod.js",
         "start:dev:extension:main": "rm -rf dist/extension; npm-run-all --parallel watch:extension:main serve:extension",
