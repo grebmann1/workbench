@@ -136,3 +136,72 @@ test('re-injection replaces the previous reducer', () => {
     store.dispatch(first.actions.set(10));
     assert.equal(store.getState()[PROBE_KEY].n, 20);
 });
+
+test('removeReducer restores state shape: core keys remain, dynamic key drops', () => {
+    const { store, injectReducer, removeReducer } = mkStore();
+    const probe = makeProbe();
+    injectReducer(PROBE_KEY, probe.reducer);
+    store.dispatch(probe.actions.set(99));
+
+    const before = store.getState();
+    assert.ok(Object.prototype.hasOwnProperty.call(before, CORE_KEY));
+    assert.ok(Object.prototype.hasOwnProperty.call(before, PROBE_KEY));
+
+    removeReducer(PROBE_KEY);
+
+    const after = store.getState();
+    assert.deepEqual(Object.keys(after).sort(), [CORE_KEY].sort());
+    // Core slice state is preserved across the rebuild.
+    assert.deepEqual(after[CORE_KEY], before[CORE_KEY]);
+});
+
+test('configure callback receives the static root reducer and middleware is preserved', () => {
+    const core = makeCoreSlice();
+    const middlewareCalls = [];
+    const marker = () => next => action => {
+        middlewareCalls.push(action.type);
+        return next(action);
+    };
+    const { store, injectReducer } = createInjectableStore(
+        { [CORE_KEY]: core.reducer },
+        rootReducer =>
+            configureStore({
+                reducer: rootReducer,
+                middleware: getDefault => getDefault().concat(marker),
+            }),
+    );
+    store.dispatch(core.actions.ping());
+
+    // Middleware stays wired after a replaceReducer triggered by injection.
+    const probe = makeProbe();
+    injectReducer(PROBE_KEY, probe.reducer);
+    store.dispatch(probe.actions.bump());
+
+    assert.ok(middlewareCalls.includes(`${CORE_KEY}/ping`));
+    assert.ok(middlewareCalls.includes(`${PROBE_KEY}/bump`));
+});
+
+test('multiple dynamic slices can coexist and be removed independently', () => {
+    const { store, injectReducer, removeReducer } = mkStore();
+    const probeA = makeProbe();
+    const probeB = createSlice({
+        name: 'probeB',
+        initialState: { s: 'x' },
+        reducers: {
+            swap(state, action) {
+                state.s = action.payload;
+            },
+        },
+    });
+    injectReducer(PROBE_KEY, probeA.reducer);
+    injectReducer('probeB', probeB.reducer);
+    store.dispatch(probeA.actions.set(5));
+    store.dispatch(probeB.actions.swap('hello'));
+    assert.equal(store.getState()[PROBE_KEY].n, 5);
+    assert.equal(store.getState()['probeB'].s, 'hello');
+
+    removeReducer(PROBE_KEY);
+    assert.equal(store.getState()[PROBE_KEY], undefined);
+    // The other dynamic slice is untouched.
+    assert.equal(store.getState()['probeB'].s, 'hello');
+});
