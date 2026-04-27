@@ -18,7 +18,6 @@ import LOGGER from 'shared/logger';
 
 export default class Menu extends ToolkitElement {
     @api isUserLoggedIn = false;
-    @api version;
     isMenuSmall = false;
     selectedItem = 'home';
     filterText = '';
@@ -401,10 +400,6 @@ export default class Menu extends ToolkitElement {
 
     get isUnlimitedMode() {
         return true; //!isElectronApp();
-    }
-
-    get formattedVersion() {
-        return `${this.version}`;
     }
 
     get isHeaderLightDisplayed() {

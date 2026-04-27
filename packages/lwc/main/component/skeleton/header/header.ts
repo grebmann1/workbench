@@ -1,18 +1,15 @@
 import { LightningElement, api, wire } from 'lwc';
-import { isElectronApp, isEmpty, classSet, isNotUndefinedOrNull } from 'shared/utils';
+import { NavigationContext, navigate } from 'lwr/navigation';
 import { connectStore, store as legacyStore, store_application } from 'shared/store';
-import { NavigationContext, generateUrl, navigate } from 'lwr/navigation';
+import { isEmpty, classSet, isNotUndefinedOrNull } from 'shared/utils';
 
 import ModalLauncher from 'skeleton/modalLauncher';
-import constant from 'core/constant';
 
 export default class Header extends LightningElement {
     @api currentApplicationName = 'App Name';
     @api currentTabName = 'Home';
     @api applications;
     @api isUserLoggedIn = false;
-
-    @api version = constant.version || '';
 
     @api isMenuSmall = false;
 
@@ -56,10 +53,7 @@ export default class Header extends LightningElement {
             if (!this.isMenuSmall) {
                 this.isMenuSmall = true;
                 legacyStore.dispatch(store_application.collapseMenu());
-                window.defaultStore.setItem(
-                    'header-isMenuSmall',
-                    JSON.stringify(this.isMenuSmall)
-                );
+                window.defaultStore.setItem('header-isMenuSmall', JSON.stringify(this.isMenuSmall));
             }
         }
     };
@@ -95,7 +89,7 @@ export default class Header extends LightningElement {
 
     loadCache = async () => {
         try {
-            let _isMenuSmall = await window.defaultStore.getItem('header-isMenuSmall');
+            const _isMenuSmall = await window.defaultStore.getItem('header-isMenuSmall');
             if (!isEmpty(_isMenuSmall)) {
                 this.isMenuSmall = _isMenuSmall === 'true';
                 if (this.isMenuSmall) {
@@ -120,10 +114,6 @@ export default class Header extends LightningElement {
     };
 
     /** Getters */
-
-    get formattedVersion() {
-        return `${this.version}`;
-    }
 
     get collapseClass() {
         return classSet('slds-grid button-container slds-show_medium')

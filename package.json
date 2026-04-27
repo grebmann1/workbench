@@ -1,6 +1,6 @@
 {
     "name": "workbench",
-    "version": "2.0.0",
+    "version": "2.0.1",
     "scripts": {
         "start:dev:extension": "rm -rf dist/extension; npm-run-all --parallel watch:extension serve:extension",
         "start:dev:server": "npm run build:server && NODE_ENV=development DOTENV_CONFIG_PATH=.env.dev node -r dotenv/config packages/server/dist/server-dev.js",

@@ -1,5 +1,73 @@
 [
   {
+    "version": "2.0.1",
+    "date": "April 28th, 2026",
+    "sections": [
+      {
+        "title": "Enhancements",
+        "categories": [
+          {
+            "category": "Navigation & App Shell",
+            "items": [
+              "Streamlined URL generation and connection-aware navigation so Workbench opens the right target more consistently across extension, web, desktop, and VS Code surfaces.",
+              "Added an explicit Open action to recent session cards on the home page, making it clearer when a saved session will launch Workbench.",
+              "Added URL Encoder as a minimal starter application template for faster future app development."
+            ]
+          },
+          {
+            "category": "Settings & Storage",
+            "items": [
+              "Added a Side Panel Behavior setting so Chrome users can choose whether opening Workbench in a tab closes the side panel or keeps the Agent visible.",
+              "Improved settings export and import to include both localStorage and chrome.storage.local, helping recover saved queries, Apex snippets, API requests, and cache-backed settings after upgrades.",
+              "Added storage diagnostic tooling to detect saved query data restored into the wrong browser storage backend and surface alias-hidden query files."
+            ]
+          },
+          {
+            "category": "Application Platform",
+            "items": [
+              "Migrated built-in tools into the packages/applications layout and simplified app package structure for cleaner extension registration.",
+              "Improved the application manifest workflow and validator coverage for packaged apps."
+            ]
+          }
+        ]
+      },
+      {
+        "title": "Bug Fixes",
+        "categories": [
+          {
+            "category": "Links & Routing",
+            "items": [
+              "Fixed cross-app links in development and production so packaged applications resolve reliably from every host.",
+              "Tightened VS Code iframe communication and localhost connection handling for smoother embedded-editor workflows.",
+              "Improved Chrome side-panel tab tracking so side-panel messages target the correct tab and the panel no longer lingers on tabs where Workbench was not explicitly opened."
+            ]
+          },
+          {
+            "category": "Embedded VS Code",
+            "items": [
+              "Improved VS Code bootstrap so session-derived aliases use the active session path instead of prompting OAuth against the wrong org.",
+              "Scoped embedded VS Code workspaces by org before rendering the iframe, preventing editor state from leaking through the default workspace.",
+              "Added safer workspace defaults for sandbox and scratch orgs, plus retry support when initialization can reuse the current Workbench session."
+            ]
+          }
+        ]
+      },
+      {
+        "title": "Documentation",
+        "categories": [
+          {
+            "category": "Developer Docs",
+            "items": [
+              "Refreshed the architecture overview and new-application guide to match the current application registry and manifest model.",
+              "Added a project guidance document covering repo structure, common commands, and architecture notes for contributors.",
+              "Updated release metadata for Workbench 2.0.1."
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
     "version": "2.0.0",
     "date": "April 17th, 2026",
     "sections": [
