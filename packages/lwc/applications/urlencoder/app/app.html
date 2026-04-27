@@ -1,66 +1,62 @@
 <template>
-    <div class="slds-p-around_medium slds-grid slds-grid_vertical slds-gutters_direct-small">
-        <div class="slds-col">
-            <h1 class="slds-text-heading_medium">URL Encoder</h1>
-            <p class="slds-text-body_small slds-text-color_weak">
-                Encode and decode URL components. This is the reference starter extension —
-                pure client-side, no Salesforce connection required.
-            </p>
-        </div>
-
-        <div class="slds-col">
-            <lightning-radio-group
-                name="mode"
-                label="Mode"
-                options={modeOptions}
-                value={mode}
-                type="button"
-                onchange={handleModeChange}></lightning-radio-group>
-        </div>
-
-        <div class="slds-col">
-            <lightning-textarea
-                label="Input"
-                name="input"
-                value={input}
-                placeholder="Paste a URL component to encode or decode"
-                onchange={handleInputChange}></lightning-textarea>
-        </div>
-
-        <div class="slds-col">
-            <lightning-button-group>
-                <lightning-button
-                    label="Run"
-                    variant="brand"
-                    icon-name="utility:link"
-                    onclick={handleRun}></lightning-button>
-                <lightning-button
-                    label="Copy"
-                    icon-name="utility:copy"
-                    disabled={isCopyDisabled}
-                    onclick={handleCopy}></lightning-button>
-                <lightning-button
-                    label="Clear"
-                    icon-name="utility:clear"
-                    onclick={handleClear}></lightning-button>
-            </lightning-button-group>
-        </div>
-
-        <div class="slds-col">
-            <lightning-textarea
-                label="Output"
-                name="output"
-                value={output}
-                readonly></lightning-textarea>
-        </div>
-
-        <template lwc:if={hasError}>
-            <div class="slds-col">
-                <div class="slds-notify slds-notify_alert slds-theme_alert-texture slds-theme_error" role="alert">
-                    <span class="slds-assistive-text">Error</span>
-                    <h2>{errorMessage}</h2>
+    <div class={pageClass}>
+        <builder-editor>
+            <builder-header
+                slot="header"
+                title="Tools"
+                sub-title="URL Encoder"
+                icon-name="utility:link">
+                <div slot="actions" class="slds-builder-toolbar__actions">
+                    <lightning-button
+                        class="slds-p-left_xx-small"
+                        variant="brand"
+                        label="Run"
+                        icon-name="utility:link"
+                        onclick={handleRun}></lightning-button>
+                    <lightning-button
+                        class="slds-p-left_xx-small"
+                        variant="neutral"
+                        label="Copy"
+                        icon-name="utility:copy"
+                        disabled={isCopyDisabled}
+                        onclick={handleCopy}></lightning-button>
+                    <lightning-button
+                        class="slds-p-left_xx-small"
+                        variant="neutral"
+                        label="Clear"
+                        icon-name="utility:delete"
+                        onclick={handleClear}></lightning-button>
                 </div>
-            </div>
-        </template>
+                <template lwc:if={showEmptyState}>
+                    <p slot="meta" class="slds-page-header__meta-text slds-text-color_weak">
+                        Paste a URL component into the input below to encode or decode.
+                    </p>
+                </template>
+                <div slot="subactions" class="slds-builder-toolbar__actions">
+                    <lightning-radio-group
+                        name="mode"
+                        label="Mode"
+                        variant="label-hidden"
+                        options={modeOptions}
+                        value={mode}
+                        type="button"
+                        onchange={handleModeChange}></lightning-radio-group>
+                </div>
+            </builder-header>
+            <article class="full-page-body slds-card slds-p-around_medium">
+                <lightning-textarea
+                    label="Input"
+                    name="input"
+                    value={input}
+                    placeholder="Paste a URL component to encode or decode"
+                    onchange={handleInputChange}></lightning-textarea>
+                <lightning-textarea
+                    class="slds-m-top_small"
+                    label="Output"
+                    name="output"
+                    value={output}
+                    readonly></lightning-textarea>
+            </article>
+        </builder-editor>
     </div>
 </template>

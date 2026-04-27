@@ -1,0 +1,22 @@
+{
+    "id": "smartinput",
+    "name": "smartinput/app",
+    "label": "Smart Input",
+    "shortName": "Smart Input",
+    "description": "Smart Input",
+    "path": "smartinput",
+    "quickActionIcon": "utility:magicwand",
+    "type": "utility",
+    "menuGroup": "code",
+    "menuOrder": 30,
+    "reducerKey": "smartInput",
+    "flags": {
+        "isFullHeight": true,
+        "isDeletable": true,
+        "isElectronOnly": false,
+        "isChromeOnly": true,
+        "isOfflineAvailable": true,
+        "isMenuVisible": true,
+        "isTabVisible": true
+    }
+}

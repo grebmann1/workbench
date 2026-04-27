@@ -4,8 +4,6 @@ import home_app from 'home/app';
 import release_app from 'release/app';
 import sarif_app from 'sarif/app';
 import settings_app from 'settings/app';
-import smartinput_app from 'smartinput/app';
-import textCompare_app from 'textCompare/app';
 import { APPLICATION_APP_MAPPING, APPLICATION_MENU_GROUPS } from 'skeleton/registry';
 
 const i18n = {
@@ -62,37 +60,6 @@ const BASE_APP_MAPPING = {
         quickActionIcon: 'standard:article',
         shortName: 'Doc.',
         path: 'documentation',
-    },
-    'smartinput/app': {
-        module: smartinput_app,
-        isFullHeight: true,
-        isDeletable: true,
-        isElectronOnly: false,
-        isOfflineAvailable: true,
-        isChromeOnly: true,
-        isMenuVisible: true,
-        isTabVisible: true,
-        label: 'Smart Input',
-        type: i18n.UTILITY,
-        description: 'Smart Input',
-        quickActionIcon: 'utility:magicwand',
-        shortName: 'Smart Input',
-        path: 'smartinput',
-    },
-    'textCompare/app': {
-        module: textCompare_app,
-        isFullHeight: true,
-        isDeletable: true,
-        isElectronOnly: false,
-        isOfflineAvailable: true,
-        isMenuVisible: true,
-        isTabVisible: true,
-        label: 'Text Compare',
-        type: i18n.UTILITY,
-        description: 'Compare two texts side-by-side.',
-        quickActionIcon: 'utility:copy_to_clipboard',
-        shortName: 'Diff',
-        path: 'textcompare',
     },
     'settings/app': {
         module: settings_app,

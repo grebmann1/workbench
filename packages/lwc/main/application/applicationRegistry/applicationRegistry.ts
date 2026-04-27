@@ -13,7 +13,9 @@ import org_app_module from 'org/app';
 import package_app_module from 'package/app';
 import platformevent_app_module from 'platformevent/app';
 import recordviewer_app_module from 'recordviewer/app';
+import smartinput_app_module from 'smartinput/app';
 import soql_app_module from 'soql/app';
+import textCompare_app_module from 'textCompare/app';
 import urlencoder_app_module from 'urlencoder/app';
 
 const APPLICATION_APP_MAPPING = {
@@ -221,6 +223,24 @@ const APPLICATION_APP_MAPPING = {
         menuGroup: "explorers",
         menuOrder: 30,
     },
+    'smartinput/app': {
+        module: smartinput_app_module,
+        isFullHeight: true,
+        isDeletable: true,
+        isElectronOnly: false,
+        isOfflineAvailable: true,
+        isChromeOnly: true,
+        isMenuVisible: true,
+        isTabVisible: true,
+        label: "Smart Input",
+        type: "utility",
+        description: "Smart Input",
+        quickActionIcon: "utility:magicwand",
+        shortName: "Smart Input",
+        path: "smartinput",
+        menuGroup: "code",
+        menuOrder: 30,
+    },
     'soql/app': {
         module: soql_app_module,
         isFullHeight: true,
@@ -238,6 +258,23 @@ const APPLICATION_APP_MAPPING = {
         menuGroup: "data",
         menuOrder: 10,
     },
+    'textCompare/app': {
+        module: textCompare_app_module,
+        isFullHeight: true,
+        isDeletable: true,
+        isElectronOnly: false,
+        isOfflineAvailable: true,
+        isMenuVisible: true,
+        isTabVisible: true,
+        label: "Text Compare",
+        type: "utility",
+        description: "Compare two texts side-by-side.",
+        quickActionIcon: "utility:copy_to_clipboard",
+        shortName: "Diff",
+        path: "textcompare",
+        menuGroup: "code",
+        menuOrder: 40,
+    },
     'urlencoder/app': {
         module: urlencoder_app_module,
         isFullHeight: true,
@@ -247,7 +284,7 @@ const APPLICATION_APP_MAPPING = {
         isMenuVisible: true,
         isTabVisible: true,
         label: "URL Encoder",
-        type: "developer",
+        type: "utility",
         description: "Encode and decode URL components. A minimal reference extension.",
         quickActionIcon: "utility:link",
         shortName: "URL",

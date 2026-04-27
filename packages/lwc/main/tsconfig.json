@@ -12,7 +12,6 @@
             "core/*": ["core/*"],
             "editor/*": ["editor/*"],
             "pages/*": ["pages/*"],
-            "tools/*": ["tools/*"],
             "agent/*": ["agent/*"],
             "ai/*": ["ai/*"],
             "host-api/store": ["host-api/store"],
@@ -90,6 +89,13 @@
             "recordviewer/slices/recordViewer": ["../applications/recordviewer/slices/recordViewer"],
             "urlencoder/*": ["../applications/urlencoder/*"],
             "urlencoder/app": ["../applications/urlencoder/app/app"],
+            "textCompare/*": ["../applications/textCompare/*"],
+            "textCompare/app": ["../applications/textCompare/app/app"],
+            "smartinput/*": ["../applications/smartinput/*"],
+            "smartinput/app": ["../applications/smartinput/app/app"],
+            "smartinput/utils": ["../applications/smartinput/utils/utils"],
+            "smartinput/composer": ["../applications/smartinput/composer/composer"],
+            "smartinput/item": ["../applications/smartinput/item/item"],
             "connection/connectionDetailModal": [
                 "connection/connectionDetailModal/connectionDetailModal"
             ],

@@ -1,5 +1,6 @@
 import { track } from 'lwc';
 import ToolkitElement from 'host-api/element';
+import { reportError } from 'host-api/store';
 
 type Mode = 'encode' | 'decode';
 
@@ -12,16 +13,15 @@ export default class App extends ToolkitElement {
     @track input = '';
     @track output = '';
     @track mode: Mode = 'encode';
-    @track errorMessage = '';
 
     modeOptions = MODE_OPTIONS;
 
-    get hasError(): boolean {
-        return this.errorMessage.length > 0;
-    }
-
     get isCopyDisabled(): boolean {
         return this.output.length === 0;
+    }
+
+    get showEmptyState(): boolean {
+        return !this.input && !this.output;
     }
 
     handleInputChange = (event: Event): void => {
@@ -45,11 +45,9 @@ export default class App extends ToolkitElement {
     handleClear = (): void => {
         this.input = '';
         this.output = '';
-        this.errorMessage = '';
     };
 
     run(): void {
-        this.errorMessage = '';
         try {
             this.output =
                 this.mode === 'encode'
@@ -57,7 +55,7 @@ export default class App extends ToolkitElement {
                     : decodeURIComponent(this.input);
         } catch (err) {
             this.output = '';
-            this.errorMessage = err instanceof Error ? err.message : String(err);
+            reportError(err instanceof Error ? err : String(err), { source: 'urlencoder' });
         }
     }
 }

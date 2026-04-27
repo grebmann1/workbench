@@ -1,0 +1,21 @@
+{
+    "id": "textCompare",
+    "name": "textCompare/app",
+    "label": "Text Compare",
+    "shortName": "Diff",
+    "description": "Compare two texts side-by-side.",
+    "path": "textcompare",
+    "quickActionIcon": "utility:copy_to_clipboard",
+    "type": "utility",
+    "menuGroup": "code",
+    "menuOrder": 40,
+    "reducerKey": "textCompare",
+    "flags": {
+        "isFullHeight": true,
+        "isDeletable": true,
+        "isElectronOnly": false,
+        "isOfflineAvailable": true,
+        "isMenuVisible": true,
+        "isTabVisible": true
+    }
+}

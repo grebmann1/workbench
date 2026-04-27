@@ -54,7 +54,7 @@ const ALLOWED_FLAGS = new Set([...REQUIRED_FLAGS, 'isChromeOnly']);
 
 // `type` drives filtering/grouping in the quick-action surface. A typo
 // silently removes the app from those views, so enforce the known set.
-const ALLOWED_TYPES = new Set(['developer', 'explorer', 'data']);
+const ALLOWED_TYPES = new Set(['developer', 'explorer', 'data', 'utility']);
 
 // `menuGroup` picks the section of the left-nav menu. A typo drops the app
 // out of the menu entirely with no warning.

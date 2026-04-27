@@ -242,6 +242,28 @@
       }
     },
     {
+      "id": "smartinput",
+      "name": "smartinput/app",
+      "label": "Smart Input",
+      "shortName": "Smart Input",
+      "description": "Smart Input",
+      "path": "smartinput",
+      "quickActionIcon": "utility:magicwand",
+      "type": "utility",
+      "menuGroup": "code",
+      "menuOrder": 30,
+      "reducerKey": "smartInput",
+      "flags": {
+        "isFullHeight": true,
+        "isDeletable": true,
+        "isElectronOnly": false,
+        "isChromeOnly": true,
+        "isOfflineAvailable": true,
+        "isMenuVisible": true,
+        "isTabVisible": true
+      }
+    },
+    {
       "id": "soql",
       "name": "soql/app",
       "label": "SOQL Explorer",
@@ -262,6 +284,27 @@
       }
     },
     {
+      "id": "textCompare",
+      "name": "textCompare/app",
+      "label": "Text Compare",
+      "shortName": "Diff",
+      "description": "Compare two texts side-by-side.",
+      "path": "textcompare",
+      "quickActionIcon": "utility:copy_to_clipboard",
+      "type": "utility",
+      "menuGroup": "code",
+      "menuOrder": 40,
+      "reducerKey": "textCompare",
+      "flags": {
+        "isFullHeight": true,
+        "isDeletable": true,
+        "isElectronOnly": false,
+        "isOfflineAvailable": true,
+        "isMenuVisible": true,
+        "isTabVisible": true
+      }
+    },
+    {
       "id": "urlencoder",
       "name": "urlencoder/app",
       "label": "URL Encoder",
@@ -269,7 +312,7 @@
       "description": "Encode and decode URL components. A minimal reference extension.",
       "path": "urlencoder",
       "quickActionIcon": "utility:link",
-      "type": "developer",
+      "type": "utility",
       "menuGroup": "code",
       "menuOrder": 50,
       "flags": {

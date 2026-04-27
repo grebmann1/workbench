@@ -429,7 +429,6 @@ const modules = [
     { dir: r('../../packages/lwc/main/application') },
     { dir: r('../../packages/lwc/main/pages') },
     { dir: r('../../packages/lwc/main/pages/documentation') },
-    { dir: r('../../packages/lwc/main/tools') },
     { dir: r('../../packages/lwc/applications') },
     { npm: 'lightning-base-components' },
     { name: 'lwr/profiler', path: r('../../node_modules/@lwrjs/client-modules/build/modules/lwr/profiler/profiler.js') },
@@ -496,7 +495,6 @@ const injectedModules = [
     { dir: r('../../packages/lwc/main/application') },
     { dir: r('../../packages/lwc/main/pages') },
     { dir: r('../../packages/lwc/main/pages/documentation') },
-    { dir: r('../../packages/lwc/main/tools') },
     { dir: r('../../packages/lwc/applications') },
     { name: 'core/connector', path: r('../../packages/lwc/main/core/connector/connector.ts') },
     { name: 'core/desktopBridge', path: r('../../packages/lwc/main/core/desktopBridge.ts') },
@@ -533,7 +531,7 @@ const injectedModules = [
     ...sharedModules,
     { npm: 'lightning-base-components' },
     { name: 'imported/jsforce', path: r('../../assets/extension/libs/jsforce/jsforce.js') },
-    { name: 'smartinput/utils', path: r('../../packages/lwc/main/tools/smartinput/utils/utils.js') },
+    { name: 'smartinput/utils', path: r('../../packages/lwc/applications/smartinput/utils/utils.js') },
 ];
 
 const coreStoreToLightStoreAlias = alias({

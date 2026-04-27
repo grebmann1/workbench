@@ -6,7 +6,7 @@
     "description": "Encode and decode URL components. A minimal reference extension.",
     "path": "urlencoder",
     "quickActionIcon": "utility:link",
-    "type": "developer",
+    "type": "utility",
     "menuGroup": "code",
     "menuOrder": 50,
     "flags": {
