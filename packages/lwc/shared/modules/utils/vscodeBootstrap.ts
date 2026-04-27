@@ -4,6 +4,8 @@ export type VscodeBootstrapSeed = {
     serverUrl?: string | null;
     redirectUrl?: string | null;
     sourceTabId?: string | null;
+    metadataType?: string | null;
+    memberName?: string | null;
 };
 
 export type NormalizedVscodeBootstrapSeed = {
@@ -12,6 +14,8 @@ export type NormalizedVscodeBootstrapSeed = {
     serverUrl: string | null;
     redirectUrl: string | null;
     sourceTabId: string | null;
+    metadataType: string | null;
+    memberName: string | null;
 };
 
 function normalizeTextValue(value: unknown): string | null {
@@ -34,6 +38,12 @@ function buildVscodeEditorSearchParams(seed: NormalizedVscodeBootstrapSeed): URL
     if (seed.sourceTabId) {
         params.set('sourceTabId', seed.sourceTabId);
     }
+    if (seed.metadataType) {
+        params.set('metadataType', seed.metadataType);
+    }
+    if (seed.memberName) {
+        params.set('memberName', seed.memberName);
+    }
     return params;
 }
 
@@ -49,6 +59,8 @@ export function normalizeVscodeBootstrapSeed(
         serverUrl: hasSessionBootstrap ? serverUrl : null,
         redirectUrl: normalizeTextValue(seed.redirectUrl),
         sourceTabId: normalizeTextValue(seed.sourceTabId),
+        metadataType: normalizeTextValue(seed.metadataType),
+        memberName: normalizeTextValue(seed.memberName),
     };
 }
 
@@ -83,6 +95,8 @@ export function parseVscodeBootstrapSeed(
         serverUrl: params.get('serverUrl'),
         redirectUrl: params.get('redirectUrl'),
         sourceTabId: params.get('sourceTabId'),
+        metadataType: params.get('metadataType'),
+        memberName: params.get('memberName'),
     });
 }
 

@@ -7,7 +7,7 @@
     "path": "textcompare",
     "quickActionIcon": "utility:copy_to_clipboard",
     "type": "utility",
-    "menuGroup": "code",
+    "menuGroup": "utilities",
     "menuOrder": 40,
     "reducerKey": "textCompare",
     "flags": {

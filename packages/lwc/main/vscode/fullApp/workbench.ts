@@ -3,7 +3,11 @@
 // and render the org banner. Nothing here runs inside the embedded VSCode
 // iframe; the iframe consumes the resulting connection through the bridge.
 
-import { WORKSPACE_TEMPLATE_FILES } from './workspaceTemplate';
+import {
+    WORKSPACE_TEMPLATE_FILES,
+    buildSfdxProjectFileContent,
+    deriveSfdcLoginUrl,
+} from './workspaceTemplate';
 
 export const DEFAULT_SOURCE_API_VERSION = '66.0';
 
@@ -481,11 +485,27 @@ function ancestorPaths(path: string): string[] {
 }
 
 export async function buildWorkspaceBootstrap(
-    connection: { orgId?: unknown; instanceUrl?: unknown } | null | undefined,
+    connection:
+        | {
+              orgId?: unknown;
+              instanceUrl?: unknown;
+              isSandbox?: unknown;
+              isScratch?: unknown;
+          }
+        | null
+        | undefined,
     workspaceBasePath = '/workspace/orgs'
 ) {
     const workspaceRoot = deriveWorkspaceRootFromConnection(connection, workspaceBasePath);
     const defaultMetadataRoot = `${workspaceRoot}/force-app/main/default`;
+    const sfdcLoginUrl = deriveSfdcLoginUrl({
+        isSandbox: normalizeSandboxValue(connection?.isSandbox),
+        isScratch: normalizeScratchValue(connection?.isScratch),
+    });
+    const templateFiles: Record<string, string> = {
+        ...WORKSPACE_TEMPLATE_FILES,
+        'sfdx-project.json': buildSfdxProjectFileContent({ sfdcLoginUrl }),
+    };
     return {
         workspaceRoot,
         ensureDirectories: [
@@ -499,7 +519,7 @@ export async function buildWorkspaceBootstrap(
             `${workspaceRoot}/assets/apex`,
             `${workspaceRoot}/assets/soql`,
         ],
-        initialFiles: prefixWorkspaceFiles(workspaceRoot, WORKSPACE_TEMPLATE_FILES),
+        initialFiles: prefixWorkspaceFiles(workspaceRoot, templateFiles),
     };
 }
 

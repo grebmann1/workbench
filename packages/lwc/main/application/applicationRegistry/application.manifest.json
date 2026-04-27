@@ -9,8 +9,8 @@
       "description": "Review/Compare the access provided by the Permission sets & Profiles.",
       "path": "access",
       "quickActionIcon": "standard:portal",
-      "type": "explorer",
-      "menuGroup": "explorers",
+      "type": "admin",
+      "menuGroup": "admin",
       "menuOrder": 60,
       "flags": {
         "isFullHeight": true,
@@ -109,8 +109,8 @@
       "description": "Browse your virtual workspace",
       "path": "files",
       "quickActionIcon": "utility:open_folder",
-      "type": "explorer",
-      "menuGroup": "explorers",
+      "type": "admin",
+      "menuGroup": "admin",
       "menuOrder": 5,
       "flags": {
         "isFullHeight": true,
@@ -129,8 +129,8 @@
       "description": "Review & Modify all your metadata. (Beta)",
       "path": "metadata",
       "quickActionIcon": "standard:knowledge",
-      "type": "explorer",
-      "menuGroup": "explorers",
+      "type": "admin",
+      "menuGroup": "deploy",
       "menuOrder": 10,
       "flags": {
         "isFullHeight": true,
@@ -149,8 +149,8 @@
       "description": "Explore in details all your SObjects",
       "path": "sobject",
       "quickActionIcon": "standard:knowledge",
-      "type": "explorer",
-      "menuGroup": "explorers",
+      "type": "admin",
+      "menuGroup": "admin",
       "menuOrder": 20,
       "flags": {
         "isFullHeight": true,
@@ -169,8 +169,8 @@
       "description": "Org. Overview",
       "path": "org",
       "quickActionIcon": "standard:account",
-      "type": "explorer",
-      "menuGroup": "explorers",
+      "type": "admin",
+      "menuGroup": "admin",
       "menuOrder": 50,
       "flags": {
         "isFullHeight": true,
@@ -229,8 +229,8 @@
       "description": "Explore in details your records",
       "path": "recordviewer",
       "quickActionIcon": "standard:knowledge",
-      "type": "explorer",
-      "menuGroup": "explorers",
+      "type": "data",
+      "menuGroup": "data",
       "menuOrder": 30,
       "flags": {
         "isFullHeight": true,
@@ -250,7 +250,7 @@
       "path": "smartinput",
       "quickActionIcon": "utility:magicwand",
       "type": "utility",
-      "menuGroup": "code",
+      "menuGroup": "utilities",
       "menuOrder": 30,
       "reducerKey": "smartInput",
       "flags": {
@@ -292,7 +292,7 @@
       "path": "textcompare",
       "quickActionIcon": "utility:copy_to_clipboard",
       "type": "utility",
-      "menuGroup": "code",
+      "menuGroup": "utilities",
       "menuOrder": 40,
       "reducerKey": "textCompare",
       "flags": {
@@ -313,7 +313,7 @@
       "path": "urlencoder",
       "quickActionIcon": "utility:link",
       "type": "utility",
-      "menuGroup": "code",
+      "menuGroup": "utilities",
       "menuOrder": 50,
       "flags": {
         "isFullHeight": true,

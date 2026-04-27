@@ -6,8 +6,8 @@
     "description": "Browse your virtual workspace",
     "path": "files",
     "quickActionIcon": "utility:open_folder",
-    "type": "explorer",
-    "menuGroup": "explorers",
+    "type": "admin",
+    "menuGroup": "admin",
     "menuOrder": 5,
     "flags": {
         "isFullHeight": true,

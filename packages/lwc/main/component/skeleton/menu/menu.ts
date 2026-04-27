@@ -441,22 +441,13 @@ export default class Menu extends ToolkitElement {
             isLink: !!x.url,
         });
 
-        const baseBuildGroups = [
-            {
-                key: 'home',
-                label: 'Home',
-                iconName: 'utility:home',
-                paths: ['home'],
-                flat: true,
-            },
-            {
-                key: 'utilities',
-                label: 'Utilities',
-                iconName: 'utility:magicwand',
-                paths: ['smartinput', 'textcompare'],
-                flat: false,
-            },
-        ];
+        const homeGroup = {
+            key: 'home',
+            label: 'Home',
+            iconName: 'utility:home',
+            paths: ['home'],
+            flat: true,
+        };
 
         const applicationBuildGroups = (CONFIG?.APPLICATION_MENU_GROUPS || [])
             .slice()
@@ -469,11 +460,7 @@ export default class Menu extends ToolkitElement {
                 flat: false,
             }));
 
-        const buildGroups = [
-            baseBuildGroups[0],
-            ...applicationBuildGroups,
-            ...baseBuildGroups.slice(1),
-        ];
+        const buildGroups = [homeGroup, ...applicationBuildGroups];
 
         const buildItems = [];
         for (const group of buildGroups) {
@@ -485,14 +472,13 @@ export default class Menu extends ToolkitElement {
                 buildItems.push(...filtered.map(toItem));
             } else {
                 const children = filtered.map(toChild);
-                const hasSelectedChild = children.some(c => c.isSelected);
                 buildItems.push({
                     name: `build-${group.key}`,
                     label: group.label,
                     iconName: group.iconName,
                     isSelected: false,
                     isLink: false,
-                    defaultExpanded: hasSelectedChild,
+                    defaultExpanded: true,
                     children,
                 });
             }

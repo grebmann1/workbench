@@ -6,8 +6,8 @@
     "description": "Org. Overview",
     "path": "org",
     "quickActionIcon": "standard:account",
-    "type": "explorer",
-    "menuGroup": "explorers",
+    "type": "admin",
+    "menuGroup": "admin",
     "menuOrder": 50,
     "flags": {
         "isFullHeight": true,

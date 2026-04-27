@@ -14,9 +14,9 @@ const APPLICATION_MENU_GROUPS = [
         order: 30,
     },
     {
-        key: 'explorers',
-        label: 'Explorers',
-        iconName: 'standard:knowledge',
+        key: 'admin',
+        label: 'Admin',
+        iconName: 'utility:setup',
         order: 40,
     },
     {
@@ -24,6 +24,12 @@ const APPLICATION_MENU_GROUPS = [
         label: 'Deploy',
         iconName: 'standard:maintenance_asset',
         order: 50,
+    },
+    {
+        key: 'utilities',
+        label: 'Utilities',
+        iconName: 'utility:magicwand',
+        order: 60,
     },
 ];
 

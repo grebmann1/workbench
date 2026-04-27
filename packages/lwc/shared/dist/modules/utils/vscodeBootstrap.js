@@ -17,6 +17,12 @@ function buildVscodeEditorSearchParams(seed) {
     if (seed.sourceTabId) {
         params.set('sourceTabId', seed.sourceTabId);
     }
+    if (seed.metadataType) {
+        params.set('metadataType', seed.metadataType);
+    }
+    if (seed.memberName) {
+        params.set('memberName', seed.memberName);
+    }
     return params;
 }
 export function normalizeVscodeBootstrapSeed(seed = {}) {
@@ -29,6 +35,8 @@ export function normalizeVscodeBootstrapSeed(seed = {}) {
         serverUrl: hasSessionBootstrap ? serverUrl : null,
         redirectUrl: normalizeTextValue(seed.redirectUrl),
         sourceTabId: normalizeTextValue(seed.sourceTabId),
+        metadataType: normalizeTextValue(seed.metadataType),
+        memberName: normalizeTextValue(seed.memberName),
     };
 }
 export function hasVscodeSessionBootstrap(seed = {}) {
@@ -55,6 +63,8 @@ export function parseVscodeBootstrapSeed(search) {
         serverUrl: params.get('serverUrl'),
         redirectUrl: params.get('redirectUrl'),
         sourceTabId: params.get('sourceTabId'),
+        metadataType: params.get('metadataType'),
+        memberName: params.get('memberName'),
     });
 }
 export function buildVscodeEditorUrl({ baseUrl, seed, baseOrigin = 'https://sf-toolkit.invalid', }) {

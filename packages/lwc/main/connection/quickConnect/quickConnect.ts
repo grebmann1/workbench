@@ -9,6 +9,8 @@ type QuickConnectOptions = {
     resetLoading?: () => void;
     onSuccess?: (connector: ConnectorLike) => void;
     onError?: (error: Error) => void;
+    loginUrl?: string;
+    isSandbox?: boolean;
 };
 
 export async function runQuickConnect({
@@ -16,13 +18,18 @@ export async function runQuickConnect({
     resetLoading,
     onSuccess,
     onError,
+    loginUrl: loginUrlOverride,
+    isSandbox,
 }: QuickConnectOptions = {}) {
     if (typeof setLoading === 'function') {
         setLoading('Starting direct OAuth connection...');
     }
 
     try {
-        const loginUrl = window?.jsforceSettings?.loginUrl || 'https://login.salesforce.com';
+        const defaultLoginUrl = isSandbox
+            ? 'https://test.salesforce.com'
+            : window?.jsforceSettings?.loginUrl || 'https://login.salesforce.com';
+        const loginUrl = loginUrlOverride || defaultLoginUrl;
         const alias = `direct-session-${Date.now()}`;
         const connector: ConnectorLike = await credentialStrategies[OAUTH_TYPES.OAUTH].connect(
             { alias, loginUrl },

@@ -5,13 +5,24 @@
 
 export const DEFAULT_SOURCE_API_VERSION = '66.0';
 
-export const WORKSPACE_TEMPLATE_FILES: Record<string, string> = {
-    '.vscode/extensions.json': `{
-  "recommendations": [],
-  "unwantedRecommendations": []
+export const PROD_LOGIN_URL = 'https://login.salesforce.com';
+export const SANDBOX_LOGIN_URL = 'https://test.salesforce.com';
+
+export function deriveSfdcLoginUrl({
+    isSandbox,
+    isScratch,
+}: {
+    isSandbox?: boolean | null;
+    isScratch?: boolean | null;
+} = {}): string {
+    return isSandbox || isScratch ? SANDBOX_LOGIN_URL : PROD_LOGIN_URL;
 }
-`,
-    'sfdx-project.json': `{
+
+export function buildSfdxProjectFileContent({
+    sfdcLoginUrl = PROD_LOGIN_URL,
+    sourceApiVersion = DEFAULT_SOURCE_API_VERSION,
+}: { sfdcLoginUrl?: string; sourceApiVersion?: string } = {}): string {
+    return `{
   "packageDirectories": [
     {
       "path": "force-app",
@@ -20,10 +31,19 @@ export const WORKSPACE_TEMPLATE_FILES: Record<string, string> = {
   ],
   "name": "MyProject",
   "namespace": "",
-  "sfdcLoginUrl": "https://login.salesforce.com",
-  "sourceApiVersion": "${DEFAULT_SOURCE_API_VERSION}"
+  "sfdcLoginUrl": "${sfdcLoginUrl}",
+  "sourceApiVersion": "${sourceApiVersion}"
+}
+`;
+}
+
+export const WORKSPACE_TEMPLATE_FILES: Record<string, string> = {
+    '.vscode/extensions.json': `{
+  "recommendations": [],
+  "unwantedRecommendations": []
 }
 `,
+    'sfdx-project.json': buildSfdxProjectFileContent(),
     'README.md': `# Salesforce Workbench: Getting Started
 
 Welcome to the embedded Salesforce workbench. This is a lightweight version of VS Code focused on browser-based Salesforce workflows.

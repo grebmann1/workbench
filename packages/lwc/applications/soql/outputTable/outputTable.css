@@ -112,6 +112,11 @@ td,
 .tabulator-row.tabulator-selected .tabulator-cell,
 .tabulator-row.tabulator-highlight-row .tabulator-cell {
     background-color: transparent;
+    color: #181818;
+}
+.tabulator-row.tabulator-selected .sftk-cell,
+.tabulator-row.tabulator-highlight-row .sftk-cell {
+    color: #181818;
 }
 .tabulator-row.tabulator-selected .sftk-cell-value,
 .tabulator-row.tabulator-highlight-row .sftk-cell-value {
@@ -198,6 +203,19 @@ td,
 .sftk-cell-btn .slds-button__icon {
     width: 12px;
     height: 12px;
+}
+.tabulator-row.tabulator-selected .sftk-cell-btn,
+.tabulator-row.tabulator-highlight-row .sftk-cell-btn {
+    color: #014486;
+}
+.tabulator-row.tabulator-selected .sftk-cell-btn:hover,
+.tabulator-row.tabulator-highlight-row .sftk-cell-btn:hover {
+    background-color: rgba(1, 68, 134, 0.12);
+    color: #032d5f;
+}
+.tabulator-row.tabulator-selected .sftk-cell-btn .slds-button__icon,
+.tabulator-row.tabulator-highlight-row .sftk-cell-btn .slds-button__icon {
+    fill: currentColor;
 }
 
 /* ---------- Child relationship badge ---------- */

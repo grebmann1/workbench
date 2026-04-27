@@ -7,7 +7,7 @@
     "path": "urlencoder",
     "quickActionIcon": "utility:link",
     "type": "utility",
-    "menuGroup": "code",
+    "menuGroup": "utilities",
     "menuOrder": 50,
     "flags": {
         "isFullHeight": true,

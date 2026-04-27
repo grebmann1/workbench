@@ -169,36 +169,43 @@ async function findExistingSession({ alias, instanceUrl } = {}) {
 }
 
 /** Runtime connection state shared across ports and windows. */
-const sidePanelConnectionCountByWindowId = new Map(); // windowId -> number of active side panel ports
-const sidePanelApplicationByWindowId = new Map(); // windowId -> applicationName
+const _lastSidePanelOptionsByTabId = new Map(); // tabId -> { ts }
+const openedSidePanelTabIds = new Set();
 const injectedConnections = new Set();
 const sidePanelConnections = new Set();
+const sidePanelTabIdByPort = new Map();
 const instanceConnections = new Map();
-
-function shouldKeepSidePanelOpenForNewTab(tab) {
-    if (!tab || !Number.isInteger(tab.windowId)) {
-        return false;
-    }
-    const openPanelCount = sidePanelConnectionCountByWindowId.get(tab.windowId) || 0;
-    return openPanelCount > 0;
-}
 
 const handleTabOpening = async tab => {
     try {
         if (!tab?.id) return;
+        const now = Date.now();
+        const last = _lastSidePanelOptionsByTabId.get(tab.id);
+        const enabled = openedSidePanelTabIds.has(tab.id);
+        if (last && last.enabled === enabled && now - last.ts < 750) return;
         await chrome.sidePanel.setOptions({
+            tabId: tab.id,
             path: STABLE_SIDEPANEL_PATH,
-            enabled: true,
+            enabled,
         });
+        _lastSidePanelOptionsByTabId.set(tab.id, { enabled, ts: now });
     } catch (e) {}
 };
 
 const openSideBar = async tab => {
-    await chrome.sidePanel.open({ tabId: tab.id });
-    await chrome.sidePanel.setOptions({
+    if (!tab?.id) return;
+    openedSidePanelTabIds.add(tab.id);
+    _lastSidePanelOptionsByTabId.set(tab.id, { enabled: true, ts: Date.now() });
+
+    const optionsPromise = chrome.sidePanel.setOptions({
+        tabId: tab.id,
         path: STABLE_SIDEPANEL_PATH,
         enabled: true,
     });
+    const openPromise = chrome.sidePanel.open({ tabId: tab.id });
+
+    await optionsPromise;
+    await openPromise;
 };
 
 /** Generic async listener wrapper for Chrome callback-based events. */
@@ -346,61 +353,28 @@ function handleInjectedPort(port) {
     });
 }
 
-function updateSidePanelConnectionCount(windowId, delta, context = {}) {
-    if (!Number.isInteger(windowId)) return;
-    const currentCount = sidePanelConnectionCountByWindowId.get(windowId) || 0;
-    const nextCount = currentCount + delta;
-
-    if (nextCount <= 0) {
-        sidePanelConnectionCountByWindowId.delete(windowId);
-        sidePanelApplicationByWindowId.delete(windowId);
-        safeLog('[SF-TOOLKIT][BG][SidePanel] port disconnected (window cleared)', {
-            ...context,
-            windowId,
-            openPanelCount: 0,
-        });
-        return;
-    }
-
-    sidePanelConnectionCountByWindowId.set(windowId, nextCount);
-    safeLog(
-        delta > 0
-            ? '[SF-TOOLKIT][BG][SidePanel] port connected'
-            : '[SF-TOOLKIT][BG][SidePanel] port disconnected',
-        {
-            ...context,
-            windowId,
-            openPanelCount: nextCount,
-        }
-    );
-}
-
 function handleSidePanelPort(port) {
     safeLog('--> Registering sidepanel', port.name);
     sidePanelConnections.add(port);
-
-    const tabId = port?.sender?.tab?.id;
-    const windowId = port?.sender?.tab?.windowId;
-    updateSidePanelConnectionCount(windowId, 1, { tabId });
+    const senderTabId = port?.sender?.tab?.id;
+    if (Number.isInteger(senderTabId)) {
+        sidePanelTabIdByPort.set(port, senderTabId);
+    }
 
     port.onDisconnect.addListener(() => {
         sidePanelConnections.delete(port);
-        updateSidePanelConnectionCount(windowId, -1, { tabId });
+        sidePanelTabIdByPort.delete(port);
     });
 
     port.onMessage.addListener(msg => {
         safeLog('--> sidepanel message', msg);
-        if (msg?.action === 'sidepanel_application_changed') {
-            if (Number.isInteger(windowId)) {
-                sidePanelApplicationByWindowId.set(windowId, msg.applicationName);
-                safeLog('[SF-TOOLKIT][BG][SidePanel] application changed', {
-                    windowId,
-                    applicationName: msg.applicationName,
-                });
+        if (msg?.action === 'registerSidePanelTab') {
+            const tabId = Number(msg.tabId);
+            if (Number.isInteger(tabId)) {
+                sidePanelTabIdByPort.set(port, tabId);
             }
             return;
         }
-
         if (msg.action === 'redirectToUrl') {
             handleRedirectToUrl(msg);
         }
@@ -531,10 +505,7 @@ function injectToolkit(tabId) {
 
 /** Action Button  */
 chrome.action.onClicked.addListener(tab => {
-    // setOptions and open must NOT be awaited before open() — any async suspension
-    // before sidePanel.open() drops the user gesture context and Chrome rejects the call.
-    chrome.sidePanel.setOptions({ path: STABLE_SIDEPANEL_PATH, enabled: true });
-    chrome.sidePanel.open({ tabId: tab.id }).catch(e => {
+    openSideBar(tab).catch(e => {
         console.error('[SF-TOOLKIT][BG] Failed to open side panel on action click', e);
     });
 });
@@ -542,7 +513,7 @@ chrome.action.onClicked.addListener(tab => {
 /** Browser event handlers. */
 function handleContextMenuClick(info, tab) {
     if (info.menuItemId === OPEN_SIDE_PANEL) {
-        chrome.sidePanel.open({ tabId: tab.id });
+        openSideBar(tab);
     } else if (info.menuItemId === OPEN_TOOLKIT) {
         chrome.tabs.create({ url: chrome.runtime.getURL('views/app.html') });
     } else if (info.menuItemId === OVERLAY_ENABLE) {
@@ -552,8 +523,14 @@ function handleContextMenuClick(info, tab) {
     }
 }
 
-async function handleTabActivated() {
-    // Side panel path stays stable; tab context is handled in the side panel LWC.
+async function handleTabActivated({ tabId }) {
+    if (!tabId) return;
+    try {
+        const tab = await chrome.tabs.get(tabId);
+        await handleTabOpening(tab);
+    } catch (e) {
+        console.error('handleTabOpening issue: ', e);
+    }
 }
 
 async function handleTabUpdated(tabId, info, tab) {
@@ -576,42 +553,7 @@ async function handleTabUpdated(tabId, info, tab) {
             }
         );
     }
-    // await handleTabOpening(tab);
-}
-
-async function handleTabCreated(tab) {
-    if (!tab?.id) return;
-    try {
-        safeLog('[SF-TOOLKIT][BG][SidePanel] tab created', {
-            tabId: tab.id,
-            windowId: tab.windowId,
-            openerTabId: tab.openerTabId,
-            pendingUrl: tab.pendingUrl,
-            url: tab.url,
-        });
-        const shouldKeepOpen = shouldKeepSidePanelOpenForNewTab(tab);
-        if (!shouldKeepOpen) {
-            safeLog('[SF-TOOLKIT][BG][SidePanel] tab created decision=false', {
-                tabId: tab.id,
-                windowId: tab.windowId,
-            });
-            return;
-        }
-        safeLog('[SF-TOOLKIT][BG][SidePanel] tab created decision=true opening panel', {
-            tabId: tab.id,
-            windowId: tab.windowId,
-        });
-        if (tab.url) {
-            await handleTabOpening(tab);
-        }
-        await chrome.sidePanel.open({ tabId: tab.id });
-        safeLog('[SF-TOOLKIT][BG][SidePanel] panel opened for new tab', {
-            tabId: tab.id,
-            windowId: tab.windowId,
-        });
-    } catch (e) {
-        console.error('[SF-TOOLKIT][BG][SidePanel] tab created handler error', e);
-    }
+    await handleTabOpening(tab);
 }
 
 /** Runtime message handlers. */
@@ -654,6 +596,13 @@ function broadcastMessage(message, sender) {
         return;
     }
     if (message.action === 'broadcastMessageToSidePanel') {
+        const rawTargetTabId =
+            message.targetTabId || message.content?.targetTabId || sender?.tab?.id;
+        const targetTabId = Number(rawTargetTabId);
+        if (Number.isInteger(targetTabId)) {
+            sendMessageToSidePanelInTab(targetTabId, payload);
+            return;
+        }
         broadcastMessageToAllSidePanelInstances(payload);
     }
 }
@@ -965,8 +914,11 @@ async function handleRuntimeMessage(message, sender) {
 /** Chrome event registration. */
 chrome.contextMenus.onClicked.addListener(handleContextMenuClick);
 chrome.tabs.onActivated.addListener(handleTabActivated);
+chrome.tabs.onRemoved.addListener(tabId => {
+    openedSidePanelTabIds.delete(tabId);
+    _lastSidePanelOptionsByTabId.delete(tabId);
+});
 chrome.tabs.onUpdated.addListener(handleTabUpdated);
-// chrome.tabs.onCreated.addListener(handleTabCreated);
 chrome.runtime.onMessage.addListener(wrapAsyncFunction(handleRuntimeMessage));
 
 /** Extension lifecycle hooks. */
@@ -1001,7 +953,7 @@ chrome.runtime.onInstalled.addListener(async details => {
     if (tabs.length > 0) {
         chrome.sidePanel.setOptions({
             path: STABLE_SIDEPANEL_PATH,
-            enabled: true,
+            enabled: false,
         });
     }
     const data = await chrome.storage.local.get([
@@ -1040,16 +992,17 @@ chrome.commands.onCommand.addListener((command, tab) => {
         });
     } else if (command === OPEN_OVERLAY_SEARCH) {
     } else if (command === OPEN_SIDE_PANEL) {
-        chrome.sidePanel.open({ tabId: tab.id });
+        openSideBar(tab);
     }
 });
 
 /** Service worker bootstrap. */
 const init = async () => {
-    // Disable the passive auto-open behavior so chrome.action.onClicked always fires.
-    // The onClicked handler explicitly calls sidePanel.open(), which is more reliable.
     chrome.sidePanel
         .setPanelBehavior({ openPanelOnActionClick: false })
+        .catch(error => console.error(error));
+    chrome.sidePanel
+        .setOptions({ path: STABLE_SIDEPANEL_PATH, enabled: false })
         .catch(error => console.error(error));
     ensureContextMenu().catch(() => {});
     refreshContentScriptPatternsCache(DEFAULT_INCLUDE_PATTERNS, DEFAULT_EXCLUDE_PATTERNS).catch(
@@ -1093,6 +1046,26 @@ function broadcastMessageToAllSidePanelInstances(message) {
             } catch (_) {}
         }
     }
+}
+
+// Send to only the side panel connection associated with the provided tabId.
+function sendMessageToSidePanelInTab(tabId, message) {
+    let sent = false;
+    for (const port of sidePanelConnections.values()) {
+        const portTabId = sidePanelTabIdByPort.get(port);
+        if (portTabId === tabId) {
+            try {
+                port.postMessage(message);
+                sent = true;
+            } catch (e) {
+                try {
+                    sidePanelConnections.delete(port);
+                    sidePanelTabIdByPort.delete(port);
+                } catch (_) {}
+            }
+        }
+    }
+    return sent;
 }
 
 // Send to only the injected connection that matches the provided tabId. Returns true if a port was found and messaged.

@@ -76,7 +76,7 @@ export default class Welcome extends ToolkitElement {
 
     /** Events */
 
-    handleSessionClick = event => {
+    handleSessionOpen = event => {
         const el = event.currentTarget;
         const serverUrl = el.dataset.serverUrl;
         const sessionId = el.dataset.sessionId;
@@ -94,13 +94,6 @@ export default class Welcome extends ToolkitElement {
             type: 'application',
             state: { applicationName: 'home', sessionId, serverUrl },
         });
-    };
-
-    handleSessionKeydown = event => {
-        if (event.key === 'Enter' || event.key === ' ') {
-            event.preventDefault();
-            this.handleSessionClick(event);
-        }
     };
 
     handleGoToConnections = () => {

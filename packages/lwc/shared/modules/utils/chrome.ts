@@ -117,7 +117,7 @@ export const redirectToUrlViaChrome = ({
 
 type VscodeEditorUrlParams = Pick<
     VscodeBootstrapSeed,
-    'alias' | 'sessionId' | 'serverUrl' | 'redirectUrl' | 'sourceTabId'
+    'alias' | 'sessionId' | 'serverUrl' | 'redirectUrl' | 'sourceTabId' | 'metadataType' | 'memberName'
 >;
 
 export const getVscodeEditorUrl = (seed: VscodeEditorUrlParams): string | null => {

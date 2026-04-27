@@ -32,8 +32,6 @@ export function createToolingClient(options = {}) {
         if (!jsforceConnection.request || !jsforceConnection.tooling?.query) {
             throw new Error('jsforce connection is missing required request/tooling methods.');
         }
-        const jsforceRequest = jsforceConnection.request;
-        const jsforceTooling = jsforceConnection.tooling;
         const normalizedInstanceUrl = normalizeInstanceUrl(instanceUrl || jsforceConnection.instanceUrl);
         const normalizedApiVersion = normalizeApiVersion(apiVersion || jsforceConnection.version);
         const buildRequestOptions = (upstreamPath, { method = 'GET', body, headers }) => ({
@@ -53,15 +51,15 @@ export function createToolingClient(options = {}) {
         };
         const requestJson = async (urlOrPath, options = {}) => {
             const upstreamPath = resolveUpstreamPath(urlOrPath);
-            return await jsforceRequest(buildRequestOptions(upstreamPath, options));
+            return await jsforceConnection.request(buildRequestOptions(upstreamPath, options));
         };
         const requestText = async (urlOrPath, options = {}) => {
             const upstreamPath = resolveUpstreamPath(urlOrPath);
-            const response = await jsforceRequest(buildRequestOptions(upstreamPath, options));
+            const response = await jsforceConnection.request(buildRequestOptions(upstreamPath, options));
             return typeof response === 'string' ? response : JSON.stringify(response ?? '');
         };
         const toolingQueryAll = async (soql) => {
-            const queryExec = jsforceTooling.query(soql);
+            const queryExec = jsforceConnection.tooling.query(soql);
             return ((await queryExec.run({
                 responseTarget: 'Records',
                 autoFetch: true,

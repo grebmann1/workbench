@@ -58,6 +58,24 @@ await initializeMonacoService(
   envOptions
 )
 
+// Older builds booted the iframe before the host resolved an org-scoped
+// workspace root, which persisted tabs/editor mementos under the default
+// `/workspace` key and leaked them into every subsequent org session. The
+// host now gates iframe render, so going forward storage is always
+// org-scoped; this one-time cleanup wipes the stale default-workspace
+// entries for existing users. Guarded by a localStorage sentinel so it
+// runs at most once per origin.
+const LEGACY_WORKSPACE_CLEANUP_SENTINEL = 'sfWorkbench.legacyWorkspaceCleanup.v1'
+try {
+  if (window.localStorage?.getItem(LEGACY_WORKSPACE_CLEANUP_SENTINEL) !== 'done') {
+    const storageService = (await getService(IStorageService)) as BrowserStorageService
+    await storageService.clear()
+    window.localStorage?.setItem(LEGACY_WORKSPACE_CLEANUP_SENTINEL, 'done')
+  }
+} catch (error) {
+  console.warn('[sfWorkbench] Legacy workspace storage cleanup failed', error)
+}
+
 export async function clearStorage(): Promise<void> {
   await userDataProvider.reset()
   await ((await getService(IStorageService)) as BrowserStorageService).clear()

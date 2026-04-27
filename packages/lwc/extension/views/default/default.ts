@@ -27,6 +27,7 @@ import LOGGER from 'shared/logger';
 export default class Default extends LightningElement {
     @api currentApplication;
     @api recordId;
+    @api sourceTabId;
     @api panel = PANELS.DEFAULT;
     /** True when the focused browser tab URL matches inject/content-script include rules (Salesforce-like). */
     @api activeTabMatchesSalesforce = false;
@@ -84,9 +85,6 @@ export default class Default extends LightningElement {
     handlePanelChange = e => {
         if (this.panel !== e.detail.panel) {
             this.panel = e.detail.panel;
-            if (this.isSalesforcePanel) {
-                this.notifyBackgroundApplicationChange('salesforce');
-            }
         }
 
         // Temporary solution to force refresh of connection list
@@ -95,20 +93,13 @@ export default class Default extends LightningElement {
         }
     };
 
-    handleApplicationChange = e => {
-        const applicationName = e?.detail?.applicationName;
-        this.notifyBackgroundApplicationChange(applicationName);
-    };
+    handleApplicationChange = () => {};
 
     handleModeToggle = () => {
         if (this.isSalesforcePanel) {
             this.panel = PANELS.DEFAULT;
-            this.notifyBackgroundApplicationChange(
-                store.getState()?.application?.currentApplication || 'connection'
-            );
         } else {
             this.panel = PANELS.SALESFORCE;
-            this.notifyBackgroundApplicationChange('salesforce');
         }
         // Temporary solution to force refresh of connection list
         if (this.refs.default) {
@@ -144,6 +135,12 @@ export default class Default extends LightningElement {
         store.dispatch(APPLICATION.reduxSlice.actions.updateSettings(configuration));
         store.dispatch(APPLICATION.reduxSlice.actions.updateProviderConfigs({ providerConfigs }));
         store.dispatch(APPLICATION.reduxSlice.actions.updateAiProvider({ aiProvider }));
+        // LLM catalog refresh is a network round-trip; run it in the background so
+        // boot isn't blocked. Consumers react via storeChange when catalogs land.
+        void this.refreshLlmCatalog(aiProvider, providerConfigs);
+    };
+
+    refreshLlmCatalog = async (aiProvider, providerConfigs) => {
         try {
             const response = await fetchLlmModelsEndpoint({
                 provider: aiProvider,
@@ -184,6 +181,7 @@ export default class Default extends LightningElement {
         const port = registerChromePort(
             chrome.runtime.connect({ name: 'sf-toolkit-sidepanel' })
         ) as any;
+        this.registerSidePanelTab(port);
         // Copy for global access
         port.onDisconnect.addListener(() => {
             // Optionally handle disconnect in content script
@@ -216,16 +214,16 @@ export default class Default extends LightningElement {
         disconnectChromePort();
     };
 
-    notifyBackgroundApplicationChange = applicationName => {
-        const port = getChromePort() as any;
-        if (!port) return;
+    registerSidePanelTab = (port = getChromePort() as any) => {
+        const tabId = Number(this.sourceTabId);
+        if (!port || !Number.isInteger(tabId)) return;
         try {
             port.postMessage({
-                action: 'sidepanel_application_changed',
-                applicationName,
+                action: 'registerSidePanelTab',
+                tabId,
             });
         } catch (e) {
-            LOGGER.debug('notifyBackgroundApplicationChange failed', e);
+            LOGGER.debug('registerSidePanelTab failed', e);
         }
     };
 

@@ -54,11 +54,11 @@ const ALLOWED_FLAGS = new Set([...REQUIRED_FLAGS, 'isChromeOnly']);
 
 // `type` drives filtering/grouping in the quick-action surface. A typo
 // silently removes the app from those views, so enforce the known set.
-const ALLOWED_TYPES = new Set(['developer', 'explorer', 'data', 'utility']);
+const ALLOWED_TYPES = new Set(['developer', 'admin', 'data', 'utility']);
 
 // `menuGroup` picks the section of the left-nav menu. A typo drops the app
 // out of the menu entirely with no warning.
-const ALLOWED_MENU_GROUPS = new Set(['data', 'code', 'explorers', 'deploy']);
+const ALLOWED_MENU_GROUPS = new Set(['data', 'code', 'admin', 'deploy', 'utilities']);
 
 // Used for `id` (folder name / Redux key / identifier). Mirrors the LWC
 // camelCase convention we use for module specifiers.

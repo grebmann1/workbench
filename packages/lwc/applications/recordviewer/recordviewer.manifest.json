@@ -6,8 +6,8 @@
     "description": "Explore in details your records",
     "path": "recordviewer",
     "quickActionIcon": "standard:knowledge",
-    "type": "explorer",
-    "menuGroup": "explorers",
+    "type": "data",
+    "menuGroup": "data",
     "menuOrder": 30,
     "flags": {
         "isFullHeight": true,

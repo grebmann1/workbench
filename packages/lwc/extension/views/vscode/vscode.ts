@@ -7,6 +7,8 @@ export default class Vscode extends LightningElement {
     serverUrl;
     redirectUrl;
     sourceTabId;
+    metadataType;
+    memberName;
 
     connectedCallback() {
         const seed = parseVscodeBootstrapSeed(window.location.search);
@@ -15,5 +17,7 @@ export default class Vscode extends LightningElement {
         this.serverUrl = seed.serverUrl;
         this.redirectUrl = seed.redirectUrl;
         this.sourceTabId = seed.sourceTabId;
+        this.metadataType = seed.metadataType;
+        this.memberName = seed.memberName;
     }
 }

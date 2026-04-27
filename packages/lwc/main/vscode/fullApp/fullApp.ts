@@ -62,6 +62,8 @@ export default class VscodeWorkbenchApp extends ToolkitElement {
     @api redirectUrl;
     @api bootstrapAlias;
     @api sourceTabId;
+    @api metadataType;
+    @api memberName;
     @api workspaceBasePath;
 
     @track vscodeInitialized = false;
@@ -74,6 +76,7 @@ export default class VscodeWorkbenchApp extends ToolkitElement {
     @track connectorErrorMessage = null;
     @track themeMode = 'light';
     @track isReconnectBusy = false;
+    @track isRetryingInitialization = false;
     @track isDownloadingWorkspace = false;
     @track orgContext = buildOrgContext();
 
@@ -509,8 +512,21 @@ export default class VscodeWorkbenchApp extends ToolkitElement {
                 ? serverUrl
                 : `https://${serverUrl}`
             : null;
+        const isSandboxFromUrl = normalizedServerUrl
+            ? /\.sandbox\.my\.salesforce\.com$|(^|\.)test\.salesforce\.com$/i.test(
+                  (() => {
+                      try {
+                          return new URL(normalizedServerUrl).host;
+                      } catch {
+                          return '';
+                      }
+                  })()
+              )
+            : false;
         const seededBootstrap = await buildWorkspaceBootstrap(
-            normalizedServerUrl ? { instanceUrl: normalizedServerUrl } : null,
+            normalizedServerUrl
+                ? { instanceUrl: normalizedServerUrl, isSandbox: isSandboxFromUrl }
+                : null,
             this.workspaceBasePath || DEFAULT_WORKSPACE_ROOT
         );
         // When candidateRoot is the default (/workspace), use the derived org path
@@ -1147,6 +1163,34 @@ export default class VscodeWorkbenchApp extends ToolkitElement {
         return await this._sessionRecoveryPromise;
     }
 
+    async retryWithCurrentSession() {
+        if (this.isRetryingInitialization) return;
+        this.isRetryingInitialization = true;
+        try {
+            const liveConnector = store.getState()?.application?.connector;
+            const accessToken = liveConnector?.conn?.accessToken;
+            const instanceUrl = liveConnector?.conn?.instanceUrl;
+            if (accessToken && instanceUrl) {
+                this.sessionId = accessToken;
+                this.serverUrl = instanceUrl;
+                this._clearPersistedBootstrapSeed();
+            }
+            this.initializationError = null;
+            this._connectionBootstrapPromise = null;
+            this._disposeIframeAiBridgeHost();
+            this._disposeIframeJsforceBridgeHost();
+            this._disposeIframeFsBridgeHost();
+            this._started = false;
+            await this._ensureInitialConnectionBootstrap();
+            await this._initializeIframeBridge();
+        } catch (error) {
+            this.initializationError =
+                error instanceof Error ? error.message : String(error);
+        } finally {
+            this.isRetryingInitialization = false;
+        }
+    }
+
     toggleWorkbenchTheme() {
         this._applyWorkbenchTheme(this.themeMode === 'light' ? 'dark' : 'light');
     }
@@ -1298,8 +1342,24 @@ export default class VscodeWorkbenchApp extends ToolkitElement {
         return Boolean(this.initializationError) && !this.showSessionExpiredBanner;
     }
 
+    get canRetryInitialization() {
+        const liveConnector = store.getState()?.application?.connector;
+        return Boolean(liveConnector?.conn?.accessToken && liveConnector?.conn?.instanceUrl);
+    }
+
     get showLoadingOverlay() {
-        return !this.vscodeInitialized && !this.initializationError;
+        return (!this.vscodeInitialized || !this.isWorkspaceRootReady) && !this.initializationError;
+    }
+
+    /**
+     * True once `_workspaceRoot` has been resolved to an org-scoped path.
+     * The iframe MUST NOT render before this is true — VS Code's workspace
+     * storage (open tabs, editor mementos) is keyed by the folderUri it sees
+     * at module init. Booting with DEFAULT_WORKSPACE_ROOT (`/workspace`)
+     * causes state to be written under the default key and leak across orgs.
+     */
+    get isWorkspaceRootReady() {
+        return Boolean(this._workspaceRoot && this._workspaceRoot !== DEFAULT_WORKSPACE_ROOT);
     }
 
     get isAuthBoundaryLoading() {

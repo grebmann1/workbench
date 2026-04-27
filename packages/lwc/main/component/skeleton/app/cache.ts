@@ -27,8 +27,8 @@ import {
 export async function initCacheStorage() {
     if (isChromeExtension()) return;
     LOGGER.debug('initCacheStorage');
-    (window as any).defaultStore = await basicStore('local');
-    (window as any).settingsStore = await basicStore('session');
+    (window as any).defaultStore = basicStore('local');
+    (window as any).settingsStore = basicStore('session');
 }
 
 /**
@@ -59,6 +59,24 @@ export async function loadFromCache(context) {
     store.dispatch(APPLICATION.reduxSlice.actions.updateSettings(configuration));
     store.dispatch(APPLICATION.reduxSlice.actions.updateProviderConfigs({ providerConfigs }));
     store.dispatch(APPLICATION.reduxSlice.actions.updateAiProvider({ aiProvider }));
+
+    // LLM catalog refresh runs in the background — it's a network round-trip that
+    // blocks first paint but its consumers (agent app) react through storeChange when
+    // the catalog lands.
+    void refreshLlmCatalogInBackground(aiProvider, providerConfigs);
+
+    return {
+        openaiKey,
+        openaiUrl,
+        mistralKey,
+        aiProvider,
+        providerConfigs,
+        isApplicationTabVisible: configuration[CACHE_CONFIG.UI_IS_APPLICATION_TAB_VISIBLE.key],
+        betaSmartInputEnabled: !!configuration[CACHE_CONFIG.BETA_SMARTINPUT_ENABLED.key],
+    };
+}
+
+async function refreshLlmCatalogInBackground(aiProvider, providerConfigs) {
     try {
         const response = await fetchLlmModelsEndpoint({ provider: aiProvider, providerConfigs });
         store.dispatch(
@@ -89,14 +107,4 @@ export async function loadFromCache(context) {
     } catch (error) {
         LOGGER.warn('loadFromCache - failed to refresh LLM catalog', error);
     }
-
-    return {
-        openaiKey,
-        openaiUrl,
-        mistralKey,
-        aiProvider,
-        providerConfigs,
-        isApplicationTabVisible: configuration[CACHE_CONFIG.UI_IS_APPLICATION_TAB_VISIBLE.key],
-        betaSmartInputEnabled: !!configuration[CACHE_CONFIG.BETA_SMARTINPUT_ENABLED.key],
-    };
 }

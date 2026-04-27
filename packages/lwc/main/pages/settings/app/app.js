@@ -433,21 +433,37 @@ export default class App extends ToolkitElement {
     };
 
     handleExportSettings = async () => {
-        let data = {};
-        if (this.isChrome) {
-            data = await new Promise(resolve => {
-                chrome.storage.local.get(null, items => resolve(items));
-            });
-        } else {
+        // Export BOTH localStorage and chrome.storage.local. Recent queries / apex /
+        // api are written directly to localStorage (see core/store/modules/document.ts);
+        // cacheManager data lives in chrome.storage.local on the extension.
+        const localStorageDump = {};
+        try {
             Object.keys(localStorage).forEach(key => {
                 try {
-                    data[key] = JSON.parse(localStorage.getItem(key));
+                    localStorageDump[key] = JSON.parse(localStorage.getItem(key));
                 } catch {
-                    data[key] = localStorage.getItem(key);
+                    localStorageDump[key] = localStorage.getItem(key);
                 }
             });
+        } catch (err) {
+            LOGGER.error('Settings export: localStorage read failed', err);
         }
-        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        let chromeStorageLocal = null;
+        if (this.isChrome) {
+            chromeStorageLocal = await new Promise(resolve => {
+                chrome.storage.local.get(null, items => resolve(items || {}));
+            });
+        }
+        const payload = {
+            capturedAt: new Date().toISOString(),
+            extensionId:
+                typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.id
+                    ? chrome.runtime.id
+                    : null,
+            localStorage: localStorageDump,
+            chromeStorageLocal,
+        };
+        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -467,10 +483,46 @@ export default class App extends ToolkitElement {
         try {
             const text = await file.text();
             const data = JSON.parse(text);
-            const keyCount = Object.keys(data).length;
-            if (this.isChrome) {
+
+            // Accept two shapes:
+            //   1. New diagnostic shape: { localStorage, chromeStorageLocal, ... }
+            //   2. Legacy flat shape:    { key: value, ... }  (treated as chrome.storage
+            //      on the extension; as localStorage on the web)
+            const isDiagnosticShape =
+                data &&
+                typeof data === 'object' &&
+                ('localStorage' in data || 'chromeStorageLocal' in data);
+
+            let localData = {};
+            let chromeData = null;
+            if (isDiagnosticShape) {
+                localData = data.localStorage || {};
+                chromeData = data.chromeStorageLocal || null;
+            } else if (this.isChrome) {
+                chromeData = data;
+            } else {
+                localData = data;
+            }
+
+            let written = 0;
+
+            // Restore localStorage (recent queries / apex / api / platform events / record viewers)
+            Object.entries(localData).forEach(([key, value]) => {
+                try {
+                    localStorage.setItem(
+                        key,
+                        typeof value === 'string' ? value : JSON.stringify(value)
+                    );
+                    written += 1;
+                } catch (err) {
+                    LOGGER.error(`Settings import: localStorage write failed for ${key}`, err);
+                }
+            });
+
+            // Restore chrome.storage.local (cacheManager: saved queries / apex / api files, settings)
+            if (chromeData && this.isChrome) {
                 await new Promise((resolve, reject) => {
-                    chrome.storage.local.set(data, () => {
+                    chrome.storage.local.set(chromeData, () => {
                         if (chrome.runtime.lastError) {
                             reject(new Error(chrome.runtime.lastError.message));
                         } else {
@@ -478,16 +530,11 @@ export default class App extends ToolkitElement {
                         }
                     });
                 });
-            } else {
-                Object.entries(data).forEach(([key, value]) => {
-                    localStorage.setItem(
-                        key,
-                        typeof value === 'string' ? value : JSON.stringify(value)
-                    );
-                });
+                written += Object.keys(chromeData).length;
             }
+
             Toast.show({
-                label: `Imported ${keyCount} settings. Reload the page to apply changes.`,
+                label: `Imported ${written} settings. Reload the page to apply changes.`,
                 variant: 'success',
             });
         } catch (err) {
@@ -1076,6 +1123,13 @@ export default class App extends ToolkitElement {
 
     get isQaModeEnabled() {
         return this.sessionConfig?.client_id === 'SfdcInternalQA/';
+    }
+
+    get sidePanelModeOptions() {
+        return [
+            { label: 'App mode — close side panel', value: 'app' },
+            { label: 'Agent mode — keep side panel open', value: 'agent' },
+        ];
     }
 
     get qaModeButtonVariant() {

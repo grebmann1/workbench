@@ -164,5 +164,3 @@ export function getIndexedDbFileSystem(options: IndexedDbFsOptions = {}) {
 
     return existing;
 }
-
-export default getIndexedDbFileSystem();

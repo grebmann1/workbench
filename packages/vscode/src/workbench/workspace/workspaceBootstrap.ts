@@ -1,5 +1,15 @@
-import { WORKSPACE_TEMPLATE_FILES } from '../templates/workspace/workspaceTemplate';
+import {
+    WORKSPACE_TEMPLATE_FILES,
+    buildSfdxProjectFileContent,
+    deriveSfdcLoginUrl,
+} from '../templates/workspace/workspaceTemplate';
 import { deriveWorkspaceRootFromConnection } from './workspaceIdentity';
+
+function toBooleanOrNull(value: unknown): boolean | null {
+    if (typeof value === 'boolean') return value;
+    if (value == null || value === '') return null;
+    return String(value).toLowerCase() === 'true';
+}
 
 export {
     deriveWorkspaceBaseRoot,
@@ -41,11 +51,27 @@ function ancestorPaths(path: string): string[] {
 }
 
 export async function buildWorkspaceBootstrap(
-    connection: { orgId?: unknown; instanceUrl?: unknown } | null | undefined,
+    connection:
+        | {
+              orgId?: unknown;
+              instanceUrl?: unknown;
+              isSandbox?: unknown;
+              isScratch?: unknown;
+          }
+        | null
+        | undefined,
     workspaceBasePath = '/workspace/orgs'
 ) {
     const workspaceRoot = deriveWorkspaceRootFromConnection(connection, workspaceBasePath);
     const defaultMetadataRoot = `${workspaceRoot}/force-app/main/default`;
+    const sfdcLoginUrl = deriveSfdcLoginUrl({
+        isSandbox: toBooleanOrNull(connection?.isSandbox),
+        isScratch: toBooleanOrNull(connection?.isScratch),
+    });
+    const templateFiles: Record<string, string> = {
+        ...WORKSPACE_TEMPLATE_FILES,
+        'sfdx-project.json': buildSfdxProjectFileContent({ sfdcLoginUrl }),
+    };
     return {
         workspaceRoot,
         ensureDirectories: [
@@ -59,6 +85,6 @@ export async function buildWorkspaceBootstrap(
             `${workspaceRoot}/assets/apex`,
             `${workspaceRoot}/assets/soql`,
         ],
-        initialFiles: prefixWorkspaceFiles(workspaceRoot, WORKSPACE_TEMPLATE_FILES),
+        initialFiles: prefixWorkspaceFiles(workspaceRoot, templateFiles),
     };
 }

@@ -72,7 +72,7 @@ export default class QuickLauncher extends ToolkitElement {
     }
 
     get utilities() {
-        const names = ['smartinput/app', 'textCompare/app'];
+        const names = ['smartinput/app', 'textCompare/app', 'urlencoder/app'];
         return this.getAppsByName(names);
     }
 

@@ -10,6 +10,7 @@ import {
 
 const WALKTHROUGH_EXTENSION_NAME = 'workbench-walkthrough';
 const WALKTHROUGH_EXTENSION_ID = `${EXTENSION_PUBLISHER}.${WALKTHROUGH_EXTENSION_NAME}`;
+const WALKTHROUGH_AUTO_OPEN_SENTINEL = 'sfWorkbench.walkthroughAutoOpened.v1';
 
 export type WalkthroughVscodeBundle = VscodeBundle & {
     vscodeApiMonaco: { ContextKeyExpr: { true(): unknown } };
@@ -232,6 +233,18 @@ export async function register(
                     }
                 })
             );
+
+            try {
+                if (window.localStorage?.getItem(WALKTHROUGH_AUTO_OPEN_SENTINEL) !== 'done') {
+                    window.localStorage?.setItem(WALKTHROUGH_AUTO_OPEN_SENTINEL, 'done');
+                    void vsc.commands.executeCommand(
+                        'workbench.action.openWalkthrough',
+                        `${WALKTHROUGH_EXTENSION_ID}#open`
+                    );
+                }
+            } catch {
+                // ignore — walkthrough auto-open is best-effort
+            }
         }
     );
 }

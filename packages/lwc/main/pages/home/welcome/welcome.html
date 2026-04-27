@@ -49,15 +49,7 @@
                     <template lwc:elseif={hasSessions}>
                         <ul class="sessions-list" role="list">
                             <template for:each={sessions} for:item="session">
-                                <li
-                                    key={session.serverUrl}
-                                    class="session-item"
-                                    role="button"
-                                    tabindex="0"
-                                    data-server-url={session.serverUrl}
-                                    data-session-id={session.sessionId}
-                                    onclick={handleSessionClick}
-                                    onkeydown={handleSessionKeydown}>
+                                <li key={session.serverUrl} class="session-item">
                                     <span class="session-item__avatar" aria-hidden="true">
                                         <lightning-icon
                                             icon-name="utility:connected_apps"
@@ -67,10 +59,19 @@
                                         <span class="session-item__label">{session.label}</span>
                                         <span class="session-item__detail">{session.detail}</span>
                                     </div>
-                                    <lightning-icon
-                                        icon-name="utility:chevronright"
-                                        size="x-small"
-                                        class="session-item__chevron"></lightning-icon>
+                                    <button
+                                        class="session-item__open"
+                                        type="button"
+                                        aria-label="Open this session in Workbench"
+                                        title="Open this session in Workbench"
+                                        data-server-url={session.serverUrl}
+                                        data-session-id={session.sessionId}
+                                        onclick={handleSessionOpen}>
+                                        <lightning-icon
+                                            icon-name="utility:forward"
+                                            size="x-small"></lightning-icon>
+                                        <span class="session-item__open-label">Open</span>
+                                    </button>
                                 </li>
                             </template>
                         </ul>

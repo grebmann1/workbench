@@ -264,8 +264,23 @@ export default class App extends ToolkitElement {
     };
 
     openVSCode = (): void => {
-        if (!this.vscodeEditorUrl) return;
-        window.open(this.vscodeEditorUrl);
+        const url = this._buildVscodeEditorUrlWithSelection();
+        if (!url) return;
+        window.open(url);
+    };
+
+    _buildVscodeEditorUrlWithSelection = (): string | null => {
+        const record = this.selectedRecord;
+        const metadataType = record?.attributes?.type || this.sobject || null;
+        const memberName =
+            record?.DeveloperName || record?.Name || record?.MasterLabel || record?.FullName || null;
+        return getVscodeEditorUrl({
+            alias: this.connector?.configuration?.alias,
+            sessionId: this.connector?.conn?.accessToken,
+            serverUrl: this.connector?.conn?.instanceUrl,
+            metadataType,
+            memberName,
+        });
     };
 
     goToMetadata = e => {

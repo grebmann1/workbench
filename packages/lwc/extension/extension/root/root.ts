@@ -30,6 +30,7 @@ export default class Root extends LightningElement {
 
     currentTab;
     currentWindowId: number | undefined;
+    sourceTabId: number | undefined;
     recordId;
     hasLoaded = false;
     panel = PANELS.SALESFORCE;
@@ -136,6 +137,7 @@ export default class Root extends LightningElement {
         try {
             this.currentTab = await getCurrentTab();
             this.currentWindowId = this.currentTab?.windowId;
+            this.sourceTabId = this.currentTab?.id;
             this.currentUrl = this.currentTab?.url;
             //this.currentOrigin = (new URL(this.currentTab.url)).origin;
             if (withMonitorChange) {
@@ -180,6 +182,9 @@ export default class Root extends LightningElement {
     };
 
     applyActivatedTabId = async (tabId: number) => {
+        if (tabId !== this.sourceTabId) {
+            return;
+        }
         let tab: chrome.tabs.Tab | undefined;
         try {
             tab = await chrome.tabs.get(tabId);
@@ -208,7 +213,7 @@ export default class Root extends LightningElement {
         if (!activeInfo?.tabId) {
             return;
         }
-        if (activeInfo.windowId !== this.currentWindowId) {
+        if (activeInfo.windowId !== this.currentWindowId || activeInfo.tabId !== this.sourceTabId) {
             return;
         }
         runActionAfterTimeOut(

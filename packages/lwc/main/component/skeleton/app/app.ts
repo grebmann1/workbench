@@ -151,24 +151,18 @@ export default class App extends LightningElement {
 
     connectedCallback() {
         this.init();
-        //this.checkForInjected();
-        // Load keys from cache
-
-        this.loadFromCache();
-        //this.test();
     }
 
     init = async () => {
         await initCacheStorage();
-        await loadFromCache(this);
+        await this.loadFromCache();
         await this.processShareParams();
         if (isElectronApp()) {
-            await this.prepareDesktopLaunchIntent();
-            await this.initElectron();
+            await Promise.all([this.prepareDesktopLaunchIntent(), this.initElectron()]);
             this.isCommandCheckFinished = true;
             this.registerDesktopLaunchIntentListener();
         }
-        this.loadVersion();
+        void this.loadVersion();
         await this.initMode();
         this.initDragDrop();
         this.initShortcuts();

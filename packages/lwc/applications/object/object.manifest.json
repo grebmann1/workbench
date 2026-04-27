@@ -6,8 +6,8 @@
     "description": "Explore in details all your SObjects",
     "path": "sobject",
     "quickActionIcon": "standard:knowledge",
-    "type": "explorer",
-    "menuGroup": "explorers",
+    "type": "admin",
+    "menuGroup": "admin",
     "menuOrder": 20,
     "flags": {
         "isFullHeight": true,

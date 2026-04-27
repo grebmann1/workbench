@@ -6,8 +6,8 @@
     "description": "Review & Modify all your metadata. (Beta)",
     "path": "metadata",
     "quickActionIcon": "standard:knowledge",
-    "type": "explorer",
-    "menuGroup": "explorers",
+    "type": "admin",
+    "menuGroup": "deploy",
     "menuOrder": 10,
     "flags": {
         "isFullHeight": true,

@@ -7,7 +7,6 @@ import {
     isUndefinedOrNull,
 } from 'shared/utils';
 import { APPLICATION, connectStore, store } from 'core/store';
-import LOGGER from 'shared/logger';
 import {
     CACHE_CONFIG,
     loadSingleExtensionConfigFromCache,

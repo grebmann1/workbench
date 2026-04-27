@@ -78,6 +78,18 @@
                     <div class="overlay overlayError" role="alert">
                         <strong>Failed to initialize VSCode workbench</strong>
                         <div class="errorText">{initializationError}</div>
+                        <template if:true={canRetryInitialization}>
+                            <button
+                                class="overlayRetryButton"
+                                type="button"
+                                disabled={isRetryingInitialization}
+                                onclick={retryWithCurrentSession}>
+                                <template if:true={isRetryingInitialization}>Retrying…</template>
+                                <template if:false={isRetryingInitialization}>
+                                    Retry with current session
+                                </template>
+                            </button>
+                        </template>
                     </div>
                 </template>
 
@@ -88,12 +100,14 @@
                 </template>
 
                 <div class="workbench-host">
-                    <iframe
-                        class="workbench-iframe"
-                        src={workbenchIframeSrc}
-                        title="Salesforce Workbench"
-                        allow="keyboard-map"
-                        onload={handleWorkbenchIframeLoad}></iframe>
+                    <template if:true={isWorkspaceRootReady}>
+                        <iframe
+                            class="workbench-iframe"
+                            src={workbenchIframeSrc}
+                            title="Salesforce Workbench"
+                            allow="keyboard-map"
+                            onload={handleWorkbenchIframeLoad}></iframe>
+                    </template>
                 </div>
             </div>
         </slds-auth-boundary>

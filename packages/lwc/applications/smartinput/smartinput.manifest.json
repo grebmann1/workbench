@@ -7,7 +7,7 @@
     "path": "smartinput",
     "quickActionIcon": "utility:magicwand",
     "type": "utility",
-    "menuGroup": "code",
+    "menuGroup": "utilities",
     "menuOrder": 30,
     "reducerKey": "smartInput",
     "flags": {

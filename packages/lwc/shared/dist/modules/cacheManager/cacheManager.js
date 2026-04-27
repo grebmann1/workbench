@@ -93,26 +93,25 @@ class CacheManager {
         return this.configKeyMap;
     }
     async loadConfig(keys) {
+        const keyMap = this.getConfigKeyMap();
+        const results = await Promise.all(keys.map(key => this.settingsStore.getItem(key)));
         const configuration = {};
-        for await (const key of keys) {
-            const cachedValue = await this.settingsStore.getItem(key);
-            // If we have a value in cache, use it
+        for (let i = 0; i < keys.length; i++) {
+            const key = keys[i];
+            const cachedValue = results[i];
             if (isNotUndefinedOrNull(cachedValue)) {
                 configuration[key] = cachedValue;
             }
             else {
-                // Otherwise, look for a default value in CACHE_CONFIG using our map
-                const configObj = this.getConfigKeyMap()[key];
+                const configObj = keyMap[key];
                 configuration[key] = configObj ? configObj.defaultValue : null;
             }
         }
         return configuration;
     }
     async saveConfig(config) {
-        const keys = Object.keys(config);
-        for await (const key of keys) {
-            await this.settingsStore.setItem(key, config[key]);
-        }
+        const entries = Object.entries(config);
+        await Promise.all(entries.map(([key, value]) => this.settingsStore.setItem(key, value)));
     }
 }
 CacheManager.instance = null;
@@ -216,6 +215,10 @@ export const CACHE_CONFIG = {
     SHORTCUT_OPEN_OVERLAY: new CONFIG_OBJECT('shortcut_openOverlay', 'ctrl+shift+8'),
     // First-visit onboarding flags for the side panel
     SIDEPANEL_HAS_SEEN_OPEN_APP: new CONFIG_OBJECT('sidepanel_has_seen_open_app', false),
+    // Side-panel behavior when opening a Workbench tab from within the panel.
+    // 'app' (default): close the side panel one-shot so it doesn't linger.
+    // 'agent': keep the side panel open (no reload) so the AI agent stays visible.
+    SIDEPANEL_MODE: new CONFIG_OBJECT('sidepanel_mode', 'app'),
     //  TODO: Add Global CLIENT_ID and API_VERSION to the CACHE_CONFIG
 };
 export const CACHE_SESSION_CONFIG = {
