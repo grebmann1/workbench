@@ -127,4 +127,3 @@ All targets consume the same compiled `packages/lwc` and `packages/shared` outpu
 - [VS Code workflows](../vscode/overview)
 - [IndexedDB virtual file system](../storage/indexeddb-workspace)
 - [AI Agent tools](../ai-agent/tools-overview)
-- [CLI usage](../cli/overview)

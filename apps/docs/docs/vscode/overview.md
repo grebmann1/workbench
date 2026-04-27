@@ -46,5 +46,4 @@ For a deeper look at this design, see [Architecture overview](../architecture/ov
 - [Architecture overview](../architecture/overview)
 - [IndexedDB virtual file system](../storage/indexeddb-workspace)
 - [AI Agent tools](../ai-agent/tools-overview)
-- [Common workflows](../workflows/common-tasks)
 - [Troubleshooting](../troubleshooting/common-issues)
