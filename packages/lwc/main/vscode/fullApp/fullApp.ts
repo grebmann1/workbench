@@ -299,12 +299,40 @@ export default class VscodeWorkbenchApp extends ToolkitElement {
         const bootstrapServerUrl = this._getBootstrapServerUrl();
         const hasSessionBootstrap = Boolean(bootstrapSessionId && bootstrapServerUrl);
 
+        // Resolve the alias against the saved connection list. Only registered
+        // aliases (OAuth configurations with a refresh token) should take the
+        // OAUTH path; synthesized session-derived aliases must fall through to
+        // the SESSION bootstrap so we don't trigger an OAuth popup against the
+        // wrong org.
+        const aliasIsRegistered = bootstrapAlias
+            ? Boolean(await getConfiguration(bootstrapAlias).catch(() => null))
+            : false;
+
+        const runOauthConnect = async () => {
+            const aliasedConnector = await credentialStrategies.OAUTH.connect({
+                alias: bootstrapAlias,
+            }).catch(error => handleConnectorFailure(error));
+            const usableAliasedConnector = toUsableConnector(aliasedConnector);
+            if (usableAliasedConnector) {
+                await this._applyConnector(usableAliasedConnector);
+                this._clearConnectionBootstrapParams();
+                return usableAliasedConnector;
+            }
+            return null;
+        };
+
+        if (bootstrapAlias && aliasIsRegistered) {
+            const connector = await runOauthConnect();
+            if (connector) return connector;
+        }
+
         if (hasSessionBootstrap) {
             const CONNECT_TIMEOUT_MS = 10000;
             const timeoutMarker = Symbol('session-connect-timeout');
             const connectPromise = credentialStrategies.SESSION.connect({
                 sessionId: bootstrapSessionId,
                 serverUrl: bootstrapServerUrl,
+                alias: bootstrapAlias || undefined,
             });
 
             const connectorOrTimeout = await Promise.race([
@@ -338,20 +366,13 @@ export default class VscodeWorkbenchApp extends ToolkitElement {
         }
 
         if (bootstrapAlias) {
-            // Always attempt OAUTH.connect regardless of whether we have a cached
-            // configuration. If a stored config exists, connect() reuses its refreshToken
-            // to obtain a fresh access token. If no config is stored (first time with
-            // this alias, cleared storage, etc.) connect() falls through to the OAuth
-            // popup so the user can authenticate — instead of silently doing nothing.
-            const aliasedConnector = await credentialStrategies.OAUTH.connect({
-                alias: bootstrapAlias,
-            }).catch(error => handleConnectorFailure(error));
-            const usableAliasedConnector = toUsableConnector(aliasedConnector);
-            if (usableAliasedConnector) {
-                await this._applyConnector(usableAliasedConnector);
-                this._clearConnectionBootstrapParams();
-                return usableAliasedConnector;
-            }
+            // Last resort: unknown alias with no session seed (e.g. a pasted
+            // URL). Attempt OAUTH.connect — if a stored config exists, it
+            // reuses its refreshToken; otherwise it falls through to the OAuth
+            // popup. This is the pre-existing behavior, preserved for
+            // direct-URL entry points.
+            const connector = await runOauthConnect();
+            if (connector) return connector;
         }
         return null;
     }
@@ -532,7 +553,9 @@ export default class VscodeWorkbenchApp extends ToolkitElement {
         // When candidateRoot is the default (/workspace), use the derived org path
         // directly to avoid seeding files at the workspace root and opening VSCode there.
         const workspaceRoot =
-            candidateRoot !== DEFAULT_WORKSPACE_ROOT ? candidateRoot : seededBootstrap.workspaceRoot;
+            candidateRoot !== DEFAULT_WORKSPACE_ROOT
+                ? candidateRoot
+                : seededBootstrap.workspaceRoot;
         if (workspaceRoot === seededBootstrap.workspaceRoot) {
             return seededBootstrap;
         }
@@ -642,10 +665,7 @@ export default class VscodeWorkbenchApp extends ToolkitElement {
 
                 await this._ensureInitialConnectionBootstrap();
                 const activeConnection = this._buildCurrentConnection();
-                if (
-                    activeConnection &&
-                    this._hasUsableWorkbenchConnection(activeConnection)
-                ) {
+                if (activeConnection && this._hasUsableWorkbenchConnection(activeConnection)) {
                     this._applyActiveConnection(activeConnection);
                     await this._prepareWorkspaceBootstrap(activeConnection);
                 } else {
@@ -1184,8 +1204,7 @@ export default class VscodeWorkbenchApp extends ToolkitElement {
             await this._ensureInitialConnectionBootstrap();
             await this._initializeIframeBridge();
         } catch (error) {
-            this.initializationError =
-                error instanceof Error ? error.message : String(error);
+            this.initializationError = error instanceof Error ? error.message : String(error);
         } finally {
             this.isRetryingInitialization = false;
         }
@@ -1212,7 +1231,9 @@ export default class VscodeWorkbenchApp extends ToolkitElement {
     }
 
     refreshSalesforceMetadata() {
-        this._emitIframeHostEvent('workspace.refreshMetadata', { workspaceRoot: this._workspaceRoot });
+        this._emitIframeHostEvent('workspace.refreshMetadata', {
+            workspaceRoot: this._workspaceRoot,
+        });
     }
 
     // ── Template getters ──────────────────────────────────────────────────────
@@ -1253,10 +1274,7 @@ export default class VscodeWorkbenchApp extends ToolkitElement {
         // way to update VSCode's `folderUri` since it is locked at module-init
         // time in `setup.common.ts`.
         if (this._workspaceRoot && this._workspaceRoot !== DEFAULT_WORKSPACE_ROOT) {
-            url.searchParams.set(
-                IFRAME_FS_BRIDGE_QUERY_WORKSPACE_ROOT_PARAM,
-                this._workspaceRoot
-            );
+            url.searchParams.set(IFRAME_FS_BRIDGE_QUERY_WORKSPACE_ROOT_PARAM, this._workspaceRoot);
         }
         return url.toString();
     }

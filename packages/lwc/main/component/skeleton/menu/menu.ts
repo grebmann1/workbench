@@ -359,13 +359,11 @@ export default class Menu extends ToolkitElement {
     }
 
     get vscodeEditorLink() {
-        const alias = this.connector?.configuration?.alias;
-        const url = alias
-            ? getVscodeEditorUrl({ alias })
-            : getVscodeEditorUrl({
-                  sessionId: this.connector?.conn?.accessToken,
-                  serverUrl: this.connector?.conn?.instanceUrl,
-              });
+        const url = getVscodeEditorUrl({
+            alias: this.connector?.configuration?.alias,
+            sessionId: this.connector?.conn?.accessToken,
+            serverUrl: this.connector?.conn?.instanceUrl,
+        });
         if (!this.isUserLoggedIn || !isChromeExtension() || !url) {
             return null;
         }
