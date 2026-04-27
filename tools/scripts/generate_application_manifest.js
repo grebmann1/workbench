@@ -52,6 +52,29 @@ const REQUIRED_FLAGS = [
 const ALLOWED_TOP_LEVEL = new Set([...REQUIRED_FIELDS, 'menuIcon', 'reducerKey']);
 const ALLOWED_FLAGS = new Set([...REQUIRED_FLAGS, 'isChromeOnly']);
 
+// `type` drives filtering/grouping in the quick-action surface. A typo
+// silently removes the app from those views, so enforce the known set.
+const ALLOWED_TYPES = new Set(['developer', 'explorer', 'data']);
+
+// `menuGroup` picks the section of the left-nav menu. A typo drops the app
+// out of the menu entirely with no warning.
+const ALLOWED_MENU_GROUPS = new Set(['data', 'code', 'explorers', 'deploy']);
+
+// Used for `id` (folder name / Redux key / identifier). Mirrors the LWC
+// camelCase convention we use for module specifiers.
+const ID_PATTERN = /^[a-z][a-zA-Z0-9]*$/;
+
+// `name` is the LWC module specifier — must be `<id>/app` to resolve.
+const NAME_PATTERN = /^[a-zA-Z][a-zA-Z0-9]*\/app$/;
+
+// `path` is the URL router key (`?applicationName=<path>`). URL
+// normalisation lowercases so uppercase here would silently rewrite.
+const PATH_PATTERN = /^[a-z][a-z0-9-]*$/;
+
+// SLDS icon namespace:name. A missing namespace or a typo ("util:foo")
+// renders as a broken icon glyph without any build error.
+const ICON_PATTERN = /^(standard|utility|custom|action|doctype):[a-z0-9_]+$/;
+
 /** Return absolute paths of every <dir>/<dir>.manifest.json under application/. */
 const SCAN_SKIP = new Set(['applicationRegistry']);
 
@@ -97,9 +120,54 @@ function validate(manifest, filePath) {
             }
         }
     }
+    // `menuOrder` controls position in the side menu. Must be a non-negative
+    // integer — floats and negatives produce unstable sort results.
     if (typeof manifest.menuOrder !== 'number') {
         errors.push('menuOrder must be a number');
+    } else if (!Number.isInteger(manifest.menuOrder) || manifest.menuOrder < 0) {
+        errors.push('menuOrder must be a non-negative integer');
     }
+
+    // Format checks — skip when the field is missing (already reported above)
+    // so we surface one clear error per problem.
+    if (typeof manifest.id === 'string' && !ID_PATTERN.test(manifest.id)) {
+        errors.push(`id "${manifest.id}" must match ${ID_PATTERN} (lowercase start, alphanumeric)`);
+    }
+    if (typeof manifest.name === 'string' && !NAME_PATTERN.test(manifest.name)) {
+        errors.push(`name "${manifest.name}" must match ${NAME_PATTERN} (e.g. "myapp/app")`);
+    }
+    if (typeof manifest.path === 'string' && !PATH_PATTERN.test(manifest.path)) {
+        errors.push(`path "${manifest.path}" must match ${PATH_PATTERN} (URL-safe, lowercase)`);
+    }
+    if (typeof manifest.type === 'string' && !ALLOWED_TYPES.has(manifest.type)) {
+        errors.push(
+            `type "${manifest.type}" must be one of ${[...ALLOWED_TYPES].join(', ')}`
+        );
+    }
+    if (typeof manifest.menuGroup === 'string' && !ALLOWED_MENU_GROUPS.has(manifest.menuGroup)) {
+        errors.push(
+            `menuGroup "${manifest.menuGroup}" must be one of ${[...ALLOWED_MENU_GROUPS].join(', ')}`
+        );
+    }
+    // Icons must carry an SLDS namespace; catches the common "util:" typo
+    // and bare names that render as a broken glyph at runtime.
+    if (typeof manifest.quickActionIcon === 'string' && !ICON_PATTERN.test(manifest.quickActionIcon)) {
+        errors.push(
+            `quickActionIcon "${manifest.quickActionIcon}" must match ${ICON_PATTERN}`
+        );
+    }
+    if (manifest.menuIcon !== undefined && (typeof manifest.menuIcon !== 'string' || !ICON_PATTERN.test(manifest.menuIcon))) {
+        errors.push(`menuIcon "${manifest.menuIcon}" must match ${ICON_PATTERN}`);
+    }
+
+    // The folder name is the implicit source of truth — the generator finds
+    // the manifest by looking for `<folder>/<folder>.manifest.json`, so a
+    // renamed folder with a stale `id` inside would desync the two.
+    const dirName = path.basename(path.dirname(filePath));
+    if (typeof manifest.id === 'string' && manifest.id !== dirName) {
+        errors.push(`id "${manifest.id}" must equal parent folder name "${dirName}"`);
+    }
+
     if (errors.length > 0) {
         throw new Error(
             `Invalid manifest at ${path.relative(PROJECT_ROOT, filePath)}:\n  - ${errors.join('\n  - ')}`
@@ -187,10 +255,13 @@ function generate() {
         return raw;
     });
 
-    // Detect duplicate ids / names across the set — different Apps must
-    // never share a module specifier or a stable id.
+    // Detect duplicate ids / names / paths across the set — different Apps
+    // must never share a module specifier, a stable id, or a URL path.
+    // Two apps with the same path would collide in the ?applicationName=
+    // router and one would silently win.
     const seenIds = new Map();
     const seenNames = new Map();
+    const seenPaths = new Map();
     for (const m of manifests) {
         if (seenIds.has(m.id)) {
             throw new Error(
@@ -200,8 +271,14 @@ function generate() {
         if (seenNames.has(m.name)) {
             throw new Error(`Duplicate App name "${m.name}"`);
         }
+        if (seenPaths.has(m.path)) {
+            throw new Error(
+                `Duplicate App path "${m.path}" in ${m.name} — also used by ${seenPaths.get(m.path)}`
+            );
+        }
         seenIds.set(m.id, m.name);
         seenNames.set(m.name, m.id);
+        seenPaths.set(m.path, m.name);
     }
 
     const aggregated = {

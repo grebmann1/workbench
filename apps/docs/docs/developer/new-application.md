@@ -4,186 +4,288 @@ title: Adding a New Application
 
 # Adding a New Application
 
-A **routed application** is a full-screen tool accessible from the left-side menu and via the `?applicationName=<path>` URL parameter. Examples include SOQL Explorer, Metadata Explorer, and API Explorer.
+A **Workbench application** is a self-contained extension — a full-screen tool
+accessible from the left-side menu and via the `?applicationName=<path>` URL
+parameter. SOQL Explorer, Metadata Explorer, and API Explorer all follow the
+same pattern described below.
+
+Extensions live under `packages/lwc/applications/<name>/` and are discovered at
+build time from a declarative manifest. Core never imports from an extension
+directly; the two sides talk through the `host-api/*` contract and the
+command/reducer registry.
 
 This guide walks through adding one from scratch.
 
 ---
 
-## Overview
+## How the pieces fit together
 
-```
-packages/lwc/main/
-├── application/
-│   └── myTool/          ← your new folder
-│       └── app/
-│           ├── app.ts
-│           ├── app.html
-│           └── app.css
-└── component/skeleton/registry/
-    └── registry.ts      ← register the entry here
-```
+- Each extension is a folder under `packages/lwc/applications/<name>/` with its
+  own `package.json` and `<name>.manifest.json`.
+- `tools/scripts/generate_application_manifest.js` walks every manifest and
+  emits `packages/lwc/main/application/applicationRegistry/applicationRegistry.ts`.
+  The core host reads **only** that generated file — edits there are
+  overwritten on the next build.
+- Extensions consume core via the `host-api/*` namespace (stable contract) and
+  `shared/*` (pure utilities). See
+  [`packages/lwc/main/host-api/README.md`](https://github.com/tprouvot/sf-toolkit-web/blob/master/packages/lwc/main/host-api/README.md)
+  for the boundary rules.
+- Runtime wiring — Redux reducers, named commands — happens via
+  `injectReducer()` and `registerCommand()`, not via static imports on the host
+  side. This keeps core agnostic of which extensions exist.
 
 ---
 
-## Step 1 — Create the LWC component
+## Folder layout
 
-Create the folder and files for your application under `packages/lwc/main/application/`:
+Use `packages/lwc/applications/soql/` as the canonical reference:
 
 ```
-packages/lwc/main/application/myTool/app/app.ts
-packages/lwc/main/application/myTool/app/app.html
-packages/lwc/main/application/myTool/app/app.css
+packages/lwc/applications/myapp/
+├── package.json                 # minimal, declares the boundary
+├── myapp.manifest.json          # declarative metadata (see below)
+├── app/
+│   ├── app.ts                   # LWC entry, default export
+│   ├── app.html
+│   └── app.css
+└── slices/                      # optional Redux state
+    ├── slices.ts                # barrel: re-exports createSlice outputs
+    └── myapp.ts                 # the actual reducer
 ```
 
-The root component **must** be named `app` inside a folder matching your tool's namespace.
+The folder name **must** match the manifest `id` field (enforced by the
+validator) and the `app/` sub-folder **must** exist with `app.ts` as the
+default export — this maps to the `myapp/app` LWC module specifier.
 
-### Minimal `app.ts`
+### `package.json`
 
-```typescript
-import ToolkitElement from 'core/toolkitElement';
-import { store, connectStore, SELECTORS } from 'core/store';
+```json
+{
+    "name": "@workbench/app-myapp",
+    "version": "0.0.0",
+    "private": true,
+    "main": "app/app.ts"
+}
+```
+
+The `@workbench/app-*` prefix is convention; the package exists mainly to mark
+the extension boundary for tooling.
+
+---
+
+## The manifest
+
+Create `packages/lwc/applications/myapp/myapp.manifest.json`. Here is the SOQL
+manifest verbatim as a starting template:
+
+```json
+{
+    "id": "soql",
+    "name": "soql/app",
+    "label": "SOQL Explorer",
+    "shortName": "SOQL",
+    "description": "Build SOQL queries with fields suggestion and export them.",
+    "path": "soql",
+    "quickActionIcon": "standard:data_model",
+    "type": "developer",
+    "menuGroup": "data",
+    "menuOrder": 10,
+    "flags": {
+        "isFullHeight": true,
+        "isDeletable": true,
+        "isElectronOnly": false,
+        "isOfflineAvailable": false,
+        "isMenuVisible": true,
+        "isTabVisible": true
+    }
+}
+```
+
+### Field reference
+
+| Field | Required | Format | Description |
+| --- | --- | --- | --- |
+| `id` | yes | `^[a-z][a-z0-9_-]*$` | Stable identifier. Used as Redux key and URL fragment. Must equal the folder name. |
+| `name` | yes | `^[a-zA-Z][a-zA-Z0-9]*/app$` | LWC module specifier (e.g. `myapp/app`). Must be globally unique. |
+| `label` | yes | string | Display name in the menu and tab bar. |
+| `shortName` | yes | string | Abbreviated label used in narrow tabs. |
+| `description` | yes | string | Shown in Quick Actions and tooltips. |
+| `path` | yes | `^[a-z][a-z0-9-]*$` | Value of `?applicationName=<path>` and the URL router key. Must be unique. |
+| `type` | yes | enum | One of `developer`, `explorer`, `data`. Used for filtering/grouping. |
+| `menuGroup` | yes | enum | One of `data`, `code`, `explorers`, `deploy`. |
+| `menuOrder` | yes | integer ≥ 0 | Sort order within the menu group (lower = higher in list). |
+| `quickActionIcon` | yes | `namespace:icon_name` | SLDS icon. Namespace one of `standard`, `utility`, `custom`, `action`, `doctype`. |
+| `menuIcon` | no | same as `quickActionIcon` | Optional distinct icon shown in the side menu. |
+| `reducerKey` | no | string | Advertises which Redux slice key this app owns (matches the key passed to `injectReducer`). |
+| `flags` | yes | object | See below. |
+
+### Flags
+
+| Flag | Type | Description |
+| --- | --- | --- |
+| `isFullHeight` | boolean | App fills the available viewport height. |
+| `isDeletable` | boolean | Whether the open tab can be closed by the user. |
+| `isElectronOnly` | boolean | Hide on web/Chrome extension; show only in the desktop app. |
+| `isChromeOnly` | boolean (optional) | Inverse of the above — show only in the Chrome extension. |
+| `isOfflineAvailable` | boolean | App functions without an active org connection. |
+| `isMenuVisible` | boolean | Show in the left navigation menu. |
+| `isTabVisible` | boolean | Show as an openable tab. |
+
+Unknown fields and flags are rejected by the validator.
+
+---
+
+## Minimal `app.ts`
+
+```ts
+import ToolkitElement from 'host-api/element';
+import { store, injectReducer, connectStore } from 'host-api/store';
+import { registerCommand } from 'host-api/commands';
+import { reducer as myappReducer } from 'myapp/slices';
+
+// Module-scope bootstrap: runs once when the extension bundle is first
+// imported. The guard flag keeps repeat calls idempotent — `injectReducer`
+// replaces, `registerCommand` replaces, but we still avoid the re-entry to
+// keep logs clean on hot reloads.
+let _bootstrapped = false;
+function bootstrap() {
+    if (_bootstrapped) return;
+    _bootstrapped = true;
+    injectReducer('myapp', myappReducer);
+    registerCommand('myapp.doThing', (payload: { id: string }) => {
+        // Handle the command. The host calls this via
+        // invokeCommand('myapp.doThing', payload) without importing your code.
+    });
+}
+bootstrap();
 
 export default class App extends ToolkitElement {
     connectedCallback() {
         connectStore(store, this._storeChange.bind(this), this);
     }
 
-    _storeChange(newState: any) {
-        // react to Redux store changes here
+    _storeChange(_state: unknown) {
+        // React to Redux store changes here.
     }
 }
 ```
 
-Extending `ToolkitElement` (from `core/toolkitElement`) gives you access to:
-- `this.connector` — the active `jsforce` connection
-- `this.alias` — the current org alias
-- Standard LWC lifecycle hooks
+### Why module-scope bootstrap?
 
-### Minimal `app.html`
+The host does **not** import your extension's code. It imports the generated
+registry which statically references `myapp/app` as an LWC module, and the
+first time the router mounts your component the bundle is loaded. Running
+`injectReducer` / `registerCommand` at module scope (not inside
+`connectedCallback`) guarantees that any dispatch inside `connectedCallback`
+— or any `invokeCommand('myapp.*', ...)` fired from elsewhere the moment
+the bundle is hot — finds the wiring already installed.
 
-```html
-<template>
-    <div class="slds-var-p-around_medium">
-        <h1>My Tool</h1>
-    </div>
-</template>
+### Why named commands instead of direct imports?
+
+Core needs to talk to extensions (electron launch intents, agent tools, menu
+items firing cross-app actions) without taking a build-time dependency on
+them. `invokeCommand('myapp.doThing', payload)` returns `undefined` when the
+extension is not loaded, so callers can safely fan out.
+
+`ToolkitElement` gives your component:
+
+- `this.connector` — the active jsforce-style connection (when an org is
+  selected).
+- `this.alias` — the current org alias.
+- Standard LWC lifecycle hooks.
+
+---
+
+## Adding a Redux slice (optional)
+
+Model after `packages/lwc/applications/soql/slices/`:
+
+```ts
+// packages/lwc/applications/myapp/slices/myapp.ts
+import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
+
+const initialState = { items: [] as string[] };
+
+export const reduxSlice = createSlice({
+    name: 'myapp',
+    initialState,
+    reducers: {
+        addItem(state, action: PayloadAction<string>) {
+            state.items.push(action.payload);
+        },
+    },
+});
+
+export const reducer = reduxSlice.reducer;
 ```
 
----
-
-## Step 2 — Register the entry
-
-Open `packages/lwc/main/component/skeleton/registry/registry.ts` and add your entry to the top-level import block and `APPLICATION_ENTRIES` array:
-
-```typescript
-// 1. Add the import at the top
-import myTool_app from 'myTool/app';
-
-// 2. Add the entry in APPLICATION_ENTRIES
-{
-    name: 'myTool/app',
-    module: myTool_app,
-    isFullHeight: true,
-    isDeletable: true,
-    isElectronOnly: false,
-    isOfflineAvailable: false,
-    isMenuVisible: true,
-    isTabVisible: true,
-    label: 'My Tool',
-    type: 'developer',                // used for filtering / grouping logic
-    description: 'Brief description shown in the Quick Actions panel.',
-    quickActionIcon: 'standard:apex', // SLDS icon name
-    shortName: 'MY',
-    path: 'mytool',                   // the ?applicationName= value
-    menuGroup: 'code',                // 'data' | 'code' | 'explorers' | 'deploy'
-    menuOrder: 50,                    // controls position within the group
-},
+```ts
+// packages/lwc/applications/myapp/slices/slices.ts
+export * as MYAPP from './myapp';
 ```
 
-### Entry fields reference
+Wire the reducer in `app.ts` with one line:
 
-| Field | Type | Description |
-| --- | --- | --- |
-| `name` | string | `'namespace/app'` — must match the LWC module path |
-| `module` | LWC class | The imported default export of your `app.ts` |
-| `isFullHeight` | boolean | `true` makes the tool fill the available viewport height |
-| `isDeletable` | boolean | Whether the open tab can be closed by the user |
-| `isElectronOnly` | boolean | Hide on web/Chrome extension; show only on desktop |
-| `isOfflineAvailable` | boolean | Whether the tool functions without an org connection |
-| `isMenuVisible` | boolean | Show in the left navigation menu |
-| `isTabVisible` | boolean | Show as an openable tab |
-| `label` | string | Display name in the menu and tab bar |
-| `type` | string | Semantic category (`'explorer'`, `'developer'`, `'data'`) |
-| `description` | string | Shown in Quick Actions and tooltips |
-| `quickActionIcon` | string | SLDS icon for Quick Actions (e.g. `'standard:apex'`) |
-| `shortName` | string | Abbreviated label used in narrow tabs |
-| `path` | string | URL parameter value (`?applicationName=<path>`) |
-| `menuGroup` | string | Group key: `'data'`, `'code'`, `'explorers'`, or `'deploy'` |
-| `menuOrder` | number | Sort order within the group (lower = higher in list) |
+```ts
+injectReducer('myapp', myappReducer);
+```
+
+The slice key (`'myapp'` above) should match your manifest `id` unless you
+have a reason otherwise. Declaring `"reducerKey": "myapp"` in the manifest
+documents the claim for anyone grepping the registry.
 
 ---
 
-## Step 3 — Add the LWR module alias
-
-Open `lwc.config.json` (or the relevant LWR config for the target surface) and ensure your namespace is mapped. Most applications under `packages/lwc/main/application/` are picked up automatically by the existing `@lwc/rollup-plugin` glob patterns — verify by checking the `modules` array in the build config for your target.
-
----
-
-## Step 4 — Build and verify
+## Build and verify
 
 ```bash
-# Web target (LWR dev server)
-npm run start:dev:web
+# Regenerate the aggregated manifest + registry. Must succeed and report
+# one more app than before (N + 1).
+node tools/scripts/generate_application_manifest.js
 
-# Chrome extension target
+# Build all six bundles.
 npm run build:extension
 ```
 
-Open the app and confirm:
+Then open the built surface and confirm:
 
-1. Your tool appears in the menu under the correct group.
-2. Navigating to `/app?applicationName=mytool` loads your component.
-3. The tab title shows the correct label.
+1. Your app appears in the menu under the correct `menuGroup`, in the
+   expected `menuOrder` position.
+2. Navigating to `?applicationName=<path>` opens the tab.
+3. In browser devtools → Redux, your slice key is present in the state tree
+   after mount.
+4. If you registered a command, running
+   `invokeCommand('myapp.doThing', { /* ... */ })` from the devtools console
+   (via `window.__workbenchCommands__` in dev) hits your handler.
 
----
-
-## Connecting to the org
-
-Use the `connector` property inherited from `ToolkitElement` to make Salesforce API calls:
-
-```typescript
-async fetchData() {
-    const conn = this.connector.conn; // jsforce Connection
-    const result = await conn.query('SELECT Id, Name FROM Account LIMIT 10');
-    this.records = result.records;
-}
-```
-
-The connector is always pre-authenticated with the active session — no extra auth steps needed.
+If the generator refuses to run, the validator caught something — read the
+error message; each field error explains what format or enum is expected.
 
 ---
 
-## Using Redux store
+## What the core does with your manifest
 
-Global application state lives in a Redux store accessed via `core/store`. Subscribe to state slices you need:
+`tools/scripts/generate_application_manifest.js` aggregates every
+`*.manifest.json` it finds into:
 
-```typescript
-import { store, connectStore, SELECTORS } from 'core/store';
+- `packages/lwc/main/application/applicationRegistry/application.manifest.json`
+  — the pure-data aggregate.
+- `packages/lwc/main/application/applicationRegistry/applicationRegistry.ts`
+  — hard-coded static `import` statements for each app's `name` specifier,
+  plus the `APPLICATION_APP_MAPPING` object the host resolves routes against.
 
-connectedCallback() {
-    connectStore(store, this._storeChange.bind(this), this);
-}
-
-_storeChange(newState: any) {
-    this.currentAlias = SELECTORS.ui.getCurrentAlias(newState);
-}
-```
+The static imports are required — LWC module specifiers must be statically
+analysable for Rollup and the LWC resolver. **Do not edit these files by
+hand**; the pre-build step regenerates them.
 
 ---
 
 ## Related guides
 
-- [Adding a New Tool](./new-tool) — for utilities that don't need a full route
-- [Architecture Overview](../architecture/overview) — monorepo layout and build targets
-- [VS Code Integration](../vscode/overview) — if your tool needs editor capabilities
+- [Adding a New Tool](./new-tool) — for utilities that live inside an existing
+  app rather than a full route.
+- [Architecture Overview](../architecture/overview) — monorepo layout and
+  build targets.
+- [`host-api/` README](https://github.com/tprouvot/sf-toolkit-web/blob/master/packages/lwc/main/host-api/README.md)
+  — the `host-api/*` vs `shared/*` boundary. Read this before adding utility
+  modules to either side.

@@ -47,6 +47,11 @@ const sidebars: SidebarsConfig = {
         },
         {
             type: 'category',
+            label: 'Extending Workbench',
+            items: ['developer/new-application', 'developer/new-tool'],
+        },
+        {
+            type: 'category',
             label: 'VS Code Integration',
             items: ['vscode/overview', 'vscode/extension-parity'],
         },
