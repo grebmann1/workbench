@@ -16,3 +16,42 @@ jobs:
       - run: npm ci --no-audit --no-fund
       - run: npm run lint
       - run: npm test
+
+  e2e-smoke:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.14'
+          cache: 'npm'
+      - run: npm ci --no-audit --no-fund
+      - name: Write placeholder .env.dev for offline smokes
+        run: |
+          cat > .env.dev <<'EOF'
+          CLIENT_ID=e2e_placeholder
+          CLIENT_SECRET=e2e_placeholder
+          PORT=3000
+          EOF
+      - run: npm run build:shared
+      - run: npx playwright install --with-deps chromium
+      - name: Start dev server
+        run: npm run start:dev:server &
+      - name: Wait for /config
+        run: |
+          for i in $(seq 1 60); do
+            curl -sf http://localhost:3000/config > /dev/null && exit 0
+            sleep 1
+          done
+          echo "Dev server did not respond within 60s"
+          exit 1
+      - run: E2E=1 npm run test:e2e:smoke
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: packages/tests-e2e/playwright-report
+          if-no-files-found: ignore
+          retention-days: 7
