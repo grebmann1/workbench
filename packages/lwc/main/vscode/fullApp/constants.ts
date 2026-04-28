@@ -27,15 +27,10 @@ export const WORKBENCH_AI_NEXT_EDIT_SUGGESTIONS_SETTING = 'workbenchAINextEditSu
 export const LIGHT_COLOR_THEME = 'Default Light+';
 export const DARK_COLOR_THEME = 'Default Dark+';
 export const WORKBENCH_THEME_STORAGE_KEY = 'vscode.workbench.themeMode';
-// In development the VS Code web server runs at localhost:5173.
-// In production the iframe is served from WORKBENCH_VSCODE_URL (the dedicated VS Code web app
-// host, e.g. vscode.sf-workbench.com). WORKBENCH_BASE_URL is the API server and must not
-// be used as the iframe origin. Both values must stay in sync with the manifest's
-// `frame-src __buildWorkbenchOrigin__`.
-export const WORKBENCH_IFRAME_ORIGIN =
-    process.env.NODE_ENV === 'production'
-        ? process.env.WORKBENCH_VSCODE_URL || process.env.WORKBENCH_BASE_URL
-        : 'http://localhost:5173';
+// The iframe origin comes from WORKBENCH_VSCODE_URL (injected at build time via
+// rollup `replace`, sourced from .env.dev / .env.prod). This MUST match the manifest's
+// `frame-src` — both are derived from the same env var in rollup.extension.mjs.
+export const WORKBENCH_IFRAME_ORIGIN = process.env.WORKBENCH_VSCODE_URL as string;
 export const WORKBENCH_IFRAME_URL = WORKBENCH_IFRAME_ORIGIN + '/';
 export const DEFAULT_WORKSPACE_ROOT = '/workspace';
 export {

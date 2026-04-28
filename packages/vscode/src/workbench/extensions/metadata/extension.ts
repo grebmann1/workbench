@@ -1,8 +1,5 @@
 import { hasUsableConnection } from '../../connection/connectionFactory';
-import {
-    DEFAULT_SOURCE_API_VERSION,
-    normalizeSfApiVersion,
-} from '../../workspace/sfdxProject';
+import { DEFAULT_SOURCE_API_VERSION, normalizeSfApiVersion } from '../../workspace/sfdxProject';
 import { resolveCoreServices, type CoreServices } from '../core/coreServices';
 import { buildSalesforceExtensionConfig } from '../core/extensionManifest';
 import { registerCommand, registerSalesforceExtension } from '../core/extensionRegistration';
@@ -77,20 +74,20 @@ const METADATA_EXTENSION_BASE_CONFIG = buildSalesforceExtensionConfig({
             ],
         },
         views: {
-                salesforcePanel: [
-                    {
-                        id: 'salesforceMetadata.salesforcePanel',
-                        name: 'Salesforce',
-                        type: 'webview',
-                    },
-                ],
-                salesforceMetadataConflicts: [
-                    {
-                        id: 'salesforceMetadata.view.conflicts',
-                        name: 'Conflicts',
-                    },
-                ],
-            },
+            salesforcePanel: [
+                {
+                    id: 'salesforceMetadata.salesforcePanel',
+                    name: 'Salesforce',
+                    type: 'webview',
+                },
+            ],
+            salesforceMetadataConflicts: [
+                {
+                    id: 'salesforceMetadata.view.conflicts',
+                    name: 'Conflicts',
+                },
+            ],
+        },
         commands: [
             {
                 command: 'salesforceMetadata.setWorkspaceApiVersion',
@@ -119,7 +116,7 @@ const METADATA_EXTENSION_BASE_CONFIG = buildSalesforceExtensionConfig({
             },
             {
                 command: 'salesforceMetadata.fetchMetadata',
-                    title: 'Salesforce: Sync Project (fetch/update)',
+                title: 'Salesforce: Sync Project (fetch/update)',
             },
             {
                 command: 'salesforceMetadata.sourceStatus',
@@ -670,8 +667,8 @@ function getSalesforcePanelHtml({
                     ? ''
                     : `<div class="sfStatus">
                 <strong>${connected ? 'Org ready' : 'Connection required'}</strong>${
-                        detail ? `<span class="sfStatusDetail">${detail}</span>` : ''
-                    }
+                    detail ? `<span class="sfStatusDetail">${detail}</span>` : ''
+                }
             </div>`
             }
         </div>
@@ -953,13 +950,32 @@ function registerMetadataCommands({ connectionRuntime, context }) {
 
     registerCommand(context, vscode, OPEN_SALESFORCE_PANEL_COMMAND, async () => {
         try {
-            await vscode.commands.executeCommand('workbench.view.extension.salesforcePanel');
+            // Focus the Salesforce view directly so the bottom panel surfaces
+            // on the Salesforce tab (not Terminal/Output/whatever was last
+            // active). The `<viewId>.focus` command is auto-registered by
+            // VS Code for every contributed view.
+            await vscode.commands.executeCommand('salesforceMetadata.salesforcePanel.focus');
         } catch {
-            await vscode.window.showInformationMessage(
-                'Open the Salesforce panel from the workbench footer if it is not visible yet.'
-            );
+            try {
+                await vscode.commands.executeCommand('workbench.view.extension.salesforcePanel');
+            } catch {
+                await vscode.window.showInformationMessage(
+                    'Open the Salesforce panel from the workbench footer if it is not visible yet.'
+                );
+            }
         }
     });
+
+    // Reveal the Salesforce panel on every activation so users always land on
+    // Sync Project / Open Agent Chat. Defer one tick so the webview view
+    // provider has finished registering before we try to focus it.
+    try {
+        setTimeout(() => {
+            void vscode.commands.executeCommand(OPEN_SALESFORCE_PANEL_COMMAND);
+        }, 0);
+    } catch {
+        // best-effort — panel reveal failures are non-fatal
+    }
 
     registerCommand(context, vscode, OPEN_TOOLKIT_CONNECTIONS_COMMAND, async () => {
         try {

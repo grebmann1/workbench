@@ -4,7 +4,7 @@ import { getStore } from 'core/store/storeRef';
 
 import { DOCUMENT, ERROR } from 'host-api/store';
 
-const apiFilesSelectors = DOCUMENT.apiFileAdapter.getSelectors(s => s);
+const apiFilesSelectors = DOCUMENT.apiFileAdapter.getSelectors(s => s.apiFiles);
 import {
     loadExtensionConfigFromCache,
     saveExtensionConfigToCache,

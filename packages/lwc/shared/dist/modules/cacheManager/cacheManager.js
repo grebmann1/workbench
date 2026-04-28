@@ -219,6 +219,7 @@ export const CACHE_CONFIG = {
     // 'app' (default): close the side panel one-shot so it doesn't linger.
     // 'agent': keep the side panel open (no reload) so the AI agent stays visible.
     SIDEPANEL_MODE: new CONFIG_OBJECT('sidepanel_mode', 'app'),
+    ANNOUNCEMENT_DISMISSED_IDS: new CONFIG_OBJECT('announcement_dismissed_ids', []),
     //  TODO: Add Global CLIENT_ID and API_VERSION to the CACHE_CONFIG
 };
 export const CACHE_SESSION_CONFIG = {

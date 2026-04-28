@@ -124,16 +124,13 @@ export default class Root extends LightningElement {
     */
 
     loadComponent = async withMonitorChange => {
-        const cookie = await getHostAndSession();
-        //console.log('cookie',cookie);
-        if (cookie) {
-            this.init_existingSession(cookie);
-            this.panel = PANELS.SALESFORCE;
-        } else {
-            this.redirectToDefaultView();
-        }
+        await this.loadTabContext(withMonitorChange);
+        this.hasLoaded = true;
+        void this.updateActiveTabMatchesSalesforce(this.currentTab?.url);
+        await this.loadSessionFromCurrentTab();
+    };
 
-        // Handle Tabs
+    loadTabContext = async withMonitorChange => {
         try {
             this.currentTab = await getCurrentTab();
             this.currentWindowId = this.currentTab?.windowId;
@@ -147,8 +144,17 @@ export default class Root extends LightningElement {
         } catch (e) {
             console.error(e);
         }
-        await this.updateActiveTabMatchesSalesforce(this.currentTab?.url);
-        this.hasLoaded = true;
+    };
+
+    loadSessionFromCurrentTab = async () => {
+        const cookie = await getHostAndSession(this.currentTab);
+        //console.log('cookie',cookie);
+        if (cookie) {
+            await this.init_existingSession(cookie);
+            this.panel = PANELS.SALESFORCE;
+        } else {
+            this.redirectToDefaultView();
+        }
     };
 
     updateActiveTabMatchesSalesforce = async (url: string | undefined) => {

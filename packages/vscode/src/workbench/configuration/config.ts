@@ -8,6 +8,9 @@ export { defaultKeybindingsRaw as defaultKeybindingsJson };
 
 export const buildCustomUserConfiguration = () => ({
     'workbench.colorTheme': LIGHT_COLOR_THEME,
+    // Suppress VS Code's default "Get Started" welcome tab; the custom
+    // Salesforce walkthrough is the only welcome surface we want on startup.
+    'workbench.startupEditor': 'none',
 });
 
 /**
@@ -43,6 +46,6 @@ export const buildWorkspaceConfig = (
     productConfiguration: {
         nameShort: 'Salesforce Workbench',
         nameLong: 'Salesforce Workbench',
-        defaultChatAgent: buildWorkbenchDefaultChatAgent()
+        defaultChatAgent: buildWorkbenchDefaultChatAgent(),
     },
 });

@@ -14,6 +14,31 @@ import { GOOGLE_DRIVE_SCOPES } from 'agent/googleAuth';
  */
 
 const cdpHandlersByConversationId = new Map();
+const DEBUGGER_PERMISSION = 'debugger';
+
+function getChromeDebuggerApi() {
+    return typeof chrome !== 'undefined' ? (chrome as any).debugger : null;
+}
+
+async function hasChromePermission(permission) {
+    try {
+        if (typeof chrome === 'undefined') return false;
+        if (!(chrome as any)?.permissions?.contains) return true;
+        return Boolean(await (chrome as any).permissions.contains({ permissions: [permission] }));
+    } catch {
+        return false;
+    }
+}
+
+async function requestChromePermission(permission) {
+    try {
+        if (typeof chrome === 'undefined') return false;
+        if (!(chrome as any)?.permissions?.request) return false;
+        return Boolean(await (chrome as any).permissions.request({ permissions: [permission] }));
+    } catch {
+        return false;
+    }
+}
 
 /**
  * Returns the CdpHandler for the given conversation, or null if none exists.
@@ -158,6 +183,7 @@ export class CdpHandler {
     boundHandleSandboxMessage;
     boundHandleCdpEvent;
     boundHandleCdpDetach;
+    debuggerEventsRegistered = false;
 
     glowScriptId = null;
     glowPingTimer = null;
@@ -171,8 +197,7 @@ export class CdpHandler {
         this.boundHandleCdpDetach = this.handleCdpDetach.bind(this);
 
         window.addEventListener('message', this.boundHandleSandboxMessage);
-        chrome.debugger.onEvent.addListener(this.boundHandleCdpEvent);
-        chrome.debugger.onDetach.addListener(this.boundHandleCdpDetach);
+        this.registerDebuggerListeners();
     }
 
     getAttachedTabId() {
@@ -183,14 +208,41 @@ export class CdpHandler {
         return this.iframe?.contentWindow ?? null;
     }
 
+    registerDebuggerListeners() {
+        const debuggerApi = getChromeDebuggerApi();
+        if (!debuggerApi || this.debuggerEventsRegistered) return;
+        debuggerApi.onEvent.addListener(this.boundHandleCdpEvent);
+        debuggerApi.onDetach.addListener(this.boundHandleCdpDetach);
+        this.debuggerEventsRegistered = true;
+    }
+
+    async ensureDebuggerPermission() {
+        if (!(await hasChromePermission(DEBUGGER_PERMISSION))) {
+            const granted = await requestChromePermission(DEBUGGER_PERMISSION);
+            if (!granted) {
+                throw new Error('Chrome debugger permission is required to use browser control.');
+            }
+        }
+        const debuggerApi = getChromeDebuggerApi();
+        if (!debuggerApi) {
+            throw new Error('Chrome debugger API is unavailable.');
+        }
+        this.registerDebuggerListeners();
+        return debuggerApi;
+    }
+
     postToSandbox(message) {
         this.getSandboxWindow()?.postMessage(message, '*');
     }
 
     cleanup() {
         window.removeEventListener('message', this.boundHandleSandboxMessage);
-        chrome.debugger.onEvent.removeListener(this.boundHandleCdpEvent);
-        chrome.debugger.onDetach.removeListener(this.boundHandleCdpDetach);
+        const debuggerApi = getChromeDebuggerApi();
+        if (debuggerApi && this.debuggerEventsRegistered) {
+            debuggerApi.onEvent.removeListener(this.boundHandleCdpEvent);
+            debuggerApi.onDetach.removeListener(this.boundHandleCdpDetach);
+            this.debuggerEventsRegistered = false;
+        }
 
         for (const [id, pending] of this.pending) {
             clearTimeout(pending.timer);
@@ -204,7 +256,7 @@ export class CdpHandler {
             this.stopGlowHeartbeat();
 
             this.removeGlowEffect(tabId).finally(() => {
-                chrome.debugger.detach({ tabId }).catch(() => {});
+                debuggerApi?.detach({ tabId }).catch(() => {});
             });
         }
 
@@ -227,8 +279,9 @@ export class CdpHandler {
             LOGGER.log('Sending CDP_CLOSE to sandbox for tab:', tabId);
             this.postToSandbox({ type: 'CDP_CLOSE', tabId, reason: 'Debugger detached by cleanup' });
 
+        const debuggerApi = getChromeDebuggerApi();
         this.removeGlowEffect(tabId)
-            .finally(() => chrome.debugger.detach({ tabId }))
+            .finally(() => debuggerApi?.detach({ tabId }))
             .then(() => LOGGER.log('Debugger detached successfully from tab:', tabId))
             .catch(error => LOGGER.log('Debugger detach error:', error));
     }
@@ -400,8 +453,10 @@ export class CdpHandler {
         const script = this.getGlowInjectionScript();
 
         try {
-            await chrome.debugger.sendCommand({ tabId }, 'Page.enable');
-            const added = await chrome.debugger.sendCommand(
+            const debuggerApi = getChromeDebuggerApi();
+            if (!debuggerApi) return;
+            await debuggerApi.sendCommand({ tabId }, 'Page.enable');
+            const added = await debuggerApi.sendCommand(
                 { tabId },
                 'Page.addScriptToEvaluateOnNewDocument',
                 { source: script }
@@ -410,7 +465,7 @@ export class CdpHandler {
             this.glowScriptId = added.identifier;
             LOGGER.log('Glow script registered with id:', this.glowScriptId);
 
-            await chrome.debugger.sendCommand({ tabId }, 'Runtime.evaluate', {
+            await debuggerApi.sendCommand({ tabId }, 'Runtime.evaluate', {
                 expression: script,
             });
             LOGGER.log('Glow effect injected for tab:', tabId);
@@ -424,9 +479,11 @@ export class CdpHandler {
     async removeGlowEffect(tabId) {
         try {
             this.stopGlowHeartbeat();
+            const debuggerApi = getChromeDebuggerApi();
+            if (!debuggerApi) return;
 
             if (this.glowScriptId) {
-                await chrome.debugger.sendCommand(
+                await debuggerApi.sendCommand(
                     { tabId },
                     'Page.removeScriptToEvaluateOnNewDocument',
                     { identifier: this.glowScriptId }
@@ -447,7 +504,7 @@ export class CdpHandler {
         })();
       `;
 
-            await chrome.debugger.sendCommand({ tabId }, 'Runtime.evaluate', {
+            await debuggerApi.sendCommand({ tabId }, 'Runtime.evaluate', {
                 expression: removeScript,
             });
             LOGGER.log('Glow effect removed for tab:', tabId);
@@ -466,7 +523,9 @@ export class CdpHandler {
             }
 
             try {
-                await chrome.debugger.sendCommand({ tabId }, 'Runtime.evaluate', {
+                const debuggerApi = getChromeDebuggerApi();
+                if (!debuggerApi) return;
+                await debuggerApi.sendCommand({ tabId }, 'Runtime.evaluate', {
                     expression: 'window.__redoGlowPing && window.__redoGlowPing()',
                 });
             } catch (error) {
@@ -543,7 +602,7 @@ export class CdpHandler {
             const tabId = message.tabId ?? this.attachedTabId;
             if (!tabId) return;
 
-            await chrome.debugger.detach({ tabId }).catch(() => {});
+            await getChromeDebuggerApi()?.detach({ tabId }).catch(() => {});
             if (this.attachedTabId === tabId) this.attachedTabId = null;
             return;
         }
@@ -647,14 +706,15 @@ export class CdpHandler {
         );
 
         if (this.attachedTabId !== targetTabId) {
+            const debuggerApi = await this.ensureDebuggerPermission();
             if (this.attachedTabId) {
                 LOGGER.log('Detaching from previous tab:', this.attachedTabId);
                 await this.removeGlowEffect(this.attachedTabId);
-                await chrome.debugger.detach({ tabId: this.attachedTabId }).catch(() => {});
+                await debuggerApi.detach({ tabId: this.attachedTabId }).catch(() => {});
             }
 
             LOGGER.log('Attaching to tab:', targetTabId);
-            await chrome.debugger.attach({ tabId: targetTabId }, '1.3');
+            await debuggerApi.attach({ tabId: targetTabId }, '1.3');
             LOGGER.log('Attached successfully');
 
             this.attachedTabId = targetTabId;
@@ -764,11 +824,11 @@ export class CdpHandler {
         const target = { tabId: this.attachedTabId, sessionId };
 
         try {
-            const result = await chrome.debugger.sendCommand(
-                target,
-                command.method,
-                command.params
-            );
+            const debuggerApi = getChromeDebuggerApi();
+            if (!debuggerApi) {
+                throw new Error('Chrome debugger API is unavailable.');
+            }
+            const result = await debuggerApi.sendCommand(target, command.method, command.params);
             return {
                 id: command.id,
                 sessionId: command.sessionId ?? 'pageTargetSessionId',
@@ -836,7 +896,7 @@ export class CdpHandler {
     async handleCloseTabRequest(id, tabId) {
         try {
             if (this.attachedTabId === tabId) {
-                await chrome.debugger.detach({ tabId }).catch(() => {});
+                await getChromeDebuggerApi()?.detach({ tabId }).catch(() => {});
                 this.attachedTabId = null;
                 this.postToSandbox({ type: 'CDP_CLOSE', tabId, reason: 'Tab closed by closeTab()' });
             }

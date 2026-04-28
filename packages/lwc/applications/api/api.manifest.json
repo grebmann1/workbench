@@ -16,5 +16,14 @@
         "isOfflineAvailable": false,
         "isMenuVisible": true,
         "isTabVisible": true
-    }
+    },
+    "settings": [
+        {
+            "key": "api_splitter_is_horizontal",
+            "label": "Horizontal Splitter",
+            "description": "Toggle between horizontal and vertical split view in the API Explorer.",
+            "type": "toggle",
+            "defaultValue": true
+        }
+    ]
 }

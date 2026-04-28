@@ -9,14 +9,42 @@ import {
 } from 'shared/utils';
 import { CurrentPageReference, NavigationContext, navigate } from 'lwr/navigation';
 import { store, connectStore, injectReducer } from 'host-api/store';
+import { registerSettingOptionsProvider } from 'host-api/settings';
 import { METADATA } from 'metadata/slices';
 import Analytics from 'shared/analytics';
+
+const DEFAULT_STORAGE_TYPES = [
+    'ApexClass',
+    'ApexTrigger',
+    'ApexPage',
+    'ApexComponent',
+    'LightningComponentBundle',
+    'AuraDefinitionBundle',
+    'CustomObject',
+    'CustomField',
+    'PermissionSet',
+    'Profile',
+    'Flow',
+    'StaticResource',
+];
 
 let _metadataBootstrapped = false;
 function bootstrapMetadataExtension() {
     if (_metadataBootstrapped) return;
     _metadataBootstrapped = true;
     injectReducer('metadata', METADATA.reduxSlice.reducer);
+    // Provider backing the declarative `metadata_storage_types` multiselect
+    // on the Settings > Applications tab. Keep static for v1 — a richer
+    // version that queries `metadata.describe()` can replace this later.
+    registerSettingOptionsProvider('metadata.storageTypes', () => {
+        const runtimeTypes = METADATA_UTILS.METADATA_EXCEPTION_LIST.filter(
+            (item: any) => item.isSearchable
+        ).map((item: any) => item.name);
+        const values = Array.from(new Set([...DEFAULT_STORAGE_TYPES, ...runtimeTypes])).sort(
+            (a: string, b: string) => a.localeCompare(b)
+        );
+        return values.map((type: string) => ({ label: type, value: type }));
+    });
 }
 bootstrapMetadataExtension();
 

@@ -10,7 +10,6 @@ import {
 
 const WALKTHROUGH_EXTENSION_NAME = 'workbench-walkthrough';
 const WALKTHROUGH_EXTENSION_ID = `${EXTENSION_PUBLISHER}.${WALKTHROUGH_EXTENSION_NAME}`;
-const WALKTHROUGH_AUTO_OPEN_SENTINEL = 'sfWorkbench.walkthroughAutoOpened.v1';
 
 export type WalkthroughVscodeBundle = VscodeBundle & {
     vscodeApiMonaco: { ContextKeyExpr: { true(): unknown } };
@@ -161,6 +160,81 @@ export async function register(
                             when: vscodeBundle.vscodeApiMonaco.ContextKeyExpr.true(),
                             completionEvents: [],
                         },
+                        {
+                            id: `${WALKTHROUGH_EXTENSION_ID}#syncMetadata`,
+                            title: 'Sync metadata from the Salesforce panel',
+                            description:
+                                'Open the **Salesforce** bottom panel and pull your org source into the workspace.\n[Open Salesforce Panel](command:salesforceMetadata.openSalesforcePanel)\n[Sync Project](command:salesforceMetadata.fetchMetadata)',
+                            media: {
+                                markdown: 'sync-metadata.md',
+                            },
+                            when: vscodeBundle.vscodeApiMonaco.ContextKeyExpr.true(),
+                            completionEvents: ['onCommand:salesforceMetadata.fetchMetadata'],
+                        },
+                        {
+                            id: `${WALKTHROUGH_EXTENSION_ID}#fetchLogs`,
+                            title: 'Fetch and tail debug logs',
+                            description:
+                                'Open the **Salesforce Logs** panel from the activity bar. It lets you enable trace flags, browse recent `ApexLog` records, and tail new logs in one place.\n[Open Salesforce Logs Panel](command:salesforceMetadata.logs.openPanel)',
+                            media: {
+                                markdown: 'fetch-logs.md',
+                            },
+                            when: vscodeBundle.vscodeApiMonaco.ContextKeyExpr.true(),
+                            completionEvents: ['onCommand:salesforceMetadata.logs.openPanel'],
+                        },
+                        {
+                            id: `${WALKTHROUGH_EXTENSION_ID}#orgBrowser`,
+                            title: 'Browse and retrieve metadata with the Org Browser',
+                            description:
+                                'The **Org Browser** panel lists every metadata type in the connected org and lets you retrieve components with a single click — no `package.xml` authoring required.\n[Open Org Browser](command:salesforceOrgBrowser.openView)',
+                            media: {
+                                markdown: 'org-browser.md',
+                            },
+                            when: vscodeBundle.vscodeApiMonaco.ContextKeyExpr.true(),
+                            completionEvents: ['onCommand:salesforceOrgBrowser.openView'],
+                        },
+                        {
+                            id: `${WALKTHROUGH_EXTENSION_ID}#runSoql`,
+                            title: 'Query the org with SOQL',
+                            description:
+                                'Open a SOQL scratch file and run a query against the connected org.\n[Open SOQL Scratch](command:salesforceMetadata.openSoqlScratch)\n[Run SOQL Query](command:salesforceMetadata.runSoqlQuery)',
+                            media: {
+                                markdown: 'run-soql.md',
+                            },
+                            when: vscodeBundle.vscodeApiMonaco.ContextKeyExpr.true(),
+                            completionEvents: [
+                                'onCommand:salesforceMetadata.runSoqlQuery',
+                                'onCommand:salesforceMetadata.runToolingQuery',
+                            ],
+                        },
+                        {
+                            id: `${WALKTHROUGH_EXTENSION_ID}#runApex`,
+                            title: 'Run Anonymous Apex',
+                            description:
+                                'Execute ad-hoc Apex against the connected org — with or without a debug log.\n[Execute Anonymous](command:salesforceMetadata.executeAnonymous)\n[Execute Anonymous with Logs](command:salesforceMetadata.executeAnonymousWithLogs)',
+                            media: {
+                                markdown: 'run-anonymous-apex.md',
+                            },
+                            when: vscodeBundle.vscodeApiMonaco.ContextKeyExpr.true(),
+                            completionEvents: [
+                                'onCommand:salesforceMetadata.executeAnonymous',
+                                'onCommand:salesforceMetadata.executeAnonymousWithLogs',
+                            ],
+                        },
+                        {
+                            id: `${WALKTHROUGH_EXTENSION_ID}#deployRetrieve`,
+                            title: 'Deploy changes back to the org',
+                            description:
+                                'Push local changes to the org. Auto-deploy on save is toggled from the Salesforce panel — manual deploys and validations live in the Command Palette.\n[Deploy (Metadata API)](command:salesforceMetadata.deployMetadataApi)\n[Validate Deploy](command:salesforceMetadata.validateDeployMetadataApi)',
+                            media: {
+                                markdown: 'deploy-retrieve.md',
+                            },
+                            when: vscodeBundle.vscodeApiMonaco.ContextKeyExpr.true(),
+                            completionEvents: [
+                                'onCommand:salesforceMetadata.deployMetadataApi',
+                                'onCommand:salesforceMetadata.validateDeployMetadataApi',
+                            ],
+                        },
                     ],
                 },
             ],
@@ -183,6 +257,36 @@ export async function register(
         {
             sourcePath: '/libs/extensions/walkthrough/open-salesforce-panel.md',
             targetPath: '/workspace/vscode/walkthrough/open-salesforce-panel.md',
+            mimeType: 'text/markdown',
+        },
+        {
+            sourcePath: '/libs/extensions/walkthrough/sync-metadata.md',
+            targetPath: '/workspace/vscode/walkthrough/sync-metadata.md',
+            mimeType: 'text/markdown',
+        },
+        {
+            sourcePath: '/libs/extensions/walkthrough/run-soql.md',
+            targetPath: '/workspace/vscode/walkthrough/run-soql.md',
+            mimeType: 'text/markdown',
+        },
+        {
+            sourcePath: '/libs/extensions/walkthrough/run-anonymous-apex.md',
+            targetPath: '/workspace/vscode/walkthrough/run-anonymous-apex.md',
+            mimeType: 'text/markdown',
+        },
+        {
+            sourcePath: '/libs/extensions/walkthrough/fetch-logs.md',
+            targetPath: '/workspace/vscode/walkthrough/fetch-logs.md',
+            mimeType: 'text/markdown',
+        },
+        {
+            sourcePath: '/libs/extensions/walkthrough/deploy-retrieve.md',
+            targetPath: '/workspace/vscode/walkthrough/deploy-retrieve.md',
+            mimeType: 'text/markdown',
+        },
+        {
+            sourcePath: '/libs/extensions/walkthrough/org-browser.md',
+            targetPath: '/workspace/vscode/walkthrough/org-browser.md',
             mimeType: 'text/markdown',
         },
     ];
@@ -235,13 +339,10 @@ export async function register(
             );
 
             try {
-                if (window.localStorage?.getItem(WALKTHROUGH_AUTO_OPEN_SENTINEL) !== 'done') {
-                    window.localStorage?.setItem(WALKTHROUGH_AUTO_OPEN_SENTINEL, 'done');
-                    void vsc.commands.executeCommand(
-                        'workbench.action.openWalkthrough',
-                        `${WALKTHROUGH_EXTENSION_ID}#open`
-                    );
-                }
+                void vsc.commands.executeCommand(
+                    'workbench.action.openWalkthrough',
+                    `${WALKTHROUGH_EXTENSION_ID}#open`
+                );
             } catch {
                 // ignore — walkthrough auto-open is best-effort
             }

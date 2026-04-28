@@ -2085,6 +2085,22 @@ export default class App extends ToolkitElement {
 
     /** Cached Settings */
 
+    get isVerticalSplitterChecked() {
+        return !this.applicationConfig?.[CACHE_CONFIG.API_SPLITTER_IS_HORIZONTAL.key];
+    }
+
+    handleSplitterOrientationChange = (event: CustomEvent) => {
+        this.settingsInputfieldChange({
+            currentTarget: {
+                dataset: { key: CACHE_CONFIG.API_SPLITTER_IS_HORIZONTAL.key },
+                type: 'toggle',
+                get checked() {
+                    return !event.detail.checked;
+                },
+            },
+        });
+    };
+
     settingsInputfieldChange = e => {
         const inputField = e.currentTarget;
         const _config = this.applicationConfig;
@@ -2133,6 +2149,12 @@ export default class App extends ToolkitElement {
         const { id, content, category, extra } = e.detail;
         // Check if tab is already open with
         if (category === CATEGORY_STORAGE.SAVED) {
+            const savedRequest = {
+                body: extra?.body ?? '',
+                header: extra?.header ?? this.defaultHeader ?? API_UTILS.DEFAULT.HEADER,
+                method: extra?.method ?? API_UTILS.DEFAULT.METHOD,
+                endpoint: extra?.endpoint ?? API_UTILS.DEFAULT.ENDPOINT(this.currentApiVersion),
+            };
             // Check if tab is already open or create new one
 
             const tabs = api.tabs;
@@ -2140,12 +2162,19 @@ export default class App extends ToolkitElement {
             if (existingTab) {
                 // Existing tab
                 store.dispatch(API.reduxSlice.actions.selectionTab(existingTab));
+                store.dispatch(
+                    API.reduxSlice.actions.updateRequest({
+                        ...savedRequest,
+                        tabId: existingTab.id,
+                        isDraft: false,
+                    })
+                );
             } else {
                 const tab = API_UTILS.generateDefaultTab(this.currentApiVersion);
-                tab.body = extra.body;
-                tab.header = extra.header;
-                tab.method = extra.method;
-                tab.endpoint = extra.endpoint;
+                tab.body = savedRequest.body;
+                tab.header = savedRequest.header;
+                tab.method = savedRequest.method;
+                tab.endpoint = savedRequest.endpoint;
                 tab.fileId = id;
                 store.dispatch(API.reduxSlice.actions.addTab({ tab, apiFiles }));
             }

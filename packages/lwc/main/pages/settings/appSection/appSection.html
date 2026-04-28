@@ -1,0 +1,112 @@
+<template>
+    <div class="slds-section slds-reverse slds-is-open">
+        <h3 class="slds-section__title">
+            <div
+                class="slds-section__title-action slds-p-vertical_x-small slds-grid slds-grid_vertical-align-center">
+                <lightning-icon
+                    lwc:if={app.quickActionIcon}
+                    icon-name={app.quickActionIcon}
+                    size="x-small"
+                    class="slds-m-right_x-small"></lightning-icon>
+                <span class="slds-truncate" title={app.label}>{app.label}</span>
+            </div>
+        </h3>
+    </div>
+    <div class="slds-grid slds-wrap slds-grid_vertical-stretch">
+        <lightning-card class="settings slds-col slds-size_1-of-1 slds-p-around_medium">
+            <div slot="title">
+                <h1>{app.label}</h1>
+                <p lwc:if={app.description} class="description slds-truncate">{app.description}</p>
+            </div>
+            <div slot="actions"></div>
+
+            <template lwc:if={hasCustomComponent}>
+                <div class="slds-p-horizontal_small">
+                    <lwc:component
+                        lwc:is={customComponentCtor}
+                        config={config}
+                        inputfield_change={inputfield_change}></lwc:component>
+                </div>
+            </template>
+
+            <template lwc:elseif={hasDeclarativeSettings}>
+                <div class="slds-grid slds-wrap">
+                    <template for:each={renderedSettings} for:item="setting">
+                        <settings-card
+                            key={setting.key}
+                            class="slds-col slds-size_1-of-1 slds-large-size_1-of-2 slds-p-horizontal_small"
+                            is-first>
+                            <div slot="title">
+                                <h1>{setting.label}</h1>
+                                <p lwc:if={setting.description} class="description slds-truncate">
+                                    {setting.description}
+                                </p>
+                            </div>
+                            <div slot="actions"></div>
+
+                            <template lwc:if={setting.isToggle}>
+                                <lightning-input
+                                    data-key={setting.key}
+                                    label={setting.label}
+                                    type="toggle"
+                                    variant="label-hidden"
+                                    checked={setting.checked}
+                                    onchange={inputfield_change}></lightning-input>
+                            </template>
+
+                            <template lwc:elseif={setting.isText}>
+                                <lightning-input
+                                    data-key={setting.key}
+                                    label={setting.label}
+                                    type="text"
+                                    variant="label-hidden"
+                                    value={setting.value}
+                                    onchange={inputfield_change}></lightning-input>
+                            </template>
+
+                            <template lwc:elseif={setting.isPassword}>
+                                <lightning-input
+                                    data-key={setting.key}
+                                    label={setting.label}
+                                    type="password"
+                                    variant="label-hidden"
+                                    value={setting.value}
+                                    onchange={inputfield_change}></lightning-input>
+                            </template>
+
+                            <template lwc:elseif={setting.isNumber}>
+                                <lightning-input
+                                    data-key={setting.key}
+                                    label={setting.label}
+                                    type="number"
+                                    variant="label-hidden"
+                                    value={setting.value}
+                                    onchange={inputfield_change}></lightning-input>
+                            </template>
+
+                            <template lwc:elseif={setting.isSelect}>
+                                <lightning-combobox
+                                    data-key={setting.key}
+                                    label={setting.label}
+                                    variant="label-hidden"
+                                    value={setting.value}
+                                    options={setting.options}
+                                    onchange={inputfield_change}></lightning-combobox>
+                            </template>
+
+                            <template lwc:elseif={setting.isMultiselect}>
+                                <lightning-dual-listbox
+                                    data-key={setting.key}
+                                    label={setting.label}
+                                    variant="label-hidden"
+                                    value={setting.value}
+                                    options={setting.options}
+                                    onchange={handleMultiselectChange}></lightning-dual-listbox>
+                            </template>
+                        </settings-card>
+                    </template>
+                </div>
+            </template>
+        </lightning-card>
+    </div>
+</template>

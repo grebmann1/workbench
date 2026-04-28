@@ -51,6 +51,11 @@ const workbenchBaseUrl = JSON.stringify(
         .trim()
         .replace(/\/+$/, '')
 );
+const workbenchAnnouncementsUrl = JSON.stringify(
+    String(process.env.WORKBENCH_ANNOUNCEMENTS_URL || '')
+        .trim()
+        .replace(/\/+$/, '')
+);
 const workbenchVscodeUrl = JSON.stringify(
     String(process.env.WORKBENCH_VSCODE_URL || process.env.WORKBENCH_BASE_URL || 'https://www.sf-workbench.com')
         .trim()
@@ -408,9 +413,11 @@ const getChromeCopyTargets = (isProduction) => [
             newContents = newContents.replace('__buildVersion__', data.version);
             newContents = newContents.replace(
                 '__buildWorkbenchOrigin__',
-                isProduction
-                    ? String(process.env.WORKBENCH_VSCODE_URL || process.env.WORKBENCH_BASE_URL || 'https://www.sf-workbench.com') + '/'
-                    : 'http://localhost:5173/'
+                String(
+                    process.env.WORKBENCH_VSCODE_URL ||
+                        process.env.WORKBENCH_BASE_URL ||
+                        'https://www.sf-workbench.com'
+                ).trim().replace(/\/+$/, '') + '/'
             );
             newContents = newContents.replace(
                 '__googleOauthClientId__',
@@ -449,6 +456,7 @@ const modules = [
     { name: 'host-api/analytics', path: r('../../packages/lwc/main/host-api/analytics.ts') },
     { name: 'host-api/builder', path: r('../../packages/lwc/main/host-api/builder.ts') },
     { name: 'host-api/commands', path: r('../../packages/lwc/main/host-api/commands.ts') },
+    { name: 'host-api/settings', path: r('../../packages/lwc/main/host-api/settings.ts') },
     { name: 'host-api/desktopBridge', path: r('../../packages/lwc/main/host-api/desktopBridge.ts') },
     { name: 'host-api/fs', path: r('../../packages/lwc/main/host-api/fs.ts') },
     { name: 'host-api/worker', path: r('../../packages/lwc/main/host-api/worker.ts') },
@@ -508,6 +516,7 @@ const injectedModules = [
     { name: 'host-api/analytics', path: r('../../packages/lwc/main/host-api/analytics.ts') },
     { name: 'host-api/builder', path: r('../../packages/lwc/main/host-api/builder.ts') },
     { name: 'host-api/commands', path: r('../../packages/lwc/main/host-api/commands.ts') },
+    { name: 'host-api/settings', path: r('../../packages/lwc/main/host-api/settings.ts') },
     { name: 'host-api/desktopBridge', path: r('../../packages/lwc/main/host-api/desktopBridge.ts') },
     { name: 'host-api/fs', path: r('../../packages/lwc/main/host-api/fs.ts') },
     { name: 'host-api/worker', path: r('../../packages/lwc/main/host-api/worker.ts') },
@@ -627,6 +636,7 @@ const basicBundler = (
         replace({
             'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV),
             'process.env.WORKBENCH_BASE_URL': workbenchBaseUrl,
+            'process.env.WORKBENCH_ANNOUNCEMENTS_URL': workbenchAnnouncementsUrl,
             'process.env.WORKBENCH_VSCODE_URL': workbenchVscodeUrl,
             '/assets/icons/': '/_slds/icons/',
             preventAssignment: true,
@@ -656,6 +666,7 @@ const coreBuilder = (modulesArg, isProduction) => ({
         replace({
             'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV),
             'process.env.WORKBENCH_BASE_URL': workbenchBaseUrl,
+            'process.env.WORKBENCH_ANNOUNCEMENTS_URL': workbenchAnnouncementsUrl,
             'process.env.WORKBENCH_VSCODE_URL': workbenchVscodeUrl,
             'process.env.IS_CHROME': true,
             preventAssignment: true,
@@ -701,6 +712,7 @@ const sandboxBuilder = (isProduction) => ({
         replace({
             'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV),
             'process.env.WORKBENCH_BASE_URL': workbenchBaseUrl,
+            'process.env.WORKBENCH_ANNOUNCEMENTS_URL': workbenchAnnouncementsUrl,
             'process.env.WORKBENCH_VSCODE_URL': workbenchVscodeUrl,
             preventAssignment: true,
         }),

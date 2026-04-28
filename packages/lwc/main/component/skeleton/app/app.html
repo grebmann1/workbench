@@ -1,5 +1,10 @@
 <template>
     <div class="l-container-vertical">
+        <template lwc:if={isAnnouncementBannerDisplayed}>
+            <div class="l-cell-content-size">
+                <skeleton-announcement-banner></skeleton-announcement-banner>
+            </div>
+        </template>
         <div class="l-cell-content-size">
             <!-- Logged In User-->
             <template lwc:if={isUserLoggedIn}>

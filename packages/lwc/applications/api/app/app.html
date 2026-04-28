@@ -582,12 +582,16 @@
                 size="slds-size_medium"
                 onclose={handleSettingsPanelClose}
             >
-                <settings-api-app-settings 
-                    config={applicationConfig} 
-                    inputfield_change={settingsInputfieldChange}
-                    is-full-width
-                    is-section-header-hidden
-                ></settings-api-app-settings>
+                <div class="slds-p-around_medium">
+                    <lightning-input
+                        data-key="api_splitter_is_horizontal"
+                        label="Vertical Splitter"
+                        type="toggle"
+                        checked={isVerticalSplitterChecked}
+                        onchange={handleSplitterOrientationChange}
+                        message-toggle-active="Vertical"
+                        message-toggle-inactive="Horizontal"></lightning-input>
+                </div>
             </slds-vertical-panel>
         </builder-editor>
     </div>

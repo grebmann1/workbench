@@ -176,6 +176,20 @@ const sidePanelConnections = new Set();
 const sidePanelTabIdByPort = new Map();
 const instanceConnections = new Map();
 
+function getTabId(tabOrTabId) {
+    if (Number.isInteger(tabOrTabId)) return tabOrTabId;
+    return Number.isInteger(tabOrTabId?.id) ? tabOrTabId.id : null;
+}
+
+function hasSidePanelPortForTab(tabId) {
+    for (const port of sidePanelConnections.values()) {
+        if (sidePanelTabIdByPort.get(port) === tabId) {
+            return true;
+        }
+    }
+    return false;
+}
+
 const handleTabOpening = async tab => {
     try {
         if (!tab?.id) return;
@@ -206,6 +220,28 @@ const openSideBar = async tab => {
 
     await optionsPromise;
     await openPromise;
+};
+
+const closeSideBar = async tabOrTabId => {
+    const tabId = getTabId(tabOrTabId);
+    if (!Number.isInteger(tabId)) return;
+    openedSidePanelTabIds.delete(tabId);
+    _lastSidePanelOptionsByTabId.delete(tabId);
+
+    await chrome.sidePanel.setOptions({
+        tabId,
+        path: STABLE_SIDEPANEL_PATH,
+        enabled: false,
+    });
+};
+
+const toggleSideBar = async tab => {
+    if (!tab?.id) return;
+    if (hasSidePanelPortForTab(tab.id)) {
+        await closeSideBar(tab);
+        return;
+    }
+    await openSideBar(tab);
 };
 
 /** Generic async listener wrapper for Chrome callback-based events. */
@@ -362,8 +398,13 @@ function handleSidePanelPort(port) {
     }
 
     port.onDisconnect.addListener(() => {
+        const tabId = sidePanelTabIdByPort.get(port);
         sidePanelConnections.delete(port);
         sidePanelTabIdByPort.delete(port);
+        if (Number.isInteger(tabId) && !hasSidePanelPortForTab(tabId)) {
+            openedSidePanelTabIds.delete(tabId);
+            _lastSidePanelOptionsByTabId.delete(tabId);
+        }
     });
 
     port.onMessage.addListener(msg => {
@@ -372,6 +413,11 @@ function handleSidePanelPort(port) {
             const tabId = Number(msg.tabId);
             if (Number.isInteger(tabId)) {
                 sidePanelTabIdByPort.set(port, tabId);
+                openedSidePanelTabIds.add(tabId);
+                _lastSidePanelOptionsByTabId.set(tabId, {
+                    enabled: true,
+                    ts: Date.now(),
+                });
             }
             return;
         }
@@ -505,15 +551,15 @@ function injectToolkit(tabId) {
 
 /** Action Button  */
 chrome.action.onClicked.addListener(tab => {
-    openSideBar(tab).catch(e => {
-        console.error('[SF-TOOLKIT][BG] Failed to open side panel on action click', e);
+    toggleSideBar(tab).catch(e => {
+        console.error('[SF-TOOLKIT][BG] Failed to toggle side panel on action click', e);
     });
 });
 
 /** Browser event handlers. */
 function handleContextMenuClick(info, tab) {
     if (info.menuItemId === OPEN_SIDE_PANEL) {
-        openSideBar(tab);
+        toggleSideBar(tab);
     } else if (info.menuItemId === OPEN_TOOLKIT) {
         chrome.tabs.create({ url: chrome.runtime.getURL('views/app.html') });
     } else if (info.menuItemId === OVERLAY_ENABLE) {
@@ -858,7 +904,7 @@ async function handleRuntimeMessage(message, sender) {
         return undefined;
     }
     if (message.action === OPEN_SIDE_PANEL) {
-        openSideBar(sender.tab);
+        toggleSideBar(sender.tab);
         return undefined;
     }
     if (message.action === 'fetchCookie') {
@@ -992,7 +1038,7 @@ chrome.commands.onCommand.addListener((command, tab) => {
         });
     } else if (command === OPEN_OVERLAY_SEARCH) {
     } else if (command === OPEN_SIDE_PANEL) {
-        openSideBar(tab);
+        toggleSideBar(tab);
     }
 });
 

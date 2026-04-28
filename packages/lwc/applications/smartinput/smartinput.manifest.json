@@ -18,5 +18,21 @@
         "isOfflineAvailable": true,
         "isMenuVisible": true,
         "isTabVisible": true
-    }
+    },
+    "settings": [
+        {
+            "key": "beta_smartinput_enabled",
+            "label": "Enable Smart Input (beta)",
+            "description": "Turn on the Smart Input beta experience.",
+            "type": "toggle",
+            "defaultValue": false
+        },
+        {
+            "key": "input_quickpick_enabled",
+            "label": "Enable Input Quick Pick",
+            "description": "Surface the Quick Pick overlay on inputs.",
+            "type": "toggle",
+            "defaultValue": false
+        }
+    ]
 }

@@ -158,6 +158,56 @@ manifest verbatim as a starting template:
 
 Unknown fields and flags are rejected by the validator.
 
+### Declaring user settings
+
+An app that needs user-facing preferences should declare them in its own
+manifest — no change to the host Settings page required. Two modes, mutually
+exclusive:
+
+**Mode A — declarative `settings[]`** (default, covers most cases):
+
+```json
+"settings": [
+    {
+        "key": "myapp_compact_mode",
+        "label": "Compact mode",
+        "description": "Reduce spacing for dense layouts.",
+        "type": "toggle",
+        "defaultValue": false
+    }
+]
+```
+
+Supported `type` values: `toggle`, `text`, `password`, `number`, `select`,
+`multiselect`. Each `key` must already exist in `CACHE_CONFIG`
+(`packages/lwc/shared/modules/cacheManager/cacheManager.ts`) — the generator
+cross-checks at build time.
+
+For `select` / `multiselect`, provide `options` as either an inline array
+(`[{ "label": "...", "value": "..." }]`) or a provider id string (e.g.
+`"myapp.regions"`). Dynamic providers are registered from the app's entry
+module:
+
+```ts
+import { registerSettingOptionsProvider } from 'host-api/settings';
+registerSettingOptionsProvider('myapp.regions', () => [
+    { label: 'US', value: 'us' },
+    { label: 'EU', value: 'eu' },
+]);
+```
+
+**Mode B — custom `settingsComponent`** (escape hatch for complex UIs such as
+connection cards or server lists that don't fit the field primitives):
+
+```json
+"settingsComponent": "myapp/appSettings"
+```
+
+Then create `packages/lwc/applications/myapp/appSettings/appSettings.{ts,html}`
+exposing `@api config` and `@api inputfield_change`. The host mounts it via
+`<lwc:component lwc:is>` inside the Settings > Applications tab, and changes
+flow through the same save pipeline as declarative settings.
+
 ---
 
 ## Minimal `app.ts`

@@ -539,6 +539,10 @@ export default class App extends LightningElement {
         return this.mode === LIMITED;
     }
 
+    get isAnnouncementBannerDisplayed() {
+        return !this.isLimitedMode;
+    }
+
     get dynamicAppContainerClass() {
         return this.isUserLoggedIn
             ? 'app-container-logged-in slds-full-height'

@@ -9,7 +9,7 @@ import type { ConnectorLike } from 'host-api/connector';
 
 import { DOCUMENT } from 'host-api/store';
 
-const apexFilesSelectors = DOCUMENT.apexFileAdapter.getSelectors(s => s);
+const apexFilesSelectors = DOCUMENT.apexFileAdapter.getSelectors(s => s.apexFiles);
 
 const Schemas = {};
 Schemas.ExecuteAnonymousResult = {
@@ -152,7 +152,12 @@ export const executeApexAnonymous = createAsyncThunk(
             body,
             tabId,
             createdDate,
-        }: { connector: ConnectorLike; body: string; tabId: string; createdDate: string | number | Date },
+        }: {
+            connector: ConnectorLike;
+            body: string;
+            tabId: string;
+            createdDate: string | number | Date;
+        },
         { dispatch, getState }
     ) => {
         //console.log('connector, body,tabId',connector, body,tabId);

@@ -3,22 +3,259 @@
     <head>
         <meta charset="UTF-8" />
         <title>Workbench - Side Panel</title>
-        <link href="/styles/slds-workbench-salesforce.css" rel="stylesheet" />
-        <link href="/styles/slds-plus.css" rel="stylesheet" />
-        <link href="/styles/tabulator.min.css" rel="stylesheet" />
-        <link href="/styles/dashboard.css" rel="stylesheet" />
-        <link href="/styles/shared.css" rel="stylesheet" />
-        <link href="/styles/extension.css" rel="stylesheet" />
-        <link href="/styles/monaco.css" rel="stylesheet" />
-        <link href="/styles/prism.css" rel="stylesheet" />
-        <script src="/scripts/googleAnalytic.js" type="module"></script>
+        <style>
+            @keyframes sidepanel-bg-shift {
+                0% {
+                    background-position: 0% 50%;
+                }
+                50% {
+                    background-position: 100% 50%;
+                }
+                100% {
+                    background-position: 0% 50%;
+                }
+            }
+
+            @keyframes sidepanel-spin-cw {
+                from {
+                    transform: translate(-50%, -50%) rotate(0deg);
+                }
+                to {
+                    transform: translate(-50%, -50%) rotate(360deg);
+                }
+            }
+
+            @keyframes sidepanel-spin-ccw {
+                from {
+                    transform: translate(-50%, -50%) rotate(0deg);
+                }
+                to {
+                    transform: translate(-50%, -50%) rotate(-360deg);
+                }
+            }
+
+            @keyframes sidepanel-progress-slide {
+                0% {
+                    transform: translateX(-150%);
+                }
+                100% {
+                    transform: translateX(400%);
+                }
+            }
+
+            @keyframes sidepanel-fade-in-up {
+                from {
+                    opacity: 0;
+                    transform: translateY(6px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+
+            .sidepanel-boot {
+                min-height: 100vh;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                box-sizing: border-box;
+                overflow: hidden;
+                position: relative;
+                font:
+                    12px/1.4 -apple-system,
+                    BlinkMacSystemFont,
+                    'Segoe UI',
+                    sans-serif;
+                background: linear-gradient(
+                    135deg,
+                    #f0f7ff 0%,
+                    #e8f2fd 30%,
+                    #eef5ff 60%,
+                    #f0f7ff 100%
+                );
+                background-size: 400% 400%;
+                animation: sidepanel-bg-shift 10s ease infinite;
+            }
+
+            .sidepanel-boot__grid {
+                position: absolute;
+                inset: 0;
+                pointer-events: none;
+                background-image:
+                    linear-gradient(rgba(21, 137, 238, 0.07) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(21, 137, 238, 0.07) 1px, transparent 1px);
+                background-size: 48px 48px;
+                mask-image: radial-gradient(
+                    ellipse 70% 70% at 50% 50%,
+                    black 30%,
+                    transparent 100%
+                );
+                -webkit-mask-image: radial-gradient(
+                    ellipse 70% 70% at 50% 50%,
+                    black 30%,
+                    transparent 100%
+                );
+            }
+
+            .sidepanel-boot__stage {
+                position: relative;
+                z-index: 1;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 30px;
+                animation: sidepanel-fade-in-up 0.6s ease both;
+            }
+
+            .sidepanel-boot__rings {
+                position: relative;
+                width: 160px;
+                height: 160px;
+            }
+
+            .sidepanel-boot__ring {
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                border-radius: 50%;
+                border-style: solid;
+            }
+
+            .sidepanel-boot__ring_outer {
+                width: 160px;
+                height: 160px;
+                border-width: 2px;
+                border-color: rgba(6, 182, 212, 0.22) rgba(6, 182, 212, 0.22)
+                    rgba(6, 182, 212, 0.22) rgba(6, 182, 212, 0.9);
+                animation: sidepanel-spin-cw 8s linear infinite;
+            }
+
+            .sidepanel-boot__ring_middle {
+                width: 112px;
+                height: 112px;
+                border-width: 2px;
+                border-color: rgba(21, 137, 238, 0.22) rgba(21, 137, 238, 0.9)
+                    rgba(21, 137, 238, 0.22) rgba(21, 137, 238, 0.22);
+                animation: sidepanel-spin-ccw 5s linear infinite;
+            }
+
+            .sidepanel-boot__ring_inner {
+                width: 66px;
+                height: 66px;
+                border-width: 1.5px;
+                border-color: rgba(21, 137, 238, 0.15) rgba(21, 137, 238, 0.15)
+                    rgba(21, 137, 238, 0.6) rgba(21, 137, 238, 0.15);
+                animation: sidepanel-spin-cw 2.5s linear infinite;
+            }
+
+            .sidepanel-boot__logo {
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                width: 48px;
+                height: 48px;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: #0070d2;
+                font-weight: 700;
+                letter-spacing: 1px;
+                background: linear-gradient(145deg, #ddeeff 0%, #c8e0ff 100%);
+                border: 1px solid rgba(21, 137, 238, 0.4);
+                box-shadow:
+                    0 0 20px rgba(21, 137, 238, 0.25),
+                    inset 0 0 16px rgba(21, 137, 238, 0.08);
+                transform: translate(-50%, -50%);
+            }
+
+            .sidepanel-boot__brand {
+                text-align: center;
+                line-height: 1;
+            }
+
+            .sidepanel-boot__name {
+                margin: 0;
+                font-size: 22px;
+                font-weight: 700;
+                letter-spacing: 4px;
+                text-transform: uppercase;
+                color: #0a1628;
+            }
+
+            .sidepanel-boot__sub {
+                margin: 6px 0 0;
+                font-size: 10px;
+                font-weight: 500;
+                letter-spacing: 2px;
+                text-transform: uppercase;
+                color: rgba(0, 112, 210, 0.75);
+            }
+
+            .sidepanel-boot__status {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 12px;
+            }
+
+            .sidepanel-boot__message {
+                margin: 0;
+                letter-spacing: 1.5px;
+                color: rgba(10, 22, 40, 0.45);
+                text-transform: uppercase;
+                text-align: center;
+            }
+
+            .sidepanel-boot__progress {
+                width: 200px;
+                height: 2px;
+                background: rgba(21, 137, 238, 0.1);
+                border-radius: 1px;
+                overflow: hidden;
+            }
+
+            .sidepanel-boot__progress-fill {
+                height: 100%;
+                width: 45%;
+                background: linear-gradient(
+                    90deg,
+                    transparent 0%,
+                    #1589ee 40%,
+                    #06b6d4 60%,
+                    transparent 100%
+                );
+                border-radius: 1px;
+                animation: sidepanel-progress-slide 2.2s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+            }
+        </style>
     </head>
     <body class="sf-toolkit" style="margin: 0px">
-        <script src="/libs/prism/prism.js"></script>
-        <script src="/libs/mermaid/mermaid.min.js"></script>
-        <script src="/libs/localforage/localforage.min.js"></script>
-        <script src="/libs/localforage/drivers/chrome.js"></script>
-        <script src="/scripts/main.js" type="module"></script>
-        <script src="/scripts/default.js" type="module"></script>
+        <div id="sidepanel-boot" class="sidepanel-boot">
+            <div class="sidepanel-boot__grid" aria-hidden="true"></div>
+            <div class="sidepanel-boot__stage">
+                <div class="sidepanel-boot__rings" aria-hidden="true">
+                    <div class="sidepanel-boot__ring sidepanel-boot__ring_outer"></div>
+                    <div class="sidepanel-boot__ring sidepanel-boot__ring_middle"></div>
+                    <div class="sidepanel-boot__ring sidepanel-boot__ring_inner"></div>
+                    <div class="sidepanel-boot__logo">SF</div>
+                </div>
+                <div class="sidepanel-boot__brand">
+                    <p class="sidepanel-boot__name">Workbench</p>
+                    <p class="sidepanel-boot__sub">The swiss army knife for Salesforce</p>
+                </div>
+                <div class="sidepanel-boot__status">
+                    <p class="sidepanel-boot__message">Preparing the side panel</p>
+                    <div
+                        class="sidepanel-boot__progress"
+                        role="progressbar"
+                        aria-label="Preparing the side panel">
+                        <div class="sidepanel-boot__progress-fill"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <script async src="/scripts/default-boot.js" type="module"></script>
     </body>
 </html>

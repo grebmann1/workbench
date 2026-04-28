@@ -5,6 +5,7 @@ import express from 'express';
 import jsforce from 'jsforce';
 import qs from 'qs';
 
+import announcements from './modules/announcements';
 import { initDocumentationIndex, searchDocumentation } from './modules/documentationSearch';
 import llmModels from './modules/llmModels';
 import openaiProxy from './modules/openaiProxy';
@@ -53,6 +54,7 @@ app.all('/proxy{/*splat}', proxy({ enableCORS: true }));
 /* OpenAI Proxy */
 openaiProxy(app);
 llmModels(app);
+announcements(app);
 
 app.get('/version', (_req, res) => {
     res.json({ version: process.env.npm_package_version });

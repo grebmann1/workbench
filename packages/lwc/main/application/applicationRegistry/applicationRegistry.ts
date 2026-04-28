@@ -69,6 +69,7 @@ const APPLICATION_APP_MAPPING = {
         path: "api",
         menuGroup: "code",
         menuOrder: 10,
+        settings: [{"key":"api_splitter_is_horizontal","label":"Horizontal Splitter","description":"Toggle between horizontal and vertical split view in the API Explorer.","type":"toggle","defaultValue":true}],
     },
     'code/app': {
         module: code_app_module,
@@ -137,6 +138,7 @@ const APPLICATION_APP_MAPPING = {
         path: "metadata",
         menuGroup: "deploy",
         menuOrder: 10,
+        settings: [{"key":"metadata_storage_enabled","label":"Enable metadata storage","description":"Cache retrieved metadata locally for faster subsequent loads.","type":"toggle","defaultValue":true},{"key":"metadata_storage_background_sync_enabled","label":"Background sync","description":"Refresh stored metadata in the background.","type":"toggle","defaultValue":false},{"key":"metadata_storage_types","label":"Tracked metadata types","description":"Metadata types included in local storage and background sync.","type":"multiselect","options":"metadata.storageTypes","defaultValue":["ApexClass","ApexTrigger","ApexPage","ApexComponent","LightningComponentBundle","AuraDefinitionBundle","CustomObject","CustomField","PermissionSet","Profile","Flow","StaticResource"]}],
     },
     'object/app': {
         module: object_app_module,
@@ -240,6 +242,7 @@ const APPLICATION_APP_MAPPING = {
         path: "smartinput",
         menuGroup: "utilities",
         menuOrder: 30,
+        settings: [{"key":"beta_smartinput_enabled","label":"Enable Smart Input (beta)","description":"Turn on the Smart Input beta experience.","type":"toggle","defaultValue":false},{"key":"input_quickpick_enabled","label":"Enable Input Quick Pick","description":"Surface the Quick Pick overlay on inputs.","type":"toggle","defaultValue":false}],
     },
     'soql/app': {
         module: soql_app_module,

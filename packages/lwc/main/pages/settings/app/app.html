@@ -235,34 +235,87 @@
                                         checked={config.ui_isApplicationTabVisible}
                                         onchange={inputfield_change}></lightning-input>
                                 </settings-card>
-                                <settings-card
-                                    lwc:if={isChrome}
-                                    class="slds-col slds-size_1-of-2 slds-large-size_1-of-2 slds-p-horizontal_small"
-                                    is-first>
-                                    <div slot="title">
-                                        <h1>Side Panel Behavior</h1>
-                                        <p
-                                            class="description slds-truncate"
-                                            title="Choose whether the side panel stays open when you launch Workbench in a tab.">
-                                            Agent mode keeps the side panel open so the AI agent
-                                            stays visible; App mode dismisses it when you open
-                                            Workbench in a tab.
+                            </div>
+                        </slds-tab>
+                        <slds-tab label="About" value="about">
+                            <div class="about-panel">
+                                <section class="about-hero">
+                                    <div class="about-hero__content">
+                                        <p class="about-hero__eyebrow">Workbench</p>
+                                        <h1 class="about-hero__title">{currentVersionLabel}</h1>
+                                        <p class="about-hero__subtitle">
+                                            Running as {runtimeSurfaceLabel}
                                         </p>
                                     </div>
-                                    <lightning-combobox
-                                        data-key="sidepanel_mode"
-                                        label="When opening Workbench in a tab"
-                                        variant="label-hidden"
-                                        value={config.sidepanel_mode}
-                                        options={sidePanelModeOptions}
-                                        onchange={inputfield_change}></lightning-combobox>
-                                </settings-card>
+                                    <button
+                                        class="about-release-chip"
+                                        type="button"
+                                        onclick={handleOpenReleaseNotes}
+                                        title="View full release notes">
+                                        <span class="about-release-chip__badge">Latest</span>
+                                        <span class="about-release-chip__body">
+                                            <span class="about-release-chip__version">
+                                                {latestReleaseVersionLabel}
+                                            </span>
+                                            <span class="about-release-chip__summary">
+                                                {latestReleaseDateLabel}
+                                            </span>
+                                        </span>
+                                        <lightning-icon
+                                            icon-name="utility:chevronright"
+                                            size="x-small"
+                                            class="about-release-chip__arrow"></lightning-icon>
+                                    </button>
+                                </section>
+
+                                <div class="about-card-grid">
+                                    <article class="about-info-card">
+                                        <span class="about-info-card__label">Runtime</span>
+                                        <strong class="about-info-card__value">
+                                            {runtimeSurfaceLabel}
+                                        </strong>
+                                    </article>
+                                    <article class="about-info-card">
+                                        <span class="about-info-card__label">Salesforce API</span>
+                                        <strong class="about-info-card__value">
+                                            {configuredApiVersionLabel}
+                                        </strong>
+                                    </article>
+                                    <article class="about-info-card">
+                                        <span class="about-info-card__label">Extension ID</span>
+                                        <strong
+                                            class="about-info-card__value about-info-card__value_wrap">
+                                            {extensionIdLabel}
+                                        </strong>
+                                    </article>
+                                </div>
+
+                                <section class="about-release-card">
+                                    <div class="about-release-card__header">
+                                        <div>
+                                            <p class="about-release-card__eyebrow">
+                                                Latest release highlight
+                                            </p>
+                                            <h2>{latestReleaseVersionLabel}</h2>
+                                        </div>
+                                        <span class="about-release-card__date">
+                                            {latestReleaseDateLabel}
+                                        </span>
+                                    </div>
+                                    <p class="about-release-card__summary">
+                                        {latestReleaseSummary}
+                                    </p>
+                                </section>
                             </div>
                         </slds-tab>
                         <slds-tab label="Applications" value="applications">
-                            <settings-api-app-settings
-                                config={config}
-                                inputfield_change={inputfield_change}></settings-api-app-settings>
+                            <template for:each={appsWithSettings} for:item="appEntry">
+                                <settings-app-section
+                                    key={appEntry.name}
+                                    app={appEntry}
+                                    config={config}
+                                    inputfield_change={inputfield_change}></settings-app-section>
+                            </template>
                         </slds-tab>
                         <slds-tab label="Shortcuts" value="shortcuts">
                             <div class="slds-grid slds-wrap slds-grid_vertical-stretch">

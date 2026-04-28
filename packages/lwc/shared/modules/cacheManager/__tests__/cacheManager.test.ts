@@ -14,11 +14,7 @@ import {
     buildProviderConfigCacheRecord,
     getAiProviderFromConfig,
 } from '../cacheManager.ts';
-import {
-    DEFAULT_PROVIDER_BASE_URLS,
-    LLM_PROVIDERS,
-    DEFAULT_LLM_PROVIDER,
-} from 'shared/llm';
+import { DEFAULT_PROVIDER_BASE_URLS, LLM_PROVIDERS, DEFAULT_LLM_PROVIDER } from 'shared/llm';
 
 test('CONFIG_OBJECT: defaults to defaultValue until value is set', () => {
     const obj = new CONFIG_OBJECT<number>('some_key', 42);
@@ -45,6 +41,8 @@ test('CACHE_CONFIG: known public keys have expected string values', () => {
     assert.equal(CACHE_CONFIG.GEMINI_URL.defaultValue, 'https://generativelanguage.googleapis.com');
     assert.equal(CACHE_CONFIG.MISTRAL_URL.defaultValue, 'https://api.mistral.ai/v1');
     assert.equal(CACHE_CONFIG.GROK_URL.defaultValue, 'https://api.x.ai/v1');
+    assert.equal(CACHE_CONFIG.ANNOUNCEMENT_DISMISSED_IDS.key, 'announcement_dismissed_ids');
+    assert.deepEqual(CACHE_CONFIG.ANNOUNCEMENT_DISMISSED_IDS.defaultValue, []);
 });
 
 test('CACHE_CONFIG: key values are all unique strings', () => {

@@ -1,0 +1,19 @@
+<template>
+    <template lwc:if={hasAnnouncement}>
+        <slds-notify
+            class="announcement-banner"
+            variant={variant}
+            is-close-diplayed
+            onclose={handleClose}>
+            <div class="announcement-banner__content">
+                <template lwc:if={hasTitle}>
+                    <strong class="announcement-banner__title">{title}</strong>
+                </template>
+                <span>{message}</span>
+                <template lwc:if={hasLink}>
+                    <a href={linkUrl} target="_blank" rel="noopener noreferrer">{linkLabel}</a>
+                </template>
+            </div>
+        </slds-notify>
+    </template>
+</template>

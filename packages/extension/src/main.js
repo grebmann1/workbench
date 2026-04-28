@@ -36,6 +36,7 @@ window.extension_initLwc = async variant => {
         variant,
     });
     document.body.appendChild(elm);
+    document.getElementById('sidepanel-boot')?.remove();
 };
 
 window.extension_initApp = async variant => {

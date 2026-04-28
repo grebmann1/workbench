@@ -1,0 +1,13 @@
+{
+    "announcement": {
+        "id": "2026-04-28-release-notes",
+        "active": true,
+        "variant": "brand",
+        "title": "Workbench 2.0.1 is available",
+        "message": "Workbench 2.0.1 includes the new Settings About tab, release announcements, app-owned settings, side-panel startup polish, embedded VS Code walkthrough updates, and fixes for saved API/Apex files.",
+        "linkLabel": "View release notes",
+        "linkUrl": "https://www.sf-workbench.com/app?applicationName=release",
+        "startsAt": "2026-04-28T00:00:00Z",
+        "endsAt": "2026-12-31T23:59:59Z"
+    }
+}

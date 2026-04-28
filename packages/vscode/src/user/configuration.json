@@ -23,5 +23,6 @@
     "terminal.integrated.tabs.title": "${sequence}",
     "typescript.tsserver.log": "normal",
     "workbench.sideBar.location": "left",
+    "workbench.startupEditor": "none",
     "editor.experimental.preferTreeSitter": ["typescript"]
 }

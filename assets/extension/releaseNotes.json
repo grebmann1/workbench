@@ -11,12 +11,17 @@
             "items": [
               "Streamlined URL generation and connection-aware navigation so Workbench opens the right target more consistently across extension, web, desktop, and VS Code surfaces.",
               "Added an explicit Open action to recent session cards on the home page, making it clearer when a saved session will launch Workbench.",
+              "Added dismissible remote announcement banners so important release messages can be shown in Workbench without shipping a new extension build.",
+              "Added a polished side-panel startup experience while styles, storage libraries, and Workbench modules load.",
               "Added URL Encoder as a minimal starter application template for faster future app development."
             ]
           },
           {
             "category": "Settings & Storage",
             "items": [
+              "Added a new About tab in Settings with the current Workbench version, runtime surface, release metadata, and a shortcut to the full release notes.",
+              "Reworked Settings > Applications so apps can declare their own settings in their manifest or provide a custom settings component.",
+              "Moved API Explorer, Metadata storage, Smart Input, and Quick Pick configuration into app-owned settings.",
               "Added a Side Panel Behavior setting so Chrome users can choose whether opening Workbench in a tab closes the side panel or keeps the Agent visible.",
               "Improved settings export and import to include both localStorage and chrome.storage.local, helping recover saved queries, Apex snippets, API requests, and cache-backed settings after upgrades.",
               "Added storage diagnostic tooling to detect saved query data restored into the wrong browser storage backend and surface alias-hidden query files."
@@ -26,6 +31,7 @@
             "category": "Application Platform",
             "items": [
               "Migrated built-in tools into the packages/applications layout and simplified app package structure for cleaner extension registration.",
+              "Added host-api/settings so applications can register dynamic option providers for Settings UI fields.",
               "Improved the application manifest workflow and validator coverage for packaged apps."
             ]
           }
@@ -43,11 +49,21 @@
             ]
           },
           {
+            "category": "Developer Tools",
+            "items": [
+              "Fixed saved API requests so reopening a saved request restores the method, endpoint, headers, and body even when the tab already exists.",
+              "Fixed saved API and Anonymous Apex file selectors to read from the correct document state slices.",
+              "Improved browser automation debugger handling so Workbench requests debugger access when needed and degrades more safely when the API is unavailable."
+            ]
+          },
+          {
             "category": "Embedded VS Code",
             "items": [
               "Improved VS Code bootstrap so session-derived aliases use the active session path instead of prompting OAuth against the wrong org.",
               "Scoped embedded VS Code workspaces by org before rendering the iframe, preventing editor state from leaking through the default workspace.",
-              "Added safer workspace defaults for sandbox and scratch orgs, plus retry support when initialization can reuse the current Workbench session."
+              "Added safer workspace defaults for sandbox and scratch orgs, plus retry support when initialization can reuse the current Workbench session.",
+              "Expanded the embedded VS Code walkthrough with guided steps for metadata sync, logs, Org Browser, SOQL, Anonymous Apex, and deploy/validate workflows.",
+              "Focused the Salesforce panel on startup and aligned the iframe origin with the configured VS Code host."
             ]
           }
         ]
@@ -60,6 +76,7 @@
             "items": [
               "Refreshed the architecture overview and new-application guide to match the current application registry and manifest model.",
               "Added a project guidance document covering repo structure, common commands, and architecture notes for contributors.",
+              "Added roadmap guidance for parking deferred plans under auto-roadmap, plus a side-panel Always On implementation plan for future work.",
               "Updated release metadata for Workbench 2.0.1."
             ]
           }

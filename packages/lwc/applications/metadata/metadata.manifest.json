@@ -16,5 +16,42 @@
         "isOfflineAvailable": false,
         "isMenuVisible": true,
         "isTabVisible": true
-    }
+    },
+    "settings": [
+        {
+            "key": "metadata_storage_enabled",
+            "label": "Enable metadata storage",
+            "description": "Cache retrieved metadata locally for faster subsequent loads.",
+            "type": "toggle",
+            "defaultValue": true
+        },
+        {
+            "key": "metadata_storage_background_sync_enabled",
+            "label": "Background sync",
+            "description": "Refresh stored metadata in the background.",
+            "type": "toggle",
+            "defaultValue": false
+        },
+        {
+            "key": "metadata_storage_types",
+            "label": "Tracked metadata types",
+            "description": "Metadata types included in local storage and background sync.",
+            "type": "multiselect",
+            "options": "metadata.storageTypes",
+            "defaultValue": [
+                "ApexClass",
+                "ApexTrigger",
+                "ApexPage",
+                "ApexComponent",
+                "LightningComponentBundle",
+                "AuraDefinitionBundle",
+                "CustomObject",
+                "CustomField",
+                "PermissionSet",
+                "Profile",
+                "Flow",
+                "StaticResource"
+            ]
+        }
+    ]
 }

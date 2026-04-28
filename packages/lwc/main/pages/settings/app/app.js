@@ -1,6 +1,6 @@
 import { track, wire } from 'lwc';
 import ToolkitElement from 'core/toolkitElement';
-import { isChromeExtension } from 'shared/utils';
+import { isChromeExtension, isElectronApp } from 'shared/utils';
 import { GOOGLE_SIGNIN_SCOPES, GOOGLE_DRIVE_SCOPES } from 'agent/googleAuth';
 import {
     cacheManager,
@@ -24,6 +24,7 @@ import {
     normalizeMcpServerConfigs,
     parseMcpServersJson,
 } from 'agent/tools';
+import { APPLICATION_APP_MAPPING } from 'application/applicationRegistry';
 
 function buildEditableProviderConfigs(config) {
     const currentProviderConfigs = resolveLlmProviderConfigMap(config);
@@ -90,6 +91,8 @@ export default class App extends ToolkitElement {
     // Config
     @track config = {};
     @track originalConfig = {};
+    @track appVersion = null;
+    @track latestRelease = null;
     // Session Config
     @track sessionConfig = {};
     @track originalSessionConfig = {};
@@ -143,6 +146,7 @@ export default class App extends ToolkitElement {
 
     connectedCallback() {
         this.loadConfigFromCache();
+        this.loadVersionInfo();
         this.activeTab = this.isUserLoggedIn ? 'session' : 'ui';
         this.loadMetadataStorageTypeOptions();
     }
@@ -374,6 +378,10 @@ export default class App extends ToolkitElement {
         navigate(this.navContext, { type: 'application', state: { applicationName: 'files' } });
     };
 
+    handleOpenReleaseNotes = () => {
+        navigate(this.navContext, { type: 'application', state: { applicationName: 'release' } });
+    };
+
     handleOpenCacheExplorer = async () => {
         this.showCacheExplorer = true;
         await this._loadCacheEntries();
@@ -579,6 +587,22 @@ export default class App extends ToolkitElement {
 
     get cacheExplorerCount() {
         return this.filteredCacheEntries.length;
+    }
+
+    /**
+     * Apps that opt into the Settings > Applications tab — either by
+     * declaring `settings[]` in their manifest or a `settingsComponent`.
+     * Sorted by label so the rendering order is stable across reloads.
+     */
+    get appsWithSettings() {
+        return Object.entries(APPLICATION_APP_MAPPING)
+            .filter(
+                ([, entry]) =>
+                    (Array.isArray(entry.settings) && entry.settings.length > 0) ||
+                    !!entry.settingsComponent
+            )
+            .map(([name, entry]) => ({ ...entry, name }))
+            .sort((a, b) => (a.label || '').localeCompare(b.label || ''));
     }
 
     handleConnectGoogle = async () => {
@@ -954,6 +978,32 @@ export default class App extends ToolkitElement {
         }
     };
 
+    loadVersionInfo = async () => {
+        const versionUrl = isChromeExtension() || isElectronApp() ? '/manifest.json' : '/version';
+        const releaseNotesUrl = isChromeExtension()
+            ? `${chrome.runtime.getURL('releaseNotes.json')}`
+            : '/public/releaseNotes.json';
+
+        try {
+            const versionResponse = await fetch(versionUrl);
+            const versionData = await versionResponse.json();
+            this.appVersion = versionData.version || null;
+        } catch (error) {
+            LOGGER.warn('Unable to load Workbench version info', error);
+            this.appVersion = null;
+        }
+
+        try {
+            const releaseResponse = await fetch(releaseNotesUrl);
+            const releases = await releaseResponse.json();
+            this.latestRelease =
+                Array.isArray(releases) && releases.length > 0 ? releases[0] : null;
+        } catch (error) {
+            LOGGER.warn('Unable to load Workbench release notes info', error);
+            this.latestRelease = null;
+        }
+    };
+
     /** Getters */
 
     get openaiKeyInputType() {
@@ -974,6 +1024,39 @@ export default class App extends ToolkitElement {
 
     get isChrome() {
         return isChromeExtension();
+    }
+
+    get runtimeSurfaceLabel() {
+        if (this.isChrome) return 'Chrome Extension';
+        if (isElectronApp()) return 'Desktop App';
+        return 'Web App';
+    }
+
+    get currentVersionLabel() {
+        return this.appVersion ? `v${this.appVersion}` : 'Unknown';
+    }
+
+    get latestReleaseVersionLabel() {
+        return this.latestRelease?.version ? `v${this.latestRelease.version}` : 'Not available';
+    }
+
+    get latestReleaseDateLabel() {
+        return this.latestRelease?.date || 'Not available';
+    }
+
+    get latestReleaseSummary() {
+        const sections = this.latestRelease?.sections || [];
+        return sections[0]?.categories?.[0]?.items?.[0] || 'Open release notes for details.';
+    }
+
+    get extensionIdLabel() {
+        return this.isChrome && typeof chrome !== 'undefined' && chrome.runtime?.id
+            ? chrome.runtime.id
+            : 'Not applicable';
+    }
+
+    get configuredApiVersionLabel() {
+        return this.sessionConfig?.api_version || this.connector?.conn?.version || 'Not connected';
     }
 
     get isShortcutDisabled() {
@@ -1123,13 +1206,6 @@ export default class App extends ToolkitElement {
 
     get isQaModeEnabled() {
         return this.sessionConfig?.client_id === 'SfdcInternalQA/';
-    }
-
-    get sidePanelModeOptions() {
-        return [
-            { label: 'App mode — close side panel', value: 'app' },
-            { label: 'Agent mode — keep side panel open', value: 'agent' },
-        ];
     }
 
     get qaModeButtonVariant() {

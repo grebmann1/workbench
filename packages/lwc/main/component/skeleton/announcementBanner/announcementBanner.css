@@ -1,0 +1,16 @@
+.announcement-banner {
+    text-align: left;
+}
+
+.announcement-banner__content {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--slds-g-spacing-x-small, 0.5rem);
+    justify-content: center;
+    width: 100%;
+}
+
+.announcement-banner__title {
+    font-weight: var(--slds-g-font-weight-bold, 700);
+}
