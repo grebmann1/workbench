@@ -398,13 +398,8 @@ function handleSidePanelPort(port) {
     }
 
     port.onDisconnect.addListener(() => {
-        const tabId = sidePanelTabIdByPort.get(port);
         sidePanelConnections.delete(port);
         sidePanelTabIdByPort.delete(port);
-        if (Number.isInteger(tabId) && !hasSidePanelPortForTab(tabId)) {
-            openedSidePanelTabIds.delete(tabId);
-            _lastSidePanelOptionsByTabId.delete(tabId);
-        }
     });
 
     port.onMessage.addListener(msg => {

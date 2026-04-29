@@ -1,26 +1,25 @@
 import { test as base, expect, type Page } from '@playwright/test';
 
 /**
- * Playwright fixtures for Workbench smokes.
+ * Playwright fixtures for the Workbench landing site (apps/ui, port 27100).
  *
- * `shell`: a Page already navigated to `/welcome/` with the main landmark
- *     visible. Tests can then click into apps or navigate elsewhere.
- * `appRoute(name)`: route helper that returns the app's URL path, i.e.
- *     `appRoute('urlencoder')` → `/urlencoder/`. Kept trivial today because
- *     the shell uses top-level path slugs (see APPLICATION_ENTRIES).
+ * `welcome`: a Page already navigated to `/welcome/` with the main hero
+ *     heading visible.
+ *
+ * Note: Playwright here covers the public landing / welcome site, not the
+ *     in-extension LWC apps (those are built into the Chrome extension and
+ *     only render from chrome-extension:// URLs). Extension-side coverage
+ *     lives in the unit-test suite.
  */
-export const appRoute = (name: string) => `/${name}/`;
-
 type Fixtures = {
-    shell: Page;
+    welcome: Page;
 };
 
 export const test = base.extend<Fixtures>({
-    shell: async ({ page }, use) => {
+    welcome: async ({ page }, use) => {
         await page.goto('/welcome/');
         await expect(page).toHaveTitle(/Workbench/i);
-        const main = page.locator('main, [role="main"]').first();
-        await expect(main).toBeVisible();
+        await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
         await use(page);
     },
 });

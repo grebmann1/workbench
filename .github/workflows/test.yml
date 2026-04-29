@@ -28,24 +28,32 @@ jobs:
           node-version: '22.14'
           cache: 'npm'
       - run: npm ci --no-audit --no-fund
-      - name: Write placeholder .env.dev for offline smokes
+      - name: Write placeholder .env.dev for the API server
         run: |
           cat > .env.dev <<'EOF'
           CLIENT_ID=e2e_placeholder
           CLIENT_SECRET=e2e_placeholder
           PORT=3000
           EOF
-      - run: npm run build:shared
       - run: npx playwright install --with-deps chromium
-      - name: Start dev server
+      - name: Start API server (port 3000)
         run: npm run start:dev:server &
-      - name: Wait for /config
+      - name: Start landing site (port 27100)
+        run: npm run ui:dev &
+      - name: Wait for ports 3000 + 27100
         run: |
-          for i in $(seq 1 60); do
-            curl -sf http://localhost:3000/config > /dev/null && exit 0
+          ok3000=0
+          ok27100=0
+          for i in $(seq 1 90); do
+            if [ $ok3000 -eq 0 ] && curl -sf http://localhost:3000/config > /dev/null; then ok3000=1; fi
+            if [ $ok27100 -eq 0 ] && curl -sf http://localhost:27100/welcome/ > /dev/null; then ok27100=1; fi
+            if [ $ok3000 -eq 1 ] && [ $ok27100 -eq 1 ]; then
+              echo "Both services up after ${i}s"
+              exit 0
+            fi
             sleep 1
           done
-          echo "Dev server did not respond within 60s"
+          echo "Timed out waiting for servers (api=$ok3000 ui=$ok27100)"
           exit 1
       - run: E2E=1 npm run test:e2e:smoke
       - uses: actions/upload-artifact@v4
