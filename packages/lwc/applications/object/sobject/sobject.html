@@ -152,393 +152,522 @@
 
                 <!-- Detail sections -->
                 <div class="slds-m-top_small">
-                        <!-- Available APIs -->
-                        <section class={availableApisSectionClass}>
-                            <h3 class="slds-section__title">
-                                <button
-                                    class="slds-button slds-section__title-action"
-                                    data-section="availableApis"
-                                    onclick={handleToggleSection}
-                                    aria-expanded={isAvailableApisOpen}>
-                                    <lightning-icon
-                                        icon-name={availableApisChevronIcon}
-                                        size="xx-small"
-                                        class="slds-m-right_x-small"></lightning-icon>
-                                    <span class="slds-truncate" title="Available APIs">
-                                        Available APIs
-                                    </span>
-                                    <span class="slds-badge slds-m-left_x-small">
-                                        {availableApisCount}
-                                    </span>
-                                </button>
-                            </h3>
-                            <template lwc:if={isAvailableApisOpen}>
-                                <div
-                                    class="slds-section__content slds-p-horizontal_small slds-p-bottom_small">
-                                    <div class="slds-grid slds-wrap">
-                                        <template for:each={availableApis} for:item="apiItem">
-                                            <div
-                                                key={apiItem.key}
-                                                class="slds-col slds-grow_none slds-m-top_x-small slds-m-right_x-small">
-                                                <span class={apiItem.colorClass}>{apiItem.label}</span>
-                                            </div>
-                                        </template>
-                                    </div>
-                                </div>
-                            </template>
-                        </section>
-
-                        <!-- Relationships -->
-                        <section class={relationshipsSectionClass}>
-                            <h3 class="slds-section__title">
-                                <button
-                                    class="slds-button slds-section__title-action"
-                                    data-section="relationships"
-                                    onclick={handleToggleSection}
-                                    aria-expanded={isRelationshipsOpen}>
-                                    <lightning-icon
-                                        icon-name={relationshipsChevronIcon}
-                                        size="xx-small"
-                                        class="slds-m-right_x-small"></lightning-icon>
-                                    <span class="slds-truncate" title="Relationships">
-                                        Relationships
-                                    </span>
-                                    <span class="slds-badge slds-m-left_x-small">
-                                        {relationshipsCount}
-                                    </span>
-                                </button>
-                            </h3>
-                            <template lwc:if={isRelationshipsOpen}>
-                                <div
-                                    class="slds-section__content slds-p-horizontal_small slds-p-bottom_small">
-                                    <lightning-tabset
-                                        variant="scoped"
-                                        active-tab-value={relationshipTab}>
-                                        <lightning-tab
-                                            label="Lookups"
-                                            value="lookups"
-                                            onactive={handleRelationshipTabActive}>
-                                            <div class="slds-m-bottom_x-small slds-m-top_x-small">
-                                                <lightning-input
-                                                    type="search"
-                                                    label=""
-                                                    placeholder="Search lookups..."
-                                                    variant="label-hidden"
-                                                    value={relationshipSearch}
-                                                    onchange={handleRelationshipSearch}></lightning-input>
-                                            </div>
-                                            <template lwc:if={hasNoLookups}>
-                                                <div class="slds-text-color_weak slds-m-top_small">
-                                                    No lookups found.
-                                                </div>
-                                            </template>
-                                            <template lwc:else>
-                                                <div class="data-table-wrapper">
-                                                    <table class="slds-table slds-table_cell-buffer slds-table_bordered slds-table_col-bordered slds-table_striped">
-                                                        <thead>
-                                                            <tr class="slds-line-height_reset">
-                                                                <th scope="col"><div class="slds-truncate" title="Label">Label</div></th>
-                                                                <th scope="col"><div class="slds-truncate" title="API Field">API Field</div></th>
-                                                                <th scope="col"><div class="slds-truncate" title="Relationship Name">Relationship</div></th>
-                                                                <th scope="col"><div class="slds-truncate" title="Target Object">Target Object</div></th>
-                                                            </tr>
-                                                        </thead>
-                                                        <tbody>
-                                                            <template for:each={filteredLookups} for:item="lookup">
-                                                                <tr key={lookup.key}>
-                                                                    <td class="slds-truncate" title={lookup.label}>{lookup.label}</td>
-                                                                    <td>
-                                                                        <div class="slds-grid slds-grid_vertical-align-center row-api-name">
-                                                                            <span class="slds-truncate" title={lookup.fieldName}>{lookup.fieldName}</span>
-                                                                            <lightning-button-icon
-                                                                                icon-name="utility:copy"
-                                                                                variant="bare"
-                                                                                size="small"
-                                                                                class="copy-btn"
-                                                                                alternative-text="Copy field name"
-                                                                                title="Copy field name"
-                                                                                data-value={lookup.fieldName}
-                                                                                onclick={handleCopyValue}></lightning-button-icon>
-                                                                        </div>
-                                                                    </td>
-                                                                    <td class="slds-truncate" title={lookup.relationshipName}>{lookup.relationshipName}</td>
-                                                                    <td>
-                                                                        <button
-                                                                            type="button"
-                                                                            class="slds-button slds-button_reset related-object-btn"
-                                                                            data-name={lookup.target}
-                                                                            onclick={handleOpenRelatedSObject}
-                                                                            title={lookup.target}>
-                                                                            {lookup.target}
-                                                                        </button>
-                                                                    </td>
-                                                                </tr>
-                                                            </template>
-                                                        </tbody>
-                                                    </table>
-                                                </div>
-                                            </template>
-                                        </lightning-tab>
-                                        <lightning-tab
-                                            label="Children"
-                                            value="children"
-                                            onactive={handleRelationshipTabActive}>
-                                            <div class="slds-m-bottom_x-small slds-m-top_x-small">
-                                                <lightning-input
-                                                    type="search"
-                                                    label=""
-                                                    placeholder="Search children..."
-                                                    variant="label-hidden"
-                                                    value={relationshipSearch}
-                                                    onchange={handleRelationshipSearch}></lightning-input>
-                                            </div>
-                                            <template lwc:if={hasNoChildren}>
-                                                <div class="slds-text-color_weak slds-m-top_small">
-                                                    No child relationships found.
-                                                </div>
-                                            </template>
-                                            <template lwc:else>
-                                                <div class="data-table-wrapper">
-                                                    <table class="slds-table slds-table_cell-buffer slds-table_bordered slds-table_col-bordered slds-table_striped">
-                                                        <thead>
-                                                            <tr class="slds-line-height_reset">
-                                                                <th scope="col"><div class="slds-truncate" title="Relationship Name">Relationship</div></th>
-                                                                <th scope="col"><div class="slds-truncate" title="Child SObject">Child Object</div></th>
-                                                                <th scope="col"><div class="slds-truncate" title="Field">Field</div></th>
-                                                            </tr>
-                                                        </thead>
-                                                        <tbody>
-                                                            <template for:each={filteredChildren} for:item="child">
-                                                                <tr key={child.key}>
-                                                                    <td>
-                                                                        <div class="slds-grid slds-grid_vertical-align-center row-api-name">
-                                                                            <span class="slds-truncate" title={child.relationshipName}>{child.relationshipName}</span>
-                                                                            <lightning-button-icon
-                                                                                icon-name="utility:copy"
-                                                                                variant="bare"
-                                                                                size="small"
-                                                                                class="copy-btn"
-                                                                                alternative-text="Copy relationship name"
-                                                                                title="Copy relationship name"
-                                                                                data-value={child.relationshipName}
-                                                                                onclick={handleCopyValue}></lightning-button-icon>
-                                                                        </div>
-                                                                    </td>
-                                                                    <td>
-                                                                        <button
-                                                                            type="button"
-                                                                            class="slds-button slds-button_reset related-object-btn"
-                                                                            data-name={child.childSObject}
-                                                                            onclick={handleOpenRelatedSObject}
-                                                                            title={child.childSObject}>
-                                                                            {child.childSObject}
-                                                                        </button>
-                                                                    </td>
-                                                                    <td class="slds-truncate" title={child.field}>{child.field}</td>
-                                                                </tr>
-                                                            </template>
-                                                        </tbody>
-                                                    </table>
-                                                </div>
-                                            </template>
-                                        </lightning-tab>
-                                    </lightning-tabset>
-                                </div>
-                            </template>
-                        </section>
-
-                        <!-- Fields -->
-                        <section class={fieldsSectionClass}>
-                            <h3 class="slds-section__title">
-                                <button
-                                    class="slds-button slds-section__title-action"
-                                    data-section="fields"
-                                    onclick={handleToggleSection}
-                                    aria-expanded={isFieldsOpen}>
-                                    <lightning-icon
-                                        icon-name={fieldsChevronIcon}
-                                        size="xx-small"
-                                        class="slds-m-right_x-small"></lightning-icon>
-                                    <span class="slds-truncate" title="Fields">Fields</span>
-                                    <span class="slds-badge slds-m-left_x-small">
-                                        {fieldsCount}
-                                    </span>
-                                </button>
-                            </h3>
-                            <template lwc:if={isFieldsOpen}>
-                                <div
-                                    class="slds-section__content slds-p-horizontal_small slds-p-bottom_small">
-                                    <div class="slds-m-bottom_x-small">
-                                        <lightning-input
-                                            type="search"
-                                            label=""
-                                            placeholder="Search fields..."
-                                            variant="label-hidden"
-                                            value={fieldSearch}
-                                            onchange={handleFieldSearch}></lightning-input>
-                                    </div>
-                                    <template lwc:if={hasNoFields}>
-                                        <div class="slds-text-color_weak slds-m-top_small">
-                                            No fields found.
-                                        </div>
-                                    </template>
-                                    <template lwc:else>
-                                        <div class="data-table-wrapper">
-                                            <table class="slds-table slds-table_cell-buffer slds-table_bordered slds-table_col-bordered slds-table_striped">
-                                                <thead>
-                                                    <tr class="slds-line-height_reset">
-                                                        <th scope="col" class="col-type"><div class="slds-truncate" title="Type">Type</div></th>
-                                                        <th scope="col"><div class="slds-truncate" title="Label">Label</div></th>
-                                                        <th scope="col"><div class="slds-truncate" title="API Name">API Name</div></th>
-                                                        <th scope="col" class="col-flag"><div class="slds-truncate" title="Required">Req.</div></th>
-                                                        <th scope="col" class="col-extras"><div class="slds-truncate" title="Extra">Extra</div></th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    <template for:each={filteredFieldsWithMeta} for:item="field">
-                                                        <tr key={field.name} class={field._rowClass}>
-                                                            <td class="col-type">
-                                                                <div class="type-cell" title={field._type}>
-                                                                    <slds-lucide-icon
-                                                                        name={field._iconName}
-                                                                        size="13"
-                                                                        stroke-width="1.75"
-                                                                        class="type-icon"></slds-lucide-icon>
-                                                                    <span class="field-type-tag">{field._type}</span>
-                                                                </div>
-                                                            </td>
-                                                            <td class="slds-truncate" title={field.label}>{field.label}</td>
-                                                            <td>
-                                                                <div class="slds-grid slds-grid_vertical-align-center row-api-name">
-                                                                    <span class="slds-truncate" title={field.name}>{field.name}</span>
-                                                                    <lightning-button-icon
-                                                                        icon-name="utility:copy"
-                                                                        variant="bare"
-                                                                        size="small"
-                                                                        class="copy-btn"
-                                                                        alternative-text="Copy API name"
-                                                                        title="Copy API name"
-                                                                        data-value={field.name}
-                                                                        onclick={handleCopyValue}></lightning-button-icon>
-                                                                </div>
-                                                            </td>
-                                                            <td class="col-flag slds-text-align_center">
-                                                                <template lwc:if={field._isRequired}>
-                                                                    <lightning-icon
-                                                                        icon-name="utility:check"
-                                                                        size="xx-small"
-                                                                        class="req-check-icon"
-                                                                        title="Required"></lightning-icon>
-                                                                </template>
-                                                            </td>
-                                                            <td class="col-extras slds-text-align_center">
-                                                                <template lwc:if={field._hasExtra}>
-                                                                    <button
-                                                                        type="button"
-                                                                        class={field._expandBtnClass}
-                                                                        data-key={field.name}
-                                                                        onclick={handleToggleFieldExpand}
-                                                                        title="Show field details">
-                                                                        <lightning-icon
-                                                                            icon-name="utility:info"
-                                                                            size="x-small"></lightning-icon>
-                                                                    </button>
-                                                                </template>
-                                                            </td>
-                                                        </tr>
-                                                    </template>
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                        <!-- Field detail panel, shown when a row is expanded -->
-                                        <template lwc:if={expandedField}>
-                                            <div class="field-detail-panel">
-                                                <div class="field-detail-panel__header">
-                                                                    <div class="field-detail-panel__title">
-                                                                        <div class="type-cell slds-m-right_x-small" title={expandedField._type}>
-                                                                            <slds-lucide-icon
-                                                                                name={expandedField._iconName}
-                                                                                size="13"
-                                                                                stroke-width="1.75"
-                                                                                class="type-icon"></slds-lucide-icon>
-                                                                            <span class="field-type-tag">{expandedField._type}</span>
-                                                                        </div>
-                                                                        <strong>{expandedField.label}</strong>
-                                                                        <span class="slds-text-color_weak slds-m-left_x-small">— {expandedField.name}</span>
-                                                                    </div>
-                                                    <button
-                                                        type="button"
-                                                        class="slds-button slds-button_icon slds-button_icon-bare"
-                                                        onclick={handleCloseFieldDetail}
-                                                        title="Close">
-                                                        <lightning-icon icon-name="utility:close" size="x-small"></lightning-icon>
-                                                    </button>
-                                                </div>
-                                                <div class="field-detail-panel__body">
-                                                    <!-- Capabilities -->
-                                                    <div class="field-detail-caps">
-                                                        <template for:each={expandedFieldCapabilities} for:item="cap">
-                                                            <span key={cap.key} class={cap.cls} title={cap.label}>{cap.label}</span>
-                                                        </template>
-                                                    </div>
-                                                    <!-- Help text -->
-                                                    <template lwc:if={expandedFieldHelpText}>
-                                                        <div class="field-detail-row">
-                                                            <span class="field-detail-row__label">Help text</span>
-                                                            <span class="field-detail-row__value">{expandedFieldHelpText}</span>
-                                                        </div>
-                                                    </template>
-                                                    <!-- Formula -->
-                                                    <template lwc:if={expandedField._isFormula}>
-                                                        <div class="field-detail-row">
-                                                            <span class="field-detail-row__label">Formula</span>
-                                                            <code class="field-detail-row__code">{expandedField._formulaPreview}</code>
-                                                        </div>
-                                                    </template>
-                                                    <!-- Picklist values -->
-                                                    <template lwc:if={expandedField._isPicklist}>
-                                                        <div class="field-detail-row">
-                                                            <span class="field-detail-row__label">Values ({expandedField._picklistCount})</span>
-                                                            <span class="field-detail-row__value">{expandedField._picklistValuesPreview}</span>
-                                                        </div>
-                                                    </template>
-                                                </div>
-                                            </div>
-                                        </template>
-                                    </template>
-                                </div>
-                            </template>
-                        </section>
-
-                        <!-- Diagram -->
-                        <section class="slds-section slds-is-open slds-m-top_small">
-                            <h3 class="slds-section__title">
-                                <span
-                                    class="slds-button slds-section__title-action slds-p-left_none">
-                                    <span class="slds-truncate" title="Diagram">Diagram</span>
+                    <!-- Available APIs -->
+                    <section class={availableApisSectionClass}>
+                        <h3 class="slds-section__title">
+                            <button
+                                class="slds-button slds-section__title-action"
+                                data-section="availableApis"
+                                onclick={handleToggleSection}
+                                aria-expanded={isAvailableApisOpen}>
+                                <lightning-icon
+                                    icon-name={availableApisChevronIcon}
+                                    size="xx-small"
+                                    class="slds-m-right_x-small"></lightning-icon>
+                                <span class="slds-truncate" title="Available APIs">
+                                    Available APIs
                                 </span>
-                            </h3>
+                                <span class="slds-badge slds-m-left_x-small">
+                                    {availableApisCount}
+                                </span>
+                            </button>
+                        </h3>
+                        <template lwc:if={isAvailableApisOpen}>
                             <div
                                 class="slds-section__content slds-p-horizontal_small slds-p-bottom_small">
-                                <div class="slds-grid slds-grid_align-end slds-m-bottom_small">
-                                    <lightning-input
-                                        type="toggle"
-                                        label="Display Diagram"
-                                        name="displayDiagram"
-                                        message-toggle-active=""
-                                        message-toggle-inactive=""
-                                        checked={isDiagramDisplayed}
-                                        onchange={handleDisplayDiagram}></lightning-input>
-                                </div>
-                                <div class="slds-is-relative">
-                                    <div
-                                        class={mermaidClass}
-                                        lwc:ref="mermaid"
-                                        lwc:dom="manual"></div>
+                                <div class="slds-grid slds-wrap">
+                                    <template for:each={availableApis} for:item="apiItem">
+                                        <div
+                                            key={apiItem.key}
+                                            class="slds-col slds-grow_none slds-m-top_x-small slds-m-right_x-small">
+                                            <span class={apiItem.colorClass}>{apiItem.label}</span>
+                                        </div>
+                                    </template>
                                 </div>
                             </div>
-                        </section>
-                    </div>
+                        </template>
+                    </section>
+
+                    <!-- Relationships -->
+                    <section class={relationshipsSectionClass}>
+                        <h3 class="slds-section__title">
+                            <button
+                                class="slds-button slds-section__title-action"
+                                data-section="relationships"
+                                onclick={handleToggleSection}
+                                aria-expanded={isRelationshipsOpen}>
+                                <lightning-icon
+                                    icon-name={relationshipsChevronIcon}
+                                    size="xx-small"
+                                    class="slds-m-right_x-small"></lightning-icon>
+                                <span class="slds-truncate" title="Relationships">
+                                    Relationships
+                                </span>
+                                <span class="slds-badge slds-m-left_x-small">
+                                    {relationshipsCount}
+                                </span>
+                            </button>
+                        </h3>
+                        <template lwc:if={isRelationshipsOpen}>
+                            <div
+                                class="slds-section__content slds-p-horizontal_small slds-p-bottom_small">
+                                <lightning-tabset
+                                    variant="scoped"
+                                    active-tab-value={relationshipTab}>
+                                    <lightning-tab
+                                        label="Lookups"
+                                        value="lookups"
+                                        onactive={handleRelationshipTabActive}>
+                                        <div class="slds-m-bottom_x-small slds-m-top_x-small">
+                                            <lightning-input
+                                                type="search"
+                                                label=""
+                                                placeholder="Search lookups..."
+                                                variant="label-hidden"
+                                                value={relationshipSearch}
+                                                onchange={handleRelationshipSearch}></lightning-input>
+                                        </div>
+                                        <template lwc:if={hasNoLookups}>
+                                            <div class="slds-text-color_weak slds-m-top_small">
+                                                No lookups found.
+                                            </div>
+                                        </template>
+                                        <template lwc:else>
+                                            <div class="data-table-wrapper">
+                                                <table
+                                                    class="slds-table slds-table_cell-buffer slds-table_bordered slds-table_col-bordered slds-table_striped">
+                                                    <thead>
+                                                        <tr class="slds-line-height_reset">
+                                                            <th scope="col">
+                                                                <div
+                                                                    class="slds-truncate"
+                                                                    title="Label">
+                                                                    Label
+                                                                </div>
+                                                            </th>
+                                                            <th scope="col">
+                                                                <div
+                                                                    class="slds-truncate"
+                                                                    title="API Field">
+                                                                    API Field
+                                                                </div>
+                                                            </th>
+                                                            <th scope="col">
+                                                                <div
+                                                                    class="slds-truncate"
+                                                                    title="Relationship Name">
+                                                                    Relationship
+                                                                </div>
+                                                            </th>
+                                                            <th scope="col">
+                                                                <div
+                                                                    class="slds-truncate"
+                                                                    title="Target Object">
+                                                                    Target Object
+                                                                </div>
+                                                            </th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        <template
+                                                            for:each={filteredLookups}
+                                                            for:item="lookup">
+                                                            <tr key={lookup.key}>
+                                                                <td
+                                                                    class="slds-truncate"
+                                                                    title={lookup.label}>
+                                                                    {lookup.label}
+                                                                </td>
+                                                                <td>
+                                                                    <div
+                                                                        class="slds-grid slds-grid_vertical-align-center row-api-name">
+                                                                        <span
+                                                                            class="slds-truncate"
+                                                                            title={lookup.fieldName}>
+                                                                            {lookup.fieldName}
+                                                                        </span>
+                                                                        <lightning-button-icon
+                                                                            icon-name="utility:copy"
+                                                                            variant="bare"
+                                                                            size="small"
+                                                                            class="copy-btn"
+                                                                            alternative-text="Copy field name"
+                                                                            title="Copy field name"
+                                                                            data-value={lookup.fieldName}
+                                                                            onclick={handleCopyValue}></lightning-button-icon>
+                                                                    </div>
+                                                                </td>
+                                                                <td
+                                                                    class="slds-truncate"
+                                                                    title={lookup.relationshipName}>
+                                                                    {lookup.relationshipName}
+                                                                </td>
+                                                                <td>
+                                                                    <button
+                                                                        type="button"
+                                                                        class="slds-button slds-button_reset related-object-btn"
+                                                                        data-name={lookup.target}
+                                                                        onclick={handleOpenRelatedSObject}
+                                                                        title={lookup.target}>
+                                                                        {lookup.target}
+                                                                    </button>
+                                                                </td>
+                                                            </tr>
+                                                        </template>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </template>
+                                    </lightning-tab>
+                                    <lightning-tab
+                                        label="Children"
+                                        value="children"
+                                        onactive={handleRelationshipTabActive}>
+                                        <div class="slds-m-bottom_x-small slds-m-top_x-small">
+                                            <lightning-input
+                                                type="search"
+                                                label=""
+                                                placeholder="Search children..."
+                                                variant="label-hidden"
+                                                value={relationshipSearch}
+                                                onchange={handleRelationshipSearch}></lightning-input>
+                                        </div>
+                                        <template lwc:if={hasNoChildren}>
+                                            <div class="slds-text-color_weak slds-m-top_small">
+                                                No child relationships found.
+                                            </div>
+                                        </template>
+                                        <template lwc:else>
+                                            <div class="data-table-wrapper">
+                                                <table
+                                                    class="slds-table slds-table_cell-buffer slds-table_bordered slds-table_col-bordered slds-table_striped">
+                                                    <thead>
+                                                        <tr class="slds-line-height_reset">
+                                                            <th scope="col">
+                                                                <div
+                                                                    class="slds-truncate"
+                                                                    title="Relationship Name">
+                                                                    Relationship
+                                                                </div>
+                                                            </th>
+                                                            <th scope="col">
+                                                                <div
+                                                                    class="slds-truncate"
+                                                                    title="Child SObject">
+                                                                    Child Object
+                                                                </div>
+                                                            </th>
+                                                            <th scope="col">
+                                                                <div
+                                                                    class="slds-truncate"
+                                                                    title="Field">
+                                                                    Field
+                                                                </div>
+                                                            </th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        <template
+                                                            for:each={filteredChildren}
+                                                            for:item="child">
+                                                            <tr key={child.key}>
+                                                                <td>
+                                                                    <div
+                                                                        class="slds-grid slds-grid_vertical-align-center row-api-name">
+                                                                        <span
+                                                                            class="slds-truncate"
+                                                                            title={child.relationshipName}>
+                                                                            {child.relationshipName}
+                                                                        </span>
+                                                                        <lightning-button-icon
+                                                                            icon-name="utility:copy"
+                                                                            variant="bare"
+                                                                            size="small"
+                                                                            class="copy-btn"
+                                                                            alternative-text="Copy relationship name"
+                                                                            title="Copy relationship name"
+                                                                            data-value={child.relationshipName}
+                                                                            onclick={handleCopyValue}></lightning-button-icon>
+                                                                    </div>
+                                                                </td>
+                                                                <td>
+                                                                    <button
+                                                                        type="button"
+                                                                        class="slds-button slds-button_reset related-object-btn"
+                                                                        data-name={child.childSObject}
+                                                                        onclick={handleOpenRelatedSObject}
+                                                                        title={child.childSObject}>
+                                                                        {child.childSObject}
+                                                                    </button>
+                                                                </td>
+                                                                <td
+                                                                    class="slds-truncate"
+                                                                    title={child.field}>
+                                                                    {child.field}
+                                                                </td>
+                                                            </tr>
+                                                        </template>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </template>
+                                    </lightning-tab>
+                                </lightning-tabset>
+                            </div>
+                        </template>
+                    </section>
+
+                    <!-- Fields -->
+                    <section class={fieldsSectionClass}>
+                        <h3 class="slds-section__title">
+                            <button
+                                class="slds-button slds-section__title-action"
+                                data-section="fields"
+                                onclick={handleToggleSection}
+                                aria-expanded={isFieldsOpen}>
+                                <lightning-icon
+                                    icon-name={fieldsChevronIcon}
+                                    size="xx-small"
+                                    class="slds-m-right_x-small"></lightning-icon>
+                                <span class="slds-truncate" title="Fields">Fields</span>
+                                <span class="slds-badge slds-m-left_x-small">{fieldsCount}</span>
+                            </button>
+                        </h3>
+                        <template lwc:if={isFieldsOpen}>
+                            <div
+                                class="slds-section__content slds-p-horizontal_small slds-p-bottom_small">
+                                <div class="slds-m-bottom_x-small">
+                                    <lightning-input
+                                        type="search"
+                                        label=""
+                                        placeholder="Search fields..."
+                                        variant="label-hidden"
+                                        value={fieldSearch}
+                                        onchange={handleFieldSearch}></lightning-input>
+                                </div>
+                                <template lwc:if={hasNoFields}>
+                                    <div class="slds-text-color_weak slds-m-top_small">
+                                        No fields found.
+                                    </div>
+                                </template>
+                                <template lwc:else>
+                                    <div class="data-table-wrapper">
+                                        <table
+                                            class="slds-table slds-table_cell-buffer slds-table_bordered slds-table_col-bordered slds-table_striped">
+                                            <thead>
+                                                <tr class="slds-line-height_reset">
+                                                    <th scope="col" class="col-type">
+                                                        <div class="slds-truncate" title="Type">
+                                                            Type
+                                                        </div>
+                                                    </th>
+                                                    <th scope="col">
+                                                        <div class="slds-truncate" title="Label">
+                                                            Label
+                                                        </div>
+                                                    </th>
+                                                    <th scope="col">
+                                                        <div class="slds-truncate" title="API Name">
+                                                            API Name
+                                                        </div>
+                                                    </th>
+                                                    <th scope="col" class="col-flag">
+                                                        <div class="slds-truncate" title="Required">
+                                                            Req.
+                                                        </div>
+                                                    </th>
+                                                    <th scope="col" class="col-extras">
+                                                        <div class="slds-truncate" title="Extra">
+                                                            Extra
+                                                        </div>
+                                                    </th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <template
+                                                    for:each={filteredFieldsWithMeta}
+                                                    for:item="field">
+                                                    <tr key={field.name} class={field._rowClass}>
+                                                        <td class="col-type">
+                                                            <div
+                                                                class="type-cell"
+                                                                title={field._type}>
+                                                                <slds-lucide-icon
+                                                                    name={field._iconName}
+                                                                    size="13"
+                                                                    stroke-width="1.75"
+                                                                    class="type-icon"></slds-lucide-icon>
+                                                                <span class="field-type-tag">
+                                                                    {field._type}
+                                                                </span>
+                                                            </div>
+                                                        </td>
+                                                        <td
+                                                            class="slds-truncate"
+                                                            title={field.label}>
+                                                            {field.label}
+                                                        </td>
+                                                        <td>
+                                                            <div
+                                                                class="slds-grid slds-grid_vertical-align-center row-api-name">
+                                                                <span
+                                                                    class="slds-truncate"
+                                                                    title={field.name}>
+                                                                    {field.name}
+                                                                </span>
+                                                                <lightning-button-icon
+                                                                    icon-name="utility:copy"
+                                                                    variant="bare"
+                                                                    size="small"
+                                                                    class="copy-btn"
+                                                                    alternative-text="Copy API name"
+                                                                    title="Copy API name"
+                                                                    data-value={field.name}
+                                                                    onclick={handleCopyValue}></lightning-button-icon>
+                                                            </div>
+                                                        </td>
+                                                        <td class="col-flag slds-text-align_center">
+                                                            <template lwc:if={field._isRequired}>
+                                                                <lightning-icon
+                                                                    icon-name="utility:check"
+                                                                    size="xx-small"
+                                                                    class="req-check-icon"
+                                                                    title="Required"></lightning-icon>
+                                                            </template>
+                                                        </td>
+                                                        <td
+                                                            class="col-extras slds-text-align_center">
+                                                            <template lwc:if={field._hasExtra}>
+                                                                <button
+                                                                    type="button"
+                                                                    class={field._expandBtnClass}
+                                                                    data-key={field.name}
+                                                                    onclick={handleToggleFieldExpand}
+                                                                    title="Show field details">
+                                                                    <lightning-icon
+                                                                        icon-name="utility:info"
+                                                                        size="x-small"></lightning-icon>
+                                                                </button>
+                                                            </template>
+                                                        </td>
+                                                    </tr>
+                                                </template>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <!-- Field detail panel, shown when a row is expanded -->
+                                    <template lwc:if={expandedField}>
+                                        <div class="field-detail-panel">
+                                            <div class="field-detail-panel__header">
+                                                <div class="field-detail-panel__title">
+                                                    <div
+                                                        class="type-cell slds-m-right_x-small"
+                                                        title={expandedField._type}>
+                                                        <slds-lucide-icon
+                                                            name={expandedField._iconName}
+                                                            size="13"
+                                                            stroke-width="1.75"
+                                                            class="type-icon"></slds-lucide-icon>
+                                                        <span class="field-type-tag">
+                                                            {expandedField._type}
+                                                        </span>
+                                                    </div>
+                                                    <strong>{expandedField.label}</strong>
+                                                    <span
+                                                        class="slds-text-color_weak slds-m-left_x-small">
+                                                        — {expandedField.name}
+                                                    </span>
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    class="slds-button slds-button_icon slds-button_icon-bare"
+                                                    onclick={handleCloseFieldDetail}
+                                                    title="Close">
+                                                    <lightning-icon
+                                                        icon-name="utility:close"
+                                                        size="x-small"></lightning-icon>
+                                                </button>
+                                            </div>
+                                            <div class="field-detail-panel__body">
+                                                <!-- Capabilities -->
+                                                <div class="field-detail-caps">
+                                                    <template
+                                                        for:each={expandedFieldCapabilities}
+                                                        for:item="cap">
+                                                        <span
+                                                            key={cap.key}
+                                                            class={cap.cls}
+                                                            title={cap.label}>
+                                                            {cap.label}
+                                                        </span>
+                                                    </template>
+                                                </div>
+                                                <!-- Help text -->
+                                                <template lwc:if={expandedFieldHelpText}>
+                                                    <div class="field-detail-row">
+                                                        <span class="field-detail-row__label">
+                                                            Help text
+                                                        </span>
+                                                        <span class="field-detail-row__value">
+                                                            {expandedFieldHelpText}
+                                                        </span>
+                                                    </div>
+                                                </template>
+                                                <!-- Formula -->
+                                                <template lwc:if={expandedField._isFormula}>
+                                                    <div class="field-detail-row">
+                                                        <span class="field-detail-row__label">
+                                                            Formula
+                                                        </span>
+                                                        <code class="field-detail-row__code">
+                                                            {expandedField._formulaPreview}
+                                                        </code>
+                                                    </div>
+                                                </template>
+                                                <!-- Picklist values -->
+                                                <template lwc:if={expandedField._isPicklist}>
+                                                    <div class="field-detail-row">
+                                                        <span class="field-detail-row__label">
+                                                            Values ({expandedField._picklistCount})
+                                                        </span>
+                                                        <span class="field-detail-row__value">
+                                                            {expandedField._picklistValuesPreview}
+                                                        </span>
+                                                    </div>
+                                                </template>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </template>
+                            </div>
+                        </template>
+                    </section>
+
+                    <!-- Diagram -->
+                    <section class="slds-section slds-is-open slds-m-top_small">
+                        <h3 class="slds-section__title">
+                            <span class="slds-button slds-section__title-action slds-p-left_none">
+                                <span class="slds-truncate" title="Diagram">Diagram</span>
+                            </span>
+                        </h3>
+                        <div
+                            class="slds-section__content slds-p-horizontal_small slds-p-bottom_small">
+                            <div class="slds-grid slds-grid_align-end slds-m-bottom_small">
+                                <lightning-input
+                                    type="toggle"
+                                    label="Display Diagram"
+                                    name="displayDiagram"
+                                    message-toggle-active=""
+                                    message-toggle-inactive=""
+                                    checked={isDiagramDisplayed}
+                                    onchange={handleDisplayDiagram}></lightning-input>
+                            </div>
+                            <div class="slds-is-relative">
+                                <div class={mermaidClass} lwc:ref="mermaid" lwc:dom="manual"></div>
+                            </div>
+                        </div>
+                    </section>
+                </div>
             </div>
         </article>
     </template>

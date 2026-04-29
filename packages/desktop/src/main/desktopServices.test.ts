@@ -89,10 +89,13 @@ test('assertCliOrgHasOAuthCredentials throws an actionable login command when cr
 });
 
 test('parseSfdxAuthUrl extracts the refresh token and instance URL', () => {
-    assert.deepEqual(parseSfdxAuthUrl('force://PlatformCLI::refresh-token@example.my.salesforce.com'), {
-        instanceUrl: 'https://example.my.salesforce.com',
-        refreshToken: 'refresh-token',
-    });
+    assert.deepEqual(
+        parseSfdxAuthUrl('force://PlatformCLI::refresh-token@example.my.salesforce.com'),
+        {
+            instanceUrl: 'https://example.my.salesforce.com',
+            refreshToken: 'refresh-token',
+        }
+    );
 });
 
 test('parseSfdxAuthUrl rejects malformed auth URLs without exposing token material', () => {

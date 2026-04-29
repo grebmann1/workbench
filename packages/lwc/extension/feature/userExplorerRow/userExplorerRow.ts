@@ -1,8 +1,8 @@
-import { api } from 'lwc';
 import ToolkitElement from 'core/toolkitElement';
-import Toast from 'lightning/toast';
-import UserExplorerNetworkModal from 'feature/userExplorerNetworkModal';
 import { chromeOpenInWindow } from 'extension/utils';
+import UserExplorerNetworkModal from 'feature/userExplorerNetworkModal';
+import Toast from 'lightning/toast';
+import { api } from 'lwc';
 import { isEmpty, isNotUndefinedOrNull, runSilent } from 'shared/utils';
 
 export default class UserExplorerRow extends ToolkitElement {
@@ -153,7 +153,9 @@ export default class UserExplorerRow extends ToolkitElement {
 
     viewClick = () => {
         //console.log('this.connector.configuration',this.connector.configuration);
-        const targetUrl = encodeURIComponent(`/${this.item.Id}?noredirect=1&isUserEntityOverride=1`);
+        const targetUrl = encodeURIComponent(
+            `/${this.item.Id}?noredirect=1&isUserEntityOverride=1`
+        );
         chromeOpenInWindow(
             `${this.currentOrigin}/lightning/setup/ManageUsers/page?address=${targetUrl}`,
             this.username,

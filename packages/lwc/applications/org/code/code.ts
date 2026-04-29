@@ -1,6 +1,5 @@
-import { api, track } from 'lwc';
 import ToolkitElement from 'host-api/element';
-
+import { api, track } from 'lwc';
 import { isEmpty, formatBytes, isUndefinedOrNull, isNotUndefinedOrNull } from 'shared/utils';
 
 const DEFAULT_NAMESPACE = 'Default';
@@ -121,7 +120,7 @@ export default class Code extends ToolkitElement {
         ]);
 
         // Clone data object to force refresh;
-        let temp = this.data;
+        const temp = this.data;
         this.data = null;
         this.data = temp;
     };

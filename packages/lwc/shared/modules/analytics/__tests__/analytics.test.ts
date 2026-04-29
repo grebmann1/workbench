@@ -1,5 +1,5 @@
-import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { test } from 'node:test';
 
 // Stub `window.localStorage` so basicStore (used in Node, no chrome) works.
 class MemoryStorage {
@@ -31,10 +31,7 @@ const memStore = new MemoryStorage();
 type CapturedRequest = { url: string; init: RequestInit | undefined };
 const captured: CapturedRequest[] = [];
 
-(globalThis as unknown as { fetch: unknown }).fetch = async (
-    url: string,
-    init?: RequestInit
-) => {
+(globalThis as unknown as { fetch: unknown }).fetch = async (url: string, init?: RequestInit) => {
     captured.push({ url, init });
     return new Response(null, { status: 200 });
 };

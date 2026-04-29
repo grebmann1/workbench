@@ -1,4 +1,5 @@
 import { LightningElement, api, track } from 'lwc';
+
 import * as depUtils from './dependencyUtils';
 import {
     isCompoundField,
@@ -502,7 +503,6 @@ export default class InputField extends LightningElement {
     renderedCallback() {
         if (!this.ready) {
             this.dispatchEvent(
-                // eslint-disable-next-line lightning-global/no-custom-event-bubbling
                 new CustomEvent('registerinputfield', {
                     bubbles: true,
                     composed: true,
@@ -659,7 +659,7 @@ export default class InputField extends LightningElement {
         }*/
 
         // state and country picklists are in a dependency chain, no need to check.
-        let isInDependencyChain = false;
+        const isInDependencyChain = false;
         /* [Picklist Dependency] disabled for now until we enabled the dependency support
         if (this.isTypeAddress) {
             isInDependencyChain = true;
@@ -702,7 +702,6 @@ export default class InputField extends LightningElement {
 
     dispatchRegisterDependencyEvent(fieldName) {
         this.dispatchEvent(
-            // eslint-disable-next-line lightning-global/no-custom-event-bubbling
             new CustomEvent('registerfielddependency', {
                 bubbles: true,
                 composed: true,
@@ -723,7 +722,6 @@ export default class InputField extends LightningElement {
 
     dispatchControllerFieldChangeEvent(fieldName, value) {
         this.dispatchEvent(
-            // eslint-disable-next-line lightning-global/no-custom-event-bubbling
             new CustomEvent('updatedependentfields', {
                 bubbles: true,
                 composed: true,
@@ -735,7 +733,6 @@ export default class InputField extends LightningElement {
 
     dispatchFieldValueChangeEvent(fieldName, value) {
         this.dispatchEvent(
-            // eslint-disable-next-line lightning-global/no-custom-event-bubbling
             new CustomEvent('fieldchange', {
                 bubbles: true,
                 composed: true,

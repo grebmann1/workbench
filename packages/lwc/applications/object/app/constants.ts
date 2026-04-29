@@ -11,6 +11,7 @@ const DEFAULT_STANDARD_ICON = 'database';
 const DEFAULT_CUSTOM_ICON = 'database';
 
 export function getCategoryIcon(category: string, isCustom: boolean): string {
-    const iconName = CATEGORY_ICONS[category] ?? (isCustom ? DEFAULT_CUSTOM_ICON : DEFAULT_STANDARD_ICON);
+    const iconName =
+        CATEGORY_ICONS[category] ?? (isCustom ? DEFAULT_CUSTOM_ICON : DEFAULT_STANDARD_ICON);
     return `lucide:${iconName}`;
 }

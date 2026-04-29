@@ -1,6 +1,6 @@
-import { api, track } from 'lwc';
-import LightningModal from 'lightning/modal';
 import { shortFormatter } from 'host-api/utils';
+import LightningModal from 'lightning/modal';
+import { api, track } from 'lwc';
 
 export default class PerformanceModal extends LightningModal {
     @api isLoading = false;

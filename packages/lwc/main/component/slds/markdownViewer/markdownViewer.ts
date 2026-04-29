@@ -1,13 +1,8 @@
+import { getIndexedDbFileSystem } from 'core/fs';
 import { api, LightningElement, createElement } from 'lwc';
 import { ensureMermaidLoaded } from 'shared/loader';
 import { marked } from 'shared/markdown';
-import { getIndexedDbFileSystem } from 'core/fs';
-import {
-    guid,
-    isEmpty,
-    normalizeString as normalize,
-    runActionAfterTimeOut,
-} from 'shared/utils';
+import { guid, isEmpty, normalizeString as normalize, runActionAfterTimeOut } from 'shared/utils';
 import sldsCodeBlock from 'slds/codeBlock';
 import MarkdownViewerEditorModal from 'slds/MarkdownViewerEditorModal';
 
@@ -51,7 +46,12 @@ function isImageMimeType(mimeType) {
 }
 
 function getFilename(path) {
-    return String(path || '').split('/').filter(Boolean).pop() || 'file';
+    return (
+        String(path || '')
+            .split('/')
+            .filter(Boolean)
+            .pop() || 'file'
+    );
 }
 
 const FILE_ICON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>`;
@@ -214,9 +214,7 @@ export default class MarkdownViewer extends LightningElement {
     };
 
     enable_sftoolkitLinks = async () => {
-        const anchors = Array.from(
-            this.refs.container.querySelectorAll('a[href^="sftoolkit:"]')
-        );
+        const anchors = Array.from(this.refs.container.querySelectorAll('a[href^="sftoolkit:"]'));
         for (const anchor of anchors) {
             const href = anchor.getAttribute('href') || '';
             const path = extractSftoolkitPath(href);
@@ -315,7 +313,7 @@ export default class MarkdownViewer extends LightningElement {
 
         // Split the input into lines for easier manipulation.
         const lines = input.split('\n');
-        let fixedDiagram = [];
+        const fixedDiagram = [];
 
         lines.forEach(line => {
             //line = line.trim();

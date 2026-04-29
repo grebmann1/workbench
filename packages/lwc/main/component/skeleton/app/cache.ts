@@ -8,14 +8,14 @@ import {
     getLlmProviderConfigCacheKeys,
     resolveLlmProviderConfigMap,
 } from 'shared/cacheManager';
-import LOGGER from 'shared/logger';
-import { isChromeExtension } from 'shared/utils';
 import {
     buildAvailableAgentModelOptions,
     fetchLlmModelsEndpoint,
     getProviderForModel,
     normalizeModelSelection,
 } from 'shared/llm';
+import LOGGER from 'shared/logger';
+import { isChromeExtension } from 'shared/utils';
 
 /**
  * Cache initialization and loading helpers

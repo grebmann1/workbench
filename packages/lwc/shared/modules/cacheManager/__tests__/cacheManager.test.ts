@@ -1,5 +1,8 @@
-import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { test } from 'node:test';
+
+import { DEFAULT_PROVIDER_BASE_URLS, LLM_PROVIDERS, DEFAULT_LLM_PROVIDER } from 'shared/llm';
+
 import {
     CONFIG_OBJECT,
     CACHE_CONFIG,
@@ -14,7 +17,6 @@ import {
     buildProviderConfigCacheRecord,
     getAiProviderFromConfig,
 } from '../cacheManager.ts';
-import { DEFAULT_PROVIDER_BASE_URLS, LLM_PROVIDERS, DEFAULT_LLM_PROVIDER } from 'shared/llm';
 
 test('CONFIG_OBJECT: defaults to defaultValue until value is set', () => {
     const obj = new CONFIG_OBJECT<number>('some_key', 42);

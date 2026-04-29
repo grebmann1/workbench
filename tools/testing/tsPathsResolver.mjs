@@ -33,7 +33,10 @@ function loadAliasTable() {
             for (const [key, targets] of Object.entries(paths)) {
                 if (!Array.isArray(targets) || targets.length === 0) continue;
                 const target = targets[0];
-                const targetAbs = resolvePath(baseUrl, target.replace(/\*$/, '').replace(/\/$/, ''));
+                const targetAbs = resolvePath(
+                    baseUrl,
+                    target.replace(/\*$/, '').replace(/\/$/, '')
+                );
                 const isWildcard = key.endsWith('/*');
                 const prefix = isWildcard ? key.slice(0, -2) : key;
                 entries.push({ key, prefix, isWildcard, target: targetAbs });
@@ -63,11 +66,7 @@ function isFile(path) {
 function probeOnDisk(candidate) {
     const name = basename(candidate);
     // LWR convention: `agent/utils` -> `agent/utils/utils.ts` (folder + same-named file).
-    const probes = [
-        ...PROBE_EXTS,
-        `/${name}.ts`,
-        `/${name}.js`,
-    ];
+    const probes = [...PROBE_EXTS, `/${name}.ts`, `/${name}.js`];
     for (const ext of probes) {
         const probe = candidate + ext;
         if (isFile(probe)) {

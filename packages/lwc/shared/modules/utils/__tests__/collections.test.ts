@@ -1,5 +1,6 @@
-import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { test } from 'node:test';
+
 import { groupBy, chunkArray, removeDuplicates, arrayToMap } from '../collections.ts';
 
 test('groupBy: groups records by string key value', () => {
@@ -10,7 +11,10 @@ test('groupBy: groups records by string key value', () => {
     ];
     const result = groupBy(input, 'kind');
     assert.deepEqual(result, {
-        a: [{ id: 1, kind: 'a' }, { id: 3, kind: 'a' }],
+        a: [
+            { id: 1, kind: 'a' },
+            { id: 3, kind: 'a' },
+        ],
         b: [{ id: 2, kind: 'b' }],
     });
 });
@@ -31,7 +35,10 @@ test('chunkArray: splits into chunks of specified size', () => {
 });
 
 test('chunkArray: default chunk size is 5', () => {
-    assert.deepEqual(chunkArray([1, 2, 3, 4, 5, 6, 7]), [[1, 2, 3, 4, 5], [6, 7]]);
+    assert.deepEqual(chunkArray([1, 2, 3, 4, 5, 6, 7]), [
+        [1, 2, 3, 4, 5],
+        [6, 7],
+    ]);
 });
 
 test('chunkArray: empty input yields empty output', () => {
@@ -61,7 +68,10 @@ test('removeDuplicates: empty input yields empty output', () => {
 });
 
 test('arrayToMap: keys by id field using String()', () => {
-    const input = [{ id: 1, v: 'a' }, { id: 2, v: 'b' }];
+    const input = [
+        { id: 1, v: 'a' },
+        { id: 2, v: 'b' },
+    ];
     assert.deepEqual(arrayToMap(input, 'id'), { '1': { id: 1, v: 'a' }, '2': { id: 2, v: 'b' } });
 });
 
@@ -76,6 +86,6 @@ test('arrayToMap: uses custom formatter when provided', () => {
     const input = [{ id: 'foo', v: 1 }];
     assert.deepEqual(
         arrayToMap(input, 'id', undefined, v => v.toUpperCase()),
-        { FOO: { id: 'foo', v: 1 } },
+        { FOO: { id: 'foo', v: 1 } }
     );
 });

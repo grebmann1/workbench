@@ -1,9 +1,9 @@
-import { api, wire, track } from 'lwc';
+import Analytics from 'host-api/analytics';
+import { SaveModal, CATEGORY_STORAGE } from 'host-api/builder';
+import { registerCommand } from 'host-api/commands';
+import type { ConnectionLike } from 'host-api/connector';
 import ToolkitElement from 'host-api/element';
-import { CurrentPageReference, NavigationContext, generateUrl, navigate } from 'lwr/navigation';
-import LightningConfirm from 'lightning/confirm';
-import Toast from 'lightning/toast';
-import PerformanceModal from 'soql/performanceModal';
+import LOGGER from 'host-api/logger';
 import {
     store,
     injectReducer,
@@ -13,9 +13,6 @@ import {
     DOCUMENT,
     APPLICATION,
 } from 'host-api/store';
-import { UI, QUERY } from 'soql/slices';
-import { querySelectors } from 'soql/slices/query';
-import { registerCommand } from 'host-api/commands';
 import {
     guid,
     guidFromHash,
@@ -31,12 +28,16 @@ import {
     shortFormatter,
     isEmpty,
 } from 'host-api/utils';
-import { SaveModal, CATEGORY_STORAGE } from 'host-api/builder';
+import LightningConfirm from 'lightning/confirm';
+import Toast from 'lightning/toast';
+import { api, wire, track } from 'lwc';
+import { CurrentPageReference, NavigationContext, generateUrl, navigate } from 'lwr/navigation';
 import moment from 'moment';
+import PerformanceModal from 'soql/performanceModal';
+import { UI, QUERY } from 'soql/slices';
+import { querySelectors } from 'soql/slices/query';
+
 import { confirmDiscardPendingEdits, escapeCsvValue, formatQueryWithComment } from './util';
-import LOGGER from 'host-api/logger';
-import Analytics from 'host-api/analytics';
-import type { ConnectionLike } from 'host-api/connector';
 
 // Slice + command wiring for SOQL. Runs once when the SOQL bundle is
 // first imported — subsequent mounts are idempotent (injectReducer replaces,
@@ -70,9 +71,7 @@ function bootstrapSoqlExtension() {
                 );
             }
             store.dispatch(UI.reduxSlice.actions.selectionTab({ id: payload.tabId }));
-            return store.dispatch(
-                UI.reduxSlice.actions.updateSoql({ soql: payload.body })
-            );
+            return store.dispatch(UI.reduxSlice.actions.updateSoql({ soql: payload.body }));
         }
     );
 
@@ -393,7 +392,7 @@ export default class App extends ToolkitElement {
         const isAllRows = false;
         const inputEl = this.refs?.editor?.editor?.currentModel;
         if (!inputEl) return;
-        let query = inputEl.getValue();
+        const query = inputEl.getValue();
         if (!query) return;
 
         const { ui, describe } = store.getState() as any;

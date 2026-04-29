@@ -1,8 +1,8 @@
-import { api, track, wire } from 'lwc';
-import { decodeError, isNotUndefinedOrNull, classSet, PLATFORM_EVENT } from 'shared/utils';
 import ToolkitElement from 'host-api/element';
 import { connectStore, store } from 'host-api/store';
+import { api, track, wire } from 'lwc';
 import { EVENT } from 'platformevent/slices';
+import { decodeError, isNotUndefinedOrNull, classSet, PLATFORM_EVENT } from 'shared/utils';
 
 const CHANNEL_PREFIXES = ['/event/', '/data/'];
 

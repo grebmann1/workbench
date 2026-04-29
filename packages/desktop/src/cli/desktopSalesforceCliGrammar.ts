@@ -52,7 +52,8 @@ export function compileSalesforceCliCommand(
     }
 
     if (group === 'navigate') {
-        const applicationName = readFlag([action, ...rest].filter(Boolean), '--app', '-a') || action;
+        const applicationName =
+            readFlag([action, ...rest].filter(Boolean), '--app', '-a') || action;
         if (!applicationName) {
             throw new Error('Missing app name. Use sf navigate --app <app>.');
         }

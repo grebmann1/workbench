@@ -1,6 +1,3 @@
-import { api, track } from 'lwc';
-import { isEmpty, isChromeExtension, runActionAfterTimeOut } from 'shared/utils';
-import ToolkitElement from 'core/toolkitElement';
 import {
     MODELS,
     INTERNAL_MODELS,
@@ -8,8 +5,11 @@ import {
     DEFAULT_REASONING,
     REASONING_OPTIONS,
 } from 'agent/utils';
+import ToolkitElement from 'core/toolkitElement';
+import { api, track } from 'lwc';
 import { normalizeModelSelection } from 'shared/llm';
 import LOGGER from 'shared/logger';
+import { isEmpty, isChromeExtension, runActionAfterTimeOut } from 'shared/utils';
 
 export default class App extends ToolkitElement {
     @track _queuedMessages: Array<{ id: string; prompt: string; isPush?: boolean }> = [];
@@ -425,8 +425,7 @@ export default class App extends ToolkitElement {
         const selectedModel = this.normalizeModelValue(this.selectedModel);
         return this.resolvedAvailableModels.map(model => {
             const colonIdx = model.label.indexOf(': ');
-            const displayLabel =
-                colonIdx !== -1 ? model.label.slice(colonIdx + 2) : model.label;
+            const displayLabel = colonIdx !== -1 ? model.label.slice(colonIdx + 2) : model.label;
             const provider =
                 (model as { provider?: string }).provider ||
                 (colonIdx !== -1 ? model.label.slice(0, colonIdx).toLowerCase() : null);

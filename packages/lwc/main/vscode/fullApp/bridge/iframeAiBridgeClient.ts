@@ -101,7 +101,11 @@ export class IframeAiBridgeClient {
                         return null;
                     }
                     if (item.type === 'ai_config') {
-                        return { provider: item.provider, models: item.models, isConfigured: item.isConfigured };
+                        return {
+                            provider: item.provider,
+                            models: item.models,
+                            isConfigured: item.isConfigured,
+                        };
                     }
                 }
                 await new Promise<void>(resolve => {
@@ -220,9 +224,7 @@ export class IframeAiBridgeClient {
     }
 }
 
-export async function connectIframeAiBridgeClient(
-    options: { handshakeTimeoutMs?: number } = {}
-) {
+export async function connectIframeAiBridgeClient(options: { handshakeTimeoutMs?: number } = {}) {
     const port = await bootstrapIframeAiBridge({ timeoutMs: options.handshakeTimeoutMs });
     return new IframeAiBridgeClient(port);
 }

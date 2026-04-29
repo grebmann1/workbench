@@ -1,8 +1,8 @@
 import { createSlice, createAsyncThunk, createEntityAdapter } from '@reduxjs/toolkit';
-import { lowerCaseKey } from 'host-api/utils';
 import { getStore } from 'core/store/storeRef';
-import { ERROR, DOCUMENT } from 'host-api/store';
 import type { ConnectorLike } from 'host-api/connector';
+import { ERROR, DOCUMENT } from 'host-api/store';
+import { lowerCaseKey } from 'host-api/utils';
 
 export const queryAdapter = createEntityAdapter<any>();
 

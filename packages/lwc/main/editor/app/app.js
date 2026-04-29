@@ -1,7 +1,10 @@
-import { api } from 'lwc';
 import ToolkitElement from 'core/toolkitElement';
+import { MonacoLwcWidget } from 'editor/editorCompleteWidget';
+import { SOQL, APEX, VF } from 'editor/languages';
+import { registerAIWidgets, setupMonaco } from 'editor/utils';
 import LightningAlert from 'lightning/alert';
 import Toast from 'lightning/toast';
+import { api } from 'lwc';
 import {
     classSet,
     isNotUndefinedOrNull,
@@ -10,9 +13,6 @@ import {
     normalizeString as normalize,
     autoDetectAndFormat,
 } from 'shared/utils';
-import { SOQL, APEX, VF } from 'editor/languages';
-import { registerAIWidgets, setupMonaco } from 'editor/utils';
-import { MonacoLwcWidget } from 'editor/editorCompleteWidget';
 
 /** REQUIRED FIELDS: _source & _bodyField */
 

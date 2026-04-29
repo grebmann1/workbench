@@ -1,7 +1,7 @@
-import { api, track, wire } from 'lwc';
-import { decodeError, isNotUndefinedOrNull, classSet } from 'shared/utils';
 import ToolkitElement from 'host-api/element';
+import { api, track, wire } from 'lwc';
 import moment from 'moment';
+import { decodeError, isNotUndefinedOrNull, classSet } from 'shared/utils';
 
 export default class Message extends ToolkitElement {
     isLoading = false;

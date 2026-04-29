@@ -53,8 +53,9 @@
                         <div class="connection-empty-state">
                             <illustration-empty title="No orgs"></illustration-empty>
                             <p class="connection-empty-state__hint">
-                                Use <strong>Add Org</strong> above to save your first org, or pick
-                                an active session below.
+                                Use
+                                <strong>Add Org</strong>
+                                above to save your first org, or pick an active session below.
                             </p>
                         </div>
                     </template>
@@ -63,7 +64,9 @@
                 <div class="browser-sessions" lwc:if={isBrowserSessionsVisible}>
                     <div class="browser-sessions__header">
                         <h2 class="browser-sessions__title">Active Browser Sessions</h2>
-                        <p class="browser-sessions__desc">Salesforce orgs currently open in your browser</p>
+                        <p class="browser-sessions__desc">
+                            Salesforce orgs currently open in your browser
+                        </p>
                     </div>
                     <template lwc:if={isLoadingSessions}>
                         <div class="sessions-skeleton" aria-hidden="true">
@@ -256,7 +259,8 @@
 
                         <!-- Table Variant -->
                         <template lwc:if={isTableVariant}>
-                            <lightning-datatable class="slds-flex-column"
+                            <lightning-datatable
+                                class="slds-flex-column"
                                 key-field="id"
                                 data={filteredOriginal}
                                 columns={columns}
@@ -300,10 +304,14 @@
                         </template>
 
                         <!-- Active Browser Sessions (full-panel) -->
-                        <div class="browser-sessions browser-sessions--full" lwc:if={isBrowserSessionsVisible}>
+                        <div
+                            class="browser-sessions browser-sessions--full"
+                            lwc:if={isBrowserSessionsVisible}>
                             <div class="browser-sessions__header">
                                 <h2 class="browser-sessions__title">Active Browser Sessions</h2>
-                                <p class="browser-sessions__desc">Salesforce orgs currently open in your browser</p>
+                                <p class="browser-sessions__desc">
+                                    Salesforce orgs currently open in your browser
+                                </p>
                             </div>
                             <template lwc:if={isLoadingSessions}>
                                 <div class="sessions-skeleton" aria-hidden="true">
@@ -329,8 +337,12 @@
                                                     size="small"></lightning-icon>
                                             </span>
                                             <div class="session-item__body">
-                                                <span class="session-item__label">{session.label}</span>
-                                                <span class="session-item__detail">{session.detail}</span>
+                                                <span class="session-item__label">
+                                                    {session.label}
+                                                </span>
+                                                <span class="session-item__detail">
+                                                    {session.detail}
+                                                </span>
                                             </div>
                                             <lightning-icon
                                                 icon-name="utility:chevronright"

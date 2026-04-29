@@ -33,23 +33,17 @@
                         <span class="footer-shortcut-hint" title="Keyboard shortcuts">
                             <template lwc:if={overlayShortcutFormatted}>
                                 <span class="footer-shortcut-label">Overlay:</span>
-                                <span class="footer-shortcut-key">
-                                    {overlayShortcutFormatted}
-                                </span>
+                                <span class="footer-shortcut-key">{overlayShortcutFormatted}</span>
                             </template>
                             <template lwc:if={panelShortcutFormatted}>
-                                <span
-                                    lwc:if={overlayShortcutFormatted}
-                                    class="footer-shortcut-sep">
+                                <span lwc:if={overlayShortcutFormatted} class="footer-shortcut-sep">
                                     ·
                                 </span>
                                 <span class="footer-shortcut-label">Panel:</span>
                                 <span class="footer-shortcut-key">{panelShortcutFormatted}</span>
                             </template>
                         </span>
-                        <span
-                            class="slds-vertical-separator"
-                            lwc:if={hasShortcutAndVersion}></span>
+                        <span class="slds-vertical-separator" lwc:if={hasShortcutAndVersion}></span>
                     </template>
                     <template lwc:if={versionFormatted}>
                         <h2 class="slds-truncate footer-version">{versionFormatted}</h2>

@@ -1,5 +1,5 @@
-import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { test } from 'node:test';
 
 // Stub globals used by env detection (isChromeExtension) and the mcp proxy.
 (globalThis as unknown as { window: Record<string, unknown> }).window = {};
@@ -31,10 +31,7 @@ test('createMcpFetch: falls back to globalThis.fetch outside chrome extension', 
     removeChromeRuntime();
     const calls: Array<[unknown, unknown]> = [];
     const original = globalThis.fetch;
-    (globalThis as unknown as { fetch: unknown }).fetch = async (
-        input: unknown,
-        init: unknown
-    ) => {
+    (globalThis as unknown as { fetch: unknown }).fetch = async (input: unknown, init: unknown) => {
         calls.push([input, init]);
         return new Response('plain fetch', { status: 200 });
     };
@@ -90,10 +87,7 @@ test('createMcpFetch: honours custom timeoutMs', async () => {
 });
 
 test('createMcpFetch: propagates chrome.runtime.lastError as a rejected promise', async () => {
-    installChromeRuntime(
-        (_message, cb) => cb({}),
-        { message: 'runtime explosion' }
-    );
+    installChromeRuntime((_message, cb) => cb({}), { message: 'runtime explosion' });
     try {
         const mcpFetch = createMcpFetch();
         await assert.rejects(() => mcpFetch('https://x'), /runtime explosion/);

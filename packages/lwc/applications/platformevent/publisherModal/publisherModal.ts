@@ -1,6 +1,6 @@
 import LightningModal from 'lightning/modal';
-import { api } from 'lwc';
 import Toast from 'lightning/toast';
+import { api } from 'lwc';
 import { isEmpty } from 'shared/utils';
 
 const DEFAULT_PAYLOAD = '{\n  \n}\n';

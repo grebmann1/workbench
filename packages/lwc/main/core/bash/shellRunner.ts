@@ -23,12 +23,17 @@ export function createShellRunner({
     defaultCwd?: string;
 }) {
     if (!bash || typeof bash.exec !== 'function') {
-        throw new Error('createShellRunner requires a bash instance with an exec(command) function.');
+        throw new Error(
+            'createShellRunner requires a bash instance with an exec(command) function.'
+        );
     }
 
     let currentCwd = String(defaultCwd || '/workspace').trim() || '/workspace';
 
-    async function run(command: string, { cwd }: { cwd?: string } = {}): Promise<ShellRunnerResult> {
+    async function run(
+        command: string,
+        { cwd }: { cwd?: string } = {}
+    ): Promise<ShellRunnerResult> {
         const requestedCwd = String(cwd || '').trim();
         const targetCwd = requestedCwd || currentCwd;
         const actualCwd = typeof bash.getCwd === 'function' ? bash.getCwd() : currentCwd;
@@ -38,7 +43,8 @@ export function createShellRunner({
         }
 
         const result = await bash.exec(String(command || ''));
-        const resolvedCwd = typeof bash.getCwd === 'function' ? bash.getCwd() : targetCwd || defaultCwd;
+        const resolvedCwd =
+            typeof bash.getCwd === 'function' ? bash.getCwd() : targetCwd || defaultCwd;
         currentCwd = resolvedCwd || currentCwd;
 
         return {

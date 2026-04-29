@@ -1058,9 +1058,14 @@ class IframeJsforceBridgeRuntime {
         );
     }
 
-    private async deployApexViaMetadataContainer(
-        item: Record<string, unknown>
-    ): Promise<{ ok: boolean; path: string; sobject: string; id: string; status?: number; error?: string }> {
+    private async deployApexViaMetadataContainer(item: Record<string, unknown>): Promise<{
+        ok: boolean;
+        path: string;
+        sobject: string;
+        id: string;
+        status?: number;
+        error?: string;
+    }> {
         const path = String(item.path || '');
         const sobject = String(item.sobject || '');
         const id = String(item.id || '');
@@ -1070,10 +1075,10 @@ class IframeJsforceBridgeRuntime {
         const rnd = Math.random().toString(16).slice(2, 8);
         const containerName = `sfwb_${ts}_${rnd}`.slice(0, 32);
 
-        const containerRes = (await this.toolingRequestJson(
-            '/tooling/sobjects/MetadataContainer',
-            { method: 'POST', body: { Name: containerName } }
-        )) as Record<string, unknown>;
+        const containerRes = (await this.toolingRequestJson('/tooling/sobjects/MetadataContainer', {
+            method: 'POST',
+            body: { Name: containerName },
+        })) as Record<string, unknown>;
 
         const containerId = String(containerRes?.id || '').trim();
         if (!containerId) {
@@ -1239,8 +1244,7 @@ class IframeJsforceBridgeRuntime {
             await sleep(pollIntervalMs);
             // eslint-disable-next-line no-await-in-loop
             latestStatus = await this.withMetadataApiClientAuthed(
-                async client =>
-                    await client.checkDeployStatus(deployId, { includeDetails: true })
+                async client => await client.checkDeployStatus(deployId, { includeDetails: true })
             );
             const status = isRecord(latestStatus) ? latestStatus : {};
             if (status.done) {
@@ -1269,7 +1273,10 @@ class IframeJsforceBridgeRuntime {
         const files = Array.isArray(args.files) ? args.files : [];
 
         if (!type || !developerName) {
-            throw { code: 'EINVAL', message: 'createBundleViaToolingApi requires type and developerName.' };
+            throw {
+                code: 'EINVAL',
+                message: 'createBundleViaToolingApi requires type and developerName.',
+            };
         }
 
         const isLwc = type === 'LightningComponentBundle';
@@ -1288,10 +1295,14 @@ class IframeJsforceBridgeRuntime {
 
         const bundleId = String(bundleResult?.id || '').trim();
         if (!bundleId) {
-            throw { code: 'EMETADATA', message: `Failed to create ${type} "${developerName}": no ID returned.` };
+            throw {
+                code: 'EMETADATA',
+                message: `Failed to create ${type} "${developerName}": no ID returned.`,
+            };
         }
 
-        const resources: Array<{ id: string; filePath: string; format: string; defType?: string }> = [];
+        const resources: Array<{ id: string; filePath: string; format: string; defType?: string }> =
+            [];
         for (const rawFile of files) {
             const file = isRecord(rawFile) ? rawFile : {};
             const filePath = String(file.filePath || '');
@@ -1313,10 +1324,13 @@ class IframeJsforceBridgeRuntime {
             let resourceId: string;
             try {
                 // eslint-disable-next-line no-await-in-loop
-                const resourceResult = (await this.toolingRequestJson(`/tooling/sobjects/${resourceSObject}`, {
-                    method: 'POST',
-                    body: resourceBody,
-                })) as Record<string, unknown>;
+                const resourceResult = (await this.toolingRequestJson(
+                    `/tooling/sobjects/${resourceSObject}`,
+                    {
+                        method: 'POST',
+                        body: resourceBody,
+                    }
+                )) as Record<string, unknown>;
                 resourceId = String(resourceResult?.id || '').trim();
                 if (!resourceId) {
                     throw new Error(`No ID returned for ${resourceSObject} ${filePath || defType}`);
@@ -1325,7 +1339,9 @@ class IframeJsforceBridgeRuntime {
                 // Roll back: delete the bundle so the org stays clean.
                 try {
                     // eslint-disable-next-line no-await-in-loop
-                    await this.toolingRequestJson(`/tooling/sobjects/${type}/${bundleId}`, { method: 'DELETE' });
+                    await this.toolingRequestJson(`/tooling/sobjects/${type}/${bundleId}`, {
+                        method: 'DELETE',
+                    });
                 } catch {
                     // ignore rollback errors
                 }

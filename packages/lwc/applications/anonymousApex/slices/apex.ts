@@ -1,13 +1,12 @@
 import { createSlice, createAsyncThunk, createEntityAdapter } from '@reduxjs/toolkit';
+import type { ConnectorLike } from 'host-api/connector';
+import { DOCUMENT } from 'host-api/store';
 import {
     cacheManager,
     loadExtensionConfigFromCache,
     saveExtensionConfigToCache,
 } from 'shared/cacheManager';
 import { lowerCaseKey, guid, isNotUndefinedOrNull } from 'shared/utils';
-import type { ConnectorLike } from 'host-api/connector';
-
-import { DOCUMENT } from 'host-api/store';
 
 const apexFilesSelectors = DOCUMENT.apexFileAdapter.getSelectors(s => s.apexFiles);
 

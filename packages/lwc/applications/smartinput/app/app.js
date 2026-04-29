@@ -1,7 +1,7 @@
-import { track, wire, api } from 'lwc';
-import ToolkitElement from 'core/toolkitElement';
-// Persistence is handled in the SMARTINPUT store slice
 import { connectStore, store, SMARTINPUT } from 'core/store';
+import ToolkitElement from 'core/toolkitElement';
+import { track, wire, api } from 'lwc';
+// Persistence is handled in the SMARTINPUT store slice
 import { guid, isNotUndefinedOrNull, isChromeExtension } from 'shared/utils';
 import { CATEGORY_SYSTEM, CATEGORY_CUSTOM } from 'smartinput/utils';
 // AI logic moved to composer

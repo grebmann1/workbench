@@ -1,7 +1,6 @@
+import { APP_LIST } from 'core/applications';
 import { navigate } from 'lwr/navigation';
 import { isNotUndefinedOrNull } from 'shared/utils';
-
-import { APP_LIST } from 'core/applications';
 
 export const handleRedirect = (navContext, redirectUrl) => {
     const paths = APP_LIST.map(x => x.path);

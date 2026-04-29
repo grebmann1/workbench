@@ -1,7 +1,4 @@
-import {
-    createIndexedDbFileSystem,
-    INDEXED_DB_DEFAULT_NAME,
-} from './indexedDbFileSystem';
+import { createIndexedDbFileSystem, INDEXED_DB_DEFAULT_NAME } from './indexedDbFileSystem';
 
 type LazyFileProvider = () => Promise<string>;
 type InitialFileValue =

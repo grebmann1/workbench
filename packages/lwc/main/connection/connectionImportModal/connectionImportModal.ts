@@ -1,8 +1,3 @@
-import Toast from 'lightning/toast';
-import LightningAlert from 'lightning/alert';
-import LightningModal from 'lightning/modal';
-import { api, track } from 'lwc';
-import { isNotUndefinedOrNull } from 'shared/utils';
 import {
     extractConfig as extractSfdxAuthUrlConfig,
     credentialStrategies,
@@ -13,6 +8,11 @@ import {
     platformService,
 } from 'core/connector';
 import type { ConnectorLike } from 'core/connector';
+import LightningAlert from 'lightning/alert';
+import LightningModal from 'lightning/modal';
+import Toast from 'lightning/toast';
+import { api, track } from 'lwc';
+import { isNotUndefinedOrNull } from 'shared/utils';
 const { showToast, handleError } = notificationService;
 
 export default class ConnectionImportModal extends LightningModal {

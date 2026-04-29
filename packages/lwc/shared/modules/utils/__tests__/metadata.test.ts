@@ -1,5 +1,5 @@
-import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { test } from 'node:test';
 
 import { formatName, METADATA_EXCLUDE_LIST, METADATA_EXCEPTION_LIST } from '../modules/metadata.ts';
 

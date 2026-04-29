@@ -2,11 +2,11 @@
 import LOGGER from 'shared/logger';
 import { isEmpty } from 'shared/utils';
 
-import { Connector } from '../connectorClass';
-import { getCurrentPlatform, PLATFORM } from '../platformService';
+import type { ConnectorLike } from '../../connector';
 import { normalizeConnection } from '../base';
 import { getMatchingConfiguration } from '../connectionRegistry';
-import type { ConnectorLike } from '../../connector';
+import { Connector } from '../connectorClass';
+import { getCurrentPlatform, PLATFORM } from '../platformService';
 
 import { OAUTH_TYPES } from './oauthTypes';
 
@@ -56,7 +56,7 @@ export async function connect({
         sessionStorage.setItem('sfSessionId', sessionId);
         sessionStorage.setItem('sfServerUrl', serverUrl);
         const jsforceWindow = window as JsforceWindow;
-        let params = {
+        const params = {
             sessionId,
             serverUrl: formattedServerUrl,
             instanceUrl: formattedServerUrl,

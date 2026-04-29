@@ -1,9 +1,8 @@
-import { api, track } from 'lwc';
-import Toast from 'lightning/toast';
-import ToolkitElement from 'core/toolkitElement';
 import ConnectionNewModal from 'connection/connectionNewModal';
 import { getConfigurations, OAUTH_TYPES } from 'core/connector';
-
+import ToolkitElement from 'core/toolkitElement';
+import Toast from 'lightning/toast';
+import { api, track } from 'lwc';
 import {
     isEmpty,
     isChromeExtension,
@@ -30,7 +29,7 @@ export default class QuickAuthorize extends ToolkitElement {
     addConnection_authorize = async () => {
         const instanceUrl = new URL(this.instanceUrl);
         const newAliasObject = this.generateNewAlias(instanceUrl.hostname);
-        let params = {
+        const params = {
             connections: this.connections,
             alias: newAliasObject.alias,
             selectedDomain: 'custom',
@@ -64,7 +63,7 @@ export default class QuickAuthorize extends ToolkitElement {
                 });
             }
             // Reset Connections
-            let _newConnections = await getConfigurations();
+            const _newConnections = await getConfigurations();
             this.connections = null;
             this.connections = _newConnections;
         });
@@ -80,7 +79,7 @@ export default class QuickAuthorize extends ToolkitElement {
 
     getExclusionList = () => {
         const toExcludeText = localStorage.getItem(`QUICK_AUTHORIZE_EXCLUSION_LIST`);
-        var toExclude = [];
+        let toExclude = [];
         if (toExcludeText && toExcludeText != '') {
             toExclude = JSON.parse(toExcludeText);
         }
@@ -92,7 +91,7 @@ export default class QuickAuthorize extends ToolkitElement {
     };
 
     load_orgInformations = async () => {
-        let response = await this.connector.conn.query(
+        const response = await this.connector.conn.query(
             'SELECT Fields(all) FROM Organization LIMIT 1'
         );
         return response.records[0];
@@ -133,7 +132,7 @@ export default class QuickAuthorize extends ToolkitElement {
         }
 
         // Extract host from instance URL
-        let _url = new URL(this.instanceUrl);
+        const _url = new URL(this.instanceUrl);
         const hostName = _url.hostname;
         const port = _url.port;
 
@@ -161,7 +160,7 @@ export default class QuickAuthorize extends ToolkitElement {
 
     get isCurrentOrgInternalDevOrg() {
         if (isEmpty(this.instanceUrl)) return false;
-        let _url = new URL(this.instanceUrl);
+        const _url = new URL(this.instanceUrl);
         return this.isInternalDevOrg(_url.hostname, _url.port);
     }
 

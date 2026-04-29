@@ -1,4 +1,8 @@
 import {
+    IFRAME_AI_BRIDGE_QUERY_FLAG,
+    IFRAME_AI_BRIDGE_QUERY_VERSION_PARAM,
+} from './bridge/iframeAiBridgeContract';
+import {
     IFRAME_FS_BRIDGE_QUERY_FLAG,
     IFRAME_FS_BRIDGE_QUERY_PARENT_ORIGIN_PARAM,
     IFRAME_FS_BRIDGE_QUERY_VERSION_PARAM,
@@ -8,10 +12,6 @@ import {
     IFRAME_JSFORCE_BRIDGE_QUERY_FLAG,
     IFRAME_JSFORCE_BRIDGE_QUERY_VERSION_PARAM,
 } from './bridge/iframeJsforceBridgeContract';
-import {
-    IFRAME_AI_BRIDGE_QUERY_FLAG,
-    IFRAME_AI_BRIDGE_QUERY_VERSION_PARAM,
-} from './bridge/iframeAiBridgeContract';
 
 export const CHAT_MODEL_STORAGE_PREFIX = 'chat.currentLanguageModel.';
 export const WORKBENCH_CHAT_EXTENSION_ID = 'salesforce.workbench-ai';

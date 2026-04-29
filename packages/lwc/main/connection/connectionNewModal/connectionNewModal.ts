@@ -10,16 +10,10 @@ import {
     setRedirectCredential,
 } from 'core/connector';
 const { showToast, handleError } = notificationService;
-import {
-    isEmpty,
-    isNotUndefinedOrNull,
-    isElectronApp,
-    checkIfPresent,
-} from 'shared/utils';
 import type { ConnectorLike } from 'core/connector';
 import { setDesktopStoredOrg } from 'core/desktopBridge';
-
 import LOGGER from 'shared/logger';
+import { isEmpty, isNotUndefinedOrNull, isElectronApp, checkIfPresent } from 'shared/utils';
 
 const domainOptions = [
     { id: 'prod', label: 'login.salesforce.com', value: 'login.salesforce.com' },
@@ -220,7 +214,7 @@ export default class ConnectionNewModal extends LightningModal {
     validateNewCategory = () => {
         let isValid = true;
         // Default
-        let inputFields = this.template.querySelectorAll('.new-category-to-validate');
+        const inputFields = this.template.querySelectorAll('.new-category-to-validate');
         inputFields.forEach(inputField => {
             inputField.setCustomValidity(''); // reset
             if (!inputField.checkValidity()) {
@@ -518,7 +512,7 @@ export default class ConnectionNewModal extends LightningModal {
     }
 
     get categories() {
-        let _connections = this.connections.map(x => x.company).filter(x => !isEmpty(x));
+        const _connections = this.connections.map(x => x.company).filter(x => !isEmpty(x));
         if (this.selectedCategory.length > 0) {
             _connections.push(this.selectedCategory[0].id);
         }

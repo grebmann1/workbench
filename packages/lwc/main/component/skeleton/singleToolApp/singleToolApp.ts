@@ -1,11 +1,11 @@
+import { APP_LIST } from 'core/applications';
+import { store, APPLICATION } from 'core/store';
 import { api, LightningElement, track, wire } from 'lwc';
 import { NavigationContext, CurrentPageReference } from 'lwr/navigation';
 import LOGGER from 'shared/logger';
 
-import { APP_LIST } from 'core/applications';
-import { store, APPLICATION } from 'core/store';
-
 import { loadFullMode, loadLimitedMode } from '../app/session';
+
 import {
     buildPageRefForPath,
     DEFAULT_TOOL_PATH,

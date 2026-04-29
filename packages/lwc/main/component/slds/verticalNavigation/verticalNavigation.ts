@@ -1,5 +1,5 @@
-import { api, LightningElement } from 'lwc';
 import { classSet } from 'lightning/utils';
+import { api, LightningElement } from 'lwc';
 
 const Event = Object.freeze({
     Select: 'select',

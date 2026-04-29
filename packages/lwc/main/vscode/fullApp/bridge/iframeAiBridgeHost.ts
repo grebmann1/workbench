@@ -252,9 +252,13 @@ class IframeAiBridgeHost {
             this.activeRequests.set(id, abortController);
 
             try {
-                const stream = method === 'ai.getConfig'
-                    ? this.runtime.getConfig?.() ?? (async function* () { yield { type: 'done' as const }; })()
-                    : this.runtime.streamComplete({ messages, modelConfig });
+                const stream =
+                    method === 'ai.getConfig'
+                        ? (this.runtime.getConfig?.() ??
+                          (async function* () {
+                              yield { type: 'done' as const };
+                          })())
+                        : this.runtime.streamComplete({ messages, modelConfig });
                 for await (const chunk of stream) {
                     if (abortController.signal.aborted || this.disposed) {
                         break;
@@ -269,7 +273,11 @@ class IframeAiBridgeHost {
             }
         } catch (error) {
             const bridgeError = toIframeAiBridgeError(error, 'EAI', 'AI bridge request failed.');
-            this.sendChunk(id, { type: 'error', code: bridgeError.code, message: bridgeError.message });
+            this.sendChunk(id, {
+                type: 'error',
+                code: bridgeError.code,
+                message: bridgeError.message,
+            });
             this.sendChunk(id, { type: 'done' });
         }
     }

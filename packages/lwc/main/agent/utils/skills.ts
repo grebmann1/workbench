@@ -1,5 +1,6 @@
 import { getIndexedDbFileSystem } from 'core/fs';
 import LOGGER from 'shared/logger';
+
 import { SKILLS_ROOT, SKILLS_INSTRUCTIONS } from './constants';
 
 export type SkillScope = 'project' | 'user';
@@ -160,10 +161,7 @@ export function formatSkillsForPrompt(skills: DiscoveredSkill[]): string | null 
         skill =>
             `  <skill>\n    <name>${escapeXml(skill.name)}</name>\n    <description>${escapeXml(
                 skill.description
-            )}</description>\n    <location>${escapeXml(
-                skill.skillMdPath
-            )}</location>\n  </skill>`
+            )}</description>\n    <location>${escapeXml(skill.skillMdPath)}</location>\n  </skill>`
     );
     return `${SKILLS_INSTRUCTIONS}\n\n<available_skills>\n${parts.join('\n')}\n</available_skills>`;
 }
-

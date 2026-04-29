@@ -1,4 +1,10 @@
+import { APPLICATION, connectStore, store } from 'core/store';
 import { api, LightningElement, wire } from 'lwc';
+import {
+    CACHE_CONFIG,
+    loadSingleExtensionConfigFromCache,
+    saveSingleExtensionConfigToCache,
+} from 'shared/cacheManager';
 import { store as legacyStore, store_application } from 'shared/store';
 import {
     isNotUndefinedOrNull,
@@ -6,12 +12,6 @@ import {
     isEmpty,
     isUndefinedOrNull,
 } from 'shared/utils';
-import { APPLICATION, connectStore, store } from 'core/store';
-import {
-    CACHE_CONFIG,
-    loadSingleExtensionConfigFromCache,
-    saveSingleExtensionConfigToCache,
-} from 'shared/cacheManager';
 
 const APPLICATIONS = {
     CONNECTION: 'connection',

@@ -6,8 +6,9 @@ import http from 'node:http';
 import https from 'node:https';
 import path from 'node:path';
 
-import { serializeLaunchIntent, type DesktopCommand } from '../main/launchIntent';
 import type { DesktopOrgSource } from '../main/desktopCommand';
+import { serializeLaunchIntent, type DesktopCommand } from '../main/launchIntent';
+
 import { compileSalesforceCliCommand } from './desktopSalesforceCliGrammar';
 
 type DesktopCliOrgSource =
@@ -56,7 +57,9 @@ function printHelp(): void {
     process.stdout.write(`  workbench-desktop --org <alias>\n`);
     process.stdout.write(`  workbench-desktop open org --target-org <alias>\n`);
     process.stdout.write(`  workbench-desktop open soql --target-org <alias> --query "<soql>"\n`);
-    process.stdout.write(`  workbench-desktop sf data query --target-org <alias> --query "<soql>"\n`);
+    process.stdout.write(
+        `  workbench-desktop sf data query --target-org <alias> --query "<soql>"\n`
+    );
 }
 
 function readFlag(argv: string[], ...names: string[]): string | null {
@@ -82,19 +85,32 @@ function hasFlag(argv: string[], ...names: string[]): boolean {
 function getOptions(argv: string[]): DesktopCliOptions {
     const timeout = Number(readFlag(argv, '--timeout') || DEFAULT_TIMEOUT_MS);
     return {
-        apiUrl: readFlag(argv, '--api-url') || process.env.WORKBENCH_DESKTOP_API_URL || DEFAULT_API_URL,
+        apiUrl:
+            readFlag(argv, '--api-url') || process.env.WORKBENCH_DESKTOP_API_URL || DEFAULT_API_URL,
         json: hasFlag(argv, '--json'),
         timeoutMs: Number.isFinite(timeout) && timeout > 0 ? timeout : DEFAULT_TIMEOUT_MS,
         wait: !hasFlag(argv, '--no-wait'),
     };
 }
 
-function isFileBackedOrgSource(org: unknown): org is Extract<DesktopCliOrgSource, { kind: 'sfdxAuthUrlFile' }> {
-    return Boolean(org) && typeof org === 'object' && (org as { kind?: string }).kind === 'sfdxAuthUrlFile';
+function isFileBackedOrgSource(
+    org: unknown
+): org is Extract<DesktopCliOrgSource, { kind: 'sfdxAuthUrlFile' }> {
+    return (
+        Boolean(org) &&
+        typeof org === 'object' &&
+        (org as { kind?: string }).kind === 'sfdxAuthUrlFile'
+    );
 }
 
-function isStdinBackedOrgSource(org: unknown): org is Extract<DesktopCliOrgSource, { kind: 'sfdxAuthUrlStdin' }> {
-    return Boolean(org) && typeof org === 'object' && (org as { kind?: string }).kind === 'sfdxAuthUrlStdin';
+function isStdinBackedOrgSource(
+    org: unknown
+): org is Extract<DesktopCliOrgSource, { kind: 'sfdxAuthUrlStdin' }> {
+    return (
+        Boolean(org) &&
+        typeof org === 'object' &&
+        (org as { kind?: string }).kind === 'sfdxAuthUrlStdin'
+    );
 }
 
 function resolveCliOrgSource(org: DesktopCliOrgSource): DesktopOrgSource {
@@ -255,7 +271,12 @@ export function resolveElectronBinary(appPath: string): string {
     return electronBinary;
 }
 
-async function postJson(apiUrl: string, route: string, payload?: unknown, timeoutMs = DEFAULT_TIMEOUT_MS): Promise<unknown> {
+async function postJson(
+    apiUrl: string,
+    route: string,
+    payload?: unknown,
+    timeoutMs = DEFAULT_TIMEOUT_MS
+): Promise<unknown> {
     const url = new URL(route, apiUrl);
     const body = payload ? JSON.stringify(payload) : undefined;
     const transport = url.protocol === 'https:' ? https : http;
@@ -265,7 +286,12 @@ async function postJson(apiUrl: string, route: string, payload?: unknown, timeou
             url,
             {
                 headers: {
-                    ...(body ? { 'Content-Length': Buffer.byteLength(body), 'Content-Type': 'application/json' } : {}),
+                    ...(body
+                        ? {
+                              'Content-Length': Buffer.byteLength(body),
+                              'Content-Type': 'application/json',
+                          }
+                        : {}),
                 },
                 method: body ? 'POST' : 'GET',
                 timeout: timeoutMs,
@@ -352,7 +378,9 @@ export async function main(): Promise<void> {
 
     if (!(await isAutomationAvailable(invocation.options.apiUrl, 1_000))) {
         if (!invocation.options.wait && commandContainsSecret) {
-            throw new Error('--no-wait cannot be used with sfdxAuthUrl input unless Workbench Desktop is already running.');
+            throw new Error(
+                '--no-wait cannot be used with sfdxAuthUrl input unless Workbench Desktop is already running.'
+            );
         }
 
         const launchCommand: DesktopCommand = commandContainsSecret
@@ -377,7 +405,10 @@ export async function main(): Promise<void> {
         return;
     }
 
-    const isReady = await waitForAutomation(invocation.options.apiUrl, invocation.options.timeoutMs);
+    const isReady = await waitForAutomation(
+        invocation.options.apiUrl,
+        invocation.options.timeoutMs
+    );
     if (!isReady) {
         throw new Error('Workbench Desktop did not become ready before the timeout.');
     }

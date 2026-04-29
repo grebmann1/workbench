@@ -1,5 +1,5 @@
-import { wire, api } from 'lwc';
 import ToolkitElement from 'core/toolkitElement';
+import { wire, api } from 'lwc';
 import { NavigationContext, navigate } from 'lwr/navigation';
 import { isChromeExtension } from 'shared/utils';
 

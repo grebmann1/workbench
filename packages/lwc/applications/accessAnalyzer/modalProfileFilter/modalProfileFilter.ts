@@ -1,7 +1,6 @@
 import LightningModal from 'lightning/modal';
-import { TabulatorFull as Tabulator } from 'tabulator-tables';
-
 import { api } from 'lwc';
+import { TabulatorFull as Tabulator } from 'tabulator-tables';
 
 export default class ModalProfileFilter extends LightningModal {
     @api profiles;
@@ -38,10 +37,10 @@ export default class ModalProfileFilter extends LightningModal {
     /** Tabulator  **/
 
     loadTable = async () => {
-        let activeUserIcon = '<i class="user icon"></i>';
-        let inactiveUserIcon = '<i class="user outline icon"></i>';
+        const activeUserIcon = '<i class="user icon"></i>';
+        const inactiveUserIcon = '<i class="user outline icon"></i>';
 
-        let colModel = [
+        const colModel = [
             {
                 formatter: 'rowSelection',
                 titleFormatter: 'rowSelection',
@@ -104,15 +103,15 @@ export default class ModalProfileFilter extends LightningModal {
 			},*/
         ];
 
-        let dataList = [];
+        const dataList = [];
 
         Object.values(this.profiles)
             .sort((a, b) => a.name.localeCompare(b.name))
             .forEach(profile => {
-                let _activeUserCount = profile.activeUserCount || 0;
-                let _inactiveUserCount = profile.inactiveUserCount || 0;
+                const _activeUserCount = profile.activeUserCount || 0;
+                const _inactiveUserCount = profile.inactiveUserCount || 0;
 
-                let data = {};
+                const data = {};
                 data['profileId'] = profile.id;
                 //data['link'] = `<a href="${null}" target="_blank"><svg focusable="false" aria-hidden="true" class="slds-icon slds-icon-text-default slds-icon_x-small"><use xlink:href="/assets/icons/utility-sprite/svg/symbols.svg#new_window"></use></svg></a>`;
                 data['label'] = profile.name;

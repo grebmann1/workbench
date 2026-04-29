@@ -112,8 +112,12 @@
 }
 
 @keyframes shimmer {
-    0% { background-position: 200% 0; }
-    100% { background-position: -200% 0; }
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
+    }
 }
 
 /* ── Session list ──────────────────────────────────────────────── */
@@ -187,7 +191,9 @@
     font-weight: 600;
     font-family: inherit;
     cursor: pointer;
-    transition: background-color 0.12s ease, border-color 0.12s ease;
+    transition:
+        background-color 0.12s ease,
+        border-color 0.12s ease;
     --slds-c-icon-color-foreground-default: #0176d3;
     --slds-c-icon-color-foreground: #0176d3;
 }
@@ -264,7 +270,9 @@
 
 .welcome-cta-btn:focus-visible {
     outline: none;
-    box-shadow: 0 0 0 2px #0176d3, 0 0 0 4px #fff;
+    box-shadow:
+        0 0 0 2px #0176d3,
+        0 0 0 4px #fff;
 }
 
 .welcome-cta-btn:active {
@@ -390,7 +398,9 @@
     font-weight: 700;
     font-family: inherit;
     cursor: pointer;
-    transition: background-color 0.12s ease, border-color 0.12s ease;
+    transition:
+        background-color 0.12s ease,
+        border-color 0.12s ease;
     white-space: nowrap;
 }
 
@@ -408,7 +418,9 @@
 
 .ai-setup-card__btn_primary:focus-visible {
     outline: none;
-    box-shadow: 0 0 0 2px #0176d3, 0 0 0 4px #fff;
+    box-shadow:
+        0 0 0 2px #0176d3,
+        0 0 0 4px #fff;
 }
 
 .ai-setup-card__btn_ghost {

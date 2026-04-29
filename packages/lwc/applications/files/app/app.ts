@@ -1,9 +1,9 @@
-import { track } from 'lwc';
-import LightningConfirm from 'lightning/confirm';
-import Toast from 'lightning/toast';
-import { classSet, isEmpty } from 'shared/utils';
 import ToolkitElement from 'host-api/element';
 import { getIndexedDbFileSystem } from 'host-api/fs';
+import LightningConfirm from 'lightning/confirm';
+import Toast from 'lightning/toast';
+import { track } from 'lwc';
+import { classSet, isEmpty } from 'shared/utils';
 
 function getFileExtension(path) {
     const name = String(path || '');
@@ -192,7 +192,9 @@ function mimeTypeFromExtension(ext) {
         case 'wav':
             return 'audio/wav';
         default:
-            return isImageExtension(ext) ? imageMimeTypeFromExtension(ext) : 'application/octet-stream';
+            return isImageExtension(ext)
+                ? imageMimeTypeFromExtension(ext)
+                : 'application/octet-stream';
     }
 }
 
@@ -642,4 +644,3 @@ export default class App extends ToolkitElement {
         );
     }
 }
-

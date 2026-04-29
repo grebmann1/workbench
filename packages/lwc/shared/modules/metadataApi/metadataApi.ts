@@ -1,10 +1,5 @@
 import { unzipSync, zipSync } from 'fflate';
-
-import {
-    normalizeApiVersion,
-    normalizeInstanceUrl,
-    normalizeProxyUrl,
-} from 'shared/salesforceUrl';
+import { normalizeApiVersion, normalizeInstanceUrl, normalizeProxyUrl } from 'shared/salesforceUrl';
 import { HttpError, type JsforceConnection } from 'shared/types';
 
 export type MetadataListQuery = {
@@ -220,7 +215,10 @@ export function createMetadataApiClient(options: MetadataClientOptions = {}) {
             return doc;
         },
 
-        async listMetadata({ queries, asOfVersion = effectiveApiVersion }: { queries?: Array<{ type?: string; folder?: string }>; asOfVersion?: string } = {}) {
+        async listMetadata({
+            queries,
+            asOfVersion = effectiveApiVersion,
+        }: { queries?: Array<{ type?: string; folder?: string }>; asOfVersion?: string } = {}) {
             const q = Array.isArray(queries) ? queries : [];
             if (!q.length) return [];
             if (typeof jsforceConnection?.metadata?.list === 'function') {
@@ -252,14 +250,19 @@ export function createMetadataApiClient(options: MetadataClientOptions = {}) {
                 .filter(x => x.fullName || x.fileName);
         },
 
-        async retrieve({ typesMap, apiVersion = effectiveApiVersion }: { typesMap?: Map<string, string[]>; apiVersion?: string } = {}) {
+        async retrieve({
+            typesMap,
+            apiVersion = effectiveApiVersion,
+        }: { typesMap?: Map<string, string[]>; apiVersion?: string } = {}) {
             const typesXml = xmlForTypes(typesMap || new Map());
             if (typeof jsforceConnection?.metadata?.retrieve === 'function') {
                 const unpackaged = {
                     version: apiVersion,
                     types: Array.from(typesMap?.entries?.() || []).map(([name, members]) => ({
                         name,
-                        members: Array.isArray(members) ? members : Array.from(members as Iterable<string> || []),
+                        members: Array.isArray(members)
+                            ? members
+                            : Array.from((members as Iterable<string>) || []),
                     })),
                 };
                 const result = await jsforceConnection.metadata.retrieve({
@@ -287,7 +290,10 @@ export function createMetadataApiClient(options: MetadataClientOptions = {}) {
             return { id };
         },
 
-        async checkRetrieveStatus(id: string, { includeZip = true }: { includeZip?: boolean } = {}) {
+        async checkRetrieveStatus(
+            id: string,
+            { includeZip = true }: { includeZip?: boolean } = {}
+        ) {
             if (typeof jsforceConnection?.metadata?.checkRetrieveStatus === 'function') {
                 return await jsforceConnection.metadata.checkRetrieveStatus(id, includeZip);
             }
@@ -307,7 +313,10 @@ export function createMetadataApiClient(options: MetadataClientOptions = {}) {
 
         async deploy(
             zipBytes: Uint8Array | ArrayLike<number>,
-            { checkOnly = false, testLevel = 'NoTestRun' }: { checkOnly?: boolean; testLevel?: string } = {}
+            {
+                checkOnly = false,
+                testLevel = 'NoTestRun',
+            }: { checkOnly?: boolean; testLevel?: string } = {}
         ) {
             const zipB64 = bytesToBase64(
                 zipBytes instanceof Uint8Array ? zipBytes : new Uint8Array(zipBytes || [])
@@ -339,7 +348,10 @@ export function createMetadataApiClient(options: MetadataClientOptions = {}) {
             return { id };
         },
 
-        async checkDeployStatus(id: string, { includeDetails = true }: { includeDetails?: boolean } = {}) {
+        async checkDeployStatus(
+            id: string,
+            { includeDetails = true }: { includeDetails?: boolean } = {}
+        ) {
             if (typeof jsforceConnection?.metadata?.checkDeployStatus === 'function') {
                 return await jsforceConnection.metadata.checkDeployStatus(id, includeDetails);
             }

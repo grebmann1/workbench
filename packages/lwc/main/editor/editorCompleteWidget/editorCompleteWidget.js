@@ -1,9 +1,11 @@
-import { LightningElement, api, track } from 'lwc';
+import ASSISTANTS from 'ai/assistants';
+import { ROLES } from 'ai/utils';
 import Toast from 'lightning/toast';
+import { LightningElement, api, track } from 'lwc';
 import LOGGER from 'shared/logger';
 import { isEmpty, isUndefinedOrNull } from 'shared/utils';
-import { ROLES } from 'ai/utils';
-import ASSISTANTS from 'ai/assistants';
+
+import hotkeysManager from './utils/hotkeysmanager';
 import {
     ctrlKStream_userMessage,
     ctrlKStream_systemMessage,
@@ -11,7 +13,6 @@ import {
     defaultQuickEditFimTags,
     StreamParser,
 } from './utils/utils';
-import hotkeysManager from './utils/hotkeysmanager';
 
 // Export the MonacoLwcWidget class
 export { MonacoLwcWidget } from './widget/monacoLwcWidget.js';

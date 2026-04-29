@@ -9,9 +9,6 @@ import {
     lowerCaseKey,
     isChromeExtension,
 } from 'shared/utils';
-import { ReplayExtension } from 'platformevent/utils';
-import { connectStore, store, injectReducer, DOCUMENT, ERROR } from 'host-api/store';
-import { EVENT } from 'platformevent/slices';
 
 const platformEventSelectors = EVENT.platformEventAdapter.getSelectors(
     (state: any) => state.platformEvent.subscriptions
@@ -25,16 +22,18 @@ function bootstrapPlatformEventExtension() {
     injectReducer('platformEvent', EVENT.reduxSlice.reducer);
 }
 bootstrapPlatformEventExtension();
-import Toast from 'lightning/toast';
-
-import ToolkitElement from 'host-api/element';
-import EditorModal from 'platformevent/editorModal';
-import PublisherModal from 'platformevent/publisherModal';
-import LightningConfirm from 'lightning/confirm';
-import Analytics from 'shared/analytics';
 
 import lib from 'cometd';
+import ToolkitElement from 'host-api/element';
+import { connectStore, store, injectReducer, DOCUMENT, ERROR } from 'host-api/store';
+import LightningConfirm from 'lightning/confirm';
+import Toast from 'lightning/toast';
 import moment from 'moment';
+import EditorModal from 'platformevent/editorModal';
+import PublisherModal from 'platformevent/publisherModal';
+import { EVENT } from 'platformevent/slices';
+import { ReplayExtension } from 'platformevent/utils';
+import Analytics from 'shared/analytics';
 import LOGGER from 'shared/logger';
 
 const STATUS_NEW = 'New';
@@ -100,7 +99,15 @@ export default class App extends ToolkitElement {
     @track lookup_errors: Array<Record<string, any>> = [];
 
     @wire(connectStore, { store })
-    storeChange({ application, platformEvent, recents }: { application: any; platformEvent: any; recents: any }) {
+    storeChange({
+        application,
+        platformEvent,
+        recents,
+    }: {
+        application: any;
+        platformEvent: any;
+        recents: any;
+    }) {
         const isCurrentApp = this.verifyIsActive(application.currentApplication);
         if (!isCurrentApp) return;
 
@@ -289,7 +296,7 @@ export default class App extends ToolkitElement {
         };
         if (_replayId <= -2 && !(await LightningConfirm.open(params))) return;
 
-        let { type, shortName } = this.extractInfoFromPath(eventName);
+        const { type, shortName } = this.extractInfoFromPath(eventName);
 
         store.dispatch(
             EVENT.reduxSlice.actions.createSubscription({
@@ -539,7 +546,6 @@ export default class App extends ToolkitElement {
         const attempt = Math.min(this._reconnectAttempt, 6);
         const delayMs = Math.min(30000, 1000 * Math.pow(2, attempt));
         this._reconnectAttempt += 1;
-        // eslint-disable-next-line @lwc/lwc/no-async-operation
         this._reconnectTimer = setTimeout(() => {
             this._reconnectTimer = null;
             const { platformEvent } = store.getState();
@@ -643,7 +649,7 @@ export default class App extends ToolkitElement {
     };
 
     load_toolingGlobal = async () => {
-        let result = await this.connector.conn.describeGlobal();
+        const result = await this.connector.conn.describeGlobal();
         return result?.sobjects || [];
     };
 

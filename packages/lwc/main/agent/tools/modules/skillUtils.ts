@@ -35,7 +35,9 @@ export function resolveSkillRoot(scope?: SkillScope) {
 }
 
 function normalizeText(value: string): string {
-    return String(value || '').replace(/\r\n/g, '\n').trim();
+    return String(value || '')
+        .replace(/\r\n/g, '\n')
+        .trim();
 }
 
 function formatYamlValue(value: string): string {

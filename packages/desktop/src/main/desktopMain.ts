@@ -86,7 +86,8 @@ registerDesktopLoggerProcessHandlers();
 
 async function openInstance(payload: Record<string, any>): Promise<void> {
     try {
-        const sfdxAuthUrl = typeof payload.sfdxAuthUrl === 'string' ? payload.sfdxAuthUrl.trim() : '';
+        const sfdxAuthUrl =
+            typeof payload.sfdxAuthUrl === 'string' ? payload.sfdxAuthUrl.trim() : '';
         if (sfdxAuthUrl) {
             const alias = String(payload.alias || '').trim();
             if (!alias) {
@@ -126,7 +127,9 @@ async function openInstance(payload: Record<string, any>): Promise<void> {
     }
 }
 
-function getOpenInstancePayload(command: Extract<DesktopCommand, { type: 'execute' | 'openOrg' | 'openPage' }>): Record<string, any> {
+function getOpenInstancePayload(
+    command: Extract<DesktopCommand, { type: 'execute' | 'openOrg' | 'openPage' }>
+): Record<string, any> {
     const payload: Record<string, any> = {};
     if (command.org.kind === 'alias') {
         payload.alias = command.org.alias;

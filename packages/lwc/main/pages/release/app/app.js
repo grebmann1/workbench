@@ -1,6 +1,6 @@
+import ToolkitElement from 'core/toolkitElement';
 import { api } from 'lwc';
 import { isEmpty, isNotUndefinedOrNull } from 'shared/utils';
-import ToolkitElement from 'core/toolkitElement';
 
 export default class App extends ToolkitElement {
     @api url = 'https://raw.githubusercontent.com/grebmann1/sfdx-ui-light/master/release.md';

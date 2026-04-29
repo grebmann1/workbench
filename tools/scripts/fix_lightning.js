@@ -1,5 +1,6 @@
 const fs = require('node:fs');
 const path = require('node:path');
+
 const { globSync } = require('glob');
 
 /*
@@ -38,24 +39,26 @@ const modulesToReplace = [
     'iconSvgTemplatesStandard',
     'iconSvgTemplatesStandardRtl',
     'iconSvgTemplatesUtility',
-    'iconSvgTemplatesUtilityRtl'
+    'iconSvgTemplatesUtilityRtl',
 ];
 
 /** Removed svg icon exports */
 for (const dir of modulesToReplace) {
-    const filePath = path.join('./node_modules/lightning-base-components/src/lightning', dir,'buildTemplates', 'templates.js');
+    const filePath = path.join(
+        './node_modules/lightning-base-components/src/lightning',
+        dir,
+        'buildTemplates',
+        'templates.js'
+    );
     //const actual = fs.readFileSync(filePath, 'utf-8');
-    fs.writeFileSync(filePath,"export default {}", 'utf-8');
+    fs.writeFileSync(filePath, 'export default {}', 'utf-8');
 }
 
 /** Replace Files */
 const filesToReplace = ['primitiveIcon/primitiveIcon.js'];
 for (const dir of filesToReplace) {
-    const target_path = path.join('./node_modules/lightning-base-components/src/lightning',dir);
-    const source_path = path.join('./tools/scripts/files',dir)
+    const target_path = path.join('./node_modules/lightning-base-components/src/lightning', dir);
+    const source_path = path.join('./tools/scripts/files', dir);
     const source = fs.readFileSync(source_path, 'utf-8');
-    fs.writeFileSync(target_path,source, 'utf-8');
+    fs.writeFileSync(target_path, source, 'utf-8');
 }
-
-
-    

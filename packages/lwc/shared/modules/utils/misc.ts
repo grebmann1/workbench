@@ -87,8 +87,8 @@ export const isMonacoLanguageSetup = (language: string): boolean => {
 };
 
 export const prettifyXml = (sourceXml: string): string => {
-    var xmlDoc = new DOMParser().parseFromString(sourceXml, 'application/xml');
-    var xsltDoc = new DOMParser().parseFromString(
+    const xmlDoc = new DOMParser().parseFromString(sourceXml, 'application/xml');
+    const xsltDoc = new DOMParser().parseFromString(
         [
             // describes how we want to modify the XML - indent everything
             '<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform">',
@@ -105,9 +105,9 @@ export const prettifyXml = (sourceXml: string): string => {
         'application/xml'
     );
 
-    var xsltProcessor = new XSLTProcessor();
+    const xsltProcessor = new XSLTProcessor();
     xsltProcessor.importStylesheet(xsltDoc);
-    var resultDoc = xsltProcessor.transformToDocument(xmlDoc);
-    var resultXml = new XMLSerializer().serializeToString(resultDoc);
+    const resultDoc = xsltProcessor.transformToDocument(xmlDoc);
+    const resultXml = new XMLSerializer().serializeToString(resultDoc);
     return resultXml;
 };

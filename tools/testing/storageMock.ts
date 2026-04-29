@@ -8,9 +8,7 @@ export interface StorageMock {
 }
 
 export function createStorageMock(initial?: Record<string, unknown>): StorageMock {
-    const store = new Map<string, unknown>(
-        initial ? Object.entries(initial) : [],
-    );
+    const store = new Map<string, unknown>(initial ? Object.entries(initial) : []);
     return {
         _raw: store,
         async get<T>(key: string) {

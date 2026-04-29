@@ -1,7 +1,8 @@
 <template>
     <div class="menu-container">
         <div class="tree-panel">
-            <div class="panel-header slds-grid slds-grid_align-spread slds-grid_vertical-align-center">
+            <div
+                class="panel-header slds-grid slds-grid_align-spread slds-grid_vertical-align-center">
                 <h2 class="panel-title slds-truncate">Metadata Types</h2>
                 <template lwc:if={isLoadingTypes}>
                     <slds-spinner
@@ -33,7 +34,8 @@
         <template lwc:if={isRecordsPanelVisible}>
             <div class="panel-divider"></div>
             <div class="tree-panel">
-                <div class="panel-header slds-grid slds-grid_align-spread slds-grid_vertical-align-center">
+                <div
+                    class="panel-header slds-grid slds-grid_align-spread slds-grid_vertical-align-center">
                     <div class="slds-grid slds-grid_vertical-align-center slds-has-flexi-truncate">
                         <lightning-button-icon
                             icon-name="utility:back"
@@ -41,7 +43,9 @@
                             alternative-text="Back to types"
                             title="Back to types"
                             onclick={handleGoBack}></lightning-button-icon>
-                        <h2 class="panel-title slds-truncate slds-m-left_x-small">{recordsPanelTitle}</h2>
+                        <h2 class="panel-title slds-truncate slds-m-left_x-small">
+                            {recordsPanelTitle}
+                        </h2>
                     </div>
                     <template lwc:if={isLoadingRecords}>
                         <slds-spinner

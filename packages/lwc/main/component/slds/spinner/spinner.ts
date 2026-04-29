@@ -36,7 +36,7 @@ export default class Spinner extends LightningElement {
         let position = 0;
         this.message = this.messages[position];
         this._interval = setInterval(() => {
-            let el = this.template.querySelector('.spinner-text');
+            const el = this.template.querySelector('.spinner-text');
             if (el.offsetWidth > 0 && el.offsetHeight > 0) {
                 position = position >= this.messages.length - 1 ? 0 : position + 1;
             } else {

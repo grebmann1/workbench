@@ -12,10 +12,18 @@ interface EventBus<T = unknown> {
 function createEventBus<T = unknown>(): EventBus<T> {
     const listeners = new Set<Listener<T>>();
     return {
-        addListener(l) { listeners.add(l); },
-        removeListener(l) { listeners.delete(l); },
-        hasListener(l) { return listeners.has(l); },
-        emit(payload) { listeners.forEach(l => l(payload)); },
+        addListener(l) {
+            listeners.add(l);
+        },
+        removeListener(l) {
+            listeners.delete(l);
+        },
+        hasListener(l) {
+            return listeners.has(l);
+        },
+        emit(payload) {
+            listeners.forEach(l => l(payload));
+        },
     };
 }
 
@@ -75,7 +83,9 @@ export interface ChromeMock {
             id: string;
         };
         tabs: {
-            query: (q: Record<string, unknown>) => Promise<Array<{ id: number; url: string; active: boolean }>>;
+            query: (
+                q: Record<string, unknown>
+            ) => Promise<Array<{ id: number; url: string; active: boolean }>>;
             sendMessage: (tabId: number, msg: unknown) => Promise<unknown>;
         };
     };
@@ -106,12 +116,18 @@ export function createChromeMock(options: ChromeMockOptions = {}): ChromeMock {
                 return undefined;
             },
             onMessage,
-            getURL(path: string) { return `chrome-extension://mock-id/${path.replace(/^\//, '')}`; },
+            getURL(path: string) {
+                return `chrome-extension://mock-id/${path.replace(/^\//, '')}`;
+            },
             id: 'mock-id',
         },
         tabs: {
-            async query() { return tabs.slice(); },
-            async sendMessage(_tabId: number, _msg: unknown) { return undefined; },
+            async query() {
+                return tabs.slice();
+            },
+            async sendMessage(_tabId: number, _msg: unknown) {
+                return undefined;
+            },
         },
     };
 

@@ -1,8 +1,8 @@
-import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { test } from 'node:test';
 
-import { storeRef } from '../storeRef.ts';
 import { reportError } from '../reportError.ts';
+import { storeRef } from '../storeRef.ts';
 
 function makeCapturingStore() {
     const actions: any[] = [];

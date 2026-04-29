@@ -1,15 +1,5 @@
-import { wire, api, track } from 'lwc';
 import ToolkitElement from 'host-api/element';
-import {
-    reportError,
-    store,
-    connectStore,
-    SELECTORS,
-    SOBJECT,
-    DESCRIBE,
-} from 'host-api/store';
-import { UI, QUERY } from 'soql/slices';
-import { querySelectors } from 'soql/slices/query';
+import { reportError, store, connectStore, SELECTORS, SOBJECT, DESCRIBE } from 'host-api/store';
 import {
     fullApiName,
     isUndefinedOrNull,
@@ -21,6 +11,10 @@ import {
     extractErrorDetailsFromQuery,
 } from 'host-api/utils';
 import LightningConfirm from 'lightning/confirm';
+import { wire, api, track } from 'lwc';
+import { UI, QUERY } from 'soql/slices';
+import { querySelectors } from 'soql/slices/query';
+
 import { confirmDiscardPendingEdits } from '../app/util';
 
 export default class QueryEditorPanel extends ToolkitElement {

@@ -1,13 +1,13 @@
-import { api } from 'lwc';
+import { store } from 'core/store';
 import LightningModal from 'lightning/modal';
+import Toast from 'lightning/toast';
+import { api } from 'lwc';
 import {
     isSalesforceId,
     isNotUndefinedOrNull,
     formatFiles,
     sortObjectsByField,
 } from 'shared/utils';
-import Toast from 'lightning/toast';
-import { store } from 'core/store';
 
 export default class Modal extends LightningModal {
     isLoading = false;

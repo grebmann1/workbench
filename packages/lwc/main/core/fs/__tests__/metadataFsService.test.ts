@@ -1,5 +1,6 @@
-import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { test } from 'node:test';
+
 import { __testables, createMetadataFsService } from '../metadataFsService.ts';
 
 function createFsStub() {
@@ -99,7 +100,9 @@ test('writeMetadataRecord (ApexClass): writes source + meta xml', async () => {
     assert.equal(result.status, 'stored');
     assert.equal(result.filesWritten.length, 2);
     const source = files.get('/workspace/orgs/dev/force-app/main/default/classes/Greeter.cls');
-    const meta = files.get('/workspace/orgs/dev/force-app/main/default/classes/Greeter.cls-meta.xml');
+    const meta = files.get(
+        '/workspace/orgs/dev/force-app/main/default/classes/Greeter.cls-meta.xml'
+    );
     assert.equal(source, 'public class Greeter {}');
     assert.match(meta ?? '', /<apiVersion>61\.0<\/apiVersion>/);
     assert.match(meta ?? '', /<ApexClass /);

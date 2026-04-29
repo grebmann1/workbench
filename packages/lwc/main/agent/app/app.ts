@@ -1,18 +1,11 @@
-import { api, track, wire } from 'lwc';
-import Toast from 'lightning/toast';
-import { isEmpty, isNotUndefinedOrNull, classSet } from 'shared/utils';
-import {
-    buildAvailableAgentModelOptions,
-    getProviderForModel,
-    getProviderLabel,
-    isOpenAiCompatibleGateway,
-    normalizeLlmProvider,
-} from 'shared/llm';
-import { CACHE_CONFIG, saveSingleExtensionConfigToCache } from 'shared/cacheManager';
-import ToolkitElement from 'core/toolkitElement';
-import { reportError, store, connectStore, AGENT, APPLICATION } from 'core/store';
-import LOGGER from 'shared/logger';
-import { NavigationContext } from 'lwr/navigation';
+import Analytics from 'shared/analytics';
+import type { ConnectorLike } from 'core/connector';
+import { createUserModelMessage } from 'agent/utils';
+import { persistPromptImageFiles } from 'agent/utils';
+import { getIndexedDbFileSystem } from 'core/fs';
+import { Agent } from 'agent/Agent';
+import { browserAgentInstructions } from 'agent/agents';
+import { askUserTool, resolveQuestion, rejectQuestion, workbenchContextTools } from 'agent/tools';
 import {
     Constants,
     Message,
@@ -22,15 +15,22 @@ import {
     readFileContent,
     generateConversationTitle,
 } from 'agent/utils';
-import Analytics from 'shared/analytics';
-import type { ConnectorLike } from 'core/connector';
-import { createUserModelMessage } from 'agent/utils';
-import { persistPromptImageFiles } from 'agent/utils';
-import { getIndexedDbFileSystem } from 'core/fs';
-import { Agent } from 'agent/Agent';
-import { browserAgentInstructions } from 'agent/agents';
-import { askUserTool, resolveQuestion, rejectQuestion, workbenchContextTools } from 'agent/tools';
 import type { ModelMessage, UIMessage } from 'ai';
+import { reportError, store, connectStore, AGENT, APPLICATION } from 'core/store';
+import ToolkitElement from 'core/toolkitElement';
+import Toast from 'lightning/toast';
+import { api, track, wire } from 'lwc';
+import { NavigationContext } from 'lwr/navigation';
+import { CACHE_CONFIG, saveSingleExtensionConfigToCache } from 'shared/cacheManager';
+import {
+    buildAvailableAgentModelOptions,
+    getProviderForModel,
+    getProviderLabel,
+    isOpenAiCompatibleGateway,
+    normalizeLlmProvider,
+} from 'shared/llm';
+import LOGGER from 'shared/logger';
+import { isEmpty, isNotUndefinedOrNull, classSet } from 'shared/utils';
 
 import { normalizeMcpServerConfigs } from '../mcp/mcpJsonParser';
 

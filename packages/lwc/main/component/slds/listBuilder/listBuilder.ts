@@ -34,7 +34,7 @@ export default class ListBuilder extends LightningElement {
     /** Events **/
 
     handleChange = e => {
-        let searchTerm = e.target.value;
+        const searchTerm = e.target.value;
 
         runActionAfterTimeOut(
             searchTerm,

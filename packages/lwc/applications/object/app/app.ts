@@ -1,11 +1,11 @@
-import { wire, api, track } from 'lwc';
 import ToolkitElement from 'host-api/element';
-import { CurrentPageReference, NavigationContext, navigate } from 'lwr/navigation';
-import { isUndefinedOrNull, isNotUndefinedOrNull, lowerCaseKey } from 'shared/utils';
-import { store_application, store as legacyStore } from 'shared/store';
 import { connectStore, store, injectReducer, DESCRIBE } from 'host-api/store';
+import { wire, api, track } from 'lwc';
+import { CurrentPageReference, NavigationContext, navigate } from 'lwr/navigation';
 import { SOBJECTEXPLORER } from 'object/slices';
 import Analytics from 'shared/analytics';
+import { store_application, store as legacyStore } from 'shared/store';
+import { isUndefinedOrNull, isNotUndefinedOrNull, lowerCaseKey } from 'shared/utils';
 
 let _objectBootstrapped = false;
 function bootstrapObjectExtension() {
@@ -163,8 +163,7 @@ export default class App extends ToolkitElement {
             return this.records;
         return this.records
             .filter(
-                x =>
-                    this.typeFilter_value.includes(x.category) || this.typeFilter_value.length == 0
+                x => this.typeFilter_value.includes(x.category) || this.typeFilter_value.length == 0
             )
             .filter(
                 x =>

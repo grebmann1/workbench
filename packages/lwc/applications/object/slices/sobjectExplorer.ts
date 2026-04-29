@@ -1,9 +1,7 @@
 import { createSlice } from '@reduxjs/toolkit';
-import { isNotUndefinedOrNull } from 'shared/utils';
-
 import { getStore } from 'core/store/storeRef';
-
 import { ERROR } from 'host-api/store';
+import { isNotUndefinedOrNull } from 'shared/utils';
 
 const SOBJECTEXPLORER_SETTINGS_KEY = 'SOBJECTEXPLORER_SETTINGS_KEY';
 

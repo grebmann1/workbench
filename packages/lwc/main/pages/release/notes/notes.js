@@ -3,7 +3,7 @@ import { isChromeExtension } from 'shared/utils';
 
 const SECTION_COLOR_MAP = {
     'new features': 'section-badge--feature',
-    'enhancements': 'section-badge--enhancement',
+    enhancements: 'section-badge--enhancement',
     'bug fixes': 'section-badge--bugfix',
     'breaking changes': 'section-badge--breaking',
 };

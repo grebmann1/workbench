@@ -49,7 +49,6 @@ export default class MarkdownViewer extends LightningElement {
     }
 
     setMarkdown(markdown) {
-        // eslint-disable-next-line @lwc/lwc/no-inner-html
         var html = marked()(markdown);
         if (!isEmpty(this.filter)) {
             // new RegExp('(?<!`)\b'+this.filter+'\b(?!`)','gim');

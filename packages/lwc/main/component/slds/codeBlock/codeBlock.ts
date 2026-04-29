@@ -109,12 +109,12 @@ export default class CodeBlock extends LightningElement {
     }
 
     highlightCode_mermaid = () => {
-        let codeBlockEl = this.template.querySelector('pre');
+        const codeBlockEl = this.template.querySelector('pre');
         this.renderMermaid(codeBlockEl);
     };
 
     highlightCode_default = decodedCode => {
-        let codeBlockEl = this.template.querySelector('pre');
+        const codeBlockEl = this.template.querySelector('pre');
         if (!codeBlockEl) return;
         codeBlockEl.textContent = '';
         codeBlockEl.classList.add('line-numbers');
@@ -166,7 +166,7 @@ export default class CodeBlock extends LightningElement {
 
         // Split the input into lines for easier manipulation.
         const lines = input.split('\n');
-        let fixedDiagram = [];
+        const fixedDiagram = [];
 
         lines.forEach(line => {
             //line = line.trim();

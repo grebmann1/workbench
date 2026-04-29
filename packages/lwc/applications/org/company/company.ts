@@ -1,8 +1,8 @@
 import ToolkitElement from 'host-api/element';
-import { api } from 'lwc';
-import { classSet, isNotUndefinedOrNull } from 'shared/utils';
 import Toast from 'lightning/toast';
+import { api } from 'lwc';
 import { store as legacyStore, store_application } from 'shared/store';
+import { classSet, isNotUndefinedOrNull } from 'shared/utils';
 
 export default class Company extends ToolkitElement {
     @api title = 'General Information';

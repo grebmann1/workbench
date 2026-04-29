@@ -28,13 +28,13 @@ jobs:
           node-version: '22.14'
           cache: 'npm'
       - run: npm ci --no-audit --no-fund
-      - name: Write placeholder .env.dev for the API server
-        run: |
-          cat > .env.dev <<'EOF'
-          CLIENT_ID=e2e_placeholder
-          CLIENT_SECRET=e2e_placeholder
-          PORT=3000
-          EOF
+      - name: Install apps/ui deps (landing site)
+        run: npm --prefix apps/ui ci --no-audit --no-fund
+      - name: Copy .env.dev.ci into place for the API server
+        # .env.dev.ci ships with the repo and only contains placeholder
+        # values — sufficient for /config to respond and for the OAuth
+        # routes to 4xx without a real `code` param.
+        run: cp .env.dev.ci .env.dev
       - run: npx playwright install --with-deps chromium
       - name: Start API server (port 3000)
         run: npm run start:dev:server &
@@ -63,3 +63,11 @@ jobs:
           path: packages/tests-e2e/playwright-report
           if-no-files-found: ignore
           retention-days: 7
+
+  # NOTE: e2e-extension is intentionally NOT wired into CI yet. The
+  # in-extension Playwright project runs green locally on macOS but hits
+  # ERR_BLOCKED_BY_CLIENT on GitHub Actions Ubuntu runners even under
+  # Chrome for Testing + xvfb + --no-sandbox. The specs live in
+  # packages/tests-e2e/tests/extension/ for local dev use (run with
+  # `EXT_E2E=1 npm run test:e2e:ext`). Re-enable this job once the
+  # Linux/CI flag mix is sorted out.

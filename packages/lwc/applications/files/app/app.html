@@ -43,7 +43,8 @@
                         onclick={handleRefresh}></lightning-button-icon>
                 </div>
                 <p slot="meta" class="slds-page-header__meta-text">
-                    Virtual FS root: <span class="files-root">{rootPath}</span>
+                    Virtual FS root:
+                    <span class="files-root">{rootPath}</span>
                 </p>
             </builder-header>
 
@@ -92,7 +93,8 @@
                                     </header>
                                 </div>
 
-                                <div class="slds-card__body slds-card__body_inner files-preview-body">
+                                <div
+                                    class="slds-card__body slds-card__body_inner files-preview-body">
                                     <template lwc:if={isPreviewLoading}>
                                         <slds-spinner
                                             alternative-text="Loading"
@@ -140,4 +142,3 @@
         </builder-editor>
     </div>
 </template>
-

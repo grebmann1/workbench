@@ -37,7 +37,10 @@ class IframeJsforceBridgeHost {
     private handshakeTimeoutMs: number;
     private onReady?: () => void;
     private onError?: (error: IframeJsforceBridgeError) => void;
-    private onAppEvent?: (event: { eventName: string; payload?: Record<string, unknown> | null }) => void;
+    private onAppEvent?: (event: {
+        eventName: string;
+        payload?: Record<string, unknown> | null;
+    }) => void;
     private started = false;
     private disposed = false;
     private ready = false;

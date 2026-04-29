@@ -1,13 +1,14 @@
-import { LightningElement, wire } from 'lwc';
+import { store, APPLICATION } from 'core/store';
 import Toast from 'lightning/toast';
+import { LightningElement, wire } from 'lwc';
+import { NavigationContext, navigate } from 'lwr/navigation';
 import {
     loadLlmProviderConfigMapFromCache,
     saveLlmProviderConfigMapToCache,
 } from 'shared/cacheManager';
-import { store, APPLICATION } from 'core/store';
-import { NavigationContext, navigate } from 'lwr/navigation';
 
-const EMPLOYEE_AI_SETUP_URL = 'https://eng-ai-model-gateway.sfproxy.devx-preprod.aws-esvc1-useast2.aws.sfdc.cl';
+const EMPLOYEE_AI_SETUP_URL =
+    'https://eng-ai-model-gateway.sfproxy.devx-preprod.aws-esvc1-useast2.aws.sfdc.cl';
 const EMPLOYEE_OPENAI_PROXY_URL =
     'https://eng-ai-model-gateway.sfproxy.devx-preprod.aws-esvc1-useast2.aws.sfdc.cl/v1';
 

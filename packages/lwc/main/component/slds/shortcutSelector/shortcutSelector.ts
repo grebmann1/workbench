@@ -1,6 +1,6 @@
+import hotkeys from 'hotkeys-js';
 import { LightningElement, api } from 'lwc';
 import { isUndefinedOrNull } from 'shared/utils';
-import hotkeys from 'hotkeys-js';
 
 export default class ShortcutSelector extends LightningElement {
     @api label = 'Shortcut Selector';
@@ -41,8 +41,7 @@ export default class ShortcutSelector extends LightningElement {
         };
         const normalized = keyArray.map(k => symbolToName[k] ?? k.toLowerCase());
         this._value =
-            normalized.length === 0 ||
-            (normalized.length === 1 && normalized[0] === 'backspace')
+            normalized.length === 0 || (normalized.length === 1 && normalized[0] === 'backspace')
                 ? []
                 : normalized;
         this.dispatchEvent(

@@ -1,6 +1,9 @@
-import { api, track, wire } from 'lwc';
+import type { ConnectorLike } from 'host-api/connector';
 import ToolkitElement from 'host-api/element';
+import { connectStore, store } from 'host-api/store';
 import Toast from 'lightning/toast';
+import { api, track, wire } from 'lwc';
+import { store as legacyStore, store_application } from 'shared/store';
 import {
     isEmpty,
     runSilent,
@@ -9,9 +12,6 @@ import {
     refreshCurrentTab,
     classSet,
 } from 'shared/utils';
-import { store as legacyStore, store_application } from 'shared/store';
-import { connectStore, store } from 'host-api/store';
-import type { ConnectorLike } from 'host-api/connector';
 
 export default class Me extends ToolkitElement {
     @api title = 'Current User';
@@ -136,7 +136,7 @@ export default class Me extends ToolkitElement {
         const exceptionFields = ['CurrencyIsoCode'];
         const query = (fields: string[]): string =>
             `SELECT ${fields.join(',')} FROM User WHERE id = '${this.connector.conn.userInfo.id}'`;
-        var _user = await runSilent(async () => {
+        let _user = await runSilent(async () => {
             return (await this.connector.conn.query(query([].concat(fields, exceptionFields))))
                 .records[0];
         }, null);
@@ -234,7 +234,7 @@ export default class Me extends ToolkitElement {
             });
             this.fieldErrors = fieldErrorSet;
             this.renderFieldErrors();
-            var error_label, error_message;
+            let error_label, error_message;
             if (fieldErrorGlobal.length > 0) {
                 error_label = fieldErrorGlobal[0].statusCode;
                 error_message = fieldErrorGlobal[0].message;

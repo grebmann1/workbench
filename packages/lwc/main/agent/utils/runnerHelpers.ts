@@ -1,9 +1,9 @@
 export function getReasoningConfigFromSelection(selection) {
     if (selection === 'off' || selection === 'none' || !selection) return undefined;
-    return { 
+    return {
         reasoningEffort: selection,
         reasoningSummary: 'auto',
-        store: false
+        store: false,
     };
 }
 
@@ -123,7 +123,10 @@ export async function persistPromptImageFiles(filesData, fs, conversationId, log
                 const parsed = parseDataUrl(file.content);
                 if (!parsed) return file;
 
-                const ext = extensionForMimeType(parsed.mediaType, safeName.split('.').pop() || 'bin');
+                const ext = extensionForMimeType(
+                    parsed.mediaType,
+                    safeName.split('.').pop() || 'bin'
+                );
                 const hasExt = /\.[a-zA-Z0-9]+$/.test(safeName);
                 const finalName = hasExt ? safeName : `${safeName}.${ext}`;
                 const binaryPath = `${baseDir}/${finalName}`;

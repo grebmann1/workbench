@@ -3,8 +3,7 @@ import logger from 'shared/middleware';
 
 import application from './modules/application/reducers';
 
-const isProd =
-    typeof process !== 'undefined' && process.env?.NODE_ENV === 'production';
+const isProd = typeof process !== 'undefined' && process.env?.NODE_ENV === 'production';
 
 export const store = configureStore({
     reducer: {

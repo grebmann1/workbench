@@ -34,7 +34,7 @@ export const marked = function (root: unknown) {
      * Block-Level Grammar
      */
 
-    var block: any = {
+    const block: any = {
         newline: /^\n+/,
         code: /^( {4}[^\n]+\n*)+/,
         fences: /^ {0,3}(`{3,}|~{3,})([^`~\n]*)\n(?:|([\s\S]*?)\n)(?: {0,3}\1[~`]* *(?:\n+|$)|$)/,
@@ -186,7 +186,7 @@ export const marked = function (root: unknown) {
      */
 
     Lexer.lex = function (src, options) {
-        var lexer = new Lexer(options);
+        const lexer = new Lexer(options);
         return lexer.lex(src);
     };
 
@@ -206,7 +206,7 @@ export const marked = function (root: unknown) {
 
     Lexer.prototype.token = function (src, top) {
         src = src.replace(/^ +$/gm, '');
-        var next,
+        let next,
             loose,
             cap,
             bull,
@@ -236,7 +236,7 @@ export const marked = function (root: unknown) {
 
             // code
             if ((cap = this.rules.code.exec(src))) {
-                var lastToken = this.tokens[this.tokens.length - 1];
+                const lastToken = this.tokens[this.tokens.length - 1];
                 src = src.substring(cap[0].length);
                 // An indented code block cannot interrupt a paragraph.
                 if (lastToken && lastToken.type === 'paragraph') {
@@ -559,7 +559,7 @@ export const marked = function (root: unknown) {
      * Inline-Level Grammar
      */
 
-    var inline: any = {
+    const inline: any = {
         escape: /^\\([!"#$%&'()*+,\-./:;<=>?@\[\]\\^_`{|}~])/,
         autolink: /^<(scheme:[^\s\x00-\x1f<>]*|email)>/,
         url: noop,
@@ -705,7 +705,7 @@ export const marked = function (root: unknown) {
      */
 
     InlineLexer.output = function (src, links, options) {
-        var inline = new InlineLexer(links, options);
+        const inline = new InlineLexer(links, options);
         return inline.output(src);
     };
 
@@ -714,7 +714,7 @@ export const marked = function (root: unknown) {
      */
 
     InlineLexer.prototype.output = function (src) {
-        var out = '',
+        let out = '',
             link,
             text,
             href,
@@ -754,10 +754,10 @@ export const marked = function (root: unknown) {
 
             // link
             if ((cap = this.rules.link.exec(src))) {
-                var lastParenIndex = findClosingBracket(cap[2], '()');
+                const lastParenIndex = findClosingBracket(cap[2], '()');
                 if (lastParenIndex > -1) {
-                    var start = cap[0].indexOf('!') === 0 ? 5 : 4;
-                    var linkLen = start + cap[1].length + lastParenIndex;
+                    const start = cap[0].indexOf('!') === 0 ? 5 : 4;
+                    const linkLen = start + cap[1].length + lastParenIndex;
                     cap[2] = cap[2].substring(0, lastParenIndex);
                     cap[0] = cap[0].substring(0, linkLen).trim();
                     cap[3] = '';
@@ -910,7 +910,7 @@ export const marked = function (root: unknown) {
      */
 
     InlineLexer.prototype.outputLink = function (cap, link) {
-        var href = link.href,
+        const href = link.href,
             title = link.title ? escape(link.title) : null;
 
         return cap[0].charAt(0) !== '!'
@@ -949,7 +949,7 @@ export const marked = function (root: unknown) {
 
     InlineLexer.prototype.mangle = function (text) {
         if (!this.options.mangle) return text;
-        var out = '',
+        let out = '',
             l = text.length,
             i = 0,
             ch;
@@ -974,9 +974,9 @@ export const marked = function (root: unknown) {
     }
 
     Renderer.prototype.code = function (code, infostring, escaped) {
-        var lang = (infostring || '').match(/\S*/)[0];
+        const lang = (infostring || '').match(/\S*/)[0];
         if (this.options.highlight) {
-            var out = this.options.highlight(code, lang);
+            const out = this.options.highlight(code, lang);
             if (out != null && out !== code) {
                 escaped = true;
                 code = out;
@@ -1029,7 +1029,7 @@ export const marked = function (root: unknown) {
     };
 
     Renderer.prototype.list = function (body, ordered, start) {
-        var type = ordered ? 'ol' : 'ul',
+        const type = ordered ? 'ol' : 'ul',
             startatt = ordered && start !== 1 ? ' start="' + start + '"' : '';
         return '<' + type + startatt + '>\n' + body + '</' + type + '>\n';
     };
@@ -1063,8 +1063,8 @@ export const marked = function (root: unknown) {
     };
 
     Renderer.prototype.tablecell = function (content, flags) {
-        var type = flags.header ? 'th' : 'td';
-        var tag = flags.align ? '<' + type + ' align="' + flags.align + '">' : '<' + type + '>';
+        const type = flags.header ? 'th' : 'td';
+        const tag = flags.align ? '<' + type + ' align="' + flags.align + '">' : '<' + type + '>';
         return tag + content + '</' + type + '>\n';
     };
 
@@ -1094,7 +1094,7 @@ export const marked = function (root: unknown) {
         if (href === null) {
             return text;
         }
-        var out = '<a href="' + escape(href) + '"';
+        let out = '<a href="' + escape(href) + '"';
         if (title) {
             out += ' title="' + title + '"';
         }
@@ -1108,7 +1108,7 @@ export const marked = function (root: unknown) {
             return text;
         }
 
-        var out = '<img src="' + href + '" alt="' + text + '"';
+        let out = '<img src="' + href + '" alt="' + text + '"';
         if (title) {
             out += ' title="' + title + '"';
         }
@@ -1165,7 +1165,7 @@ export const marked = function (root: unknown) {
      */
 
     Parser.parse = function (src, options) {
-        var parser = new Parser(options);
+        const parser = new Parser(options);
         return parser.parse(src);
     };
 
@@ -1182,7 +1182,7 @@ export const marked = function (root: unknown) {
         );
         this.tokens = src.reverse();
 
-        var out = '';
+        let out = '';
         while (this.next()) {
             out += this.tok();
         }
@@ -1212,7 +1212,7 @@ export const marked = function (root: unknown) {
      */
 
     Parser.prototype.parseText = function () {
-        var body = this.token.text;
+        let body = this.token.text;
 
         while (this.peek().type === 'text') {
             body += '\n' + this.next().text;
@@ -1288,7 +1288,7 @@ export const marked = function (root: unknown) {
             }
             case 'list_start': {
                 body = '';
-                var ordered = this.token.ordered,
+                const ordered = this.token.ordered,
                     start = this.token.start;
 
                 while (this.next().type !== 'list_end') {
@@ -1299,14 +1299,14 @@ export const marked = function (root: unknown) {
             }
             case 'list_item_start': {
                 body = '';
-                var loose = this.token.loose;
-                var checked = this.token.checked;
-                var task = this.token.task;
+                const loose = this.token.loose;
+                const checked = this.token.checked;
+                const task = this.token.task;
 
                 if (this.token.task) {
                     if (loose) {
                         if (this.peek().type === 'text') {
-                            var nextToken = this.peek();
+                            const nextToken = this.peek();
                             nextToken.text = this.renderer.checkbox(checked) + ' ' + nextToken.text;
                         } else {
                             this.tokens.push({
@@ -1335,7 +1335,7 @@ export const marked = function (root: unknown) {
                 return this.renderer.paragraph(this.parseText());
             }
             default: {
-                var errMsg = 'Token with "' + this.token.type + '" type was not found.';
+                const errMsg = 'Token with "' + this.token.type + '" type was not found.';
                 if (this.options.silent) {
                     console.error(errMsg);
                 } else {
@@ -1358,14 +1358,14 @@ export const marked = function (root: unknown) {
      */
 
     Slugger.prototype.slug = function (value) {
-        var slug = value
+        let slug = value
             .toLowerCase()
             .trim()
             .replace(/[\u2000-\u206F\u2E00-\u2E7F\\'!"#$%&()*+,./:;<=>?@[\]^`{|}~]/g, '')
             .replace(/\s/g, '-');
 
         if (this.seen.hasOwnProperty(slug)) {
-            var originalSlug = slug;
+            const originalSlug = slug;
             do {
                 this.seen[originalSlug]++;
                 slug = originalSlug + '-' + this.seen[originalSlug];
@@ -1481,7 +1481,7 @@ export const marked = function (root: unknown) {
             }
         }
         base = baseUrls[' ' + base];
-        var relativeBase = base.indexOf(':') === -1;
+        const relativeBase = base.indexOf(':') === -1;
 
         if (href.slice(0, 2) === '//') {
             if (relativeBase) {
@@ -1504,7 +1504,7 @@ export const marked = function (root: unknown) {
     noop.exec = noop;
 
     function merge(obj: any, ...sources: any[]) {
-        var i = 0,
+        let i = 0,
             target,
             key;
 
@@ -1523,8 +1523,8 @@ export const marked = function (root: unknown) {
     function splitCells(tableRow, count) {
         // ensure that every cell-delimiting pipe has a space
         // before it to distinguish it from an escaped pipe
-        var row = tableRow.replace(/\|/g, function (match, offset, str) {
-                var escaped = false,
+        let row = tableRow.replace(/\|/g, function (match, offset, str) {
+                let escaped = false,
                     curr = offset;
                 while (--curr >= 0 && str[curr] === '\\') escaped = !escaped;
                 if (escaped) {
@@ -1561,11 +1561,11 @@ export const marked = function (root: unknown) {
         }
 
         // Length of suffix matching the invert condition.
-        var suffLen = 0;
+        let suffLen = 0;
 
         // Step left until we fail to match the invert condition.
         while (suffLen < str.length) {
-            var currChar = str.charAt(str.length - suffLen - 1);
+            const currChar = str.charAt(str.length - suffLen - 1);
             if (currChar === c && !invert) {
                 suffLen++;
             } else if (currChar !== c && invert) {
@@ -1582,8 +1582,8 @@ export const marked = function (root: unknown) {
         if (str.indexOf(b[1]) === -1) {
             return -1;
         }
-        var level = 0;
-        for (var i = 0; i < str.length; i++) {
+        let level = 0;
+        for (let i = 0; i < str.length; i++) {
             if (str[i] === '\\') {
                 i++;
             } else if (str[i] === b[0]) {
@@ -1632,7 +1632,7 @@ export const marked = function (root: unknown) {
             opt = merge({}, marked.defaults, opt || {});
             checkSanitizeDeprecation(opt);
 
-            var highlight = opt.highlight,
+            let highlight = opt.highlight,
                 tokens,
                 pending,
                 i = 0;
@@ -1645,13 +1645,13 @@ export const marked = function (root: unknown) {
 
             pending = tokens.length;
 
-            var done = function (err) {
+            const done = function (err) {
                 if (err) {
                     opt.highlight = highlight;
                     return callback(err);
                 }
 
-                var out;
+                let out;
 
                 try {
                     out = Parser.parse(tokens, opt);

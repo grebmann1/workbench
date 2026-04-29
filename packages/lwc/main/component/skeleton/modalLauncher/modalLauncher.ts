@@ -14,7 +14,7 @@ export default class ModalLauncher extends LightningModal {
 
     /** events **/
     handleSelectApplication = e => {
-        let application = e.detail;
+        const application = e.detail;
         if (application) {
             this.close(application);
         }

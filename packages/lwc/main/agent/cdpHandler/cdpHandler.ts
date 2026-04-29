@@ -1,5 +1,5 @@
-import LOGGER from 'shared/logger';
 import { GOOGLE_DRIVE_SCOPES } from 'agent/googleAuth';
+import LOGGER from 'shared/logger';
 
 /**
  * Chrome Debugger Bridge (CdpHandler)
@@ -276,8 +276,8 @@ export class CdpHandler {
         this.attachedTabId = null;
         this.stopGlowHeartbeat();
 
-            LOGGER.log('Sending CDP_CLOSE to sandbox for tab:', tabId);
-            this.postToSandbox({ type: 'CDP_CLOSE', tabId, reason: 'Debugger detached by cleanup' });
+        LOGGER.log('Sending CDP_CLOSE to sandbox for tab:', tabId);
+        this.postToSandbox({ type: 'CDP_CLOSE', tabId, reason: 'Debugger detached by cleanup' });
 
         const debuggerApi = getChromeDebuggerApi();
         this.removeGlowEffect(tabId)
@@ -602,7 +602,9 @@ export class CdpHandler {
             const tabId = message.tabId ?? this.attachedTabId;
             if (!tabId) return;
 
-            await getChromeDebuggerApi()?.detach({ tabId }).catch(() => {});
+            await getChromeDebuggerApi()
+                ?.detach({ tabId })
+                .catch(() => {});
             if (this.attachedTabId === tabId) this.attachedTabId = null;
             return;
         }
@@ -896,9 +898,15 @@ export class CdpHandler {
     async handleCloseTabRequest(id, tabId) {
         try {
             if (this.attachedTabId === tabId) {
-                await getChromeDebuggerApi()?.detach({ tabId }).catch(() => {});
+                await getChromeDebuggerApi()
+                    ?.detach({ tabId })
+                    .catch(() => {});
                 this.attachedTabId = null;
-                this.postToSandbox({ type: 'CDP_CLOSE', tabId, reason: 'Tab closed by closeTab()' });
+                this.postToSandbox({
+                    type: 'CDP_CLOSE',
+                    tabId,
+                    reason: 'Tab closed by closeTab()',
+                });
             }
 
             await chrome.tabs.remove(tabId);
@@ -928,7 +936,7 @@ export class CdpHandler {
     }
 
     async handleEvalResult(message) {
-        LOGGER.log('### [CdpHandler] handleEvalResult', {message});
+        LOGGER.log('### [CdpHandler] handleEvalResult', { message });
         const pending = this.pending.get(message.id);
         if (!pending) return;
 
@@ -948,7 +956,7 @@ export class CdpHandler {
     async handleFsOrBashRequest(message) {
         LOGGER.log('### [CdpHandler] handleFsOrBashRequest', message.type);
         const responseType = message.type.replace('_REQUEST', '_RESPONSE');
-        const respond = (payload) => {
+        const respond = payload => {
             this.postToSandbox({ ...payload, type: responseType, id: message.id });
         };
 
@@ -959,17 +967,19 @@ export class CdpHandler {
                 return;
             }
 
-            const quoteShell = (value) => {
+            const quoteShell = value => {
                 const text = String(value ?? '');
                 return `'${text.replace(/'/g, `'\\''`)}'`;
             };
 
-            const run = async (command) => {
+            const run = async command => {
                 const res = await bash.exec(command);
                 if (res?.exitCode !== 0) {
                     const stderr = res?.stderr ? String(res.stderr).trim() : '';
                     const stdout = res?.stdout ? String(res.stdout).trim() : '';
-                    throw new Error(stderr || stdout || `Command failed with exit code ${res?.exitCode}`);
+                    throw new Error(
+                        stderr || stdout || `Command failed with exit code ${res?.exitCode}`
+                    );
                 }
                 return res;
             };
@@ -982,15 +992,21 @@ export class CdpHandler {
                 }
                 case 'FS_WRITE_REQUEST': {
                     const { path, content } = message;
-                    const parentDir = path.includes('/') ? path.slice(0, path.lastIndexOf('/')) : '';
+                    const parentDir = path.includes('/')
+                        ? path.slice(0, path.lastIndexOf('/'))
+                        : '';
                     if (parentDir) await run(`mkdir -p -- ${quoteShell(parentDir)}`);
                     const delimiter = `__FS_WRITE_${Date.now()}_${Math.random().toString(16).slice(2)}__`;
-                    await run(`cat > ${quoteShell(path)} <<'${delimiter}'\n${content}\n${delimiter}`);
+                    await run(
+                        `cat > ${quoteShell(path)} <<'${delimiter}'\n${content}\n${delimiter}`
+                    );
                     respond({ success: true });
                     return;
                 }
                 case 'FS_LIST_REQUEST': {
-                    const res = await bash.exec(`ls -1a -- ${quoteShell(message.path)} 2>/dev/null`);
+                    const res = await bash.exec(
+                        `ls -1a -- ${quoteShell(message.path)} 2>/dev/null`
+                    );
                     const entries = (res.stdout ?? '')
                         .split('\n')
                         .map(e => e.trim())
@@ -1039,7 +1055,10 @@ export class CdpHandler {
                     return;
                 }
                 default: {
-                    respond({ success: false, error: `Unsupported FS/bash operation: ${message.type}` });
+                    respond({
+                        success: false,
+                        error: `Unsupported FS/bash operation: ${message.type}`,
+                    });
                 }
             }
         } catch (error) {
@@ -1100,7 +1119,9 @@ export class CdpHandler {
                 operation !== 'sheets.requestAccess' &&
                 !this.deps?.googleSheetEnabled
             ) {
-                throw new Error('Google Sheets is not enabled. Please enable it in Settings → AI → Tools.');
+                throw new Error(
+                    'Google Sheets is not enabled. Please enable it in Settings → AI → Tools.'
+                );
             }
 
             switch (operation) {
@@ -1164,7 +1185,7 @@ export class CdpHandler {
                     if (res?.exitCode !== 0) {
                         throw new Error(
                             (res?.stderr ? String(res.stderr).trim() : '') ||
-                            `cat failed with exit code ${res?.exitCode}`
+                                `cat failed with exit code ${res?.exitCode}`
                         );
                     }
                     respond({ success: true, result: { content: res.stdout ?? '' } });
@@ -1190,7 +1211,10 @@ export class CdpHandler {
                     return;
                 }
                 case 'sheets.requestAccess': {
-                    console.log('### [CdpHandler] sheets.requestAccess 1', this.deps?.googleSheetEnabled);
+                    console.log(
+                        '### [CdpHandler] sheets.requestAccess 1',
+                        this.deps?.googleSheetEnabled
+                    );
                     if (!this.deps?.googleSheetEnabled) {
                         respond({ success: true, result: { authorized: false } });
                         return;
@@ -1209,7 +1233,8 @@ export class CdpHandler {
                 }
                 case 'sheets.getSpreadsheet': {
                     const { spreadsheetId } = input;
-                    if (!spreadsheetId) throw new Error('sheets.getSpreadsheet requires spreadsheetId');
+                    if (!spreadsheetId)
+                        throw new Error('sheets.getSpreadsheet requires spreadsheetId');
                     const result = await this._googleSheetsRequest(
                         'GET',
                         `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(spreadsheetId)}`
@@ -1224,13 +1249,16 @@ export class CdpHandler {
                         'GET',
                         `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(spreadsheetId)}?fields=sheets.properties`
                     );
-                    const sheets = (data.sheets || []).map((s: any) => s.properties?.title).filter(Boolean);
+                    const sheets = (data.sheets || [])
+                        .map((s: any) => s.properties?.title)
+                        .filter(Boolean);
                     respond({ success: true, result: { sheets } });
                     return;
                 }
                 case 'sheets.readRange': {
                     const { spreadsheetId, range } = input;
-                    if (!spreadsheetId || !range) throw new Error('sheets.readRange requires spreadsheetId and range');
+                    if (!spreadsheetId || !range)
+                        throw new Error('sheets.readRange requires spreadsheetId and range');
                     const result = await this._googleSheetsRequest(
                         'GET',
                         `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(spreadsheetId)}/values/${encodeURIComponent(range)}`
@@ -1240,8 +1268,11 @@ export class CdpHandler {
                 }
                 case 'sheets.batchRead': {
                     const { spreadsheetId, ranges } = input;
-                    if (!spreadsheetId || !Array.isArray(ranges)) throw new Error('sheets.batchRead requires spreadsheetId and ranges array');
-                    const params = ranges.map((r: string) => `ranges=${encodeURIComponent(r)}`).join('&');
+                    if (!spreadsheetId || !Array.isArray(ranges))
+                        throw new Error('sheets.batchRead requires spreadsheetId and ranges array');
+                    const params = ranges
+                        .map((r: string) => `ranges=${encodeURIComponent(r)}`)
+                        .join('&');
                     const result = await this._googleSheetsRequest(
                         'GET',
                         `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(spreadsheetId)}/values:batchGet?${params}`
@@ -1250,8 +1281,16 @@ export class CdpHandler {
                     return;
                 }
                 case 'sheets.writeRange': {
-                    const { spreadsheetId, range, values, valueInputOption = 'USER_ENTERED' } = input;
-                    if (!spreadsheetId || !range || !values) throw new Error('sheets.writeRange requires spreadsheetId, range, and values');
+                    const {
+                        spreadsheetId,
+                        range,
+                        values,
+                        valueInputOption = 'USER_ENTERED',
+                    } = input;
+                    if (!spreadsheetId || !range || !values)
+                        throw new Error(
+                            'sheets.writeRange requires spreadsheetId, range, and values'
+                        );
                     const result = await this._googleSheetsRequest(
                         'PUT',
                         `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(spreadsheetId)}/values/${encodeURIComponent(range)}?valueInputOption=${valueInputOption}`,
@@ -1261,8 +1300,13 @@ export class CdpHandler {
                     return;
                 }
                 case 'sheets.batchWrite': {
-                    const { spreadsheetId, data: writeData, valueInputOption = 'USER_ENTERED' } = input;
-                    if (!spreadsheetId || !Array.isArray(writeData)) throw new Error('sheets.batchWrite requires spreadsheetId and data array');
+                    const {
+                        spreadsheetId,
+                        data: writeData,
+                        valueInputOption = 'USER_ENTERED',
+                    } = input;
+                    if (!spreadsheetId || !Array.isArray(writeData))
+                        throw new Error('sheets.batchWrite requires spreadsheetId and data array');
                     const result = await this._googleSheetsRequest(
                         'POST',
                         `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(spreadsheetId)}/values:batchUpdate`,
@@ -1272,8 +1316,16 @@ export class CdpHandler {
                     return;
                 }
                 case 'sheets.appendRows': {
-                    const { spreadsheetId, range, values, valueInputOption = 'USER_ENTERED' } = input;
-                    if (!spreadsheetId || !range || !values) throw new Error('sheets.appendRows requires spreadsheetId, range, and values');
+                    const {
+                        spreadsheetId,
+                        range,
+                        values,
+                        valueInputOption = 'USER_ENTERED',
+                    } = input;
+                    if (!spreadsheetId || !range || !values)
+                        throw new Error(
+                            'sheets.appendRows requires spreadsheetId, range, and values'
+                        );
                     const result = await this._googleSheetsRequest(
                         'POST',
                         `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(spreadsheetId)}/values/${encodeURIComponent(range)}:append?valueInputOption=${valueInputOption}&insertDataOption=INSERT_ROWS`,
@@ -1284,7 +1336,8 @@ export class CdpHandler {
                 }
                 case 'sheets.clearRange': {
                     const { spreadsheetId, range } = input;
-                    if (!spreadsheetId || !range) throw new Error('sheets.clearRange requires spreadsheetId and range');
+                    if (!spreadsheetId || !range)
+                        throw new Error('sheets.clearRange requires spreadsheetId and range');
                     const result = await this._googleSheetsRequest(
                         'POST',
                         `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(spreadsheetId)}/values/${encodeURIComponent(range)}:clear`,
@@ -1295,7 +1348,10 @@ export class CdpHandler {
                 }
                 case 'sheets.batchClear': {
                     const { spreadsheetId, ranges } = input;
-                    if (!spreadsheetId || !Array.isArray(ranges)) throw new Error('sheets.batchClear requires spreadsheetId and ranges array');
+                    if (!spreadsheetId || !Array.isArray(ranges))
+                        throw new Error(
+                            'sheets.batchClear requires spreadsheetId and ranges array'
+                        );
                     const result = await this._googleSheetsRequest(
                         'POST',
                         `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(spreadsheetId)}/values:batchClear`,
@@ -1308,15 +1364,24 @@ export class CdpHandler {
                     const { title, sheets: sheetDefs } = input;
                     const body: any = { properties: { title: title || 'Untitled' } };
                     if (Array.isArray(sheetDefs) && sheetDefs.length > 0) {
-                        body.sheets = sheetDefs.map((name: string) => ({ properties: { title: name } }));
+                        body.sheets = sheetDefs.map((name: string) => ({
+                            properties: { title: name },
+                        }));
                     }
-                    const result = await this._googleSheetsRequest('POST', 'https://sheets.googleapis.com/v4/spreadsheets', body);
+                    const result = await this._googleSheetsRequest(
+                        'POST',
+                        'https://sheets.googleapis.com/v4/spreadsheets',
+                        body
+                    );
                     respond({ success: true, result });
                     return;
                 }
                 case 'sheets.batchUpdate': {
                     const { spreadsheetId, requests } = input;
-                    if (!spreadsheetId || !Array.isArray(requests)) throw new Error('sheets.batchUpdate requires spreadsheetId and requests array');
+                    if (!spreadsheetId || !Array.isArray(requests))
+                        throw new Error(
+                            'sheets.batchUpdate requires spreadsheetId and requests array'
+                        );
                     const result = await this._googleSheetsRequest(
                         'POST',
                         `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(spreadsheetId)}:batchUpdate`,
@@ -1327,7 +1392,10 @@ export class CdpHandler {
                 }
                 case 'sheets.setFormat': {
                     const { spreadsheetId, requests: formatRequests } = input;
-                    if (!spreadsheetId || !Array.isArray(formatRequests)) throw new Error('sheets.setFormat requires spreadsheetId and requests array');
+                    if (!spreadsheetId || !Array.isArray(formatRequests))
+                        throw new Error(
+                            'sheets.setFormat requires spreadsheetId and requests array'
+                        );
                     const result = await this._googleSheetsRequest(
                         'POST',
                         `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(spreadsheetId)}:batchUpdate`,
@@ -1343,7 +1411,9 @@ export class CdpHandler {
                     }
                     const apiKey = this.deps?.brightDataApiKey;
                     if (!apiKey) {
-                        throw new Error('Bright Data API key is not configured. Please add it in Settings > AI > Tools.');
+                        throw new Error(
+                            'Bright Data API key is not configured. Please add it in Settings > AI > Tools.'
+                        );
                     }
                     const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(query)}&hl=en${country ? `&gl=${country}` : ''}`;
                     const body: Record<string, unknown> = {
@@ -1386,10 +1456,12 @@ export class CdpHandler {
         return new Promise((resolve, reject) => {
             chrome.identity.getAuthToken({ interactive, scopes: GOOGLE_DRIVE_SCOPES }, token => {
                 if (chrome.runtime.lastError || !token) {
-                    reject(new Error(
-                        chrome.runtime.lastError?.message ||
-                        'Not authorized. Please connect to Google in Settings.'
-                    ));
+                    reject(
+                        new Error(
+                            chrome.runtime.lastError?.message ||
+                                'Not authorized. Please connect to Google in Settings.'
+                        )
+                    );
                 } else {
                     resolve(token as string);
                 }
@@ -1412,7 +1484,9 @@ export class CdpHandler {
         const response = await fetch(url, init);
         if (response.status === 401) {
             // Token is expired or revoked — invalidate and surface a clear error
-            await new Promise<void>(resolve => chrome.identity.removeCachedAuthToken({ token }, resolve));
+            await new Promise<void>(resolve =>
+                chrome.identity.removeCachedAuthToken({ token }, resolve)
+            );
             throw new Error('Google token expired. Please reconnect to Google in Settings.');
         }
         if (!response.ok) {

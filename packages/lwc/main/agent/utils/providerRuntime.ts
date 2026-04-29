@@ -1,8 +1,8 @@
 import { createAnthropic } from '@ai-sdk/anthropic';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { createOpenAI } from '@ai-sdk/openai';
-import { createXai } from '@ai-sdk/xai';
 import type { LanguageModelV3 } from '@ai-sdk/provider';
+import { createXai } from '@ai-sdk/xai';
 import { DEFAULT_PROVIDER_BASE_URLS, normalizeLlmProvider } from 'shared/llm';
 
 type ModelResolver = (modelId: string) => LanguageModelV3;
@@ -21,16 +21,14 @@ function normalizeBaseUrl(value: unknown) {
 }
 
 function createSanitizedFetch(isInternal = false) {
-    return (url, options) =>
-    {
+    return (url, options) => {
         let formattedUrl = url;
         if (isInternal) {
             // just keep the domain and add '/responses'
             const urlObj = new URL(url);
             formattedUrl = `${urlObj.origin}/responses`;
-    
         }
-   
+
         return fetch(formattedUrl, {
             ...options,
             credentials: 'omit',
@@ -40,7 +38,7 @@ function createSanitizedFetch(isInternal = false) {
                 ),
             },
         });
-    }
+    };
 }
 
 function resolveGoogleBaseUrl(baseUrl: unknown) {
@@ -59,7 +57,10 @@ function resolveGoogleBaseUrl(baseUrl: unknown) {
     return withoutOpenAiSuffix;
 }
 
-function resolveProviderRuntimeBaseUrl(provider: ReturnType<typeof normalizeLlmProvider>, baseUrl: unknown) {
+function resolveProviderRuntimeBaseUrl(
+    provider: ReturnType<typeof normalizeLlmProvider>,
+    baseUrl: unknown
+) {
     const normalizedBaseUrl = normalizeBaseUrl(baseUrl);
     if (provider === 'gemini') {
         return resolveGoogleBaseUrl(normalizedBaseUrl);

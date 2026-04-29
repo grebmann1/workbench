@@ -1,7 +1,7 @@
 import LightningModal from 'lightning/modal';
+import Toast from 'lightning/toast';
 import { api } from 'lwc';
 import { isEmpty, isUndefinedOrNull, isNotUndefinedOrNull } from 'shared/utils';
-import Toast from 'lightning/toast';
 
 export default class EditorModal extends LightningModal {
     @api alias: string | null = null;
@@ -32,7 +32,7 @@ export default class EditorModal extends LightningModal {
 
     loadCache = async (): Promise<void> => {
         try {
-            let key = `${this.alias}-platformevent-script`;
+            const key = `${this.alias}-platformevent-script`;
             const _script = await window.defaultStore.getItem(key);
             if (!isEmpty(_script)) {
                 this.apexScript = _script;
@@ -92,7 +92,7 @@ export default class EditorModal extends LightningModal {
     handleEditorChange = (e: any): void => {
         //console.log('handleEditorChange',e.detail);
         this.apexScript = e.detail.value;
-        let key = `${this.alias}-platformevent-script`;
+        const key = `${this.alias}-platformevent-script`;
         window.defaultStore.setItem(key, this.apexScript);
     };
 

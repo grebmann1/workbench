@@ -1,5 +1,6 @@
-import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { test } from 'node:test';
+
 import {
     pickRemoteStamp,
     hashText,
@@ -46,7 +47,7 @@ test('pickRemoteStamp: prefers SystemModstamp', () => {
             LastModifiedDate: 'B',
             LastModifieddate: 'C',
         }),
-        'A',
+        'A'
     );
 });
 

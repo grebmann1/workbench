@@ -21,7 +21,7 @@ const formatConfigurations = configurations => {
 };
 
 export async function getConfiguration(alias) {
-    let configurations = await getConnectionsFromCache();
+    const configurations = await getConnectionsFromCache();
     return configurations.find(x => x.alias === alias);
 }
 
@@ -30,7 +30,7 @@ export async function saveConfiguration(alias, configuration) {
         return;
     }
     let configurations = await getConnectionsFromCache();
-    let index = configurations.findIndex(x => x.alias === alias);
+    const index = configurations.findIndex(x => x.alias === alias);
     const existing = index >= 0 ? configurations[index] : null;
     const preferDefined = (nextValue, fallbackValue) =>
         isNotUndefinedOrNull(nextValue) ? nextValue : fallbackValue;
@@ -125,17 +125,17 @@ export async function getConfigurations() {
     configurations = configurations
         .filter(x => isNotUndefinedOrNull(x))
         .map(x => {
-            let instanceUrl =
+            const instanceUrl =
                 x.instanceUrl && !x.instanceUrl.startsWith('http')
                     ? `https://${x.instanceUrl}`
                     : x.instanceUrl;
-            let sfdxAuthUrl =
+            const sfdxAuthUrl =
                 x.refreshToken && x.instanceUrl && window.jsforceSettings
                     ? `force://${window.jsforceSettings?.clientId}::${x.refreshToken}@${
                           new URL(x.instanceUrl).host
                       }`
                     : null;
-            let _isRedirect = !isEmpty(x.redirectUrl);
+            const _isRedirect = !isEmpty(x.redirectUrl);
 
             return {
                 ...x,

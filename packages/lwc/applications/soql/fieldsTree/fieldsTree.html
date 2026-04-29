@@ -10,7 +10,8 @@
         </template>
         <template lwc:else>
             <div class="fields-tree-wrapper">
-                <slds-file-tree class="slds-flex-column slds-full-height"
+                <slds-file-tree
+                    class="slds-flex-column slds-full-height"
                     tree={computedTree}
                     selected-id={selectedId}
                     onselect={handleTreeSelect}

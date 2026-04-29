@@ -6,7 +6,10 @@
             <div class="slds-grid slds-grid_align-spread">
                 <template lwc:if={isInfoDisplayed}>
                     <!-- INFO Mode -->
-                    <span class="slds-scrollable_x type-badge" lwc:dom="manual" lwc:ref="type"></span>
+                    <span
+                        class="slds-scrollable_x type-badge"
+                        lwc:dom="manual"
+                        lwc:ref="type"></span>
                 </template>
                 <template lwc:else>
                     <!-- VALUE Mode -->
@@ -79,10 +82,7 @@
                         </template>
                     </template>
                     <template lwc:if={isCopyDisplayed}>
-                        <button
-                            class="row-icon-btn"
-                            onclick={handleCopyClick}
-                            title="Copy value">
+                        <button class="row-icon-btn" onclick={handleCopyClick} title="Copy value">
                             <slds-lucide-icon
                                 name="clipboard-copy"
                                 size="13"

@@ -22,5 +22,5 @@
         "resolveJsonModule": true
     },
     "include": ["**/*.ts", "types/**/*.d.ts"],
-    "exclude": ["assets", "dist", "node_modules"]
+    "exclude": ["assets", "dist", "node_modules", "**/__tests__/**", "**/*.test.ts"]
 }

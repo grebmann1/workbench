@@ -1,16 +1,5 @@
 import { api, track, wire } from 'lwc';
 import ToolkitElement from 'host-api/element';
-import {
-    lowerCaseKey,
-    isUndefinedOrNull,
-    isNotUndefinedOrNull,
-    isEmpty,
-    guid,
-    classSet,
-    runActionAfterTimeOut,
-    compareString,
-    splitTextByTimestamp,
-} from 'shared/utils';
 import { store, connectStore, injectReducer } from 'host-api/store';
 import { PACKAGE } from 'package/slices';
 import { store_application, store as legacyStore } from 'shared/store';
@@ -24,6 +13,17 @@ function bootstrapPackageExtension() {
 bootstrapPackageExtension();
 import Toast from 'lightning/toast';
 import Analytics from 'shared/analytics';
+import {
+    lowerCaseKey,
+    isUndefinedOrNull,
+    isNotUndefinedOrNull,
+    isEmpty,
+    guid,
+    classSet,
+    runActionAfterTimeOut,
+    compareString,
+    splitTextByTimestamp,
+} from 'shared/utils';
 
 type AnyRecord = Record<string, any>;
 

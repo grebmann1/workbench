@@ -1,5 +1,6 @@
-import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { test } from 'node:test';
+
 import {
     buildUserMessageParts,
     createUserModelMessage,
@@ -33,7 +34,11 @@ test('buildUserMessageParts: non-image with base64 data URL becomes a file part'
     const parts = buildUserMessageParts({
         text: '',
         filesData: [
-            { type: 'application/pdf', content: 'data:application/pdf;base64,ZmFrZQ==', name: 'a.pdf' },
+            {
+                type: 'application/pdf',
+                content: 'data:application/pdf;base64,ZmFrZQ==',
+                name: 'a.pdf',
+            },
         ],
     });
     assert.equal(parts.length, 1);

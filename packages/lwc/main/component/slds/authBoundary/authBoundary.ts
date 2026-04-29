@@ -1,5 +1,3 @@
-import { api, wire } from 'lwc';
-import ToolkitElement from 'core/toolkitElement';
 import {
     connectSessionFromBackgroundResult,
     credentialStrategies,
@@ -7,9 +5,12 @@ import {
     OAUTH_TYPES,
 } from 'core/connector';
 import { connectStore, store, APPLICATION } from 'core/store';
+import ToolkitElement from 'core/toolkitElement';
+import { api, wire } from 'lwc';
 import LOGGER from 'shared/logger';
 import { isChromeExtension } from 'shared/utils';
 import SessionRecoveryModal, { RESULT as SESSION_RECOVERY_RESULT } from 'slds/sessionRecoveryModal';
+
 import {
     DEFAULT_SUBTITLE,
     DEFAULT_TITLE,

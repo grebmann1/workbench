@@ -1,3 +1,5 @@
+import { isRecord } from 'shared/utils';
+
 import {
     DEFAULT_LLM_PROVIDER,
     DEFAULT_PROVIDER_BASE_URLS,
@@ -12,7 +14,6 @@ import {
     type LlmProviderConfig,
     type LlmProviderConfigMap,
 } from './constants';
-import { isRecord } from 'shared/utils';
 
 function getInternalModelsForProvider(provider: LlmProvider) {
     return INTERNAL_MODEL_OPTIONS.filter(model => model.provider === provider);

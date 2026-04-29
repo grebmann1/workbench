@@ -1,7 +1,7 @@
 import LOGGER from 'shared/logger';
-import { Connector } from './connectorClass';
-import type { ConnectorLike } from './connector';
 
+import type { ConnectorLike } from './connector';
+import { Connector } from './connectorClass';
 import { OAUTH_TYPES } from './credentialStrategies/oauthTypes';
 import { saveConfiguration } from './web';
 

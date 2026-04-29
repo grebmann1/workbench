@@ -136,14 +136,18 @@
                                     class="footer-error-details-row footer-error-details-row-message">
                                     <dt class="footer-error-details-label">Message</dt>
                                     <dd class="footer-error-details-value">
-                                        <pre class="footer-error-pre footer-error-pre-message">{selectedError.message}</pre>
+                                        <pre class="footer-error-pre footer-error-pre-message">
+{selectedError.message}</pre
+                                        >
                                     </dd>
                                 </div>
                                 <div
                                     class="footer-error-details-row footer-error-details-row-details">
                                     <dt class="footer-error-details-label">Details</dt>
                                     <dd class="footer-error-details-value">
-                                        <pre class="footer-error-pre footer-error-pre-details">{selectedError.details}</pre>
+                                        <pre class="footer-error-pre footer-error-pre-details">
+{selectedError.details}</pre
+                                        >
                                     </dd>
                                 </div>
                             </dl>
@@ -210,18 +214,26 @@
                                     tabindex="0">
                                     <span class="footer-job-list-meta">
                                         <span class="footer-job-list-time">{job.shortTime}</span>
-                                        <span class="footer-job-list-source">{job.categoryLabel}</span>
-                                        <span class="footer-job-list-status">{job.statusLabel}</span>
+                                        <span class="footer-job-list-source">
+                                            {job.categoryLabel}
+                                        </span>
+                                        <span class="footer-job-list-status">
+                                            {job.statusLabel}
+                                        </span>
                                         <template lwc:if={job.phaseLabel}>
                                             <span class="footer-job-list-phase">
                                                 {job.phaseLabel}
                                             </span>
                                         </template>
                                         <template lwc:if={job.elapsedLabel}>
-                                            <span class="footer-job-list-progress">{job.elapsedLabel}</span>
+                                            <span class="footer-job-list-progress">
+                                                {job.elapsedLabel}
+                                            </span>
                                         </template>
                                     </span>
-                                    <span class="footer-job-list-message">{job.displayMessage}</span>
+                                    <span class="footer-job-list-message">
+                                        {job.displayMessage}
+                                    </span>
                                 </li>
                             </template>
                         </ul>
@@ -247,7 +259,9 @@
                                 <template lwc:if={selectedJob.phase}>
                                     <div class="footer-job-details-row">
                                         <dt class="footer-job-details-label">Phase</dt>
-                                        <dd class="footer-job-details-value">{selectedJob.phase}</dd>
+                                        <dd class="footer-job-details-value">
+                                            {selectedJob.phase}
+                                        </dd>
                                     </div>
                                 </template>
                                 <template lwc:if={selectedJobElapsedLabel}>
@@ -269,7 +283,9 @@
                                 <div class="footer-job-details-row footer-job-details-row-message">
                                     <dt class="footer-job-details-label">Message</dt>
                                     <dd class="footer-job-details-value">
-                                        <pre class="footer-job-pre footer-job-pre-message">{selectedJob.message}</pre>
+                                        <pre class="footer-job-pre footer-job-pre-message">
+{selectedJob.message}</pre
+                                        >
                                     </dd>
                                 </div>
                                 <template lwc:if={selectedJob.error}>
@@ -277,7 +293,9 @@
                                         class="footer-job-details-row footer-job-details-row-message">
                                         <dt class="footer-job-details-label">Error</dt>
                                         <dd class="footer-job-details-value">
-                                            <pre class="footer-job-pre footer-job-pre-details">{selectedJob.error}</pre>
+                                            <pre class="footer-job-pre footer-job-pre-details">
+{selectedJob.error}</pre
+                                            >
                                         </dd>
                                     </div>
                                 </template>
@@ -294,7 +312,9 @@
                                         <dt class="footer-job-details-label">Actions</dt>
                                         <dd class="footer-job-details-value">
                                             <lightning-button-group>
-                                                <template for:each={selectedJobActions} for:item="action">
+                                                <template
+                                                    for:each={selectedJobActions}
+                                                    for:item="action">
                                                     <lightning-button
                                                         key={action.id}
                                                         label={action.label}

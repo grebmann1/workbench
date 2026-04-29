@@ -182,7 +182,8 @@ export default class InputWithDropDown extends LightningElement {
     }
 
     highLightOption(options) {
-        let classes = 'slds-media slds-listbox__option slds-listbox__option_plain slds-media_small';
+        const classes =
+            'slds-media slds-listbox__option slds-listbox__option_plain slds-media_small';
 
         return options.map((option, index) => {
             let cs = classes;
@@ -228,7 +229,7 @@ export default class InputWithDropDown extends LightningElement {
     }
 
     get classes() {
-        let classes = 'slds-combobox slds-dropdown-trigger slds-dropdown-trigger_click';
+        const classes = 'slds-combobox slds-dropdown-trigger slds-dropdown-trigger_click';
         if (this.isOpen) {
             return classes + ' slds-is-open';
         }
@@ -236,7 +237,7 @@ export default class InputWithDropDown extends LightningElement {
     }
 
     get inputClasses() {
-        let inputClasses = 'slds-input slds-combobox__input';
+        const inputClasses = 'slds-input slds-combobox__input';
         if (this.isOpen) {
             return inputClasses + ' slds-has-focus';
         }

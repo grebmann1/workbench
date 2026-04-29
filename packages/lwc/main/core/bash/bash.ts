@@ -5,9 +5,8 @@
  * Requires: npm install just-bash
  */
 
-import { Bash } from 'just-bash';
-
 import { getIndexedDbFileSystem } from 'core/fs';
+import { Bash } from 'just-bash';
 
 /**
  * Creates a Bash instance with:

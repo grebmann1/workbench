@@ -1,10 +1,7 @@
-import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { test } from 'node:test';
 
-import {
-    getSupportedBuiltInToolTypes,
-    filterToolsByModel,
-} from '../modules/modelToolSupport.ts';
+import { getSupportedBuiltInToolTypes, filterToolsByModel } from '../modules/modelToolSupport.ts';
 
 test('getSupportedBuiltInToolTypes: known family returns the exact set', () => {
     const set = getSupportedBuiltInToolTypes('gpt-5-mini');

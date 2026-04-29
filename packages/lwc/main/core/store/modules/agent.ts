@@ -1,5 +1,11 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import type { ModelMessage } from 'ai';
+import {
+    type ProcessMessageStepStart,
+    type ProcessMessageToolStart,
+    type ProcessMessageError,
+    type ProcessMessageStepFinish,
+    type ProcessMessageToolFinish,
+} from 'agent/Agent';
 import {
     Constants,
     DEFAULT_MODEL,
@@ -7,6 +13,7 @@ import {
     MODELS,
     REASONING_OPTIONS,
 } from 'agent/utils';
+import type { ModelMessage } from 'ai';
 import {
     CACHE_CONFIG,
     loadExtensionConfigFromCache,
@@ -16,14 +23,8 @@ import {
 } from 'shared/cacheManager';
 import LOGGER from 'shared/logger';
 import { guid, isNotUndefinedOrNull } from 'shared/utils';
+
 import * as ERROR from './error';
-import {
-    type ProcessMessageStepStart,
-    type ProcessMessageToolStart,
-    type ProcessMessageError,
-    type ProcessMessageStepFinish,
-    type ProcessMessageToolFinish,
-} from 'agent/Agent';
 
 export interface Conversation {
     id: string;

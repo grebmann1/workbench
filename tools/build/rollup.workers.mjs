@@ -1,13 +1,14 @@
 import path from 'path';
+
 import { transformSync } from '@babel/core';
 import syntaxDecorators from '@babel/plugin-syntax-decorators';
 import transformTypescript from '@babel/plugin-transform-typescript';
-import resolve from '@rollup/plugin-node-resolve';
-import commonjs from '@rollup/plugin-commonjs';
-import babel from '@rollup/plugin-babel';
-import json from '@rollup/plugin-json';
-import inject from '@rollup/plugin-inject';
 import alias from '@rollup/plugin-alias';
+import babel from '@rollup/plugin-babel';
+import commonjs from '@rollup/plugin-commonjs';
+import inject from '@rollup/plugin-inject';
+import json from '@rollup/plugin-json';
+import resolve from '@rollup/plugin-node-resolve';
 import nodePolyfills from 'rollup-plugin-polyfill-node';
 
 const stripTypescript = () => ({

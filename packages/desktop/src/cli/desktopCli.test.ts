@@ -1,5 +1,5 @@
-import fs from 'node:fs';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import test from 'node:test';
 
 import { parseCliArgs, resolveElectronBinary } from './desktopCli';
@@ -154,7 +154,8 @@ test('parseCliArgs supports sf api request commands', () => {
 
 test('parseCliArgs supports sfdx auth URLs from files', () => {
     assert.deepEqual(
-        parseCliArgs(['open', 'org', '--alias', 'demo-org', '--sfdx-url-file', '/tmp/org-url']).command,
+        parseCliArgs(['open', 'org', '--alias', 'demo-org', '--sfdx-url-file', '/tmp/org-url'])
+            .command,
         {
             v: 2,
             type: 'openOrg',

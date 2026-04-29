@@ -1,11 +1,10 @@
-import Toast from 'lightning/toast';
-
 import { credentialStrategies, OAUTH_TYPES, getConfiguration } from 'core/connector';
+import { notifyDesktopLimitedModeStatus } from 'core/desktopBridge';
 import { store, APPLICATION } from 'core/store';
+import Toast from 'lightning/toast';
 import { navigate } from 'lwr/navigation';
 import LOGGER from 'shared/logger';
 import { isNotUndefinedOrNull, isElectronApp } from 'shared/utils';
-import { notifyDesktopLimitedModeStatus } from 'core/desktopBridge';
 
 import { handleRedirect } from './utils';
 
@@ -42,7 +41,7 @@ export async function loadLimitedMode(context) {
 
         if (isNotUndefinedOrNull(alias)) {
             LOGGER.debug('load_limitedMode - OAUTH');
-            let configuration = await getConfiguration(alias);
+            const configuration = await getConfiguration(alias);
             if (configuration && configuration.credentialType === OAUTH_TYPES.OAUTH) {
                 if (isElectronApp() && configuration.accessToken && configuration.instanceUrl) {
                     connector = await credentialStrategies.SESSION.connect({
@@ -120,18 +119,11 @@ export async function loadLimitedMode(context) {
  * @param {Function} handleNavigation - Handler for navigation after load
  */
 export async function loadFullMode(context) {
-    const {
-        sessionId,
-        serverUrl,
-        redirectUrl,
-        navContext,
-        targetPage,
-        loadModule,
-    } = context;
+    const { sessionId, serverUrl, redirectUrl, navContext, targetPage, loadModule } = context;
 
     try {
         if (isNotUndefinedOrNull(sessionId) && isNotUndefinedOrNull(serverUrl)) {
-            let connector = await credentialStrategies.SESSION.connect({
+            const connector = await credentialStrategies.SESSION.connect({
                 sessionId,
                 serverUrl,
             });

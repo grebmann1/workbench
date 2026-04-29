@@ -1,4 +1,5 @@
 import crypto from 'node:crypto';
+
 import type { Application, NextFunction, Request, Response } from 'express';
 
 function googleCors(_req: Request, res: Response, next: NextFunction) {
@@ -31,11 +32,11 @@ let _signingSecret = '';
 function getSigningSecret(): string {
     if (!_signingSecret) {
         _signingSecret =
-            process.env.GOOGLE_SESSION_SECRET ||
-            process.env.GOOGLE_CLIENT_SECRET_WEB ||
-            '';
+            process.env.GOOGLE_SESSION_SECRET || process.env.GOOGLE_CLIENT_SECRET_WEB || '';
         if (!_signingSecret) {
-            console.warn('[googleAuth] No signing secret found — sessions will not survive process restarts');
+            console.warn(
+                '[googleAuth] No signing secret found — sessions will not survive process restarts'
+            );
         }
     }
     return _signingSecret;
@@ -53,16 +54,27 @@ export function validateSession(token: string): GoogleSession | null {
     if (dot === -1) return null;
     const payload = token.slice(0, dot);
     const sig = token.slice(dot + 1);
-    const expected = crypto.createHmac('sha256', getSigningSecret()).update(payload).digest('base64url');
+    const expected = crypto
+        .createHmac('sha256', getSigningSecret())
+        .update(payload)
+        .digest('base64url');
     try {
-        if (!crypto.timingSafeEqual(Buffer.from(sig, 'base64url'), Buffer.from(expected, 'base64url'))) {
+        if (
+            !crypto.timingSafeEqual(
+                Buffer.from(sig, 'base64url'),
+                Buffer.from(expected, 'base64url')
+            )
+        ) {
             return null;
         }
     } catch {
         return null;
     }
     try {
-        const data = JSON.parse(Buffer.from(payload, 'base64url').toString()) as Omit<GoogleSession, 'sessionToken'>;
+        const data = JSON.parse(Buffer.from(payload, 'base64url').toString()) as Omit<
+            GoogleSession,
+            'sessionToken'
+        >;
         if (!data || data.expiresAt <= Date.now()) return null;
         return { ...data, sessionToken: token };
     } catch {

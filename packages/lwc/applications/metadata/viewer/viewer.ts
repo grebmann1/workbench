@@ -1,5 +1,5 @@
-import { api, track } from 'lwc';
 import ToolkitElement from 'host-api/element';
+import { api, track } from 'lwc';
 import {
     isEmpty,
     isSalesforceId,
@@ -98,7 +98,10 @@ export default class Viewer extends ToolkitElement {
     extractFieldsFromArray = (
         key: string,
         records: any[]
-    ): { rows: Array<Record<string, any>> | undefined; header: Array<Record<string, any>> | undefined } => {
+    ): {
+        rows: Array<Record<string, any>> | undefined;
+        header: Array<Record<string, any>> | undefined;
+    } => {
         let header;
         let rows;
         if (records.length == 0) return { rows, header };

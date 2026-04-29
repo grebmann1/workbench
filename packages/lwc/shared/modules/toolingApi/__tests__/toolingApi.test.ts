@@ -1,7 +1,9 @@
-import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createToolingClient } from '../toolingApi.ts';
+import { test } from 'node:test';
+
 import { HttpError } from 'shared/types';
+
+import { createToolingClient } from '../toolingApi.ts';
 
 function makeJsforceConnection(overrides: Record<string, unknown> = {}) {
     const queryRuns: string[] = [];
@@ -130,11 +132,7 @@ test('jsforce path: requestText stringifies non-string responses', async () => {
 
 // --- fetch-mode tests ---------------------------------------------------
 
-function mockFetch(response: {
-    ok?: boolean;
-    status?: number;
-    text: string;
-}) {
+function mockFetch(response: { ok?: boolean; status?: number; text: string }) {
     const calls: Array<{ url: string; init: RequestInit | undefined }> = [];
     const original = globalThis.fetch;
     (globalThis as unknown as { fetch: unknown }).fetch = async (
@@ -214,16 +212,13 @@ test('fetch-mode: requestJson raises HttpError on non-ok status', async () => {
             instanceUrl: 'foo.my.salesforce.com',
             accessToken: 'abc',
         });
-        await assert.rejects(
-            client.requestJson('/query'),
-            (err: unknown) => {
-                assert.ok(err instanceof HttpError);
-                assert.equal((err as HttpError).status, 400);
-                assert.match((err as Error).message, /INVALID/);
-                assert.match((err as Error).message, /bad/);
-                return true;
-            }
-        );
+        await assert.rejects(client.requestJson('/query'), (err: unknown) => {
+            assert.ok(err instanceof HttpError);
+            assert.equal((err as HttpError).status, 400);
+            assert.match((err as Error).message, /INVALID/);
+            assert.match((err as Error).message, /bad/);
+            return true;
+        });
     } finally {
         restore();
     }

@@ -1,5 +1,6 @@
-import { api, track } from 'lwc';
 import ToolkitElement from 'host-api/element';
+import { api, track } from 'lwc';
+import { store as legacyStore, store_application } from 'shared/store';
 import {
     isEmpty,
     isSalesforceId,
@@ -7,7 +8,6 @@ import {
     isUndefinedOrNull,
     isNotUndefinedOrNull,
 } from 'shared/utils';
-import { store as legacyStore, store_application } from 'shared/store';
 
 export default class StructureViewerItem extends ToolkitElement {
     @api title;
@@ -44,8 +44,8 @@ export default class StructureViewerItem extends ToolkitElement {
     expandAll = () => {
         this.isOpen = true;
         window.setTimeout(() => {
-            var items = this.template.querySelectorAll('metadata-structure-viewer-item');
-            for (var i = 0; i < items.length; i++) {
+            const items = this.template.querySelectorAll('metadata-structure-viewer-item');
+            for (let i = 0; i < items.length; i++) {
                 items[i].expandAll();
             }
         }, 1);
@@ -55,8 +55,8 @@ export default class StructureViewerItem extends ToolkitElement {
     collapseAll = () => {
         this.isOpen = false;
         window.setTimeout(() => {
-            var items = this.template.querySelectorAll('metadata-structure-viewer-item');
-            for (var i = 0; i < items.length; i++) {
+            const items = this.template.querySelectorAll('metadata-structure-viewer-item');
+            for (let i = 0; i < items.length; i++) {
                 items[i].collapseAll();
             }
         }, 1);

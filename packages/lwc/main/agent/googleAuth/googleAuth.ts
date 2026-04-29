@@ -1,4 +1,5 @@
 import { api, track, LightningElement } from 'lwc';
+
 import { GOOGLE_SIGNIN_SCOPES, GOOGLE_DRIVE_SCOPES } from './constants.js';
 
 export { GOOGLE_SIGNIN_SCOPES, GOOGLE_DRIVE_SCOPES } from './constants.js';
@@ -39,7 +40,10 @@ export default class GoogleAuth extends LightningElement {
                     return;
                 }
                 this.dispatchEvent(
-                    new CustomEvent('driveconnected', { detail: { accessToken: token }, bubbles: true })
+                    new CustomEvent('driveconnected', {
+                        detail: { accessToken: token },
+                        bubbles: true,
+                    })
                 );
             }
         );
@@ -80,7 +84,12 @@ export default class GoogleAuth extends LightningElement {
             this.isLoading = false;
             this.dispatchEvent(
                 new CustomEvent('authenticated', {
-                    detail: { token: data.token, email: data.email, name: data.name, picture: data.picture } as GoogleUser,
+                    detail: {
+                        token: data.token,
+                        email: data.email,
+                        name: data.name,
+                        picture: data.picture,
+                    } as GoogleUser,
                     bubbles: true,
                 })
             );

@@ -1,8 +1,8 @@
+import type { ConnectorLike } from 'core/connector';
 import { store } from 'core/store';
 import LOGGER from 'shared/logger';
 import { store as legacyStore, store_application as legacyStore_application } from 'shared/store';
 import { guid, isChromeExtension, getChromePort } from 'shared/utils';
-import type { ConnectorLike } from 'core/connector';
 
 export function formatTabId(tabId, tabs) {
     LOGGER.log('Tool -> utils -> formatTabId', tabId, tabs);
@@ -28,7 +28,7 @@ export function waitForLoaded() {
 }
 
 export function wrappedNavigate(payload) {
-    let formattedPayload = `sftoolkit:${JSON.stringify({
+    const formattedPayload = `sftoolkit:${JSON.stringify({
         type: 'application',
         state: payload,
     })}`;
@@ -52,7 +52,7 @@ export async function openToolkit({
     });
 
     LOGGER.log('openToolkit', connector, redirect);
-    let url = new URL(
+    const url = new URL(
         isChromeExtension()
             ? chrome.runtime.getURL('/views/app.html')
             : 'https://www.sf-workbench.com/extension'
@@ -84,7 +84,7 @@ export async function openToolkit({
         }
     }
     if (!isChromeProcessSuccess) {
-        let params = new URLSearchParams();
+        const params = new URLSearchParams();
         params.append('sessionId', connector.conn.accessToken);
         params.append('serverUrl', connector.conn.instanceUrl);
         if (redirect) {
@@ -148,7 +148,7 @@ export async function openBrowser({ url, target, alias }) {
                 populate: false,
                 windowTypes: ['normal'],
             });
-            for (let w of windows) {
+            for (const w of windows) {
                 if (w.incognito) {
                     // Use this window.
                     const tab = await chrome.tabs.create({ url: url, windowId: w.id });

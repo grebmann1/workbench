@@ -1,5 +1,5 @@
-import { LightningElement, api } from 'lwc';
 import { classSet } from 'lightning/utils';
+import { LightningElement, api } from 'lwc';
 
 export default class InformationBlock extends LightningElement {
     @api title;

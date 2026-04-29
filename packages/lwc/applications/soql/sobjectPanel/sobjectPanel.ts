@@ -1,9 +1,9 @@
-import { wire } from 'lwc';
 import ToolkitElement from 'host-api/element';
-
 import { store, connectStore, DESCRIBE } from 'host-api/store';
-import { UI } from 'soql/slices';
 import { lowerCaseKey } from 'host-api/utils';
+import { wire } from 'lwc';
+import { UI } from 'soql/slices';
+
 import { SOBJECT_ICON } from './constants';
 
 export default class SobjectsPanel extends ToolkitElement {

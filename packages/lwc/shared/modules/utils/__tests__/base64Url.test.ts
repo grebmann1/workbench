@@ -1,5 +1,5 @@
-import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { test } from 'node:test';
 
 import { encodeJsonToBase64Url, decodeBase64UrlToJson } from '../base64Url.ts';
 

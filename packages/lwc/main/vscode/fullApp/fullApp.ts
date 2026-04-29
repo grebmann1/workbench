@@ -22,6 +22,14 @@ import {
     shouldUsePersistedBootstrapSeed,
     shouldUsePersistedSessionBootstrap,
 } from './bootstrapState';
+import { IFRAME_AI_BRIDGE_VERSION } from './bridge/iframeAiBridgeContract';
+import { createIframeAiBridgeHost } from './bridge/iframeAiBridgeHost';
+import { createIframeAiBridgeRuntime } from './bridge/iframeAiBridgeRuntime';
+import { IFRAME_FS_BRIDGE_VERSION } from './bridge/iframeFsBridgeContract';
+import { createIframeFsBridgeHost } from './bridge/iframeFsBridgeHost';
+import { IFRAME_JSFORCE_BRIDGE_VERSION } from './bridge/iframeJsforceBridgeContract';
+import { createIframeJsforceBridgeHost } from './bridge/iframeJsforceBridgeHost';
+import { createIframeJsforceBridgeRuntime } from './bridge/iframeJsforceBridgeRuntime';
 import {
     DEFAULT_WORKSPACE_ROOT,
     WORKBENCH_THEME_STORAGE_KEY,
@@ -36,9 +44,6 @@ import {
     IFRAME_AI_BRIDGE_QUERY_FLAG,
     IFRAME_AI_BRIDGE_QUERY_VERSION_PARAM,
 } from './constants';
-import { IFRAME_JSFORCE_BRIDGE_VERSION } from './bridge/iframeJsforceBridgeContract';
-import { createIframeJsforceBridgeHost } from './bridge/iframeJsforceBridgeHost';
-import { createIframeJsforceBridgeRuntime } from './bridge/iframeJsforceBridgeRuntime';
 import {
     buildOrgContext,
     buildWorkbenchConnection,
@@ -50,11 +55,6 @@ import {
     normalizeWorkspaceRoot,
     seedWorkspaceFiles,
 } from './workbench';
-import { IFRAME_FS_BRIDGE_VERSION } from './bridge/iframeFsBridgeContract';
-import { createIframeFsBridgeHost } from './bridge/iframeFsBridgeHost';
-import { IFRAME_AI_BRIDGE_VERSION } from './bridge/iframeAiBridgeContract';
-import { createIframeAiBridgeHost } from './bridge/iframeAiBridgeHost';
-import { createIframeAiBridgeRuntime } from './bridge/iframeAiBridgeRuntime';
 
 export default class VscodeWorkbenchApp extends ToolkitElement {
     @api sessionId;

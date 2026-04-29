@@ -1,7 +1,7 @@
-import { api } from 'lwc';
-import { decodeError, isNotUndefinedOrNull, isUndefinedOrNull } from 'shared/utils';
 import { getDesktopPmdInstallation, installDesktopLatestPmd } from 'host-api/desktopBridge';
 import ToolkitElement from 'host-api/element';
+import { api } from 'lwc';
+import { decodeError, isNotUndefinedOrNull, isUndefinedOrNull } from 'shared/utils';
 
 export default class Pmd extends ToolkitElement {
     @api pmdPath: string | null = null;

@@ -54,7 +54,7 @@ export default class Header extends LightningElement {
         const value = event.detail.value;
         const row = parseInt(event.target.dataset.index, 10);
         const field = event.target.dataset.field;
-        let headerLine = { ...this._headerList[row] };
+        const headerLine = { ...this._headerList[row] };
         headerLine[field] = value;
         // Create a new array to trigger reactivity
         const newHeaders = [...this._headerList];
@@ -121,7 +121,7 @@ export default class Header extends LightningElement {
     handleKeyChange(event) {
         const value = event.detail.value;
         const row = parseInt(event.target.dataset.index, 10);
-        let headerLine = { ...this._headerList[row] };
+        const headerLine = { ...this._headerList[row] };
         headerLine.key = value;
 
         // Create a new array to trigger reactivity
@@ -134,7 +134,7 @@ export default class Header extends LightningElement {
     handleKeyInput(event) {
         const value = event.target.value;
         const row = parseInt(event.target.dataset.index, 10);
-        let headerLine = { ...this._headerList[row] };
+        const headerLine = { ...this._headerList[row] };
         headerLine.key = value;
 
         // Filter suggestions based on input
@@ -153,7 +153,7 @@ export default class Header extends LightningElement {
     handleSuggestionClick(event) {
         const value = event.target.dataset.value;
         const row = parseInt(event.target.dataset.index, 10);
-        let headerLine = { ...this._headerList[row] };
+        const headerLine = { ...this._headerList[row] };
         headerLine.key = value;
         headerLine.showSuggestions = false;
 

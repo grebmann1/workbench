@@ -1,8 +1,9 @@
-import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { test } from 'node:test';
+
+import { keyCodes } from 'shared/utils';
 
 import { handleKeyDownOnTabList } from '../keyboard.ts';
-import { keyCodes } from 'shared/utils';
 
 function makeEvent(keyCode: number) {
     let prevented = false;

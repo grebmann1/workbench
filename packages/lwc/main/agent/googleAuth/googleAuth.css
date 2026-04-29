@@ -82,7 +82,9 @@
     font-weight: 500;
     color: #3c4043;
     cursor: pointer;
-    transition: background 0.15s, box-shadow 0.15s;
+    transition:
+        background 0.15s,
+        box-shadow 0.15s;
 }
 
 .auth-google-btn:hover {
@@ -115,7 +117,9 @@
     font-weight: 500;
     color: #3c4043;
     cursor: pointer;
-    transition: background 0.15s, box-shadow 0.15s;
+    transition:
+        background 0.15s,
+        box-shadow 0.15s;
 }
 
 .auth-drive-btn:hover {

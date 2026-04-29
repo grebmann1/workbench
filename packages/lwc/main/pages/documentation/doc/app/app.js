@@ -1,5 +1,8 @@
 import ToolkitElement from 'core/toolkitElement';
 import { wire, api, createElement } from 'lwc';
+import { CurrentPageReference, NavigationContext, generateUrl, navigate } from 'lwr/navigation';
+import { ensureMermaidLoaded } from 'shared/loader';
+import { connectStore, store as legacyStore, store_application } from 'shared/store';
 import {
     isEmpty,
     getFromStorage,
@@ -9,9 +12,6 @@ import {
     removeDuplicates,
     classSet,
 } from 'shared/utils';
-import { CurrentPageReference, NavigationContext, generateUrl, navigate } from 'lwr/navigation';
-import { ensureMermaidLoaded } from 'shared/loader';
-import { connectStore, store as legacyStore, store_application } from 'shared/store';
 import sldsCodeBlock from 'slds/codeBlock';
 
 const PREFIX = {

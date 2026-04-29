@@ -18,10 +18,7 @@ export default class AgentMessageList extends LightningElement {
             if (message.role === 'tool') {
                 const toolPart = this._toToolResultPart(message);
                 if (!toolPart) return;
-                const matchIndex = this._findAssistantWithToolCall(
-                    merged,
-                    toolPart?.toolCallId
-                );
+                const matchIndex = this._findAssistantWithToolCall(merged, toolPart?.toolCallId);
                 if (matchIndex !== -1) {
                     const target = merged[matchIndex];
                     const { field, parts } = this._extractParts(target);
@@ -134,12 +131,7 @@ export default class AgentMessageList extends LightningElement {
             const hasMatch = parts.some(part => {
                 if (!part || typeof part !== 'object') return false;
                 if (part.type !== 'tool-call') return false;
-                const id =
-                    part.toolCallId ||
-                    part.callId ||
-                    part.call_id ||
-                    part.id ||
-                    null;
+                const id = part.toolCallId || part.callId || part.call_id || part.id || null;
                 return id === toolCallId;
             });
             if (hasMatch) return i;
@@ -165,14 +157,10 @@ export default class AgentMessageList extends LightningElement {
             };
         }
         const toolCallId =
-            message?.toolCallId ||
-            message?.tool_call_id ||
-            message?.callId ||
-            message?.id ||
-            null;
+            message?.toolCallId || message?.tool_call_id || message?.callId || message?.id || null;
         const toolName = message?.name || message?.toolName || null;
         const content = message?.content;
-        const output = typeof content === 'string' ? content : content ?? null;
+        const output = typeof content === 'string' ? content : (content ?? null);
         return {
             type: 'tool-result',
             toolCallId,
@@ -192,8 +180,7 @@ export default class AgentMessageList extends LightningElement {
         const container = this._getScrollContainer();
         if (!container) return;
         const { scrollTop, scrollHeight, clientHeight } = container;
-        const atBottom =
-            scrollHeight - scrollTop - clientHeight <= this._scrollThreshold;
+        const atBottom = scrollHeight - scrollTop - clientHeight <= this._scrollThreshold;
         if (this._userIsAtBottom !== atBottom) {
             this._userIsAtBottom = atBottom;
         }
@@ -213,8 +200,7 @@ export default class AgentMessageList extends LightningElement {
         if (!container) return;
         if (!this._userIsAtBottom) return;
         const { scrollTop, scrollHeight, clientHeight } = container;
-        const atBottom =
-            scrollHeight - scrollTop - clientHeight <= this._scrollThreshold;
+        const atBottom = scrollHeight - scrollTop - clientHeight <= this._scrollThreshold;
         if (!atBottom) return;
         container.scrollTop = scrollHeight - clientHeight;
     }
@@ -232,8 +218,7 @@ export default class AgentMessageList extends LightningElement {
     _onUserScroll = event => {
         const container = event.target;
         const { scrollTop, scrollHeight, clientHeight } = container;
-        this._userIsAtBottom =
-            scrollHeight - scrollTop - clientHeight <= this._scrollThreshold;
+        this._userIsAtBottom = scrollHeight - scrollTop - clientHeight <= this._scrollThreshold;
     };
 
     handleScrollToBottom = () => {

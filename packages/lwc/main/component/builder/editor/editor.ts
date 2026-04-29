@@ -1,6 +1,7 @@
 import { LightningElement, api, track, wire } from 'lwc';
-import hotkeysManager from './hotkeysmanager';
+
 import { LABELS } from './editorLabels';
+import hotkeysManager from './hotkeysmanager';
 
 const BUILDER_MODE = {
     EDIT_MODE: 'EDIT_MODE',

@@ -1,11 +1,9 @@
-import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { test } from 'node:test';
+
 import { strFromU8 } from 'fflate';
-import {
-    createMetadataApiClient,
-    unzipRetrieveZip,
-    zipUnpackagedFiles,
-} from '../metadataApi.ts';
+
+import { createMetadataApiClient, unzipRetrieveZip, zipUnpackagedFiles } from '../metadataApi.ts';
 
 function makeJsforceConnection(overrides: Record<string, unknown> = {}) {
     return {

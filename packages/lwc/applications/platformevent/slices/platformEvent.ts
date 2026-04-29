@@ -1,9 +1,7 @@
 import { createSlice, createAsyncThunk, createEntityAdapter } from '@reduxjs/toolkit';
-import { lowerCaseKey, guid, isNotUndefinedOrNull } from 'shared/utils';
-
 import { getStore } from 'core/store/storeRef';
-
 import { ERROR } from 'host-api/store';
+import { lowerCaseKey, guid, isNotUndefinedOrNull } from 'shared/utils';
 
 const PLATFORM_EVENT_SETTINGS_KEY = 'PLATFORM_EVENT_SETTINGS_KEY';
 
@@ -146,8 +144,8 @@ const platformEventSlice = createSlice({
         },
         updateReadStatusOnSpecificMessage: (state, action) => {
             const { channel, messageId } = action.payload;
-            let _messages = state.subscriptions.entities[lowerCaseKey(channel)].messages;
-            let _index = _messages.findIndex(x => x.id === messageId);
+            const _messages = state.subscriptions.entities[lowerCaseKey(channel)].messages;
+            const _index = _messages.findIndex(x => x.id === messageId);
             if (_index > -1) {
                 _messages[_index].isRead = true;
             }

@@ -22,7 +22,7 @@ export function getWorker(conn, workerName, options: { debug?: boolean } = {}) {
     const { debug = false } = options;
     const proxyUrl = window.jsforceSettings.proxyUrl;
     const { instanceUrl, accessToken, refreshToken, version, loginUrl, oauth2 } = conn;
-    let connectionParams = {
+    const connectionParams = {
         instanceUrl,
         accessToken,
         refreshToken,

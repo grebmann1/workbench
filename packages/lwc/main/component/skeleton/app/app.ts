@@ -1,4 +1,21 @@
+import { APP_LIST } from 'core/applications';
+import {
+    getConfigurations,
+    setConfigurations,
+    extractConfig,
+    normalizeConfiguration,
+    saveSession,
+} from 'core/connector';
+import {
+    checkDesktopCommands,
+    getDesktopLaunchIntent,
+    onDesktopLaunchIntent,
+} from 'core/desktopBridge';
+import { connectStore, store, DOCUMENT, APPLICATION } from 'core/store';
 import { LightningElement, track, api, wire } from 'lwc';
+import { NavigationContext, CurrentPageReference, navigate } from 'lwr/navigation';
+import LOGGER from 'shared/logger';
+import { store as legacyStore } from 'shared/store';
 import {
     guid,
     isNotUndefinedOrNull,
@@ -9,31 +26,15 @@ import {
     isChromeExtension,
     decodeBase64UrlToJson,
 } from 'shared/utils';
-import { NavigationContext, CurrentPageReference, navigate } from 'lwr/navigation';
-import LOGGER from 'shared/logger';
-import {
-    getConfigurations,
-    setConfigurations,
-    extractConfig,
-    normalizeConfiguration,
-    saveSession,
-} from 'core/connector';
 /** Apps  **/
-import { APP_LIST } from 'core/applications';
+
 /** Helpers **/
-import { loadLimitedMode, loadFullMode } from './session';
 import { connectToBackgroundWithIdentity, disconnectFromBackground } from './background';
-import { initShortcuts } from './shortcuts';
 import { initCacheStorage, loadFromCache } from './cache';
-import {
-    checkDesktopCommands,
-    getDesktopLaunchIntent,
-    onDesktopLaunchIntent,
-} from 'core/desktopBridge';
+import { loadLimitedMode, loadFullMode } from './session';
+import { initShortcuts } from './shortcuts';
 
 /** Store **/
-import { connectStore, store, DOCUMENT, APPLICATION } from 'core/store';
-import { store as legacyStore } from 'shared/store';
 
 const LIMITED = 'limited';
 
@@ -323,7 +324,7 @@ export default class App extends LightningElement {
     };
 
     handleTabChange = e => {
-        let applicationId = e.detail.id;
+        const applicationId = e.detail.id;
         this.loadSpecificTab(applicationId);
     };
 
@@ -396,7 +397,7 @@ export default class App extends LightningElement {
     };
 
     loadVersion = async () => {
-        let url = isChromeExtension() || isElectronApp() ? '/manifest.json' : '/version';
+        const url = isChromeExtension() || isElectronApp() ? '/manifest.json' : '/version';
         const data = await (await fetch(url)).json();
         this.version = `v${data.version || '1.0.0'}`;
     };
@@ -449,7 +450,7 @@ export default class App extends LightningElement {
 
     loadSpecificTab = applicationId => {
         this.currentApplicationId = applicationId;
-        let _applications = this.applicationPreFormatted;
+        const _applications = this.applicationPreFormatted;
         _applications.forEach(x => {
             if (x.id == applicationId) {
                 x.isActive = true;
@@ -665,7 +666,7 @@ export default class App extends LightningElement {
                     application: settings.name,
                 })
             );
-            let _applications = this.applicationPreFormatted;
+            const _applications = this.applicationPreFormatted;
             if (isFirst) {
                 _applications.unshift(application);
             } else {

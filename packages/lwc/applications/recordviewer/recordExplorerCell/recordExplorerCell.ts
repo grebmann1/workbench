@@ -31,7 +31,7 @@ export default class RecordExplorerCell extends LightningElement {
         if (isUndefinedOrNull(this.value)) return '';
         if (isEmpty(this.filter)) return this.value;
 
-        var regex = new RegExp('(' + this.filter + ')', 'gi');
+        const regex = new RegExp('(' + this.filter + ')', 'gi');
         if (isNotUndefinedOrNull(this.value) && regex.test(this.value)) {
             return this.value
                 .toString()

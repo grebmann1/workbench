@@ -1,11 +1,7 @@
-import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { test } from 'node:test';
 
-import {
-    createQuestion,
-    resolveQuestion,
-    rejectQuestion,
-} from '../modules/askUserBridge.ts';
+import { createQuestion, resolveQuestion, rejectQuestion } from '../modules/askUserBridge.ts';
 
 test('createQuestion: pending promise resolves when resolveQuestion is called', async () => {
     const promise = createQuestion('q1');

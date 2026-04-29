@@ -1,6 +1,14 @@
-import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { test } from 'node:test';
 
+import {
+    IFRAME_AI_BRIDGE_PROTOCOL,
+    IFRAME_AI_BRIDGE_VERSION,
+    IFRAME_AI_BRIDGE_METHODS,
+    isIframeAiBridgeEnvelope,
+    isIframeAiBridgeMethod,
+    toIframeAiBridgeError,
+} from '../iframeAiBridgeContract.ts';
 import {
     IFRAME_FS_BRIDGE_PROTOCOL,
     IFRAME_FS_BRIDGE_VERSION,
@@ -17,14 +25,6 @@ import {
     isIframeJsforceBridgeMethod,
     toIframeJsforceBridgeError,
 } from '../iframeJsforceBridgeContract.ts';
-import {
-    IFRAME_AI_BRIDGE_PROTOCOL,
-    IFRAME_AI_BRIDGE_VERSION,
-    IFRAME_AI_BRIDGE_METHODS,
-    isIframeAiBridgeEnvelope,
-    isIframeAiBridgeMethod,
-    toIframeAiBridgeError,
-} from '../iframeAiBridgeContract.ts';
 
 // ── FS bridge ────────────────────────────────────────────────────────────────
 
