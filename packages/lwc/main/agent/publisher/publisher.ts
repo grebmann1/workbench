@@ -46,12 +46,17 @@ export default class App extends ToolkitElement {
     @track selectedReasoning = DEFAULT_REASONING;
 
     get resolvedAvailableModels() {
+        const providedModels =
+            Array.isArray(this.availableModels) && this.availableModels.length > 0
+                ? this.availableModels
+                : null;
+        if (providedModels) {
+            return providedModels;
+        }
         if (this.isInternal) {
             return INTERNAL_MODELS;
         }
-        return Array.isArray(this.availableModels) && this.availableModels.length > 0
-            ? this.availableModels
-            : MODELS;
+        return MODELS;
     }
 
     normalizeModelValue = value => {
@@ -128,6 +133,26 @@ export default class App extends ToolkitElement {
     imagePreviews: Record<string, string> = {};
 
     @track dragActive = false;
+
+    @track slashSuggestions: Array<{
+        command: string;
+        label: string;
+        description: string;
+        iconName: string;
+        key: string;
+        isActive: boolean;
+        activeClass: string;
+    }> = [];
+    @track slashActiveIndex = 0;
+
+    _slashCommands = [
+        {
+            command: 'skill',
+            label: '/skill',
+            description: 'Browse, edit, or create agent skills',
+            iconName: 'utility:magicwand',
+        },
+    ];
 
     isSupportedFile = (file: File) => {
         if (!file || !file.type) return false;
@@ -309,6 +334,7 @@ export default class App extends ToolkitElement {
         this._prompt = null;
         this.selectedFiles = [];
         this.imagePreviews = {};
+        this._clearSlashSuggestions();
         const textarea = this.template.querySelector(
             '.chat-textarea'
         ) as HTMLTextAreaElement | null;
@@ -323,6 +349,7 @@ export default class App extends ToolkitElement {
 
     handleInputChange = e => {
         this.resizeTextarea(e.target);
+        this._updateSlashSuggestions(e.target.value);
         runActionAfterTimeOut(
             e.target.value,
             async newValue => {
@@ -333,11 +360,143 @@ export default class App extends ToolkitElement {
     };
 
     handleKeyDown = e => {
+        if (this.slashSuggestions.length > 0) {
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                this._moveSlashActive(1);
+                return;
+            }
+            if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                this._moveSlashActive(-1);
+                return;
+            }
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                this._clearSlashSuggestions();
+                return;
+            }
+            if (e.key === 'Tab' || (e.key === 'Enter' && !e.shiftKey)) {
+                e.preventDefault();
+                this._applySlashSuggestion(this.slashActiveIndex);
+                return;
+            }
+        }
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault(); // Prevent the default behavior of Enter key
             this.handleSendClick();
         }
     };
+
+    handleSlashSuggestionClick = (event: Event) => {
+        const index = Number((event.currentTarget as HTMLElement).dataset.index);
+        if (Number.isNaN(index)) return;
+        this._applySlashSuggestion(index);
+    };
+
+    handleSlashSuggestionHover = (event: Event) => {
+        const index = Number((event.currentTarget as HTMLElement).dataset.index);
+        if (Number.isNaN(index)) return;
+        this.slashActiveIndex = index;
+        this._refreshSlashActiveState();
+    };
+
+    _isSlashInsideQuotes(value: string, slashIndex: number): boolean {
+        let inSingle = false;
+        let inDouble = false;
+        let inBacktick = false;
+        for (let i = 0; i < slashIndex; i++) {
+            const ch = value[i];
+            const prev = i > 0 ? value[i - 1] : '';
+            if (prev === '\\') continue;
+            if (ch === "'" && !inDouble && !inBacktick) inSingle = !inSingle;
+            else if (ch === '"' && !inSingle && !inBacktick) inDouble = !inDouble;
+            else if (ch === '`' && !inSingle && !inDouble) inBacktick = !inBacktick;
+        }
+        return inSingle || inDouble || inBacktick;
+    }
+
+    _detectSlashQuery(value: string): string | null {
+        if (!value) return null;
+        const firstNonWhitespace = value.search(/\S/);
+        if (firstNonWhitespace < 0 || value[firstNonWhitespace] !== '/') return null;
+        if (this._isSlashInsideQuotes(value, firstNonWhitespace)) return null;
+        const rest = value.slice(firstNonWhitespace + 1);
+        const match = rest.match(/^([a-z0-9_-]*)/i);
+        if (!match) return null;
+        const after = rest.slice(match[0].length);
+        // Hide suggestions once the user has typed whitespace (e.g. "/skill foo")
+        if (after.length > 0 && /\s/.test(after.charAt(0))) return null;
+        return match[1].toLowerCase();
+    }
+
+    _updateSlashSuggestions(value: string) {
+        const query = this._detectSlashQuery(value);
+        if (query === null) {
+            this._clearSlashSuggestions();
+            return;
+        }
+        const matches = this._slashCommands.filter(cmd => cmd.command.startsWith(query));
+        if (matches.length === 0) {
+            this._clearSlashSuggestions();
+            return;
+        }
+        this.slashActiveIndex = 0;
+        this.slashSuggestions = matches.map((cmd, idx) => ({
+            ...cmd,
+            key: cmd.command,
+            isActive: idx === 0,
+            activeClass:
+                idx === 0
+                    ? 'publisher-slash-item publisher-slash-item_active'
+                    : 'publisher-slash-item',
+        }));
+    }
+
+    _moveSlashActive(delta: number) {
+        const total = this.slashSuggestions.length;
+        if (total === 0) return;
+        this.slashActiveIndex = (this.slashActiveIndex + delta + total) % total;
+        this._refreshSlashActiveState();
+    }
+
+    _refreshSlashActiveState() {
+        this.slashSuggestions = this.slashSuggestions.map((item, idx) => ({
+            ...item,
+            isActive: idx === this.slashActiveIndex,
+            activeClass:
+                idx === this.slashActiveIndex
+                    ? 'publisher-slash-item publisher-slash-item_active'
+                    : 'publisher-slash-item',
+        }));
+    }
+
+    _applySlashSuggestion(index: number) {
+        const suggestion = this.slashSuggestions[index];
+        if (!suggestion) return;
+        const textarea = this.template.querySelector(
+            '.chat-textarea'
+        ) as HTMLTextAreaElement | null;
+        if (!textarea) return;
+        const nextValue = `/${suggestion.command} `;
+        textarea.value = nextValue;
+        this._prompt = nextValue;
+        this.resizeTextarea(textarea);
+        this._clearSlashSuggestions();
+        textarea.focus();
+        textarea.setSelectionRange(nextValue.length, nextValue.length);
+    }
+
+    _clearSlashSuggestions() {
+        if (this.slashSuggestions.length > 0) {
+            this.slashSuggestions = [];
+        }
+        this.slashActiveIndex = 0;
+    }
+
+    get hasSlashSuggestions() {
+        return this.slashSuggestions.length > 0;
+    }
 
     handleClearClick = e => {
         this.resetPrompt();
@@ -356,12 +515,33 @@ export default class App extends ToolkitElement {
         }
     };
 
+    _parseSlashCommand(value: string): { command: string; query: string } | null {
+        const trimmed = String(value || '').trim();
+        if (!trimmed.startsWith('/')) return null;
+        const match = trimmed.match(/^\/([a-z][a-z0-9_-]*)\b\s*(.*)$/i);
+        if (!match) return null;
+        return { command: match[1].toLowerCase(), query: match[2].trim() };
+    }
+
     handleSendClick = async () => {
         const textarea = this.template.querySelector(
             '.chat-textarea'
         ) as HTMLTextAreaElement | null;
         const value = textarea?.value || '';
         if (isEmpty(value) && this.selectedFiles.length === 0) return;
+
+        const slash = this._parseSlashCommand(value);
+        if (slash && (slash.command === 'skill' || slash.command === 'skills')) {
+            this.dispatchEvent(
+                new CustomEvent('skillscommand', {
+                    detail: { query: slash.query },
+                    bubbles: true,
+                    composed: true,
+                })
+            );
+            this.resetPrompt();
+            return;
+        }
 
         if (this._isLoading) {
             this._queuedMessages = [
@@ -425,8 +605,7 @@ export default class App extends ToolkitElement {
         const selectedModel = this.normalizeModelValue(this.selectedModel);
         return this.resolvedAvailableModels.map(model => {
             const colonIdx = model.label.indexOf(': ');
-            const displayLabel =
-                colonIdx !== -1 ? model.label.slice(colonIdx + 2) : model.label;
+            const displayLabel = colonIdx !== -1 ? model.label.slice(colonIdx + 2) : model.label;
             const provider =
                 (model as { provider?: string }).provider ||
                 (colonIdx !== -1 ? model.label.slice(0, colonIdx).toLowerCase() : null);

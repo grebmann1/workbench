@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { formatSkillsForPrompt, type DiscoveredSkill } from '../skills.ts';
+import { classifySkillPath, formatSkillsForPrompt, type DiscoveredSkill } from '../skills.ts';
 import { SKILLS_INSTRUCTIONS } from '../constants.ts';
 
 function mkSkill(partial: Partial<DiscoveredSkill>): DiscoveredSkill {
@@ -11,6 +11,7 @@ function mkSkill(partial: Partial<DiscoveredSkill>): DiscoveredSkill {
         skillMdPath: '/workspace/skills/sample/SKILL.md',
         rootDir: '/workspace/skills/sample',
         scope: 'project',
+        source: 'bundled',
         ...partial,
     };
 }
@@ -54,6 +55,24 @@ test('formatSkillsForPrompt: escapes XML-sensitive characters', () => {
     assert.ok(out.includes('/path/with &amp; &lt;weird&gt;.md'));
     // Raw unescaped markers must not leak through
     assert.equal(out.includes('<name>tricky & <name></name>'), false);
+});
+
+test('classifySkillPath: bundled path defaults to project/bundled', () => {
+    const out = classifySkillPath('/workspace/skills/salesforce/soql/SKILL.md');
+    assert.equal(out.source, 'bundled');
+    assert.equal(out.scope, 'project');
+});
+
+test('classifySkillPath: custom-skills path is project/custom', () => {
+    const out = classifySkillPath('/workspace/skills/custom-skills/alpha/SKILL.md');
+    assert.equal(out.source, 'custom');
+    assert.equal(out.scope, 'project');
+});
+
+test('classifySkillPath: .cursor/skills path is user/custom', () => {
+    const out = classifySkillPath('/workspace/.cursor/skills/beta/SKILL.md');
+    assert.equal(out.source, 'custom');
+    assert.equal(out.scope, 'user');
 });
 
 test('formatSkillsForPrompt: joins multiple skills with newlines', () => {

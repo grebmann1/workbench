@@ -4,12 +4,12 @@ import {
     loadLlmProviderConfigMapFromCache,
     saveLlmProviderConfigMapToCache,
 } from 'shared/cacheManager';
+import { INTERNAL_PROVIDER_BASE_URLS } from 'shared/llm';
 import { store, APPLICATION } from 'core/store';
 import { NavigationContext, navigate } from 'lwr/navigation';
 
-const EMPLOYEE_AI_SETUP_URL = 'https://eng-ai-model-gateway.sfproxy.devx-preprod.aws-esvc1-useast2.aws.sfdc.cl';
-const EMPLOYEE_OPENAI_PROXY_URL =
-    'https://eng-ai-model-gateway.sfproxy.devx-preprod.aws-esvc1-useast2.aws.sfdc.cl/v1';
+const EMPLOYEE_AI_SETUP_URL =
+    'https://eng-ai-model-gateway.sfproxy.devx-preprod.aws-esvc1-useast2.aws.sfdc.cl';
 
 export default class OnboardaiProvider extends LightningElement {
     @wire(NavigationContext)
@@ -58,17 +58,17 @@ export default class OnboardaiProvider extends LightningElement {
             openai: {
                 ...providerConfigs.openai,
                 apiKey: this.employeeKey,
-                baseUrl: EMPLOYEE_OPENAI_PROXY_URL,
+                baseUrl: INTERNAL_PROVIDER_BASE_URLS.openai,
             },
             anthropic: {
                 ...providerConfigs.anthropic,
                 apiKey: this.employeeKey,
-                baseUrl: EMPLOYEE_OPENAI_PROXY_URL,
+                baseUrl: INTERNAL_PROVIDER_BASE_URLS.anthropic,
             },
             gemini: {
                 ...providerConfigs.gemini,
                 apiKey: this.employeeKey,
-                baseUrl: EMPLOYEE_OPENAI_PROXY_URL,
+                baseUrl: INTERNAL_PROVIDER_BASE_URLS.gemini,
             },
         };
         await saveLlmProviderConfigMapToCache(nextProviderConfigs);

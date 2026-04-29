@@ -6,6 +6,12 @@ type SkillFileSystem = {
     writeFile?: (path: string, content: string, options?: { encoding?: string }) => Promise<void>;
     mkdir?: (path: string, opts?: { recursive?: boolean }) => Promise<void>;
     exists?: (path: string) => Promise<boolean>;
+    rm?: (path: string, opts?: { recursive?: boolean; force?: boolean }) => Promise<void>;
+};
+
+type DeleteSkillInput = {
+    name: string;
+    scope?: SkillScope;
 };
 
 type SaveSkillInput = {
@@ -35,7 +41,9 @@ export function resolveSkillRoot(scope?: SkillScope) {
 }
 
 function normalizeText(value: string): string {
-    return String(value || '').replace(/\r\n/g, '\n').trim();
+    return String(value || '')
+        .replace(/\r\n/g, '\n')
+        .trim();
 }
 
 function formatYamlValue(value: string): string {
@@ -122,4 +130,25 @@ export async function saveSkillToFs(fs: SkillFileSystem, input: SaveSkillInput) 
         rootDir,
         skillPath,
     };
+}
+
+export async function deleteSkillFromFs(fs: SkillFileSystem, input: DeleteSkillInput) {
+    if (!fs.rm) {
+        return { ok: false, error: 'Filesystem does not support delete operations.' };
+    }
+    const name = normalizeSkillName(input.name);
+    const nameError = getSkillNameError(name);
+    if (nameError) {
+        return { ok: false, error: nameError };
+    }
+    const { scope, rootDir } = resolveSkillRoot(input.scope);
+    const rootPath = `${rootDir}/${name}`;
+    const skillPath = `${rootPath}/SKILL.md`;
+    const exists = await fileExists(fs, skillPath);
+    if (!exists) {
+        return { ok: false, error: `Skill not found: ${skillPath}` };
+    }
+    await fs.rm(skillPath, { force: true });
+    await fs.rm(rootPath, { recursive: true, force: true }).catch(() => {});
+    return { ok: true, scope, rootDir, skillPath };
 }

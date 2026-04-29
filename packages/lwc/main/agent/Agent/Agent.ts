@@ -36,6 +36,7 @@ import {
     getReasoningConfigFromSelection,
     isAbortLikeError,
     isContextOverflowError,
+    extractNestedErrorMessage,
     normalizeToolInputSchema,
     cloneMessageForStreaming,
     discoverSkills,
@@ -109,7 +110,13 @@ export type StreamChunk =
     | { type: 'content'; content: string }
     | { type: 'reasoning'; content: string }
     | { type: 'tool_calls'; toolCalls: ToolCall[] }
-    | { type: 'tool_call_delta'; toolCallId: string; toolName?: string; delta: string }
+    | {
+          type: 'tool_call_delta';
+          toolCallId: string;
+          toolName?: string;
+          delta: string;
+          providerOptions?: unknown;
+      }
     | { type: 'tool_result'; toolCall: ToolCall; toolResult: ToolResult }
     | { type: 'error'; content: string }
     | { type: 'done' };
@@ -143,75 +150,6 @@ type SubagentStatus = {
     description: string;
     detail?: string;
 };
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-    return value != null && typeof value === 'object';
-}
-
-function extractNestedErrorMessage(errorLike: unknown): string {
-    const queue: unknown[] = [errorLike];
-    const seen = new Set<unknown>();
-    let fallback: string | null = null;
-
-    while (queue.length > 0) {
-        const current = queue.shift();
-        if (current == null || seen.has(current)) continue;
-        if (typeof current === 'object' || typeof current === 'function') {
-            seen.add(current);
-        }
-
-        if (typeof current === 'string') {
-            const text = current.trim();
-            if (!text) continue;
-            try {
-                queue.unshift(JSON.parse(text));
-                continue;
-            } catch {
-                if (!fallback) fallback = text;
-                if (text !== 'Bad Request') return text;
-                continue;
-            }
-        }
-
-        if (current instanceof Error) {
-            const errorWithExtras = current as Error & {
-                cause?: unknown;
-                responseBody?: unknown;
-                data?: unknown;
-            };
-            if (errorWithExtras.cause) queue.unshift(errorWithExtras.cause);
-            queue.unshift(errorWithExtras.responseBody);
-            queue.unshift(errorWithExtras.data);
-            if (typeof current.message === 'string' && current.message.trim()) {
-                if (!fallback) fallback = current.message.trim();
-                if (current.message.trim() !== 'Bad Request') return current.message.trim();
-            }
-            continue;
-        }
-
-        if (isRecord(current)) {
-            queue.unshift(current.responseBody);
-            queue.unshift(current.data);
-            queue.unshift(current.body);
-            queue.unshift(current.response);
-            queue.unshift(current.cause);
-            queue.unshift(current.error);
-            const message =
-                typeof current.message === 'string'
-                    ? current.message.trim()
-                    : typeof current.error === 'string'
-                      ? current.error.trim()
-                      : '';
-            if (message) {
-                if (!fallback) fallback = message;
-                if (message !== 'Bad Request') return message;
-            }
-        }
-    }
-
-    if (fallback) return fallback;
-    return errorLike instanceof Error ? errorLike.message : String(errorLike);
-}
 
 let cachedSkillsSection: Promise<string> | null = null;
 
@@ -266,7 +204,8 @@ function finalizeMessageForDisplay(message: ModelMessage): ModelMessage {
         }
         if (part.type === 'tool-call') {
             const { state, ...rest } = part;
-            return rest;
+            const providerOptions = getToolCallProviderOptions(rest);
+            return providerOptions ? { ...rest, providerOptions } : rest;
         }
         if (part.type === 'tool-result') {
             /* if (!part.state) {
@@ -771,7 +710,7 @@ export class Agent {
                                 {
                                     const chunk = {
                                         type: 'content',
-                                        content: part.text,
+                                        content: (part as any).text,
                                     } as StreamChunk;
                                     streamBuilder.handleChunk(chunk);
                                     yield chunk;
@@ -781,14 +720,14 @@ export class Agent {
                                 {
                                     const chunk = {
                                         type: 'reasoning',
-                                        content: part.text,
+                                        content: (part as any).text,
                                     } as StreamChunk;
                                     streamBuilder.handleChunk(chunk);
                                     yield chunk;
                                 }
                                 break;
                             case 'tool-call': {
-                                const tc = toToolCall(part);
+                                const tc = toToolCall(part as any);
                                 notifyObserver(observer?.onToolStart, {
                                     toolCall: tc,
                                     timestamp: Date.now(),
@@ -814,6 +753,7 @@ export class Agent {
                                         toolCallId,
                                         toolName,
                                         delta,
+                                        providerOptions: getToolCallProviderOptions(part as any),
                                     } as StreamChunk;
                                     streamBuilder.handleChunk(chunk);
                                     yield chunk;
@@ -869,7 +809,7 @@ export class Agent {
                                 break;
                             }
                             case 'error': {
-                                const message = String(part.error);
+                                const message = extractNestedErrorMessage((part as any).error);
                                 notifyObserver(observer?.onError, {
                                     message,
                                     timestamp: Date.now(),
@@ -1036,12 +976,35 @@ function toToolCall(part: {
     toolName: string;
     args?: unknown;
     input?: unknown;
+    providerMetadata?: Record<string, any>;
+    providerOptions?: Record<string, any>;
 }): ToolCall {
+    const providerOptions = getToolCallProviderOptions(part);
     return {
         toolCallId: part.toolCallId,
         toolName: part.toolName,
         input: part.input ?? part.args ?? {},
+        ...(providerOptions ? { providerOptions } : {}),
     };
+}
+
+function getToolCallProviderOptions(part: {
+    providerMetadata?: Record<string, any>;
+    providerOptions?: Record<string, any>;
+}) {
+    if (part.providerOptions?.google?.thoughtSignature) {
+        return part.providerOptions;
+    }
+    const thoughtSignature =
+        part.providerMetadata?.google?.thoughtSignature ||
+        part.providerMetadata?.openaiCompatible?.thoughtSignature;
+    return thoughtSignature
+        ? {
+              google: {
+                  thoughtSignature,
+              },
+          }
+        : undefined;
 }
 
 function normalizeToolCallId(part: any): string {

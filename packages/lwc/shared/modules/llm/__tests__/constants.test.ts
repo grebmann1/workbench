@@ -5,6 +5,7 @@ import {
     LLM_PROVIDERS,
     DEFAULT_LLM_PROVIDER,
     DEFAULT_PROVIDER_BASE_URLS,
+    INTERNAL_PROVIDER_BASE_URLS,
     LLM_PROVIDER_OPTIONS,
     OPENAI_MODEL_OPTIONS,
     INTERNAL_MODEL_OPTIONS,
@@ -44,6 +45,17 @@ test('DEFAULT_PROVIDER_BASE_URLS: has one entry per provider, all non-empty', ()
     assert.ok(DEFAULT_PROVIDER_BASE_URLS.workbench.startsWith('/'));
 });
 
+test('INTERNAL_PROVIDER_BASE_URLS: routes Anthropic employee traffic to Bedrock gateway', () => {
+    assert.equal(
+        INTERNAL_PROVIDER_BASE_URLS.anthropic,
+        'https://eng-ai-model-gateway.sfproxy.devx-preprod.aws-esvc1-useast2.aws.sfdc.cl/bedrock'
+    );
+    assert.equal(
+        INTERNAL_PROVIDER_BASE_URLS.gemini,
+        'https://eng-ai-model-gateway.sfproxy.devx-preprod.aws-esvc1-useast2.aws.sfdc.cl/v1beta'
+    );
+});
+
 test('LLM_PROVIDER_OPTIONS: one entry per provider, label+value both non-empty', () => {
     assert.equal(LLM_PROVIDER_OPTIONS.length, LLM_PROVIDERS.length);
     const values = LLM_PROVIDER_OPTIONS.map(o => o.value);
@@ -80,6 +92,26 @@ test('OPENAI_MODEL_OPTIONS + INTERNAL_MODEL_OPTIONS: values are unique within ea
         const values = list.map(m => m.value);
         assert.equal(values.length, new Set(values).size);
     }
+});
+
+test('INTERNAL_MODEL_OPTIONS: internal Anthropic labels include model versions', () => {
+    const labelsByValue = new Map(
+        INTERNAL_MODEL_OPTIONS.filter(model => model.provider === 'anthropic').map(model => [
+            model.value,
+            model.label,
+        ])
+    );
+
+    assert.equal(labelsByValue.get('us.anthropic.claude-opus-4-7'), 'opus-4.7');
+    assert.equal(labelsByValue.get('us.anthropic.claude-sonnet-4-6'), 'sonnet-4.6');
+    assert.equal(labelsByValue.get('us.anthropic.claude-haiku-4-5-20251001-v1:0'), 'haiku-4.5');
+});
+
+test('INTERNAL_MODEL_OPTIONS: includes internal Gemini models', () => {
+    const geminiModels = INTERNAL_MODEL_OPTIONS.filter(model => model.provider === 'gemini');
+
+    assert.ok(geminiModels.length > 0);
+    assert.ok(geminiModels.some(model => model.value === 'gemini-3-flash-preview'));
 });
 
 test('model options: maxOutputTokens is a positive integer when set', () => {

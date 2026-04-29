@@ -1,0 +1,96 @@
+.skills-panel {
+    background-color: var(--lwc-colorBackground, #fff);
+    height: 100%;
+}
+
+.skills-panel-header code {
+    font-family: var(--lwc-fontFamilyMonospace, Menlo, Consolas, monospace);
+    background-color: rgba(0, 0, 0, 0.06);
+    padding: 0 0.25rem;
+    border-radius: 2px;
+}
+
+.skills-panel-body {
+    flex: 1 1 auto;
+}
+
+.skills-panel-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.skills-panel-search {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.skills-panel-new {
+    flex: 0 0 auto;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+}
+
+.skills-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.skills-row {
+    padding-right: 0.25rem;
+}
+
+.skills-row-info {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.skills-row-desc {
+    margin-top: 0.125rem;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.skills-row-path {
+    margin-top: 0.125rem;
+    font-family: var(--lwc-fontFamilyMonospace, Menlo, Consolas, monospace);
+    font-size: 0.75rem;
+    color: var(--lwc-colorTextWeak, #6b6b6b);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.skills-badge {
+    display: inline-block;
+    margin-left: 0.5rem;
+    padding: 0 0.5rem;
+    border-radius: 10px;
+    font-size: 0.7rem;
+    line-height: 1.25rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.skills-badge-bundled {
+    background-color: #e5e5e5;
+    color: #333;
+}
+
+.skills-badge-custom {
+    background-color: #cce6ff;
+    color: #014486;
+}
+
+.skill-body-editor {
+    font-family: var(--lwc-fontFamilyMonospace, Menlo, Consolas, monospace);
+    font-size: 0.8125rem;
+    line-height: 1.5;
+    white-space: pre;
+    min-height: 24rem;
+}

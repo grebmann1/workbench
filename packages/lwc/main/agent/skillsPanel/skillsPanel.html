@@ -1,0 +1,185 @@
+<template>
+    <div class="skills-panel slds-full-height slds-flex-column">
+        <template lwc:if={isListMode}>
+            <div class="skills-panel-header slds-p-around_small slds-border_bottom">
+                <div class="slds-grid slds-grid_vertical-align-center slds-grid_align-spread">
+                    <h2 class="slds-text-heading_small">Skills</h2>
+                    <div class="slds-grid slds-grid_vertical-align-center">
+                        <lightning-button-icon
+                            icon-name="utility:refresh"
+                            alternative-text="Refresh"
+                            title="Refresh"
+                            variant="bare"
+                            onclick={handleRefresh}></lightning-button-icon>
+                        <lightning-button-icon
+                            class="slds-m-left_x-small"
+                            icon-name="utility:close"
+                            alternative-text="Close"
+                            title="Close"
+                            variant="bare"
+                            onclick={handleClose}></lightning-button-icon>
+                    </div>
+                </div>
+                <p class="slds-text-body_small slds-text-color_weak slds-m-top_xx-small">
+                    Customize or create skills the agent can use. Type <code>/skill</code> anytime
+                    to open this panel.
+                </p>
+                <div class="skills-panel-toolbar slds-m-top_small">
+                    <input
+                        type="search"
+                        class="slds-input skills-panel-search"
+                        placeholder="Search skills..."
+                        value={searchTerm}
+                        oninput={handleSearchInput} />
+                    <button
+                        type="button"
+                        class="slds-button slds-button_brand skills-panel-new"
+                        onclick={handleCreate}>
+                        <lightning-icon
+                            icon-name="utility:add"
+                            size="xx-small"
+                            variant="inverse"
+                            class="slds-m-right_x-small"></lightning-icon>
+                        New skill
+                    </button>
+                </div>
+            </div>
+            <div class="skills-panel-body slds-scrollable_y slds-p-around_small">
+                <template lwc:if={isLoading}>
+                    <div class="slds-p-around_medium slds-text-align_center">
+                        <lightning-spinner alternative-text="Loading" size="small"></lightning-spinner>
+                    </div>
+                </template>
+                <template lwc:if={error}>
+                    <div class="slds-box slds-theme_error slds-m-bottom_small" role="alert">
+                        {error}
+                    </div>
+                </template>
+                <template lwc:if={hasRows}>
+                    <ul class="skills-list">
+                        <template for:each={rows} for:item="row">
+                            <li key={row.key} class="skills-row slds-border_bottom slds-p-vertical_x-small">
+                                <div class="slds-grid slds-grid_align-spread slds-grid_vertical-align-center">
+                                    <div class="skills-row-info">
+                                        <div class="slds-grid slds-grid_vertical-align-center">
+                                            <span class="slds-text-title_bold">{row.name}</span>
+                                            <span class={row.scopeBadgeClass}>{row.scopeBadge}</span>
+                                        </div>
+                                        <p class="slds-text-body_small slds-text-color_weak skills-row-desc">
+                                            {row.description}
+                                        </p>
+                                        <p class="slds-text-body_small skills-row-path">
+                                            {row.skillMdPath}
+                                        </p>
+                                    </div>
+                                    <div class="slds-no-flex">
+                                        <template lwc:if={row.isEditable}>
+                                            <lightning-button-icon
+                                                icon-name="utility:edit"
+                                                alternative-text="Edit"
+                                                title="Edit"
+                                                variant="bare"
+                                                data-name={row.name}
+                                                onclick={handleEdit}></lightning-button-icon>
+                                        </template>
+                                        <template lwc:if={row.isDuplicable}>
+                                            <lightning-button-icon
+                                                icon-name="utility:copy"
+                                                alternative-text="Duplicate as custom"
+                                                title="Duplicate as custom skill"
+                                                variant="bare"
+                                                data-name={row.name}
+                                                onclick={handleDuplicate}></lightning-button-icon>
+                                        </template>
+                                        <template lwc:if={row.isDeletable}>
+                                            <lightning-button-icon
+                                                class="slds-m-left_x-small"
+                                                icon-name="utility:delete"
+                                                alternative-text="Delete"
+                                                title="Delete"
+                                                variant="bare"
+                                                data-name={row.name}
+                                                onclick={handleDelete}></lightning-button-icon>
+                                        </template>
+                                    </div>
+                                </div>
+                            </li>
+                        </template>
+                    </ul>
+                </template>
+                <template lwc:if={showEmptyState}>
+                    <div class="slds-p-around_medium slds-text-align_center slds-text-color_weak">
+                        {emptyMessage}
+                    </div>
+                </template>
+            </div>
+        </template>
+
+        <template lwc:if={isEditorMode}>
+            <div class="skills-panel-header slds-p-around_small slds-border_bottom">
+                <div class="slds-grid slds-grid_vertical-align-center slds-grid_align-spread">
+                    <h2 class="slds-text-heading_small">{editorTitle}</h2>
+                    <lightning-button-icon
+                        icon-name="utility:close"
+                        alternative-text="Close"
+                        title="Close"
+                        variant="bare"
+                        onclick={handleCancel}></lightning-button-icon>
+                </div>
+            </div>
+            <div class="skills-panel-body slds-scrollable_y slds-p-around_small">
+                <template lwc:if={showBundledCopyNote}>
+                    <div class="slds-box slds-theme_info slds-m-bottom_small">
+                        Duplicating a default skill. The original default remains read-only — only
+                        this new custom copy can be edited or deleted.
+                    </div>
+                </template>
+                <div class="slds-form-element slds-m-bottom_small">
+                    <label class="slds-form-element__label" for="skill-name">Name</label>
+                    <div class="slds-form-element__control">
+                        <input
+                            id="skill-name"
+                            class="slds-input"
+                            type="text"
+                            value={editorName}
+                            disabled={nameInputDisabled}
+                            oninput={handleNameInput} />
+                    </div>
+                </div>
+                <div class="slds-form-element slds-m-bottom_small">
+                    <lightning-textarea
+                        label="Description"
+                        value={editorDescription}
+                        onchange={handleDescriptionChange}></lightning-textarea>
+                </div>
+                <div class="slds-form-element slds-m-bottom_small">
+                    <label class="slds-form-element__label" for="skill-body">Body (SKILL.md)</label>
+                    <div class="slds-form-element__control">
+                        <textarea
+                            id="skill-body"
+                            class="slds-textarea skill-body-editor"
+                            rows="20"
+                            spellcheck="false"
+                            oninput={handleContentInput}
+                            onkeydown={handleContentKeydown}></textarea>
+                    </div>
+                </div>
+                <template lwc:if={editorError}>
+                    <div class="slds-text-color_error slds-m-bottom_small">{editorError}</div>
+                </template>
+                <div class="slds-grid slds-grid_align-end">
+                    <lightning-button
+                        label="Cancel"
+                        variant="neutral"
+                        class="slds-m-right_x-small"
+                        onclick={handleCancel}></lightning-button>
+                    <lightning-button
+                        label="Save"
+                        variant="brand"
+                        disabled={saveDisabled}
+                        onclick={handleSave}></lightning-button>
+                </div>
+            </div>
+        </template>
+    </div>
+</template>

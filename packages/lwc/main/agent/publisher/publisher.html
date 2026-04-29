@@ -111,6 +111,32 @@
                             </template>
                         </div>
                     </template>
+                    <template lwc:if={hasSlashSuggestions}>
+                        <div class="publisher-slash-menu" role="listbox" aria-label="Slash commands">
+                            <div class="publisher-slash-header">
+                                Commands
+                                <span class="publisher-slash-hint">↑↓ navigate · ↵ run · esc dismiss</span>
+                            </div>
+                            <template for:each={slashSuggestions} for:item="suggestion" for:index="index">
+                                <button
+                                    key={suggestion.key}
+                                    type="button"
+                                    class={suggestion.activeClass}
+                                    role="option"
+                                    aria-selected={suggestion.isActive}
+                                    data-index={index}
+                                    onmousedown={handleSlashSuggestionClick}
+                                    onmouseenter={handleSlashSuggestionHover}>
+                                    <lightning-icon
+                                        icon-name={suggestion.iconName}
+                                        size="x-small"
+                                        class="publisher-slash-item-icon"></lightning-icon>
+                                    <span class="publisher-slash-item-label">{suggestion.label}</span>
+                                    <span class="publisher-slash-item-desc">{suggestion.description}</span>
+                                </button>
+                            </template>
+                        </div>
+                    </template>
                     <textarea
                         id="comment-text-input2"
                         class="chat-textarea"

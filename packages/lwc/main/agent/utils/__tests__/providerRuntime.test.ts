@@ -96,6 +96,146 @@ test('createProviderInstance: isInternal forces OpenAI SDK', () => {
     assert.equal(typeof instance, 'function');
 });
 
+test('createProviderInstance: internal Anthropic Bedrock uses Anthropic message format', () => {
+    const instance = createProviderInstance({
+        provider: 'anthropic',
+        apiKey: 'k',
+        baseUrl:
+            'https://eng-ai-model-gateway.sfproxy.devx-preprod.aws-esvc1-useast2.aws.sfdc.cl/bedrock',
+        isInternal: true,
+    });
+    const model = resolveProviderModelInstance(instance, {
+        provider: 'anthropic',
+        modelId: 'us.anthropic.claude-sonnet-4-6',
+        isInternal: true,
+    }) as any;
+
+    assert.equal(model.provider, 'anthropic.messages');
+});
+
+test('createProviderInstance: internal Anthropic Bedrock targets streaming endpoint', async () => {
+    const originalFetch = globalThis.fetch;
+    let requestedUrl = '';
+    let requestedBody = '';
+    globalThis.fetch = (async (url: RequestInfo | URL, options?: RequestInit) => {
+        requestedUrl = String(url);
+        requestedBody = String(options?.body || '');
+        return new Response(
+            JSON.stringify({
+                model: 'claude-sonnet-4-6',
+                id: 'msg_bdrk_01',
+                type: 'message',
+                role: 'assistant',
+                content: [
+                    {
+                        type: 'thinking',
+                        thinking: 'The user is just saying hello.',
+                        signature: 'sig',
+                    },
+                    {
+                        type: 'text',
+                        text: 'Hello! How can I help you today?',
+                    },
+                ],
+                stop_reason: 'end_turn',
+                stop_sequence: null,
+                usage: {
+                    input_tokens: 10,
+                    output_tokens: 7,
+                },
+            }),
+            {
+                status: 200,
+                headers: { 'content-type': 'application/json' },
+            }
+        );
+    }) as typeof fetch;
+    try {
+        const instance = createProviderInstance({
+            provider: 'anthropic',
+            apiKey: 'k',
+            baseUrl:
+                'https://eng-ai-model-gateway.sfproxy.devx-preprod.aws-esvc1-useast2.aws.sfdc.cl/bedrock',
+            isInternal: true,
+        });
+        const model = resolveProviderModelInstance(instance, {
+            provider: 'anthropic',
+            modelId: 'us.anthropic.claude-haiku-4-5-20251001-v1:0',
+            isInternal: true,
+        }) as any;
+
+        const response = await model.config.fetch(
+            'https://eng-ai-model-gateway.sfproxy.devx-preprod.aws-esvc1-useast2.aws.sfdc.cl/bedrock/messages',
+            {
+                method: 'POST',
+                body: JSON.stringify({
+                    model: 'us.anthropic.claude-haiku-4-5-20251001-v1:0',
+                    stream: true,
+                }),
+            }
+        );
+
+        const parsedBody = JSON.parse(requestedBody);
+        const responseText = await response.text();
+        assert.equal(
+            requestedUrl,
+            'https://eng-ai-model-gateway.sfproxy.devx-preprod.aws-esvc1-useast2.aws.sfdc.cl/bedrock/model/us.anthropic.claude-haiku-4-5-20251001-v1:0/invoke-with-response-stream'
+        );
+        assert.equal(parsedBody.anthropic_version, 'bedrock-2023-05-31');
+        assert.equal('model' in parsedBody, false);
+        assert.equal('stream' in parsedBody, false);
+        assert.equal(response.headers.get('content-type'), 'text/event-stream');
+        assert.match(responseText, /"type":"message_start"/);
+        assert.match(responseText, /"type":"thinking_delta"/);
+        assert.match(
+            responseText,
+            /"type":"text_delta","text":"Hello! How can I help you today\?"/
+        );
+        assert.match(responseText, /"type":"message_stop"/);
+    } finally {
+        globalThis.fetch = originalFetch;
+    }
+});
+
+test('createProviderInstance: internal Gemini uses native streamGenerateContent endpoint', async () => {
+    const originalFetch = globalThis.fetch;
+    let requestedUrl = '';
+    globalThis.fetch = (async (url: RequestInfo | URL) => {
+        requestedUrl = String(url);
+        return new Response('data: {"candidates":[]}\n\n', {
+            status: 200,
+            headers: { 'content-type': 'text/event-stream' },
+        });
+    }) as typeof fetch;
+    try {
+        const instance = createProviderInstance({
+            provider: 'gemini',
+            apiKey: 'k',
+            baseUrl:
+                'https://eng-ai-model-gateway.sfproxy.devx-preprod.aws-esvc1-useast2.aws.sfdc.cl/v1beta',
+            isInternal: true,
+        });
+        const model = resolveProviderModelInstance(instance, {
+            provider: 'gemini',
+            modelId: 'gemini-3-flash-preview',
+            isInternal: true,
+        }) as any;
+
+        assert.equal(model.provider, 'google.generative-ai');
+        await model.config.fetch(
+            'https://eng-ai-model-gateway.sfproxy.devx-preprod.aws-esvc1-useast2.aws.sfdc.cl/v1beta/models/gemini-3-flash-preview:streamGenerateContent?alt=sse',
+            { method: 'POST' }
+        );
+
+        assert.equal(
+            requestedUrl,
+            'https://eng-ai-model-gateway.sfproxy.devx-preprod.aws-esvc1-useast2.aws.sfdc.cl/v1beta/models/gemini-3-flash-preview:streamGenerateContent?alt=sse'
+        );
+    } finally {
+        globalThis.fetch = originalFetch;
+    }
+});
+
 test('resolveProviderModelInstance: openai invokes provider as function', () => {
     let called: string | null = null;
     const fakeProvider: any = (id: string) => {

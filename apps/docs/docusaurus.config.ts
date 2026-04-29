@@ -5,8 +5,8 @@ import type * as Preset from '@docusaurus/preset-classic';
 const config: Config = {
     title: 'Workbench Docs',
     tagline: 'Documentation for Workbench extension, desktop app, and workflows.',
-    url: 'https://www.sf-workbench.com',
-    baseUrl: process.env.DOCS_BASE_PATH || '/docs/',
+    url: 'https://doc.sf-workbench.com',
+    baseUrl: process.env.DOCS_BASE_PATH || '/',
     onBrokenLinks: 'warn',
     onBrokenMarkdownLinks: 'warn',
     i18n: {
@@ -87,7 +87,10 @@ const config: Config = {
                     title: 'Product',
                     items: [
                         { label: 'Website', href: 'https://www.sf-workbench.com' },
-                        { label: 'Chrome Extension', href: 'https://chromewebstore.google.com/detail/salesforce-toolkit/konbmllgicfccombdckckakhnmejjoei?hl=en' },
+                        {
+                            label: 'Chrome Extension',
+                            href: 'https://chromewebstore.google.com/detail/salesforce-toolkit/konbmllgicfccombdckckakhnmejjoei?hl=en',
+                        },
                         { label: 'GitHub', href: 'https://github.com/grebmann1/workbench' },
                     ],
                 },

@@ -7,6 +7,7 @@ import {
     resolveSkillRoot,
     buildSkillMarkdown,
     saveSkillToFs,
+    deleteSkillFromFs,
 } from '../skillUtils.ts';
 
 test('normalizeSkillName: trims and coerces to string', () => {
@@ -149,4 +150,57 @@ test('saveSkillToFs: overwrite=true bypasses existence check', async () => {
     });
     assert.equal(out.ok, true);
     assert.equal(wrote, true);
+});
+
+test('deleteSkillFromFs: missing rm support → ok:false', async () => {
+    const out = await deleteSkillFromFs({} as any, { name: 'a' });
+    assert.equal(out.ok, false);
+});
+
+test('deleteSkillFromFs: invalid name error bubbles', async () => {
+    const fs = { rm: async () => {}, exists: async () => true };
+    const out = await deleteSkillFromFs(fs, { name: 'bad name' });
+    assert.equal(out.ok, false);
+    assert.match((out as any).error, /hyphens/);
+});
+
+test('deleteSkillFromFs: missing skill returns ok:false', async () => {
+    const fs = { rm: async () => {}, exists: async () => false };
+    const out = await deleteSkillFromFs(fs, { name: 'alpha' });
+    assert.equal(out.ok, false);
+    assert.match((out as any).error, /not found/);
+});
+
+test('deleteSkillFromFs: removes file and directory on success', async () => {
+    const removed: Array<{ path: string; opts?: any }> = [];
+    const fs = {
+        exists: async () => true,
+        rm: async (path: string, opts?: any) => {
+            removed.push({ path, opts });
+        },
+    };
+    const out = await deleteSkillFromFs(fs, { name: 'alpha' });
+    assert.equal(out.ok, true);
+    assert.equal((out as any).skillPath, '/workspace/skills/custom-skills/alpha/SKILL.md');
+    assert.equal(removed.length, 2);
+    assert.equal(removed[0].path, '/workspace/skills/custom-skills/alpha/SKILL.md');
+    assert.equal(removed[1].path, '/workspace/skills/custom-skills/alpha');
+    assert.equal(removed[1].opts?.recursive, true);
+});
+
+test('deleteSkillFromFs: user scope targets /workspace/.cursor/skills', async () => {
+    const removed: string[] = [];
+    const fs = {
+        exists: async () => true,
+        rm: async (path: string) => {
+            removed.push(path);
+        },
+    };
+    const out = await deleteSkillFromFs(fs, { name: 'alpha', scope: 'user' });
+    assert.equal(out.ok, true);
+    assert.equal((out as any).skillPath, '/workspace/.cursor/skills/alpha/SKILL.md');
+    assert.deepEqual(removed, [
+        '/workspace/.cursor/skills/alpha/SKILL.md',
+        '/workspace/.cursor/skills/alpha',
+    ]);
 });

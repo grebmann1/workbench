@@ -75,6 +75,8 @@ export default class App extends ToolkitElement {
     @track loadingStatus = '';
     @track displayedMessages = [];
     @track isDebugMode = false;
+    @track isSkillsPanelOpen = false;
+    @track skillsPanelInitialQuery = '';
     @track selectedDebugTabId = 'messages';
     @track debugMessages = [];
     @track debugStreamHistory = [];
@@ -654,6 +656,17 @@ You have full access to the toolkit UI. All navigation and display tools work no
 
     toggleSidePanel = () => {
         this.isSidePanelOpen = !this.isSidePanelOpen;
+    };
+
+    handleSkillsCommand = event => {
+        const query = event?.detail?.query || '';
+        this.skillsPanelInitialQuery = query;
+        this.isSkillsPanelOpen = true;
+    };
+
+    handleSkillsPanelClose = () => {
+        this.isSkillsPanelOpen = false;
+        this.skillsPanelInitialQuery = '';
     };
 
     createNewConversation = async () => {

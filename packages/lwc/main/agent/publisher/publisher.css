@@ -4,6 +4,82 @@
     min-width: 0;
 }
 
+.publisher-slash-menu {
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--lwc-colorBorderInput, #d8dde6);
+    border-radius: 8px;
+    background: var(--lwc-colorBackground, #fff);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    max-height: 14rem;
+    overflow-y: auto;
+    padding: 0.25rem 0;
+    font-size: 0.8125rem;
+}
+
+.publisher-slash-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.25rem 0.75rem 0.375rem;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--lwc-colorTextWeak, #747474);
+    border-bottom: 1px solid var(--lwc-colorBorderInputDisabled, #f3f3f3);
+    margin-bottom: 0.125rem;
+}
+
+.publisher-slash-hint {
+    font-weight: 400;
+    text-transform: none;
+    letter-spacing: 0;
+    color: var(--lwc-colorTextWeak, #aeaeae);
+}
+
+.publisher-slash-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.375rem 0.75rem;
+    background: transparent;
+    border: none;
+    text-align: left;
+    cursor: pointer;
+    font: inherit;
+    color: var(--lwc-colorTextDefault, #181818);
+    line-height: 1.35;
+    border-radius: 0;
+}
+
+.publisher-slash-item:hover,
+.publisher-slash-item_active {
+    background: var(--slds-g-color-brand-base-95, #e8f4fd);
+}
+
+.publisher-slash-item-icon {
+    --sds-c-icon-color-foreground-default: var(--slds-g-color-brand-base-40, #0176d3);
+    flex-shrink: 0;
+}
+
+.publisher-slash-item-label {
+    font-family: var(--lwc-fontFamilyMonospace, Menlo, Consolas, monospace);
+    font-weight: 600;
+    color: var(--slds-g-color-brand-base-30, #014486);
+    flex-shrink: 0;
+}
+
+.publisher-slash-item-desc {
+    font-size: 0.8125rem;
+    color: var(--lwc-colorTextWeak, #6b6b6b);
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 .file-upload-drag-overlay {
     position: absolute;
     top: 0;

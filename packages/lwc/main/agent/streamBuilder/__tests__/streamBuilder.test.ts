@@ -92,6 +92,31 @@ test('createStreamMessageBuilder: tool_calls upserts final input-available state
     assert.deepEqual(toolCall.input, { cmd: 'ls' });
 });
 
+test('createStreamMessageBuilder: tool_calls preserves provider options metadata', () => {
+    const messages: Msg[] = [];
+    const { handleChunk } = createStreamMessageBuilder(m => messages.push(m as any));
+
+    handleChunk({
+        type: 'tool_calls',
+        toolCalls: [
+            {
+                toolCallId: 't2',
+                toolName: 'run',
+                input: { cmd: 'ls' },
+                providerOptions: {
+                    google: {
+                        thoughtSignature: '<Signature A>',
+                    },
+                },
+            },
+        ],
+    } as any);
+
+    const last = messages[messages.length - 1];
+    const toolCall = last!.content.find((p: any) => p.type === 'tool-call');
+    assert.equal(toolCall.providerOptions.google.thoughtSignature, '<Signature A>');
+});
+
 test('createStreamMessageBuilder: tool_result appends a tool-result part', () => {
     const messages: Msg[] = [];
     const { handleChunk } = createStreamMessageBuilder(m => messages.push(m as any));

@@ -19,6 +19,7 @@ import {
     resolveAgentProviderBaseUrl,
     DEFAULT_LLM_PROVIDER,
     DEFAULT_PROVIDER_BASE_URLS,
+    INTERNAL_MODEL_OPTIONS,
     LLM_PROVIDERS,
     OPENAI_MODEL_OPTIONS,
     ANTHROPIC_MODEL_OPTIONS,
@@ -167,6 +168,12 @@ test('isInternalProviderBaseUrl: detects eng-ai-model-gateway substring', () => 
         isInternalProviderBaseUrl('https://eng-ai-model-gateway.internal.salesforce.com/v1'),
         true
     );
+    assert.equal(
+        isInternalProviderBaseUrl(
+            'https://eng-ai-model-gateway.sfproxy.devx-preprod.aws-esvc1-useast2.aws.sfdc.cl/bedrock'
+        ),
+        true
+    );
     assert.equal(isInternalProviderBaseUrl('https://api.openai.com/v1'), false);
     assert.equal(isInternalProviderBaseUrl(''), false);
     assert.equal(isInternalProviderBaseUrl(null), false);
@@ -180,10 +187,7 @@ test('isOpenAiCompatibleGateway: internal gateway always true', () => {
 });
 
 test('isOpenAiCompatibleGateway: native domain → false', () => {
-    assert.equal(
-        isOpenAiCompatibleGateway('anthropic', 'https://api.anthropic.com/v1'),
-        false
-    );
+    assert.equal(isOpenAiCompatibleGateway('anthropic', 'https://api.anthropic.com/v1'), false);
     assert.equal(
         isOpenAiCompatibleGateway('gemini', 'https://generativelanguage.googleapis.com/v1beta'),
         false
@@ -238,18 +242,12 @@ test('resolveAgentProviderBaseUrl: non-gemini passes through', () => {
 });
 
 test('resolveAgentProviderBaseUrl: empty baseUrl uses provider default', () => {
-    assert.equal(
-        resolveAgentProviderBaseUrl('openai', ''),
-        DEFAULT_PROVIDER_BASE_URLS.openai
-    );
+    assert.equal(resolveAgentProviderBaseUrl('openai', ''), DEFAULT_PROVIDER_BASE_URLS.openai);
 });
 
 test('resolveAgentProviderBaseUrl: gemini /v1beta appends /openai', () => {
     assert.equal(
-        resolveAgentProviderBaseUrl(
-            'gemini',
-            'https://generativelanguage.googleapis.com/v1beta'
-        ),
+        resolveAgentProviderBaseUrl('gemini', 'https://generativelanguage.googleapis.com/v1beta'),
         'https://generativelanguage.googleapis.com/v1beta/openai'
     );
 });
@@ -287,6 +285,54 @@ test('buildAvailableAgentModelOptions: multiple providers prefix labels', () => 
     const options = buildAvailableAgentModelOptions({ providerConfigs: configs });
     assert.ok(options.some(o => o.label.startsWith('OpenAI: ')));
     assert.ok(options.some(o => o.label.startsWith('Anthropic: ')));
+});
+
+test('buildAvailableAgentModelOptions: internal Anthropic config uses Anthropic internal models', () => {
+    const configs = createDefaultProviderConfigMap();
+    configs.anthropic = {
+        apiKey: 'sk-b',
+        baseUrl:
+            'https://eng-ai-model-gateway.sfproxy.devx-preprod.aws-esvc1-useast2.aws.sfdc.cl/bedrock',
+    };
+    const anthropicInternalModels = INTERNAL_MODEL_OPTIONS.filter(
+        model => model.provider === 'anthropic'
+    );
+    const options = buildAvailableAgentModelOptions({ providerConfigs: configs });
+
+    assert.ok(anthropicInternalModels.length > 0);
+    assert.deepEqual(
+        options.map(option => option.value),
+        anthropicInternalModels.map(model => model.value)
+    );
+    assert.deepEqual(
+        options.map(option => option.value),
+        [
+            'us.anthropic.claude-opus-4-7',
+            'us.anthropic.claude-sonnet-4-6',
+            'us.anthropic.claude-haiku-4-5-20251001-v1:0',
+        ]
+    );
+    assert.ok(options.every(option => option.provider === 'anthropic'));
+});
+
+test('buildAvailableAgentModelOptions: internal Gemini config uses Gemini internal models', () => {
+    const configs = createDefaultProviderConfigMap();
+    configs.gemini = {
+        apiKey: 'sk-g',
+        baseUrl:
+            'https://eng-ai-model-gateway.sfproxy.devx-preprod.aws-esvc1-useast2.aws.sfdc.cl/v1beta',
+    };
+    const geminiInternalModels = INTERNAL_MODEL_OPTIONS.filter(
+        model => model.provider === 'gemini'
+    );
+    const options = buildAvailableAgentModelOptions({ providerConfigs: configs });
+
+    assert.ok(geminiInternalModels.length > 0);
+    assert.deepEqual(
+        options.map(option => option.value),
+        geminiInternalModels.map(model => model.value)
+    );
+    assert.ok(options.every(option => option.provider === 'gemini'));
 });
 
 test('buildAvailableAgentModelOptions: server-provided catalog overrides defaults', () => {

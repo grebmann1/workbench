@@ -1,8 +1,12 @@
 import { getIndexedDbFileSystem } from 'core/fs';
 import LOGGER from 'shared/logger';
+
+import { SKILL_ROOT_DIR_BY_SCOPE } from '../tools/constants';
+
 import { SKILLS_ROOT, SKILLS_INSTRUCTIONS } from './constants';
 
 export type SkillScope = 'project' | 'user';
+export type SkillSource = 'bundled' | 'custom';
 
 export interface DiscoveredSkill {
     name: string;
@@ -10,6 +14,7 @@ export interface DiscoveredSkill {
     skillMdPath: string;
     rootDir: string;
     scope: SkillScope;
+    source: SkillSource;
 }
 
 function escapeXml(text: string): string {
@@ -107,8 +112,18 @@ async function findAllSkillFiles(dir: string): Promise<string[]> {
     return results.sort();
 }
 
+export function classifySkillPath(filePath: string): { scope: SkillScope; source: SkillSource } {
+    if (filePath.startsWith(`${SKILL_ROOT_DIR_BY_SCOPE.user}/`)) {
+        return { scope: 'user', source: 'custom' };
+    }
+    if (filePath.startsWith(`${SKILL_ROOT_DIR_BY_SCOPE.project}/`)) {
+        return { scope: 'project', source: 'custom' };
+    }
+    return { scope: 'project', source: 'bundled' };
+}
+
 // Loads skill metadata from any *SKILL.md file path.
-async function loadSkillFile(filePath: string, scope: SkillScope): Promise<DiscoveredSkill | null> {
+async function loadSkillFile(filePath: string): Promise<DiscoveredSkill | null> {
     const fs = getIndexedDbFileSystem();
     try {
         const content = await fs.readFile(filePath, 'utf-8');
@@ -120,7 +135,8 @@ async function loadSkillFile(filePath: string, scope: SkillScope): Promise<Disco
         if (!name || !description) return null;
         const lastSlash = filePath.lastIndexOf('/');
         const rootDir = lastSlash > 0 ? filePath.slice(0, lastSlash) : filePath;
-        return { name, description, skillMdPath: filePath, rootDir, scope };
+        const { scope, source } = classifySkillPath(filePath);
+        return { name, description, skillMdPath: filePath, rootDir, scope, source };
     } catch {
         return null;
     }
@@ -128,10 +144,23 @@ async function loadSkillFile(filePath: string, scope: SkillScope): Promise<Disco
 
 export async function discoverSkills(): Promise<DiscoveredSkill[]> {
     const byName = new Map<string, DiscoveredSkill>();
-    const files = await findAllSkillFiles(SKILLS_ROOT);
-    for (const filePath of files) {
-        const skill = await loadSkillFile(filePath, 'project');
-        if (skill) byName.set(skill.name, skill);
+    const roots = Array.from(
+        new Set([SKILLS_ROOT, SKILL_ROOT_DIR_BY_SCOPE.user, SKILL_ROOT_DIR_BY_SCOPE.project])
+    );
+    const files: string[] = [];
+    for (const root of roots) {
+        const nested = await findAllSkillFiles(root);
+        files.push(...nested);
+    }
+    const uniqueFiles = Array.from(new Set(files)).sort();
+    for (const filePath of uniqueFiles) {
+        const skill = await loadSkillFile(filePath);
+        if (!skill) continue;
+        const existing = byName.get(skill.name);
+        // Prefer custom over bundled on name collision; otherwise keep first.
+        if (!existing || (existing.source === 'bundled' && skill.source === 'custom')) {
+            byName.set(skill.name, skill);
+        }
     }
     LOGGER.debug('[agent] discovered skills', { skills: [...byName.values()] });
     return [...byName.values()].sort((a, b) => a.name.localeCompare(b.name));
@@ -160,10 +189,7 @@ export function formatSkillsForPrompt(skills: DiscoveredSkill[]): string | null 
         skill =>
             `  <skill>\n    <name>${escapeXml(skill.name)}</name>\n    <description>${escapeXml(
                 skill.description
-            )}</description>\n    <location>${escapeXml(
-                skill.skillMdPath
-            )}</location>\n  </skill>`
+            )}</description>\n    <location>${escapeXml(skill.skillMdPath)}</location>\n  </skill>`
     );
     return `${SKILLS_INSTRUCTIONS}\n\n<available_skills>\n${parts.join('\n')}\n</available_skills>`;
 }
-
