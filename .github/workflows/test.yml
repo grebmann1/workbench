@@ -28,13 +28,11 @@ jobs:
           node-version: '22.14'
           cache: 'npm'
       - run: npm ci --no-audit --no-fund
-      - name: Write placeholder .env.dev for the API server
-        run: |
-          cat > .env.dev <<'EOF'
-          CLIENT_ID=e2e_placeholder
-          CLIENT_SECRET=e2e_placeholder
-          PORT=3000
-          EOF
+      - name: Copy .env.dev.ci into place for the API server
+        # .env.dev.ci ships with the repo and only contains placeholder
+        # values — sufficient for /config to respond and for the OAuth
+        # routes to 4xx without a real `code` param.
+        run: cp .env.dev.ci .env.dev
       - run: npx playwright install --with-deps chromium
       - name: Start API server (port 3000)
         run: npm run start:dev:server &
