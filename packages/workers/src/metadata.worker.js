@@ -1,8 +1,8 @@
 import jsforce from 'imported/jsforce';
 import { Buffer } from 'buffer';
 import { unzipSync, strFromU8 } from 'fflate/browser';
-import { createIndexedDbFileSystem } from '../../lwc/app/core/fs/indexedDbFileSystem';
-import createMetadataFsService from '../../lwc/app/core/fs/metadataFsService';
+import { createIndexedDbFileSystem } from '../../lwc/main/core/fs/indexedDbFileSystem';
+import createMetadataFsService from '../../lwc/main/core/fs/metadataFsService';
 
 const STATUS = {
     IDLE: 'idle',
