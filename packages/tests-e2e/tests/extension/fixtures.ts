@@ -66,10 +66,13 @@ export const test = base.extend<Fixtures>({
         // Must drop `--disable-extensions` (Playwright default) or the
         // extension's service worker is never registered.
         const ctx = await chromium.launchPersistentContext('', {
+            // Playwright's bundled chromium on Linux is headless-shell and
+            // does not load extensions. Use `chrome` (Chrome for Testing,
+            // installed via `npx playwright install chrome` in CI).
+            channel: 'chrome',
             headless: false,
-            // `--enable-automation` (Playwright's default) makes Chromium
-            // reject chrome-extension://<id>/... navigations with
-            // ERR_BLOCKED_BY_CLIENT. Strip it along with `--disable-extensions`.
+            // `--enable-automation` makes Chromium reject
+            // chrome-extension://<id>/... with ERR_BLOCKED_BY_CLIENT.
             ignoreDefaultArgs: ['--disable-extensions', '--enable-automation'],
             args: [
                 `--disable-extensions-except=${EXT_DIR}`,
