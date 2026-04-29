@@ -8,4 +8,17 @@ export default defineConfig({
         ? [['list'], ['html', { outputFolder: 'playwright-report', open: 'never' }]]
         : [['list']],
     forbidOnly: !!process.env.CI,
+    projects: [
+        {
+            name: 'smoke',
+            testDir: './tests',
+            testMatch: /smoke\..*\.spec\.ts/,
+            testIgnore: /extension\//,
+        },
+        {
+            name: 'extension',
+            testDir: './tests/extension',
+            testMatch: /.*\.spec\.ts/,
+        },
+    ],
 });
