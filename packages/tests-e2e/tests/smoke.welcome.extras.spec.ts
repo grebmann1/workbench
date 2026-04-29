@@ -34,11 +34,7 @@ test.describe('@smoke welcome extras', () => {
         }
     });
 
-    test('no console errors during a 3-second idle window after load', async ({ page }) => {
-        const errors: string[] = [];
-        page.on('console', msg => {
-            if (msg.type() === 'error') errors.push(msg.text());
-        });
+    test('no console errors during a 3-second idle window after load', async ({ page, consoleErrors }) => {
         await page.goto('/welcome/', { waitUntil: 'load' });
         // Wait for the hero heading to be visible rather than an arbitrary
         // timeout — idle means "page is interactive and no further work is
@@ -49,7 +45,7 @@ test.describe('@smoke welcome extras', () => {
         await page.waitForLoadState('networkidle', { timeout: 3_000 }).catch(() => {
             /* networkidle may never settle on a site with live refresh; swallow */
         });
-        expect(errors, `unexpected console errors: ${errors.join('\n')}`).toEqual([]);
+        expect(consoleErrors, `unexpected console errors: ${consoleErrors.join('\n')}`).toEqual([]);
     });
 
     test('robots meta, when present, is not "noindex"', async ({ welcome }) => {
