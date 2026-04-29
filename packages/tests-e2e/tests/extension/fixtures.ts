@@ -122,7 +122,9 @@ test.afterEach(async ({ context }) => {
     if (!sw) return;
     await sw
         .evaluate(async () => {
+            // eslint-disable-next-line no-undef
             await chrome.storage.local.clear();
+            // eslint-disable-next-line no-undef
             await chrome.storage.sync.clear();
         })
         .catch(() => {

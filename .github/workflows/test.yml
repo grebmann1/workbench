@@ -61,3 +61,30 @@ jobs:
           path: packages/tests-e2e/playwright-report
           if-no-files-found: ignore
           retention-days: 7
+
+  e2e-extension:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.14'
+          cache: 'npm'
+      - run: npm ci --no-audit --no-fund
+      - name: Copy .env.dev.ci into place (build:shared reads it transitively)
+        run: cp .env.dev.ci .env.dev
+      - run: npm run build:prod:extension
+      - run: npx playwright install --with-deps chromium
+      # Chrome extensions don't load in Playwright's default headless mode,
+      # so the extension project launches Chromium headed. xvfb provides the
+      # display on Linux runners.
+      - run: xvfb-run --auto-servernum --server-args='-screen 0 1920x1080x24' npm run test:e2e:ext
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-ext-report
+          path: packages/tests-e2e/playwright-report
+          if-no-files-found: ignore
+          retention-days: 7
