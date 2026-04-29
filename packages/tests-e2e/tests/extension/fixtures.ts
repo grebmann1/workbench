@@ -79,6 +79,9 @@ export const test = base.extend<Fixtures>({
                 `--load-extension=${EXT_DIR}`,
                 '--no-first-run',
                 '--no-default-browser-check',
+                // CI: no-sandbox is required under GitHub Actions where
+                // the kernel doesn't allow user namespaces for Chrome.
+                ...(process.env.CI ? ['--no-sandbox'] : []),
             ],
         });
         await use(ctx);
@@ -103,9 +106,24 @@ export const test = base.extend<Fixtures>({
     appPage: async ({ context, extensionId }, use) => {
         const open = async (applicationName: string) => {
             const page = await context.newPage();
-            await page.goto(
-                `chrome-extension://${extensionId}/views/app.html?applicationName=${applicationName}`
-            );
+            const url = `chrome-extension://${extensionId}/views/app.html?applicationName=${applicationName}`;
+            // Retry the first navigation. On CI under xvfb, the extension
+            // occasionally returns ERR_BLOCKED_BY_CLIENT for up to a few
+            // seconds after Chrome launches while the extension's manifest
+            // is registered against the persistent context.
+            let lastErr: unknown;
+            for (let i = 0; i < 20; i++) {
+                try {
+                    await page.goto(url);
+                    lastErr = undefined;
+                    break;
+                } catch (err) {
+                    lastErr = err;
+                    if (!String(err).includes('ERR_BLOCKED_BY_CLIENT')) throw err;
+                    await page.waitForTimeout(500);
+                }
+            }
+            if (lastErr) throw lastErr;
             // Shell readiness signal — wait for the skeleton-full-view to
             // render a heading. LWC shadow DOM is pierced natively by
             // Playwright's ARIA-role locators.
