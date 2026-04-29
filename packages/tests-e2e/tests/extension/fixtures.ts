@@ -118,6 +118,10 @@ export const test = base.extend<Fixtures>({
  * persistent context.
  */
 test.afterEach(async ({ context }) => {
+    // `context` can be null if the fixture setup itself failed (e.g. the
+    // persistent-context launch timed out) — guard to avoid masking the
+    // real error with a TypeError from the cleanup.
+    if (!context) return;
     const [sw] = context.serviceWorkers();
     if (!sw) return;
     await sw

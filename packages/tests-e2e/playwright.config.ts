@@ -16,9 +16,13 @@ export default defineConfig({
             testIgnore: /extension\//,
         },
         {
+            // Extension project launches a persistent Chromium context
+            // with --load-extension, which is substantially slower to boot
+            // than the landing-site smokes — give it more headroom.
             name: 'extension',
             testDir: './tests/extension',
             testMatch: /.*\.spec\.ts/,
+            timeout: 90_000,
         },
     ],
 });
