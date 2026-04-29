@@ -28,6 +28,8 @@ jobs:
           node-version: '22.14'
           cache: 'npm'
       - run: npm ci --no-audit --no-fund
+      - name: Install apps/ui deps (landing site)
+        run: npm --prefix apps/ui ci --no-audit --no-fund
       - name: Copy .env.dev.ci into place for the API server
         # .env.dev.ci ships with the repo and only contains placeholder
         # values — sufficient for /config to respond and for the OAuth

@@ -66,7 +66,6 @@ export const test = base.extend<Fixtures>({
         // Must drop `--disable-extensions` (Playwright default) or the
         // extension's service worker is never registered.
         const ctx = await chromium.launchPersistentContext('', {
-            channel: 'chromium',
             headless: false,
             ignoreDefaultArgs: ['--disable-extensions'],
             args: [
@@ -80,18 +79,19 @@ export const test = base.extend<Fixtures>({
         await ctx.close();
     },
     extensionId: async ({ context }, use) => {
+        // Always wait for the MV3 service worker to register before handing
+        // out the id — otherwise the first page.goto() to
+        // chrome-extension://<id>/... races the extension startup and
+        // Chromium returns ERR_BLOCKED_BY_CLIENT.
+        let [sw] = context.serviceWorkers();
+        if (!sw) {
+            sw = await context.waitForEvent('serviceworker', { timeout: 30_000 });
+        }
         const manifest = JSON.parse(fs.readFileSync(path.join(EXT_DIR, 'manifest.json'), 'utf8'));
-        let id: string | undefined;
-        if (typeof manifest.key === 'string' && manifest.key.length > 0) {
-            id = deriveExtensionId(manifest.key);
-        }
-        if (!id) {
-            let [sw] = context.serviceWorkers();
-            if (!sw) {
-                sw = await context.waitForEvent('serviceworker', { timeout: 15_000 });
-            }
-            id = sw.url().split('/')[2];
-        }
+        const id =
+            typeof manifest.key === 'string' && manifest.key.length > 0
+                ? deriveExtensionId(manifest.key)
+                : sw.url().split('/')[2];
         await use(id);
     },
     appPage: async ({ context, extensionId }, use) => {
