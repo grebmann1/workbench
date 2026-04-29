@@ -46,9 +46,6 @@
     {
       "files": [
         "packages/lwc/main/**/*.ts",
-        "packages/lwc/shared/**/*.ts",
-        "packages/lwc/applications/**/*.ts",
-        "packages/lwc/extension/**/*.ts",
         "packages/desktop/**/*.ts",
         "packages/tests-e2e/**/*.ts",
         "tools/testing/**/*.ts"
