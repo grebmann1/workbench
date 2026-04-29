@@ -109,4 +109,25 @@ export const test = base.extend<Fixtures>({
     },
 });
 
+/**
+ * Reset the extension's persistent chrome.storage between tests so state
+ * from one test (e.g. smartinput categories) does not leak into the next.
+ * Runs through the extension's service worker when one is registered; if
+ * the SW is idle (MV3 lazy registration) this is a no-op — isolation is
+ * still guaranteed at the spec-file level because each file gets its own
+ * persistent context.
+ */
+test.afterEach(async ({ context }) => {
+    const [sw] = context.serviceWorkers();
+    if (!sw) return;
+    await sw
+        .evaluate(async () => {
+            await chrome.storage.local.clear();
+            await chrome.storage.sync.clear();
+        })
+        .catch(() => {
+            // Service worker may have gone idle between tests; ignore.
+        });
+});
+
 export { expect };
