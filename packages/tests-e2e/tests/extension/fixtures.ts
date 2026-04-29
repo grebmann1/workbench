@@ -98,21 +98,15 @@ export const test = base.extend<Fixtures>({
         const open = async (applicationName: string) => {
             const page = await context.newPage();
             const url = `chrome-extension://${extensionId}/views/app.html?applicationName=${applicationName}`;
-            // Retry the initial navigation — on xvfb/Linux the extension
-            // can briefly return ERR_BLOCKED_BY_CLIENT before Chromium
-            // finishes registering it against the persistent context.
-            let lastErr: unknown;
-            for (let i = 0; i < 10; i++) {
-                try {
-                    await page.goto(url);
-                    lastErr = undefined;
-                    break;
-                } catch (err) {
-                    lastErr = err;
-                    await page.waitForTimeout(500);
-                }
-            }
-            if (lastErr) throw lastErr;
+            // Land on about:blank first, then switch href via evaluate.
+            // A direct page.goto() to chrome-extension:// from a fresh tab
+            // is blocked by Chromium (ERR_BLOCKED_BY_CLIENT) on Linux/xvfb
+            // until the tab has committed at least one prior navigation.
+            await page.goto('about:blank');
+            await page.evaluate(u => {
+                window.location.href = u;
+            }, url);
+            await page.waitForURL(url, { timeout: 30_000 });
             // Shell readiness signal — wait for the skeleton-full-view to
             // render a heading. LWC shadow DOM is pierced natively by
             // Playwright's ARIA-role locators.
