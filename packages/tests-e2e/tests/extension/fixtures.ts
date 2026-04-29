@@ -67,7 +67,10 @@ export const test = base.extend<Fixtures>({
         // extension's service worker is never registered.
         const ctx = await chromium.launchPersistentContext('', {
             headless: false,
-            ignoreDefaultArgs: ['--disable-extensions'],
+            // `--enable-automation` (Playwright's default) makes Chromium
+            // reject chrome-extension://<id>/... navigations with
+            // ERR_BLOCKED_BY_CLIENT. Strip it along with `--disable-extensions`.
+            ignoreDefaultArgs: ['--disable-extensions', '--enable-automation'],
             args: [
                 `--disable-extensions-except=${EXT_DIR}`,
                 `--load-extension=${EXT_DIR}`,
@@ -97,16 +100,9 @@ export const test = base.extend<Fixtures>({
     appPage: async ({ context, extensionId }, use) => {
         const open = async (applicationName: string) => {
             const page = await context.newPage();
-            const url = `chrome-extension://${extensionId}/views/app.html?applicationName=${applicationName}`;
-            // Land on about:blank first, then switch href via evaluate.
-            // A direct page.goto() to chrome-extension:// from a fresh tab
-            // is blocked by Chromium (ERR_BLOCKED_BY_CLIENT) on Linux/xvfb
-            // until the tab has committed at least one prior navigation.
-            await page.goto('about:blank');
-            await page.evaluate(u => {
-                window.location.href = u;
-            }, url);
-            await page.waitForURL(url, { timeout: 30_000 });
+            await page.goto(
+                `chrome-extension://${extensionId}/views/app.html?applicationName=${applicationName}`
+            );
             // Shell readiness signal — wait for the skeleton-full-view to
             // render a heading. LWC shadow DOM is pierced natively by
             // Playwright's ARIA-role locators.
