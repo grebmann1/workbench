@@ -20,7 +20,9 @@ test.describe('@smoke welcome extras', () => {
         expect(href, 'CTA href must not be a "#" placeholder').not.toMatch(/^#$/);
     });
 
-    test('every <img> on the page declares an alt attribute (even empty is acceptable for decorative)', async ({ welcome }) => {
+    test('every <img> on the page declares an alt attribute (even empty is acceptable for decorative)', async ({
+        welcome,
+    }) => {
         // Wait for at least one image to attach before querying the list.
         const imgs = welcome.locator('img');
         await expect(imgs.first()).toHaveCount(1, { timeout: 5_000 }).catch(() => {

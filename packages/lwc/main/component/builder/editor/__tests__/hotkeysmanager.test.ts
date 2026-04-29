@@ -1,5 +1,5 @@
-import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { test } from 'node:test';
 
 // hotkeys-js (the dependency of hotkeysmanager) touches `document` on
 // first `hotkeys(...)` call to attach keydown/keyup listeners. Node's
