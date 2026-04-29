@@ -1,6 +1,4 @@
-import { z } from 'zod';
-import LOGGER from 'shared/logger';
-import { API as API_UTILS, compressImage } from 'shared/utils';
+import { discoverSkills, fetchSkillByName } from 'agent/utils';
 import type { ToolResultPart } from 'ai';
 import {
     APEX_HELP,
@@ -11,8 +9,7 @@ import {
     SOQL_HELP,
     detectMetadataType,
 } from 'core/bash';
-import { store, ERROR, APPLICATION } from 'core/store';
-import { invokeCommand } from 'host-api/commands';
+import type { ShellCommandContext } from 'core/bash';
 import {
     getConfiguration,
     getPublicConfigurations,
@@ -21,21 +18,32 @@ import {
     saveSession,
 } from 'core/connector';
 import type { ConnectorLike } from 'core/connector';
-import { discoverSkills, fetchSkillByName } from 'agent/utils';
-import { waitForLoaded, wrappedNavigate, formatTabId, openBrowser, openToolkit } from '../utils/utils';
-import { saveSkillToFs } from './skillUtils';
-import type { ShellCommandContext } from 'core/bash';
+import { store, ERROR, APPLICATION } from 'core/store';
+import { invokeCommand } from 'host-api/commands';
+import LOGGER from 'shared/logger';
+import { API as API_UTILS, compressImage } from 'shared/utils';
+import { z } from 'zod';
+
+import { SHELL_TOOL_HELP, SKILL_PATH_TEMPLATES, TOOL_OUTPUT_LIMITS } from '../constants';
 import {
-    SHELL_TOOL_HELP,
-    SKILL_PATH_TEMPLATES,
-    TOOL_OUTPUT_LIMITS,
-} from '../constants';
+    waitForLoaded,
+    wrappedNavigate,
+    formatTabId,
+    openBrowser,
+    openToolkit,
+} from '../utils/utils';
+
+import { saveSkillToFs } from './skillUtils';
 
 export type BashToolOptions = {
     execInSandbox?: (
         code: string,
         timeoutMs?: number
-    ) => Promise<{ output: string; hasError: boolean; images?: Array<{ data: string; mediaType: string }> }>;
+    ) => Promise<{
+        output: string;
+        hasError: boolean;
+        images?: Array<{ data: string; mediaType: string }>;
+    }>;
     readPdf?: (input: { query: string; url?: string; tabId?: number }) => Promise<object>;
     files?: string[];
     toolPrompt?: string;
@@ -82,7 +90,10 @@ export function generateBashDescription(cwd: string, opts?: BashToolOptions) {
 
 function createCommand(
     name: string,
-    execute: (argv: string[], ctx: ShellCommandContext) => Promise<{ stdout: string; stderr: string; exitCode: number }>
+    execute: (
+        argv: string[],
+        ctx: ShellCommandContext
+    ) => Promise<{ stdout: string; stderr: string; exitCode: number }>
 ) {
     return { name, execute };
 }
@@ -174,7 +185,6 @@ function ensureSingleValue(value: string | boolean | string[] | undefined) {
     return value;
 }
 
-
 async function getConnectorByAlias(alias: string): Promise<ConnectorLike> {
     const config = await getConfiguration(alias);
     const strategy = credentialStrategies[config.credentialType || OAUTH_TYPES.OAUTH];
@@ -225,7 +235,9 @@ async function callConnectorRest({
     }
     const { conn } = connector;
     const version = conn.version || '59.0';
-    const baseSegment = isTooling ? `/services/data/v${version}/tooling` : `/services/data/v${version}`;
+    const baseSegment = isTooling
+        ? `/services/data/v${version}/tooling`
+        : `/services/data/v${version}`;
     const url = path.startsWith('http')
         ? path
         : `${conn.instanceUrl}${baseSegment}${path.startsWith('/') ? path : `/${path}`}`;
@@ -248,7 +260,11 @@ async function callConnectorRest({
     const contentType = res.headers.get('content-type') || '';
     let data: any;
     if (contentType.includes('application/json')) {
-        try { data = await res.json(); } catch { data = await res.text(); }
+        try {
+            data = await res.json();
+        } catch {
+            data = await res.text();
+        }
     } else {
         data = await res.text();
     }
@@ -256,7 +272,9 @@ async function callConnectorRest({
     if (!res.ok) {
         const errorMsg = Array.isArray(data)
             ? data.map((e: any) => e.message || JSON.stringify(e)).join('; ')
-            : (typeof data === 'object' ? JSON.stringify(data) : String(data));
+            : typeof data === 'object'
+              ? JSON.stringify(data)
+              : String(data);
         throw new Error(`HTTP ${res.status}: ${errorMsg}`);
     }
 
@@ -268,7 +286,9 @@ async function getConnectorVersion(connector?: ConnectorLike): Promise<string> {
     return active?.conn?.version || '59.0';
 }
 
-async function getConnectorUserInfo(connector?: ConnectorLike): Promise<{ id: string; username: string }> {
+async function getConnectorUserInfo(
+    connector?: ConnectorLike
+): Promise<{ id: string; username: string }> {
     const active = connector ?? (store.getState() as any)?.application?.connector;
     const conn = active?.conn;
     if (!conn) throw new Error('No active org connector found.');
@@ -285,7 +305,13 @@ export function registerShellCommands({
     images,
 }: {
     shell: {
-        registerCommand: (cmd: { name: string; execute: (argv: string[], ctx: ShellCommandContext) => Promise<{ stdout: string; stderr: string; exitCode: number }> }) => void;
+        registerCommand: (cmd: {
+            name: string;
+            execute: (
+                argv: string[],
+                ctx: ShellCommandContext
+            ) => Promise<{ stdout: string; stderr: string; exitCode: number }>;
+        }) => void;
     };
     opts: BashToolOptions;
     images: Array<{ data: string; mediaType: string }>;
@@ -376,10 +402,10 @@ export function registerShellCommands({
                 const res = await execInSandbox(codeResult.code, parsed.timeoutMs);
                 if (res.images?.length) images.push(...res.images);
                 LOGGER.debug('[agent:tool:bash:js] sandbox execution result', { res });
-                const response = { 
+                const response = {
                     stdout: (await capToolOutput(res.output ?? '', 'js', ctx.fs)).text,
                     stderr: '',
-                    exitCode: res.hasError ? 1 : 0
+                    exitCode: res.hasError ? 1 : 0,
                 };
                 LOGGER.debug('[agent:tool:bash:js] response', { response });
                 return response;
@@ -511,9 +537,7 @@ export function registerShellCommands({
             const { flags, positionals } = parseCliArgs(argv);
             const queryFromFlag = ensureSingleValue(getFlagValue(flags, 'query', 'q'));
             const query =
-                typeof queryFromFlag === 'string'
-                    ? queryFromFlag
-                    : positionals.join(' ').trim();
+                typeof queryFromFlag === 'string' ? queryFromFlag : positionals.join(' ').trim();
 
             if (!query) {
                 return {
@@ -743,15 +767,28 @@ export function registerShellCommands({
                 const skipped = testResults.filter((r: any) => r.Outcome === 'Skip').length;
 
                 const summary = runResult
-                    ? { status: runResult.Status, total: runResult.NumberTestsTotal, completed: runResult.NumberTestsCompleted, errors: runResult.NumberTestErrors }
+                    ? {
+                          status: runResult.Status,
+                          total: runResult.NumberTestsTotal,
+                          completed: runResult.NumberTestsCompleted,
+                          errors: runResult.NumberTestErrors,
+                      }
                     : { status: 'timeout', passed, failed, skipped };
 
                 const failures = testResults
                     .filter((r: any) => r.Outcome === 'Fail')
-                    .map((r: any) => ({ class: r.ApexClass?.Name, method: r.MethodName, message: r.Message, stackTrace: r.StackTrace }));
+                    .map((r: any) => ({
+                        class: r.ApexClass?.Name,
+                        method: r.MethodName,
+                        message: r.Message,
+                        stackTrace: r.StackTrace,
+                    }));
 
                 const exitCode = failed > 0 || summary.status === 'timeout' ? 1 : 0;
-                return { result: { jobId, summary: { ...summary, passed, failed, skipped }, failures }, exitCode };
+                return {
+                    result: { jobId, summary: { ...summary, passed, failed, skipped }, failures },
+                    exitCode,
+                };
             },
             async enableDebugLog({ durationMinutes, targetOrg }) {
                 const connector = targetOrg ? await resolveConnector(targetOrg) : undefined;
@@ -844,7 +881,11 @@ export function registerShellCommands({
                 const connector = targetOrg ? await resolveConnector(targetOrg) : undefined;
                 const safeLimit = Math.min(Math.max(1, limit), 200);
                 const q = `SELECT+Id,LogUser.Name,Application,DurationMilliseconds,StartTime,Status,LogLength+FROM+ApexLog+ORDER+BY+StartTime+DESC+LIMIT+${safeLimit}`;
-                const { data } = await callConnectorRest({ path: `/query?q=${q}`, isTooling: true, connector });
+                const { data } = await callConnectorRest({
+                    path: `/query?q=${q}`,
+                    isTooling: true,
+                    connector,
+                });
                 return { result: data?.records || [] };
             },
             async getDebugLog({ logId, outputPath, ctx, targetOrg }) {
@@ -871,14 +912,20 @@ export function registerShellCommands({
                 const lines = Object.entries(data).map(([name, val]: [string, any]) => {
                     const max = val?.Max ?? '?';
                     const remaining = val?.Remaining ?? '?';
-                    const used = typeof max === 'number' && typeof remaining === 'number' ? max - remaining : '?';
+                    const used =
+                        typeof max === 'number' && typeof remaining === 'number'
+                            ? max - remaining
+                            : '?';
                     return `${name}: ${used}/${max} used (${remaining} remaining)`;
                 });
                 return { result: { apiVersion: version, limits: data, summary: lines.join('\n') } };
             },
             async describeSObject({ objectName, targetOrg }) {
                 const connector = targetOrg ? await resolveConnector(targetOrg) : undefined;
-                const { data } = await callConnectorRest({ path: `/sobjects/${objectName}/describe`, connector });
+                const { data } = await callConnectorRest({
+                    path: `/sobjects/${objectName}/describe`,
+                    connector,
+                });
                 if (!data || typeof data !== 'object') return { result: data };
                 const fields = (data.fields || []).map((f: any) => ({
                     name: f.name,
@@ -944,17 +991,31 @@ export function registerShellCommands({
                         isTooling: true,
                         connector,
                     });
-                    return { result: { deployed: true, type, name, action: 'updated', id: existingId } };
+                    return {
+                        result: { deployed: true, type, name, action: 'updated', id: existingId },
+                    };
                 } else {
                     const version = await getConnectorVersion(connector);
                     const { data: created } = await callConnectorRest({
                         path: `/sobjects/${type}`,
                         method: 'POST',
-                        body: JSON.stringify({ [nameField]: name, [bodyField]: content, ApiVersion: parseFloat(version) }),
+                        body: JSON.stringify({
+                            [nameField]: name,
+                            [bodyField]: content,
+                            ApiVersion: parseFloat(version),
+                        }),
                         isTooling: true,
                         connector,
                     });
-                    return { result: { deployed: true, type, name, action: 'created', id: created?.id || created?.Id } };
+                    return {
+                        result: {
+                            deployed: true,
+                            type,
+                            name,
+                            action: 'created',
+                            id: created?.id || created?.Id,
+                        },
+                    };
                 }
             },
             async retrieveMetadata({ metadataType, apiName, outputPath, ctx, targetOrg }) {
@@ -1126,7 +1187,10 @@ function buildTruncatedText(text, savedPath, notice) {
         notice,
     ].join(TOOL_OUTPUT_LIMITS.sectionSeparator);
     if (combined.length > TOOL_OUTPUT_LIMITS.maxChars) {
-        head = head.slice(0, Math.max(0, head.length - (combined.length - TOOL_OUTPUT_LIMITS.maxChars)));
+        head = head.slice(
+            0,
+            Math.max(0, head.length - (combined.length - TOOL_OUTPUT_LIMITS.maxChars))
+        );
         combined = [
             `${buildHeadSectionHeader(head.length)}${TOOL_OUTPUT_LIMITS.sectionContentSeparator}${head}`,
             truncationSummary,
@@ -1324,13 +1388,16 @@ export function createBashTools(shell, fs, opts: BashToolOptions = {}) {
                                         args.conversationId,
                                         index
                                     ).catch(error => {
-                                        LOGGER.warn('[agent:tool:bash] failed to persist screenshot', {
-                                            conversationId: args.conversationId || null,
-                                            message:
-                                                error instanceof Error
-                                                    ? error.message
-                                                    : String(error),
-                                        });
+                                        LOGGER.warn(
+                                            '[agent:tool:bash] failed to persist screenshot',
+                                            {
+                                                conversationId: args.conversationId || null,
+                                                message:
+                                                    error instanceof Error
+                                                        ? error.message
+                                                        : String(error),
+                                            }
+                                        );
                                         return null;
                                     });
                                     return {

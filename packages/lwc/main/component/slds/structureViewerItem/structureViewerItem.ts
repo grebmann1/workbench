@@ -1,5 +1,6 @@
-import { api, track } from 'lwc';
 import ToolkitElement from 'core/toolkitElement';
+import { api, track } from 'lwc';
+import { store as legacyStore, store_application } from 'shared/store';
 import {
     isEmpty,
     isSalesforceId,
@@ -7,7 +8,6 @@ import {
     isUndefinedOrNull,
     isNotUndefinedOrNull,
 } from 'shared/utils';
-import { store as legacyStore, store_application } from 'shared/store';
 
 const PAGE_LIST_SIZE = 100;
 export default class StructureViewerItem extends ToolkitElement {
@@ -47,8 +47,8 @@ export default class StructureViewerItem extends ToolkitElement {
     expandAll = () => {
         this.isOpen = true;
         window.setTimeout(() => {
-            var items = this.template.querySelectorAll('slds-structure-viewer-item');
-            for (var i = 0; i < items.length; i++) {
+            const items = this.template.querySelectorAll('slds-structure-viewer-item');
+            for (let i = 0; i < items.length; i++) {
                 items[i].expandAll();
             }
         }, 1);
@@ -58,8 +58,8 @@ export default class StructureViewerItem extends ToolkitElement {
     collapseAll = () => {
         this.isOpen = false;
         window.setTimeout(() => {
-            var items = this.template.querySelectorAll('slds-structure-viewer-item');
-            for (var i = 0; i < items.length; i++) {
+            const items = this.template.querySelectorAll('slds-structure-viewer-item');
+            for (let i = 0; i < items.length; i++) {
                 items[i].collapseAll();
             }
         }, 1);

@@ -1,5 +1,5 @@
-import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { test } from 'node:test';
 
 function makeChrome({ pingResponse, pingDelay = 0, pingThrows = null, executeThrows = null } = {}) {
     const calls = { sendMessage: [], executeScript: [] };

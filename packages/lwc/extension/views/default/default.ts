@@ -1,14 +1,6 @@
-import { api, LightningElement, wire } from 'lwc';
-import { store as legacyStore, store_application } from 'shared/store';
 import { connectStore, store, EINSTEIN, APPLICATION, AGENT } from 'core/store';
-
-import {
-    getChromePort,
-    normalizeString as normalize,
-    registerChromePort,
-    disconnectChromePort,
-} from 'shared/utils';
 import { PANELS } from 'extension/utils';
+import { api, LightningElement, wire } from 'lwc';
 import {
     CACHE_CONFIG,
     getAiProviderFromConfig,
@@ -22,8 +14,14 @@ import {
     getProviderForModel,
     normalizeModelSelection,
 } from 'shared/llm';
-
 import LOGGER from 'shared/logger';
+import { store as legacyStore, store_application } from 'shared/store';
+import {
+    getChromePort,
+    normalizeString as normalize,
+    registerChromePort,
+    disconnectChromePort,
+} from 'shared/utils';
 export default class Default extends LightningElement {
     @api currentApplication;
     @api recordId;

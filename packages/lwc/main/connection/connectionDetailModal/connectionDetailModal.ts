@@ -1,13 +1,13 @@
-import LightningModal from 'lightning/modal';
-import { api, track } from 'lwc';
+import { buildConnectionShareMessage } from 'connection/shareUtils';
 import {
     renameConfiguration,
     notificationService,
     validateInputs,
     OAUTH_TYPES,
 } from 'core/connector';
+import LightningModal from 'lightning/modal';
+import { api, track } from 'lwc';
 import { isEmpty, isNotUndefinedOrNull, checkIfPresent } from 'shared/utils';
-import { buildConnectionShareMessage } from 'connection/shareUtils';
 
 const { showToast, handleError } = notificationService;
 
@@ -88,7 +88,7 @@ export default class ConnectionDetailModal extends LightningModal {
     }
     validateNewCategory = () => {
         let isValid = true;
-        let inputFields = this.template.querySelectorAll('.new-category-to-validate');
+        const inputFields = this.template.querySelectorAll('.new-category-to-validate');
         inputFields.forEach(inputField => {
             if (!inputField.checkValidity()) {
                 inputField.reportValidity();

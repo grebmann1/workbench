@@ -23,13 +23,12 @@
     padding: 1rem 1rem 1.125rem;
     border: 1px solid var(--slds-g-color-border-base-1, #dddbda);
     border-radius: 1rem;
-    background:
-        linear-gradient(
-            135deg,
-            color-mix(in srgb, var(--slds-g-color-brand-base-60, #1b96ff) 8%, white),
-            var(--slds-g-color-neutral-base-100, #fff) 38%,
-            color-mix(in srgb, var(--slds-g-color-success-base-50, #2e844a) 7%, white)
-        );
+    background: linear-gradient(
+        135deg,
+        color-mix(in srgb, var(--slds-g-color-brand-base-60, #1b96ff) 8%, white),
+        var(--slds-g-color-neutral-base-100, #fff) 38%,
+        color-mix(in srgb, var(--slds-g-color-success-base-50, #2e844a) 7%, white)
+    );
 }
 
 .org-users-summary-copy {

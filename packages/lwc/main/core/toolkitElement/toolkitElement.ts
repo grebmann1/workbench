@@ -1,9 +1,8 @@
-import { LightningElement, api } from 'lwc';
-import { isEmpty, isElectronApp, isNotUndefinedOrNull } from 'shared/utils';
-import { classSet } from 'shared/utils';
+import type { ConnectorLike } from 'core/connector';
 import { I18nMixin } from 'core/i18n';
 import { store } from 'core/store';
-import type { ConnectorLike } from 'core/connector';
+import { LightningElement, api } from 'lwc';
+import { isEmpty, isElectronApp, isNotUndefinedOrNull, classSet } from 'shared/utils';
 
 export default class ToolkitElement extends I18nMixin(LightningElement) {
     @api applicationName: string | null;

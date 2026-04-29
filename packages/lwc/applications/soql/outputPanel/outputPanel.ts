@@ -1,18 +1,11 @@
-import { LightningElement, wire, api } from 'lwc';
-import Toast from 'lightning/toast';
 import ToolkitElement from 'host-api/element';
-import {
-    reportError,
-    store,
-    connectStore,
-    SELECTORS,
-    DESCRIBE,
-    SOBJECT,
-} from 'host-api/store';
+import { reportError, store, connectStore, SELECTORS, DESCRIBE, SOBJECT } from 'host-api/store';
+import { isNotUndefinedOrNull, lowerCaseKey } from 'host-api/utils';
+import Toast from 'lightning/toast';
+import { LightningElement, wire, api } from 'lwc';
+import moment from 'moment';
 import { UI, QUERY } from 'soql/slices';
 import { querySelectors } from 'soql/slices/query';
-import { isNotUndefinedOrNull, lowerCaseKey } from 'host-api/utils';
-import moment from 'moment';
 
 export default class OutputPanel extends ToolkitElement {
     response: Record<string, any> | null = null;
@@ -157,7 +150,7 @@ export default class OutputPanel extends ToolkitElement {
 
     handleError = (e: any): void => {
         //reportError(e, { source: 'soql' });
-        let errors = e.message.split(':');
+        const errors = e.message.split(':');
         if (errors.length > 1) {
             this.error_title = errors.shift();
         } else {

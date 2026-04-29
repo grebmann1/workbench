@@ -1,5 +1,21 @@
-import { api, track, wire } from 'lwc';
+import { APEX } from 'anonymousApex/slices';
+import { CATEGORY_STORAGE, SaveModal } from 'host-api/builder';
+import { registerCommand } from 'host-api/commands';
 import ToolkitElement from 'host-api/element';
+import {
+    reportError,
+    store,
+    connectStore,
+    SELECTORS,
+    DESCRIBE,
+    DOCUMENT,
+    APPLICATION,
+    injectReducer,
+} from 'host-api/store';
+import LightningConfirm from 'lightning/confirm';
+import { api, track, wire } from 'lwc';
+import moment from 'moment';
+import Analytics from 'shared/analytics';
 import {
     lowerCaseKey,
     isUndefinedOrNull,
@@ -11,22 +27,6 @@ import {
     compareString,
     splitTextByTimestamp,
 } from 'shared/utils';
-import {
-    reportError,
-    store,
-    connectStore,
-    SELECTORS,
-    DESCRIBE,
-    DOCUMENT,
-    APPLICATION,
-    injectReducer,
-} from 'host-api/store';
-import { registerCommand } from 'host-api/commands';
-import { APEX } from 'anonymousApex/slices';
-import { CATEGORY_STORAGE, SaveModal } from 'host-api/builder';
-import moment from 'moment';
-import LightningConfirm from 'lightning/confirm';
-import Analytics from 'shared/analytics';
 
 const apexLocalSelectors = APEX.apexAdapter.getSelectors((state: any) => state.apex.apex);
 
@@ -51,9 +51,7 @@ function bootstrapAnonymousApexExtension() {
                 createdDate: createdDate || Date.now(),
             })
         );
-        store.dispatch(
-            APEX.reduxSlice.actions.setAbortingPromise({ tabId, promise: apexPromise })
-        );
+        store.dispatch(APEX.reduxSlice.actions.setAbortingPromise({ tabId, promise: apexPromise }));
         const res = await apexPromise;
         if (tabId) {
             store.dispatch(APEX.reduxSlice.actions.selectionTab({ id: tabId }));
@@ -204,7 +202,10 @@ export default class App extends ToolkitElement {
         }
 
         // Apex State
-        const apexState = apexLocalSelectors.selectById({ apex }, lowerCaseKey(apex.currentTab?.id));
+        const apexState = apexLocalSelectors.selectById(
+            { apex },
+            lowerCaseKey(apex.currentTab?.id)
+        );
         if (apexState) {
             this.isApexRunning = apexState.isFetching;
             if (this.isApexRunning) {
@@ -518,7 +519,7 @@ export default class App extends ToolkitElement {
 
     global_handleError = e => {
         reportError(e, { source: 'anonymousApex' });
-        let errors = e.message.split(':');
+        const errors = e.message.split(':');
         if (errors.length > 1) {
             this.error_title = errors.shift();
         } else {

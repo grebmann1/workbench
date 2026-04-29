@@ -1,5 +1,5 @@
-import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { test } from 'node:test';
 
 import { GOOGLE_SIGNIN_SCOPES, GOOGLE_DRIVE_SCOPES } from '../constants.js';
 

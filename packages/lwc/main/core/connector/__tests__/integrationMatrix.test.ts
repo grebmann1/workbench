@@ -1,5 +1,5 @@
-import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { test } from 'node:test';
 
 // isChromeExtension() / isElectronApp() read from window — stub before module load.
 (globalThis as any).window = {};

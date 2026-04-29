@@ -1,5 +1,3 @@
-import LOGGER from 'shared/logger';
-import { isChromeExtension, isEmpty, isUndefinedOrNull, isNotUndefinedOrNull } from 'shared/utils';
 import {
     createDefaultProviderConfigMap,
     DEFAULT_LLM_PROVIDER,
@@ -8,6 +6,8 @@ import {
     type LlmProvider,
     type LlmProviderConfigMap,
 } from 'shared/llm';
+import LOGGER from 'shared/logger';
+import { isChromeExtension, isEmpty, isUndefinedOrNull, isNotUndefinedOrNull } from 'shared/utils';
 
 import { chromeStore, basicStore, type StorageStore } from './interfaces';
 

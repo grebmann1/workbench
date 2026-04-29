@@ -25,9 +25,11 @@ test.describe('@smoke welcome extras', () => {
     }) => {
         // Wait for at least one image to attach before querying the list.
         const imgs = welcome.locator('img');
-        await expect(imgs.first()).toHaveCount(1, { timeout: 5_000 }).catch(() => {
-            // If there are literally zero imgs, treat as vacuous pass.
-        });
+        await expect(imgs.first())
+            .toHaveCount(1, { timeout: 5_000 })
+            .catch(() => {
+                // If there are literally zero imgs, treat as vacuous pass.
+            });
         const total = await imgs.count();
         for (let i = 0; i < total; i++) {
             const alt = await imgs.nth(i).getAttribute('alt');
@@ -36,7 +38,10 @@ test.describe('@smoke welcome extras', () => {
         }
     });
 
-    test('no console errors during a 3-second idle window after load', async ({ page, consoleErrors }) => {
+    test('no console errors during a 3-second idle window after load', async ({
+        page,
+        consoleErrors,
+    }) => {
         await page.goto('/welcome/', { waitUntil: 'load' });
         // Wait for the hero heading to be visible rather than an arbitrary
         // timeout — idle means "page is interactive and no further work is

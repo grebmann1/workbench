@@ -2,7 +2,6 @@ import { LightningElement, api, wire } from 'lwc';
 import { NavigationContext, navigate } from 'lwr/navigation';
 import { connectStore, store as legacyStore, store_application } from 'shared/store';
 import { isEmpty, classSet, isNotUndefinedOrNull } from 'shared/utils';
-
 import ModalLauncher from 'skeleton/modalLauncher';
 
 export default class Header extends LightningElement {

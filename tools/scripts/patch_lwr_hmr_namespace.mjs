@@ -93,9 +93,7 @@ try {
     }
 } catch (err) {
     if (err?.code === 'ENOENT') {
-        console.warn(
-            '[patch-lwr-hmr] OpenTelemetry path not found while adding shim; skipping.'
-        );
+        console.warn('[patch-lwr-hmr] OpenTelemetry path not found while adding shim; skipping.');
     } else {
         throw err;
     }

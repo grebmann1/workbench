@@ -1,4 +1,5 @@
 import type { AssistantModelMessage, ModelMessage } from 'ai';
+
 import type { StreamChunk } from '../Agent/Agent';
 
 export function createStreamMessageBuilder(
@@ -7,8 +8,12 @@ export function createStreamMessageBuilder(
     let streamingMessage: AssistantModelMessage | null = null;
     let streamingParts: any[] = [];
     const normalizeToolCallId = (part: any, fallback?: string) =>
-        part?.toolCallId || part?.callId || part?.call_id || part?.id || fallback || `tool-${Date.now()}`;
-
+        part?.toolCallId ||
+        part?.callId ||
+        part?.call_id ||
+        part?.id ||
+        fallback ||
+        `tool-${Date.now()}`;
 
     const ensureMessage = () => {
         if (!streamingMessage) {
@@ -168,7 +173,9 @@ export function createStreamMessageBuilder(
                 finalizeReasoning(false);
                 updateParts(parts => {
                     const toolOutput =
-                        chunk.toolResult && typeof chunk.toolResult === 'object' && 'output' in chunk.toolResult
+                        chunk.toolResult &&
+                        typeof chunk.toolResult === 'object' &&
+                        'output' in chunk.toolResult
                             ? chunk.toolResult.output
                             : chunk.toolResult;
                     parts.push({

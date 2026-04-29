@@ -1,6 +1,14 @@
-import { api } from 'lwc';
-import ToolkitElement from 'host-api/element';
+import ModalPermissionSetFilter from 'accessAnalyzer/modalPermissionSetFilter';
+import ModalProfileFilter from 'accessAnalyzer/modalProfileFilter';
+//import ModalPermissionSelector from "slds/modalPermissionSelector";
 
+import { fileFormatter } from 'accessAnalyzer/utils';
+import ToolkitElement from 'host-api/element';
+import { store, BACKGROUNDJOB, ERROR } from 'host-api/store';
+import { getWorker } from 'host-api/worker';
+import { api } from 'lwc';
+import Analytics from 'shared/analytics';
+import { setFieldPermission } from 'shared/sf';
 import {
     groupBy,
     runActionAfterTimeOut,
@@ -8,17 +16,8 @@ import {
     isNotUndefinedOrNull,
     getFromStorage,
 } from 'shared/utils';
-import { TabulatorFull as Tabulator } from 'tabulator-tables';
-import ModalProfileFilter from 'accessAnalyzer/modalProfileFilter';
-import ModalPermissionSetFilter from 'accessAnalyzer/modalPermissionSetFilter';
 import ModalUserSelector from 'slds/modalUserSelector';
-//import ModalPermissionSelector from "slds/modalPermissionSelector";
-import { getWorker } from 'host-api/worker';
-
-import { setFieldPermission } from 'shared/sf';
-import { fileFormatter } from 'accessAnalyzer/utils';
-import { store, BACKGROUNDJOB, ERROR } from 'host-api/store';
-import Analytics from 'shared/analytics';
+import { TabulatorFull as Tabulator } from 'tabulator-tables';
 
 type AnyRecord = Record<string, any>;
 type PermissionSetLike = AnyRecord;
@@ -372,12 +371,12 @@ export default class App extends ToolkitElement {
         this.isLoading = true;
         this.customLoadingMessage = 'Fetching Metadata from Salesforce. (1/3)';
         this.customAdditionalMessage = 'This request might take up to a few minutes.';
-        var _metadata;
+        let _metadata;
         try {
             //console.log('this.connector.configuration.alias', this.connector.configuration.alias);
             // Cache loading only for full mode
             if (isNotUndefinedOrNull(this.connector.configuration.alias)) {
-                let key = `${this.connector.configuration.alias}-metadata`;
+                const key = `${this.connector.configuration.alias}-metadata`;
                 _metadata = await window.defaultStore.getItem(key);
                 if (
                     isUndefinedOrNull(_metadata?.createdDate) ||
@@ -395,7 +394,7 @@ export default class App extends ToolkitElement {
             _metadata = await this.loadFromWebWorker();
         }
 
-        let { permissionSets, ...metadata } = _metadata;
+        const { permissionSets, ...metadata } = _metadata;
         this.permissionSets = permissionSets;
         //console.log('this.permissionSets',this.permissionSets);
         //console.log('this.metadata',metadata);
@@ -476,7 +475,7 @@ export default class App extends ToolkitElement {
     };
 
     cacheMetadata = async () => {
-        let key = `${this.connector.configuration.alias}-metadata`;
+        const key = `${this.connector.configuration.alias}-metadata`;
         await window.defaultStore.setItem(key, {
             ...this.metadata,
             permissionSets: this.permissionSets,
@@ -498,7 +497,7 @@ export default class App extends ToolkitElement {
     downloadPDF = async () => {
         if (this.tableInstance) {
             this.isLoading = true;
-            let filename = `${this.connector.configuration.orgId}_${this.report}.pdf`;
+            const filename = `${this.connector.configuration.orgId}_${this.report}.pdf`;
             await this.tableInstance.download(fileFormatter, filename, {
                 useImage: true,
                 title: this.report_options.find(x => x.value == this.report).label,
@@ -840,7 +839,7 @@ export default class App extends ToolkitElement {
     };
 
     generateFullDataList = metadataFilter => {
-        var dataList = [];
+        const dataList = [];
         // Row processing
         try {
             Object.values(CONFIG)
@@ -858,7 +857,7 @@ export default class App extends ToolkitElement {
                                 !this.namespaceFiltering_isExcluded
                         )
                         .forEach(item => {
-                            let data = {};
+                            const data = {};
                             data['label'] = item.label || item.name;
                             data['name'] = item.name;
                             data['namespacePrefix'] = item.namespacePrefix || 'Default';
@@ -866,7 +865,7 @@ export default class App extends ToolkitElement {
 
                             this.filteredPermissions.forEach(permission => {
                                 const permissionList = permission[configItem.permissionName];
-                                let index = permissionList.findIndex(
+                                const index = permissionList.findIndex(
                                     x => x[configItem.permissionFieldId] === item.name
                                 );
                                 if (index > -1) {
@@ -892,7 +891,7 @@ export default class App extends ToolkitElement {
                                         const permissionList =
                                             permission[configItem.permissionName];
 
-                                        let index = permissionList.findIndex(
+                                        const index = permissionList.findIndex(
                                             x => x[configItem.permissionFieldId] === permissionKey
                                         );
                                         if (index > -1) {
@@ -921,7 +920,7 @@ export default class App extends ToolkitElement {
                                     this.filteredPermissions.forEach(permission => {
                                         const permissionList =
                                             permission[configItem.permissionName];
-                                        let index = permissionList.findIndex(
+                                        const index = permissionList.findIndex(
                                             x => x[configItem.permissionFieldId] === item.name
                                         );
                                         if (index > -1) {
@@ -997,7 +996,7 @@ export default class App extends ToolkitElement {
     setMatrixReport = async metadataFilter => {
         //console.log('setMatrixReport');
 
-        let colModel = [
+        const colModel = [
             {
                 title: 'Permission',
                 field: 'name',
@@ -1087,7 +1086,7 @@ export default class App extends ToolkitElement {
     setFullViewReport = async metadataFilter => {
         //console.log('setFullViewReport');
 
-        let colModel = [
+        const colModel = [
             {
                 title: 'Developer Name',
                 field: 'name',
@@ -1189,8 +1188,8 @@ export default class App extends ToolkitElement {
             targetObject: this.selectedObject,
         });
 
-        let dataList = [];
-        let colModel = [
+        const dataList = [];
+        const colModel = [
             {
                 title: 'Developer Name',
                 field: 'api',
@@ -1268,14 +1267,14 @@ export default class App extends ToolkitElement {
                     !this.namespaceFiltering_isExcluded
             )
             .forEach(field => {
-                let data = {};
+                const data = {};
                 data['api'] = field.name;
                 data['label'] = field.label;
                 data['type'] = field.type;
                 data['isRequired'] = !field.isNillable;
 
                 this.filteredPermissions.forEach(permission => {
-                    let fp = permission.fieldPermissions[field.name];
+                    const fp = permission.fieldPermissions[field.name];
 
                     if (fp && fp.allowEdit) {
                         data[permission.id] = 'RW';
@@ -1318,10 +1317,10 @@ export default class App extends ToolkitElement {
     };
 
     setPermissionGroupReport = async () => {
-        let permissionGroups = Object.values(this.metadata.permissionGroups);
-        let dataList = [];
+        const permissionGroups = Object.values(this.metadata.permissionGroups);
+        const dataList = [];
 
-        let colModel = [
+        const colModel = [
             {
                 title: 'DeveloperName',
                 field: 'name',
@@ -1365,13 +1364,13 @@ export default class App extends ToolkitElement {
                     !this.namespaceFiltering_isExcluded
             )
             .forEach(item => {
-                let data = {};
+                const data = {};
                 data['label'] = item.label || item.name;
                 data['name'] = item.name;
                 data['namespacePrefix'] = item.namespacePrefix || 'Default';
 
                 permissionGroups.forEach(group => {
-                    let index = group.members.findIndex(x => x === item.id);
+                    const index = group.members.findIndex(x => x === item.id);
                     if (index > -1) {
                         data[group.id] = true;
                     }
@@ -1399,8 +1398,8 @@ export default class App extends ToolkitElement {
     };
 
     setCustomObjectReport = async () => {
-        let dataList = [];
-        let colModel = [
+        const dataList = [];
+        const colModel = [
             {
                 title: 'Developer Name',
                 field: 'name',
@@ -1421,7 +1420,7 @@ export default class App extends ToolkitElement {
         ];
 
         this.filteredPermissions.forEach(permission => {
-            let subCols = [
+            const subCols = [
                 {
                     title: 'Read',
                     field: permission.id + '_r',

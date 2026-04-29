@@ -1,6 +1,6 @@
+import Toast from 'lightning/toast';
 import { api, LightningElement } from 'lwc';
 import { classSet } from 'shared/utils';
-import Toast from 'lightning/toast';
 
 export default class Item extends LightningElement {
     @api item; // { id, value, disabled, isEditing }

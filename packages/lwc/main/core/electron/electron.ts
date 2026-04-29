@@ -1,11 +1,11 @@
-import { wire } from 'lwc';
-import ToolkitElement from 'core/toolkitElement';
-import { guid, isNotUndefinedOrNull, API as API_UTILS } from 'shared/utils';
 import { store, APPLICATION, DOCUMENT, SELECTORS } from 'core/store';
+import ToolkitElement from 'core/toolkitElement';
 import { invokeCommand } from 'host-api/commands';
-import { store as legacyStore, store_application as legacyStore_application } from 'shared/store';
+import { wire } from 'lwc';
 import { NavigationContext, navigate } from 'lwr/navigation';
 import LOGGER from 'shared/logger';
+import { store as legacyStore, store_application as legacyStore_application } from 'shared/store';
+import { guid, isNotUndefinedOrNull, API as API_UTILS } from 'shared/utils';
 
 type ElectronListener = (channel: string, handler: (args: any) => void) => void;
 
@@ -55,7 +55,7 @@ export default class Electron extends ToolkitElement {
                 const [payload, callBackChannel] = args;
                 LOGGER.info('[Electron] @navigate-to call args:', args);
                 // Dispatch a navigation action
-                let formattedPayload = `sftoolkit:${JSON.stringify({
+                const formattedPayload = `sftoolkit:${JSON.stringify({
                     type: 'application',
                     state: { applicationName: payload.application },
                 })}`;
@@ -268,7 +268,7 @@ export default class Electron extends ToolkitElement {
             LOGGER.info('[Electron] @soql navigate-tab args:', args);
             navigate(this.navContext, { type: 'application', state: { applicationName: 'soql' } });
             const { tabId, isNewTab } = await this.formatTabId(payload.tabId);
-            let _output: any = { tabId };
+            const _output: any = { tabId };
             if (!isNewTab) {
                 _output.status = 'success';
                 await invokeCommand('soql.selectTab', { tabId });

@@ -1,6 +1,5 @@
-import { api, LightningElement, track } from 'lwc';
 import { fetchCompletion, ROLES } from 'ai/utils';
-
+import { api, LightningElement, track } from 'lwc';
 import { isMac } from 'shared/utils';
 
 export default class Composer extends LightningElement {

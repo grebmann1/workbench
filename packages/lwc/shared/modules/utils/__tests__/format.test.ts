@@ -1,5 +1,6 @@
-import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { test } from 'node:test';
+
 import {
     formatBytes,
     basicTextFormatter,
@@ -46,7 +47,10 @@ test('detectLanguageFromContentType: recognises json/xml/html/javascript/text', 
     assert.equal(detectLanguageFromContentType('Content-Type: application/json'), 'json');
     assert.equal(detectLanguageFromContentType('content-type: text/xml'), 'xml');
     assert.equal(detectLanguageFromContentType('Content-Type: text/html'), 'html');
-    assert.equal(detectLanguageFromContentType('Content-Type: application/javascript'), 'javascript');
+    assert.equal(
+        detectLanguageFromContentType('Content-Type: application/javascript'),
+        'javascript'
+    );
     assert.equal(detectLanguageFromContentType('Content-Type: text/plain'), 'text');
 });
 

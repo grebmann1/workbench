@@ -31,9 +31,13 @@ fs.rmSync(iconsetPath, { force: true, recursive: true });
 fs.mkdirSync(iconsetPath, { recursive: true });
 
 for (const [size, fileName] of iconSizes) {
-    execFileSync('sips', ['-z', String(size), String(size), sourcePng, '--out', path.join(iconsetPath, fileName)], {
-        stdio: 'inherit',
-    });
+    execFileSync(
+        'sips',
+        ['-z', String(size), String(size), sourcePng, '--out', path.join(iconsetPath, fileName)],
+        {
+            stdio: 'inherit',
+        }
+    );
 }
 
 execFileSync('iconutil', ['-c', 'icns', iconsetPath, '-o', icnsPath], { stdio: 'inherit' });

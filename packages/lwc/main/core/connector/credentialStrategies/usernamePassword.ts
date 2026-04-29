@@ -2,11 +2,11 @@
 import LOGGER from 'shared/logger';
 import { isUndefinedOrNull, isElectronApp } from 'shared/utils';
 
+import type { ConnectorLike } from '../../connector';
+import { getSalesforceURL, normalizeConnection } from '../base';
 import { Connector } from '../connectorClass';
 import { getCurrentPlatform, PLATFORM } from '../platformService';
-import { getSalesforceURL, normalizeConnection } from '../base';
 import { saveConfiguration } from '../web';
-import type { ConnectorLike } from '../../connector';
 
 import { OAUTH_TYPES } from './oauthTypes';
 
@@ -49,7 +49,12 @@ export async function directConnect({
 }
 
 export async function connect(
-    { username, password, loginUrl, alias }: { username: string; password: string; loginUrl: string; alias?: string },
+    {
+        username,
+        password,
+        loginUrl,
+        alias,
+    }: { username: string; password: string; loginUrl: string; alias?: string },
     settings: { saveFullConfiguration?: boolean } = {}
 ): Promise<ConnectorLike> {
     const { saveFullConfiguration = false } = settings;

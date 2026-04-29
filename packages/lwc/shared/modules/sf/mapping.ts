@@ -262,12 +262,7 @@ export class AppDefinition {
     label: string;
     namespacePrefix?: string;
 
-    constructor(record: {
-        Id: string;
-        Name: string;
-        Label: string;
-        NamespacePrefix?: string;
-    }) {
+    constructor(record: { Id: string; Name: string; Label: string; NamespacePrefix?: string }) {
         this.id = record.Id;
         this.name = record.Name;
         this.label = record.Label;

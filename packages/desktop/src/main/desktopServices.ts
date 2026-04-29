@@ -5,7 +5,6 @@ import path from 'node:path';
 import { app, dialog, shell } from 'electron';
 
 import { desktopLog } from './desktopLogger';
-import { getDesktopTemplatePath } from './desktopPaths';
 import {
     assertCliOrgHasOAuthCredentials,
     buildSfOrgDisplayArgs,
@@ -14,6 +13,7 @@ import {
     buildSfdxOrgListArgs,
     parseSfdxAuthUrl,
 } from './desktopOrgCliUtils';
+import { getDesktopTemplatePath } from './desktopPaths';
 import { buildOrgOpenUrl } from './desktopServiceUtils';
 
 type DesktopStore = {
@@ -108,8 +108,7 @@ function getCliOrgList(): { result: { nonScratchOrgs: any[]; scratchOrgs: any[] 
         };
     }
 
-    const sfdxResult =
-        commandExists('sfdx') && runJsonCommand('sfdx', buildSfdxOrgListArgs());
+    const sfdxResult = commandExists('sfdx') && runJsonCommand('sfdx', buildSfdxOrgListArgs());
     if (sfdxResult?.result) {
         return {
             result: {
@@ -880,16 +879,13 @@ export async function seeOrgDetails(alias: string): Promise<any> {
         return storedOrg;
     }
 
-    const sfDisplay =
-        commandExists('sf') &&
-        runJsonCommand('sf', buildSfOrgDisplayArgs(alias));
+    const sfDisplay = commandExists('sf') && runJsonCommand('sf', buildSfOrgDisplayArgs(alias));
     if (sfDisplay?.result) {
         return assertCliOrgHasOAuthCredentials(alias, sfDisplay.result);
     }
 
     const sfdxDisplay =
-        commandExists('sfdx') &&
-        runJsonCommand('sfdx', buildSfdxOrgDisplayArgs(alias));
+        commandExists('sfdx') && runJsonCommand('sfdx', buildSfdxOrgDisplayArgs(alias));
     if (sfdxDisplay?.result) {
         return assertCliOrgHasOAuthCredentials(alias, sfdxDisplay.result);
     }

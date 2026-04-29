@@ -1,5 +1,6 @@
 import { api, LightningElement } from 'lwc';
 import { classSet } from 'shared/utils';
+
 import {
     getHighlightedRichText,
     getFirstChildTreeItem,
@@ -63,7 +64,7 @@ export default class FileTreeItem extends LightningElement {
         // When that happens, clicking the row can trigger a browser navigation unless we prevent it.
         if (event && typeof event.composedPath === 'function') {
             const path = event.composedPath() || [];
-            const hasAnchorInPath = Array.isArray(path) && path.some((node) => node?.tagName === 'A');
+            const hasAnchorInPath = Array.isArray(path) && path.some(node => node?.tagName === 'A');
             if (hasAnchorInPath) {
                 event.preventDefault();
             }
@@ -317,10 +318,7 @@ export default class FileTreeItem extends LightningElement {
     }
 
     get isFolder() {
-        return (
-            Array.isArray(this.item?.children) ||
-            this.item?.isExpandable === true
-        );
+        return Array.isArray(this.item?.children) || this.item?.isExpandable === true;
     }
 
     get isFile() {
@@ -332,11 +330,7 @@ export default class FileTreeItem extends LightningElement {
     }
 
     get showLoadingPlaceholder() {
-        return (
-            this.expanded &&
-            this.children.length === 0 &&
-            this.item?.isLoadingChildren === true
-        );
+        return this.expanded && this.children.length === 0 && this.item?.isLoadingChildren === true;
     }
 
     get iconClass() {

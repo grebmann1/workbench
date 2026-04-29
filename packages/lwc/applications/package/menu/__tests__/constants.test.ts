@@ -1,5 +1,5 @@
-import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { test } from 'node:test';
 
 import { getMetadataTypeIcon, METADATA_RECORD_ICON } from '../constants.ts';
 

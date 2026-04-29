@@ -1,5 +1,5 @@
-import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { test } from 'node:test';
 
 // The module reads `window.localStorage` / `window.sessionStorage` at call
 // time; install an in-memory shim before importing so `basicStore` binds to

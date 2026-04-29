@@ -1,6 +1,6 @@
+import { Constants } from 'agent/utils';
 import { api, LightningElement } from 'lwc';
 import { safeParseJson } from 'shared/utils';
-import { Constants } from 'agent/utils';
 
 function normalizeText(value) {
     return typeof value === 'string' ? value.trim() : '';
@@ -20,18 +20,12 @@ function pickResultTextFromOutput(output) {
     if (!output || typeof output !== 'object') return '';
     if (typeof output.text === 'string' && output.text.trim().length > 0) return output.text;
     if (typeof output.type === 'string') {
-        if (
-            output.type === 'text' ||
-            output.type === 'error-text'
-        ) {
+        if (output.type === 'text' || output.type === 'error-text') {
             return typeof output.value === 'string' && output.value.trim().length > 0
                 ? output.value
                 : '';
         }
-        if (
-            output.type === 'json' ||
-            output.type === 'error-json'
-        ) {
+        if (output.type === 'json' || output.type === 'error-json') {
             if (output.value == null) return '';
             try {
                 return JSON.stringify(output.value, null, 2);
@@ -48,7 +42,8 @@ function pickResultTextFromOutput(output) {
     }
     if (typeof output.stdout === 'string' && output.stdout.trim().length > 0) return output.stdout;
     if (typeof output.error === 'string' && output.error.trim().length > 0) return output.error;
-    if (typeof output.content === 'string' && output.content.trim().length > 0) return output.content;
+    if (typeof output.content === 'string' && output.content.trim().length > 0)
+        return output.content;
     return '';
 }
 
@@ -263,9 +258,9 @@ export default class ToolMessage extends LightningElement {
                         ? item.image
                         : typeof item?.dataUrl === 'string'
                           ? item.dataUrl
-                        : typeof item?.data === 'string'
-                          ? `data:${item?.mediaType || 'image/png'};base64,${item.data}`
-                          : null;
+                          : typeof item?.data === 'string'
+                            ? `data:${item?.mediaType || 'image/png'};base64,${item.data}`
+                            : null;
                 if (!imageSrc) return null;
                 return {
                     key: item?.key || `result-image-${index}`,

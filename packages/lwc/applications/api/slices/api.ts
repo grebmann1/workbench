@@ -1,7 +1,5 @@
 import { createSlice, createAsyncThunk, createEntityAdapter } from '@reduxjs/toolkit';
-
 import { getStore } from 'core/store/storeRef';
-
 import { DOCUMENT, ERROR } from 'host-api/store';
 
 const apiFilesSelectors = DOCUMENT.apiFileAdapter.getSelectors(s => s.apiFiles);
@@ -10,8 +8,8 @@ import {
     saveExtensionConfigToCache,
     CACHE_CONFIG,
 } from 'shared/cacheManager';
-import { lowerCaseKey, isNotUndefinedOrNull, safeParseJson, API } from 'shared/utils';
 import LOGGER from 'shared/logger';
+import { lowerCaseKey, isNotUndefinedOrNull, safeParseJson, API } from 'shared/utils';
 import type { ConnectorLike } from 'host-api/connector';
 const API_SETTINGS_KEY = 'API_SETTINGS_KEY';
 
@@ -114,7 +112,7 @@ function addAction({ state, tabId, request, response }) {
     const tabIndex = state.tabs.findIndex(x => x.id === tabId);
     if (tabIndex > -1) {
         let actions = state.tabs[tabIndex].actions || [];
-        let actionPointer = state.tabs[tabIndex].actionPointer || 0;
+        const actionPointer = state.tabs[tabIndex].actionPointer || 0;
 
         if (actions.length > 0 && actionPointer != actions.length - 1) {
             actions = actions.slice(0, actionPointer + 1);
@@ -440,7 +438,7 @@ const apiSlice = createSlice({
             const { tabId } = action.payload;
             const tabIndex = state.tabs.findIndex(x => x.id === tabId);
             if (tabIndex > -1) {
-                let actions = state.tabs[tabIndex].actions;
+                const actions = state.tabs[tabIndex].actions;
                 let actionPointer = state.tabs[tabIndex].actionPointer;
 
                 if (actions.length - 1 <= actionPointer) {

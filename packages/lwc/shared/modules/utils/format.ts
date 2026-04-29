@@ -15,7 +15,7 @@ export function formatBytes(bytes: number, decimals = 2) {
 }
 
 export function basicTextFormatter(text: string, filter: string) {
-    var regex = new RegExp('(' + filter + ')', 'gim');
+    const regex = new RegExp('(' + filter + ')', 'gim');
     if (regex.test(text)) {
         text = text
             .toString()

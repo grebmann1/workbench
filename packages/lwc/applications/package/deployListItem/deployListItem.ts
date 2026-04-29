@@ -1,8 +1,8 @@
-import { api } from 'lwc';
-import { isNotUndefinedOrNull, classSet } from 'shared/utils';
 import ToolkitElement from 'host-api/element';
+import { api } from 'lwc';
 import moment from 'moment';
 import { store as legacyStore, store_application } from 'shared/store';
+import { isNotUndefinedOrNull, classSet } from 'shared/utils';
 
 export default class Message extends ToolkitElement {
     isLoading = false;

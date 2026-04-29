@@ -1,5 +1,5 @@
-import { encodeJsonToBase64Url, isEmpty } from 'shared/utils';
 import { OAUTH_TYPES } from 'core/connector';
+import { encodeJsonToBase64Url, isEmpty } from 'shared/utils';
 
 type ShareOptions = {
     basePath?: string;

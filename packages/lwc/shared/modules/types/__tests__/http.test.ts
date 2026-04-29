@@ -1,5 +1,6 @@
-import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { test } from 'node:test';
+
 import { HttpError, isHttpError } from '../http.ts';
 
 test('HttpError: preserves message, status, payload', () => {

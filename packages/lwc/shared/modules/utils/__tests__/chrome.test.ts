@@ -1,7 +1,4 @@
-import {
-    buildVscodeEditorUrl,
-    parseVscodeBootstrapSeed,
-} from '../vscodeBootstrap.ts';
+import { buildVscodeEditorUrl, parseVscodeBootstrapSeed } from '../vscodeBootstrap.ts';
 
 function assert(condition: unknown, message: string): asserts condition {
     if (!condition) {

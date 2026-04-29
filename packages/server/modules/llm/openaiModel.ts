@@ -231,7 +231,7 @@ export function openai(env: NodeJS.ProcessEnv) {
         'babbage-002',
     ];
     const client_builder = (_model: string) => {
-        let base_client = new OpenAI({
+        const base_client = new OpenAI({
             apiKey: env.OPENAI_KEY,
         });
         return openaiBase({ createClient: () => base_client });

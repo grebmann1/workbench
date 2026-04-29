@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk, createEntityAdapter } from '@reduxjs/toolkit';
 import ASSISTANTS from 'ai/assistants';
+import type { ConnectorLike } from 'core/connector';
 import LOGGER from 'shared/logger';
 import {
     lowerCaseKey,
@@ -7,7 +8,6 @@ import {
     splitTextByTimestamp,
     ASSISTANT as ASSISTANT_UTILS,
 } from 'shared/utils';
-import type { ConnectorLike } from 'core/connector';
 
 export const MODEL_OPTIONS = [
     { label: 'gpt-5', value: 'gpt-5-2025-08-07' },

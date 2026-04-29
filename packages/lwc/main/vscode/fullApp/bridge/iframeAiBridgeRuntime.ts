@@ -7,6 +7,12 @@ import {
 } from 'agent/utils';
 import { jsonSchema, streamText, tool as createAiSdkTool } from 'ai';
 import {
+    getAiProviderFromConfig,
+    getLlmProviderConfigCacheKeys,
+    loadExtensionConfigFromCache,
+    resolveLlmProviderConfigMap,
+} from 'shared/cacheManager';
+import {
     normalizeLlmProvider,
     normalizeModelSelection,
     getDefaultModelForProvider,
@@ -15,13 +21,14 @@ import {
     resolveAgentProviderBaseUrl,
     isOpenAiCompatibleGateway,
 } from 'shared/llm';
-import {
-    getAiProviderFromConfig,
-    getLlmProviderConfigCacheKeys,
-    loadExtensionConfigFromCache,
-    resolveLlmProviderConfigMap,
-} from 'shared/cacheManager';
-import type { IframeAiBridgeChunk, IframeAiBridgeMessage, IframeAiBridgeModelConfig, IframeAiBridgeModelInfo, IframeAiBridgeToolSchema } from './iframeAiBridgeContract';
+
+import type {
+    IframeAiBridgeChunk,
+    IframeAiBridgeMessage,
+    IframeAiBridgeModelConfig,
+    IframeAiBridgeModelInfo,
+    IframeAiBridgeToolSchema,
+} from './iframeAiBridgeContract';
 
 const DEFAULT_MAX_STEPS = 1;
 
@@ -86,7 +93,8 @@ async function* streamCompletionViaProvider(
         yield {
             type: 'error',
             code: 'ENOCONFIG',
-            message: 'AI bridge runtime is not configured. Set an API key to enable AI completions.',
+            message:
+                'AI bridge runtime is not configured. Set an API key to enable AI completions.',
         };
         yield { type: 'done' };
         return;
@@ -100,7 +108,9 @@ async function* streamCompletionViaProvider(
     );
 
     // Convert bridge tool schemas to AI SDK tool definitions (no execute — tool calls forwarded back to workbench)
-    const rawTools = Array.isArray(modelConfig.tools) ? (modelConfig.tools as IframeAiBridgeToolSchema[]) : [];
+    const rawTools = Array.isArray(modelConfig.tools)
+        ? (modelConfig.tools as IframeAiBridgeToolSchema[])
+        : [];
     const tools =
         rawTools.length > 0
             ? Object.fromEntries(
@@ -200,7 +210,8 @@ async function* streamCompletionViaProvider(
         yield {
             type: 'error',
             code: 'EAI',
-            message: error instanceof Error ? error.message : String(error ?? 'AI streaming failed'),
+            message:
+                error instanceof Error ? error.message : String(error ?? 'AI streaming failed'),
         };
         yield { type: 'done' };
     }

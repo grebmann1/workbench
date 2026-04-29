@@ -1,18 +1,15 @@
-import { api, wire } from 'lwc';
-import ToolkitElement from 'core/toolkitElement';
-import Toast from 'lightning/toast';
-import {
-    isEmpty,
-    isNotUndefinedOrNull,
-    runActionAfterTimeOut,
-} from 'shared/utils';
 import { formatQuery } from '@jetstreamapp/soql-parser-js';
-import { SOQL } from 'editor/languages';
 import { store, connectStore } from 'core/store';
-import { setupMonaco, registerAIWidgets } from 'editor/utils';
+import ToolkitElement from 'core/toolkitElement';
 import { MonacoLwcWidget } from 'editor/editorCompleteWidget';
-import instructions from './instructions/instructions';
+import { SOQL } from 'editor/languages';
+import { setupMonaco, registerAIWidgets } from 'editor/utils';
+import Toast from 'lightning/toast';
+import { api, wire } from 'lwc';
 import Logger from 'shared/logger';
+import { isEmpty, isNotUndefinedOrNull, runActionAfterTimeOut } from 'shared/utils';
+
+import instructions from './instructions/instructions';
 
 export default class Soql extends ToolkitElement {
     @api maxHeight;

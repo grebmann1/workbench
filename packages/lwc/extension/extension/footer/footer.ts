@@ -1,10 +1,10 @@
-import { api, LightningElement, wire } from 'lwc';
-import Toast from 'lightning/toast';
-import { isNotUndefinedOrNull, isUndefinedOrNull } from 'shared/utils';
-import { chromeOpenInWindow } from 'extension/utils';
-import LOGGER from 'shared/logger';
-/** Store **/
 import { connectStore, store } from 'core/store';
+import { chromeOpenInWindow } from 'extension/utils';
+import Toast from 'lightning/toast';
+import { api, LightningElement, wire } from 'lwc';
+import LOGGER from 'shared/logger';
+import { isNotUndefinedOrNull, isUndefinedOrNull } from 'shared/utils';
+/** Store **/
 
 export default class Footer extends LightningElement {
     @api overlayShortcut;
@@ -113,7 +113,9 @@ export default class Footer extends LightningElement {
         try {
             const version = this.connector?.conn?.version;
             if (this.isBlankValue(version)) return undefined;
-            const me = await this.connector.conn.request(`/services/data/v${version}/chatter/users/me`);
+            const me = await this.connector.conn.request(
+                `/services/data/v${version}/chatter/users/me`
+            );
             const id = me?.id;
             if (!this.isBlankValue(id)) return id;
         } catch (e) {
@@ -147,7 +149,8 @@ export default class Footer extends LightningElement {
             this.connector?.configuration?.userInfo?.user_id ||
             this.connector?.conn?.userInfo?.id ||
             this.resolvedUserId;
-        const domain = this.connector?.conn?.instanceUrl || this.connector?.configuration?.instanceUrl;
+        const domain =
+            this.connector?.conn?.instanceUrl || this.connector?.configuration?.instanceUrl;
         if (this.isBlankValue(userId) || this.isBlankValue(domain)) return;
 
         const targetUrl = encodeURIComponent(`/${userId}?noredirect=1&isUserEntityOverride=1`);

@@ -59,7 +59,9 @@
     text-align: left;
     font-size: 13px;
     color: var(--slds-g-color-neutral-base-10, #181818);
-    transition: background-color 0.1s, border-color 0.1s;
+    transition:
+        background-color 0.1s,
+        border-color 0.1s;
 }
 
 .question-option-btn:hover {
@@ -115,7 +117,9 @@
     font-weight: 500;
     cursor: pointer;
     border: 1px solid transparent;
-    transition: background-color 0.1s, border-color 0.1s;
+    transition:
+        background-color 0.1s,
+        border-color 0.1s;
 }
 
 .question-skip-btn {

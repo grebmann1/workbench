@@ -1,6 +1,6 @@
-import { track } from 'lwc';
 import ToolkitElement from 'host-api/element';
 import { reportError } from 'host-api/store';
+import { track } from 'lwc';
 
 type Mode = 'encode' | 'decode';
 

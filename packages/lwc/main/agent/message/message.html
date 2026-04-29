@@ -20,15 +20,24 @@
                                 tool-result={part.toolResult}></agent-tool-message>
                         </template>
                         <template lwc:elseif={part.isFile}>
-                            <div key={part.key} class="message-content-file slds-m-vertical_x-small">
+                            <div
+                                key={part.key}
+                                class="message-content-file slds-m-vertical_x-small">
                                 <template lwc:if={part.isImage}>
-                                    <img class="message-content-image" src={part.url} alt={part.filename} />
+                                    <img
+                                        class="message-content-image"
+                                        src={part.url}
+                                        alt={part.filename} />
                                 </template>
                                 <template lwc:if={part.filename}>
-                                    <a href={part.url} target="_blank" rel="noreferrer">{part.filename}</a>
+                                    <a href={part.url} target="_blank" rel="noreferrer">
+                                        {part.filename}
+                                    </a>
                                 </template>
                                 <template lwc:else>
-                                    <a href={part.url} target="_blank" rel="noreferrer">Open file</a>
+                                    <a href={part.url} target="_blank" rel="noreferrer">
+                                        Open file
+                                    </a>
                                 </template>
                             </div>
                         </template>

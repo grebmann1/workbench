@@ -117,7 +117,13 @@ export const redirectToUrlViaChrome = ({
 
 type VscodeEditorUrlParams = Pick<
     VscodeBootstrapSeed,
-    'alias' | 'sessionId' | 'serverUrl' | 'redirectUrl' | 'sourceTabId' | 'metadataType' | 'memberName'
+    | 'alias'
+    | 'sessionId'
+    | 'serverUrl'
+    | 'redirectUrl'
+    | 'sourceTabId'
+    | 'metadataType'
+    | 'memberName'
 >;
 
 export const getVscodeEditorUrl = (seed: VscodeEditorUrlParams): string | null => {
@@ -139,9 +145,9 @@ type ChromeTab = {
 
 export async function getCurrentTab(): Promise<ChromeTab | null> {
     if (!isChromeExtension() || !chrome.tabs?.query) return null;
-    let queryOptions = { active: true, lastFocusedWindow: true };
+    const queryOptions = { active: true, lastFocusedWindow: true };
     // `tab` will either be a `tabs.Tab` instance or `undefined`.
-    let [tab] = await chrome.tabs.query(queryOptions);
+    const [tab] = await chrome.tabs.query(queryOptions);
     return tab;
 }
 

@@ -1,6 +1,6 @@
-import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
+import { test } from 'node:test';
 
 // Set signing secret BEFORE importing the module — getSigningSecret caches on first call.
 process.env.GOOGLE_SESSION_SECRET = 'test-secret-for-googleauth-hmac';

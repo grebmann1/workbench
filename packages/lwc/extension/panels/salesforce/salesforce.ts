@@ -1,6 +1,6 @@
-import { api, wire } from 'lwc';
-import ToolkitElement from 'core/toolkitElement';
 import { connectStore, store, APPLICATION } from 'core/store';
+import ToolkitElement from 'core/toolkitElement';
+import { api, wire } from 'lwc';
 import { store as legacyStore, store_application } from 'shared/store';
 import {
     isEmpty,

@@ -1,8 +1,8 @@
-import { api, LightningElement, wire } from 'lwc';
-import { classSet, isNotUndefinedOrNull, runActionAfterTimeOut } from 'shared/utils';
-import { connectStore, store as legacyStore, store_application } from 'shared/store';
-import { TYPE } from 'overlay/utils';
 import constant from 'core/constant';
+import { api, LightningElement, wire } from 'lwc';
+import { TYPE } from 'overlay/utils';
+import { connectStore, store as legacyStore, store_application } from 'shared/store';
+import { classSet, isNotUndefinedOrNull, runActionAfterTimeOut } from 'shared/utils';
 
 export default class Header extends LightningElement {
     @api currentApplicationName = 'App Name';

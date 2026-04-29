@@ -59,7 +59,6 @@ export function runActionAfterTimeOut<T>(
     if (existing) {
         clearTimeout(existing);
     }
-    // eslint-disable-next-line @lwc/lwc/no-async-operation
     const id = setTimeout(() => {
         timeoutsByKey.delete(key);
         action(value);

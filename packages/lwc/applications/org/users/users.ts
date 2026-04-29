@@ -1,5 +1,5 @@
-import { api } from 'lwc';
 import ToolkitElement from 'host-api/element';
+import { api } from 'lwc';
 import { store as legacyStore, store_application } from 'shared/store';
 export default class Users extends ToolkitElement {
     @api isInjected = false;
@@ -28,7 +28,7 @@ export default class Users extends ToolkitElement {
     };
 
     load_userInformations = async () => {
-        let responses = await Promise.all([
+        const responses = await Promise.all([
             this.connector.conn.query(
                 'SELECT Count(Id) total,IsActive FROM User GROUP BY IsActive'
             ),

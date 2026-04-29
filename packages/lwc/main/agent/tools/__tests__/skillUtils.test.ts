@@ -1,5 +1,5 @@
-import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { test } from 'node:test';
 
 import {
     normalizeSkillName,
@@ -66,11 +66,14 @@ test('buildSkillMarkdown: descriptions with colons or hashes get quoted', () => 
 });
 
 test('saveSkillToFs: rejects when filesystem lacks write capabilities', async () => {
-    const result = await saveSkillToFs({}, {
-        name: 'n',
-        description: 'd',
-        content: 'c',
-    });
+    const result = await saveSkillToFs(
+        {},
+        {
+            name: 'n',
+            description: 'd',
+            content: 'c',
+        }
+    );
     assert.equal(result.ok, false);
     assert.match(result.error ?? '', /does not support write/i);
 });

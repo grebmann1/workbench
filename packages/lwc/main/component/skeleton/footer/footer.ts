@@ -1,11 +1,11 @@
-import { LightningElement, wire, api } from 'lwc';
-import Toast from 'lightning/toast';
-import { isUndefinedOrNull, isNotUndefinedOrNull, classSet } from 'shared/utils';
+import { BACKGROUNDJOB, ERROR, store, connectStore } from 'core/store';
 import { chromeOpenInWindow } from 'extension/utils';
+import Toast from 'lightning/toast';
+import { LightningElement, wire, api } from 'lwc';
 import moment from 'moment';
+import { isUndefinedOrNull, isNotUndefinedOrNull, classSet } from 'shared/utils';
 
 /** Store **/
-import { BACKGROUNDJOB, ERROR, store, connectStore } from 'core/store';
 
 export default class Footer extends LightningElement {
     @api version;
@@ -198,7 +198,9 @@ export default class Footer extends LightningElement {
         if (!this.hasJobs) return '';
         const latest = this.jobs
             .slice()
-            .sort((a, b) => (b.updatedAt || b.startedAt || 0) - (a.updatedAt || a.startedAt || 0))[0];
+            .sort(
+                (a, b) => (b.updatedAt || b.startedAt || 0) - (a.updatedAt || a.startedAt || 0)
+            )[0];
         return this.formatJobSummary(latest);
     }
 
@@ -383,7 +385,9 @@ export default class Footer extends LightningElement {
             return '0s';
         }
         const isRunning = (job?.status || '').toLowerCase() === 'running';
-        const stopAt = isRunning ? this.nowTick : Number(job?.endedAt || job?.updatedAt || this.nowTick);
+        const stopAt = isRunning
+            ? this.nowTick
+            : Number(job?.endedAt || job?.updatedAt || this.nowTick);
         const elapsedSeconds = Math.max(0, Math.floor((stopAt - startedAt) / 1000));
         return `${elapsedSeconds}s`;
     }

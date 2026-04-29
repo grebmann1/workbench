@@ -1,8 +1,8 @@
 import { createSlice, createAsyncThunk, createEntityAdapter } from '@reduxjs/toolkit';
+import type { ConnectionLike } from 'core/connector';
 import { cacheManager, CACHE_ORG_DATA_TYPES } from 'shared/cacheManager';
 import LOGGER from 'shared/logger';
 import { lowerCaseKey, arrayToMap, isUndefinedOrNull } from 'shared/utils';
-import type { ConnectionLike } from 'core/connector';
 
 import { getStore } from '../storeRef';
 

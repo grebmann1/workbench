@@ -1,5 +1,5 @@
-import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { test } from 'node:test';
 
 globalThis.chrome = globalThis.chrome || { storage: { local: { get: async () => ({}) } } };
 

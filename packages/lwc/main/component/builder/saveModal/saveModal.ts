@@ -46,7 +46,7 @@ export default class SaveModal extends LightningModal {
     validateForm = () => {
         let isValid = true;
         // Default
-        let inputFields = this.template.querySelectorAll('.input-target');
+        const inputFields = this.template.querySelectorAll('.input-target');
         inputFields.forEach(inputField => {
             if (!inputField.checkValidity()) {
                 inputField.reportValidity();
@@ -59,7 +59,7 @@ export default class SaveModal extends LightningModal {
 
     extractFormValues = () => {
         const formData = {};
-        let inputFields = this.template.querySelectorAll('.input-target');
+        const inputFields = this.template.querySelectorAll('.input-target');
         inputFields.forEach(inputField => {
             formData[inputField.name] = inputField.value;
         });

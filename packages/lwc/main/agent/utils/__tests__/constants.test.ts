@@ -1,5 +1,5 @@
-import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { test } from 'node:test';
 
 import { Constants, SKILLS_ROOT, SKILLS_INSTRUCTIONS } from '../constants.ts';
 

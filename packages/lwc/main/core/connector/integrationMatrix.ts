@@ -1,6 +1,6 @@
 // integrationMatrix.js
-import { getCurrentPlatform } from './platformService';
 import { OAUTH_TYPES } from './credentialStrategies/oauthTypes';
+import { getCurrentPlatform } from './platformService';
 
 // String literals to avoid circular dependency (platformService → utils → integrationMatrix)
 const matrix = {

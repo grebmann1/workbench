@@ -1,13 +1,10 @@
-import { stepCountIs, streamText, tool as createAiSdkTool } from 'ai';
-import type { ModelMessage, ToolModelMessage, ToolResultPart, ToolSet } from 'ai';
 import type { ToolCall as AiToolCall, ToolResultOutput } from '@ai-sdk/provider-utils';
-import { createBashTools, filterToolsByModel } from 'agent/tools';
-import { DEFAULT_LLM_PROVIDER, normalizeLlmProvider, getMaxOutputTokensForModel } from 'shared/llm';
-import { getIndexedDbFileSystem } from 'core/fs';
-import { guid } from 'shared/utils';
-import { z } from 'zod';
-import { store, AGENT } from 'core/store';
-import LOGGER from 'shared/logger';
+import type { Store } from '@reduxjs/toolkit';
+import {
+    clearCdpHandlerForConversation,
+    ensureCdpHandlerInitialized,
+    getCdpHandlerForConversation,
+} from 'agent/cdpHandler';
 import {
     type CompactionSettings,
     createCompactionSummaryMessage,
@@ -20,14 +17,11 @@ import {
     shouldCompactContext,
 } from 'agent/compaction';
 import {
-    clearCdpHandlerForConversation,
-    ensureCdpHandlerInitialized,
-    getCdpHandlerForConversation,
-} from 'agent/cdpHandler';
-import {
     cleanupBashInstanceForConversation,
     getOrCreateBashInstanceForConversation,
 } from 'agent/runtimeDeps';
+import { createStreamMessageBuilder } from 'agent/streamBuilder';
+import { createBashTools, filterToolsByModel } from 'agent/tools';
 import {
     DEFAULT_MODEL,
     DEFAULT_REASONING,
@@ -44,8 +38,14 @@ import {
     resolveProviderOptions,
     type ProviderInstance,
 } from 'agent/utils';
-import { createStreamMessageBuilder } from 'agent/streamBuilder';
-import type { Store } from '@reduxjs/toolkit';
+import { stepCountIs, streamText, tool as createAiSdkTool } from 'ai';
+import type { ModelMessage, ToolModelMessage, ToolResultPart, ToolSet } from 'ai';
+import { getIndexedDbFileSystem } from 'core/fs';
+import { store, AGENT } from 'core/store';
+import { DEFAULT_LLM_PROVIDER, normalizeLlmProvider, getMaxOutputTokensForModel } from 'shared/llm';
+import LOGGER from 'shared/logger';
+import { guid } from 'shared/utils';
+import { z } from 'zod';
 
 import { createMcpToolset } from '../mcp/mcpManager';
 import type { McpServerConfig, McpToolset } from '../mcp/mcpTypes';
@@ -244,7 +244,7 @@ function toAiSdkTools(tools, extraContext = {}) {
             ...rawTool,
             description: rawTool.description || '',
             inputSchema: normalizeToolInputSchema(rawTool.parameters, z),
-            execute: async (input: Object) => {
+            execute: async (input: object) => {
                 return rawTool.execute({ ...input, ...extraContext });
             },
         });

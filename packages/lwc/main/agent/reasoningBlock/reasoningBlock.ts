@@ -1,5 +1,5 @@
-import { api, track, LightningElement } from 'lwc';
 import { Constants } from 'agent/utils';
+import { api, track, LightningElement } from 'lwc';
 
 const TICK_MS = 1000;
 const MAX_LIVE_SECONDS = 120;

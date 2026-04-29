@@ -1,14 +1,14 @@
-import { api, track } from 'lwc';
-import Toast from 'lightning/toast';
-import LightningModal from 'lightning/modal';
 import {
     getSalesforceURL,
     credentialStrategies,
     notificationService,
     validateInputs,
 } from 'core/connector';
-import { isNotUndefinedOrNull, isChromeExtension } from 'shared/utils';
+import LightningModal from 'lightning/modal';
+import Toast from 'lightning/toast';
+import { api, track } from 'lwc';
 import LOGGER from 'shared/logger';
+import { isNotUndefinedOrNull, isChromeExtension } from 'shared/utils';
 const { showToast, handleError } = notificationService;
 
 export default class ConnectionManualModal extends LightningModal {

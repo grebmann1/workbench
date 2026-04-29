@@ -1,6 +1,6 @@
-import { api } from 'lwc';
 import ToolkitElement from 'host-api/element';
 import Toast from 'lightning/toast';
+import { api } from 'lwc';
 import {
     chunkPromises,
     classSet,
@@ -177,7 +177,7 @@ export default class RecordExplorerRow extends ToolkitElement {
     }
 
     get formattedFieldName() {
-        var _name = this.isLabelDisplayed ? this.label : this.name;
+        const _name = this.isLabelDisplayed ? this.label : this.name;
 
         if (isEmpty(this.filter)) {
             return _name;
@@ -214,8 +214,8 @@ export default class RecordExplorerRow extends ToolkitElement {
 
     get formattedValue() {
         /** SET FIELTERED VALUE for displayed **/
-        var regex = new RegExp('(' + this.filter + ')', 'gmi');
-        var _formattedValue = this.value;
+        const regex = new RegExp('(' + this.filter + ')', 'gmi');
+        let _formattedValue = this.value;
         if (!isEmpty(this.filter) && regex.test(this.value) && isNotUndefinedOrNull(this.value)) {
             _formattedValue = this.value
                 .toString()
@@ -242,7 +242,7 @@ export default class RecordExplorerRow extends ToolkitElement {
 
         /** in case of HTML  **/
         if (this.isHtml) {
-            var data = this.value;
+            const data = this.value;
             var balise;
             if (data.indexOf('href="//') > -1 || data.indexOf('src="//') > -1) {
                 balise = data;
@@ -353,7 +353,6 @@ export default class RecordExplorerRow extends ToolkitElement {
 
     sendRowChangeEvent = () => {
         this.dispatchEvent(
-            // eslint-disable-next-line lightning-global/no-custom-event-bubbling
             new CustomEvent('rowchange', {
                 bubbles: true,
                 composed: true,
@@ -433,7 +432,6 @@ export default class RecordExplorerRow extends ToolkitElement {
     handleEditClick = () => {
         this.enableInputField();
         this.dispatchEvent(
-            // eslint-disable-next-line lightning-global/no-custom-event-bubbling
             new CustomEvent('enableeditmode', {
                 bubbles: true,
                 composed: true,

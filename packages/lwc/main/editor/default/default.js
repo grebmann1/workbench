@@ -1,13 +1,10 @@
-import { api } from 'lwc';
 import ToolkitElement from 'core/toolkitElement';
-import Toast from 'lightning/toast';
-import {
-    runActionAfterTimeOut,
-    autoDetectAndFormat,
-} from 'shared/utils';
+import { MonacoLwcWidget } from 'editor/editorCompleteWidget';
 import { SOQL, APEX, VF, LOG } from 'editor/languages';
 import { registerAIWidgets, setupMonaco } from 'editor/utils';
-import { MonacoLwcWidget } from 'editor/editorCompleteWidget';
+import Toast from 'lightning/toast';
+import { api } from 'lwc';
+import { runActionAfterTimeOut, autoDetectAndFormat } from 'shared/utils';
 
 const CHANGE_EVENT_TIMEOUT = 500;
 

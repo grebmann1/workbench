@@ -1,6 +1,6 @@
-import { api, wire } from 'lwc';
 import ToolkitElement from 'host-api/element';
 import { store, connectStore } from 'host-api/store';
+import { api, wire } from 'lwc';
 
 export default class Header extends ToolkitElement {
     _apiUsage: { used: number; limit: number } | null = null;

@@ -1,5 +1,6 @@
 import type { ModelMessage, ToolModelMessage, ToolResultPart } from 'ai';
 import { isNotUndefinedOrNull } from 'shared/utils';
+
 import { parseDataUrl } from './runnerHelpers';
 
 export function buildUserMessageParts({ text, filesData }) {
@@ -58,19 +59,23 @@ export function processToolResultToMessage(toolResult: any, toolCall: any): Tool
         type: 'tool-result',
         toolName: toolCall.toolName,
         toolCallId: toolCall.toolCallId,
-        output: { 
+        output: {
             type: 'content',
             value: [
                 {
                     type: 'text',
-                    text: toolResult.text || toolResult.output || toolResult.content || ''
+                    text: toolResult.text || toolResult.output || toolResult.content || '',
                 },
-                ...(toolResult.images && Array.isArray(toolResult.images) && toolResult.images.length > 0 ? toolResult.images.map(image => ({
-                    type: 'image-data',
-                    data: image.dataUrl,
-                    mediaType: image.mediaType,
-                })) : [])
-            ]
+                ...(toolResult.images &&
+                Array.isArray(toolResult.images) &&
+                toolResult.images.length > 0
+                    ? toolResult.images.map(image => ({
+                          type: 'image-data',
+                          data: image.dataUrl,
+                          mediaType: image.mediaType,
+                      }))
+                    : []),
+            ],
         },
     } as unknown as ToolResultPart;
 
@@ -78,7 +83,7 @@ export function processToolResultToMessage(toolResult: any, toolCall: any): Tool
         role: 'tool',
         content: [toolResultPart],
     } as ToolModelMessage;
-};
+}
 
 export function areMessagesEqual(msg1, msg2) {
     return (
@@ -90,7 +95,7 @@ export function areMessagesEqual(msg1, msg2) {
 }
 
 export function appendMessageIfNotExists(messages, newMsg) {
-    console.log('[appendMessageIfNotExists] appendMessageIfNotExists', {messages, newMsg});
+    console.log('[appendMessageIfNotExists] appendMessageIfNotExists', { messages, newMsg });
     if (!messages.some(m => areMessagesEqual(m, newMsg))) {
         return [...messages, newMsg];
     }
@@ -103,4 +108,4 @@ export const Message = {
     isUiMessage,
     createUserModelMessage,
     processToolResultToMessage,
-}
+};

@@ -9,13 +9,16 @@ export function escapeRegExp(str: string | null | undefined): string {
     return str.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
 }
 
-export function checkIfPresent(a: string | null | undefined, b: string | null | undefined): boolean {
+export function checkIfPresent(
+    a: string | null | undefined,
+    b: string | null | undefined
+): boolean {
     return (a || '').toLowerCase().includes((b || '').toLowerCase());
 }
 
 export function isSalesforceId(str: string): boolean {
     // Salesforce ID pattern
-    var idPattern = /^[a-zA-Z0-9]{15}(?:[a-zA-Z0-9]{3})?$/;
+    const idPattern = /^[a-zA-Z0-9]{15}(?:[a-zA-Z0-9]{3})?$/;
 
     // Check if the string matches the Salesforce ID pattern
     return idPattern.test(str);
@@ -62,7 +65,7 @@ export const splitTextByTimestamp = (text: string): string[] => {
     // Split the text by new lines
     const lines = text.split('\n');
     // Initialize an array to store the resulting chunks
-    let result: string[] = [];
+    const result: string[] = [];
 
     // Initialize a temporary string to build chunks
     let temp = '';

@@ -1,7 +1,7 @@
-import { api } from 'lwc';
 import ToolkitElement from 'core/toolkitElement';
-import { classSet, isEmpty } from 'shared/utils';
 import { getCurrentTab } from 'extension/utils';
+import { api } from 'lwc';
+import { classSet, isEmpty } from 'shared/utils';
 
 const PAGE_LIST_SIZE = 70;
 const BASE_QUERY =

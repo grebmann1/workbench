@@ -1,5 +1,5 @@
-import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { test } from 'node:test';
 
 function setNavigatorPlatform(platform: string) {
     Object.defineProperty(globalThis, 'navigator', {

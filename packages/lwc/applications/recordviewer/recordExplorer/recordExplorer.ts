@@ -1,6 +1,7 @@
-import { wire, api, track } from 'lwc';
-import Toast from 'lightning/toast';
 import ToolkitElement from 'host-api/element';
+import Toast from 'lightning/toast';
+import { wire, api, track } from 'lwc';
+import { CurrentPageReference, NavigationContext, generateUrl, navigate } from 'lwr/navigation';
 import { store as legacyStore, store_application } from 'shared/store';
 import {
     isEmpty,
@@ -17,7 +18,6 @@ import {
     getRecordTypesLink,
     redirectToUrlViaChrome,
 } from 'shared/utils';
-import { CurrentPageReference, NavigationContext, generateUrl, navigate } from 'lwr/navigation';
 
 const PAGE_LIST_SIZE = 70;
 const TOOLING = 'tooling';
@@ -75,7 +75,7 @@ export default class RecordExplorer extends ToolkitElement {
     }
 
     set recordId(value) {
-        var toRun = this._recordId != value && !isEmpty(value);
+        const toRun = this._recordId != value && !isEmpty(value);
         this._recordId = value;
         if (toRun) {
             this.initRecordExplorer();
@@ -192,7 +192,7 @@ export default class RecordExplorer extends ToolkitElement {
                 const _connector = this.metadata?._useToolingApi
                     ? this.connector.conn.tooling
                     : this.connector.conn;
-                var [metadata, record] = await Promise.all([
+                const [metadata, record] = await Promise.all([
                     _connector.sobject(this.sobjectName).describe$(), // Refresh Metadata
                     _connector.sobject(this.sobjectName).retrieve(this.recordId),
                 ]);
@@ -232,7 +232,7 @@ export default class RecordExplorer extends ToolkitElement {
     formatData = () => {
         const formattedData = this.metadata.fields
             .map(x => {
-                let { label, name, type } = x;
+                const { label, name, type } = x;
                 return {
                     name,
                     label,
@@ -261,8 +261,8 @@ export default class RecordExplorer extends ToolkitElement {
 
     filtering = arr => {
         //console.log('arr',arr);
-        var regex = new RegExp('(' + this.filter + ')', 'i');
-        var items = arr.map(item => {
+        const regex = new RegExp('(' + this.filter + ')', 'i');
+        let items = arr.map(item => {
             if (typeof item.value == 'object' && item.value !== null) {
                 item.value = JSON.stringify(item.value, null, 2);
             }
@@ -344,7 +344,7 @@ export default class RecordExplorer extends ToolkitElement {
                 this.fieldErrors = fieldErrorSet;
 
                 if (fieldErrorGlobal.length > 0) {
-                    let label =
+                    const label =
                         fieldErrorGlobal[0].statusCode ||
                         fieldErrorGlobal[0].errorCode ||
                         'Update Error';
@@ -377,7 +377,7 @@ export default class RecordExplorer extends ToolkitElement {
         this.isSaving = false;
         this.modifiedRows = [];
         this.isViewChangeFilterEnabled = false;
-        let rows = this.template.querySelectorAll('recordviewer-record-explorer-row');
+        const rows = this.template.querySelectorAll('recordviewer-record-explorer-row');
         rows.forEach(row => {
             row.disableInputField();
         });

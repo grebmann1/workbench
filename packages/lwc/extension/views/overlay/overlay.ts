@@ -1,6 +1,12 @@
-import { wire, api } from 'lwc';
+import { credentialStrategies } from 'core/connector';
+import { connectStore, store, APPLICATION } from 'core/store';
 import ToolkitElement from 'core/toolkitElement';
+import jsforce from 'imported/jsforce';
 import Toast from 'lightning/toast';
+import { wire, api } from 'lwc';
+import moment from 'moment';
+import { TYPE } from 'overlay/utils';
+import { loadExtensionConfigFromCache, CACHE_CONFIG } from 'shared/cacheManager';
 import {
     isEmpty,
     classSet,
@@ -12,13 +18,6 @@ import {
     redirectToUrlViaChrome,
     getRecordId,
 } from 'shared/utils';
-import { connectStore, store, APPLICATION } from 'core/store';
-import { TYPE } from 'overlay/utils';
-import { credentialStrategies } from 'core/connector';
-import { loadExtensionConfigFromCache, CACHE_CONFIG } from 'shared/cacheManager';
-
-import moment from 'moment';
-import jsforce from 'imported/jsforce';
 
 const CACHE_KEY = 'sf_cached_data';
 const CACHE_FILTER_SETTINGS = 'sf_cached_filter_settings';
@@ -764,7 +763,7 @@ export default class Overlay extends ToolkitElement {
         this.isFetchingMetadata = true;
         const lowerCaseTerm = (searchTerm || '').toLowerCase();
         // Initialize combined results array
-        let combinedResults = [];
+        const combinedResults = [];
 
         // Filter Users
         try {
@@ -1135,7 +1134,9 @@ export default class Overlay extends ToolkitElement {
         const cacheExpiry = await window.defaultStore.getItem(
             `${CACHE_EXPIRY_KEY}-${this.currentDomain}`
         );
-        this.lastRefreshDate = await window.defaultStore.getItem(`${CACHE_LAST_KEY}-${this.currentDomain}`);
+        this.lastRefreshDate = await window.defaultStore.getItem(
+            `${CACHE_LAST_KEY}-${this.currentDomain}`
+        );
         this.header_formatDate(); // direct reformating of the dates
         if (
             !this._forceRefresh &&
@@ -1262,7 +1263,9 @@ export default class Overlay extends ToolkitElement {
             const profiles = await safeLoad(
                 'Profiles',
                 async () => {
-                    const profilesResult = await this.connector.conn.query('SELECT Id, Name FROM Profile');
+                    const profilesResult = await this.connector.conn.query(
+                        'SELECT Id, Name FROM Profile'
+                    );
                     return profilesResult?.records || [];
                 },
                 []
@@ -1464,7 +1467,9 @@ export default class Overlay extends ToolkitElement {
     }
 
     get refreshDateFormatted() {
-        return this.isOrganizationTab ? this.orgRefreshDateFormatted : this.lastRefreshDateFormatted;
+        return this.isOrganizationTab
+            ? this.orgRefreshDateFormatted
+            : this.lastRefreshDateFormatted;
     }
 
     get orgRows() {

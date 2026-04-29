@@ -1,4 +1,20 @@
+import LOGGER from 'shared/logger';
+import ApiSchemaImportModal from 'api/apiSchemaImportModal';
+import { API } from 'api/slices';
+import { CATEGORY_STORAGE, SaveModal } from 'host-api/builder';
+import { registerCommand } from 'host-api/commands';
+import ToolkitElement from 'host-api/element';
+import { connectStore, store, DOCUMENT, SELECTORS, injectReducer } from 'host-api/store';
+import { dereference, validate } from 'imported/openapi-parser';
+import yaml from 'js-yaml';
+import LightningConfirm from 'lightning/confirm';
+import Toast from 'lightning/toast';
 import { api, track, wire } from 'lwc';
+import { NavigationContext, navigate } from 'lwr/navigation';
+import moment from 'moment';
+import * as OpenAPISampler from 'openapi-sampler';
+import Analytics from 'shared/analytics';
+import { CACHE_CONFIG, cacheManager } from 'shared/cacheManager';
 import {
     guid,
     runActionAfterTimeOut,
@@ -13,22 +29,6 @@ import {
     autoDetectAndFormat,
     API as API_UTILS,
 } from 'shared/utils';
-import Toast from 'lightning/toast';
-import ToolkitElement from 'host-api/element';
-import { connectStore, store, DOCUMENT, SELECTORS, injectReducer } from 'host-api/store';
-import { registerCommand } from 'host-api/commands';
-import { API } from 'api/slices';
-import { CATEGORY_STORAGE, SaveModal } from 'host-api/builder';
-import moment from 'moment';
-import LightningConfirm from 'lightning/confirm';
-import LOGGER from 'shared/logger';
-import ApiSchemaImportModal from 'api/apiSchemaImportModal';
-import yaml from 'js-yaml';
-import { dereference, validate } from 'imported/openapi-parser';
-import * as OpenAPISampler from 'openapi-sampler';
-import { NavigationContext, navigate } from 'lwr/navigation';
-import { CACHE_CONFIG, cacheManager } from 'shared/cacheManager';
-import Analytics from 'shared/analytics';
 
 const apiLocalSelectors = API.apiAdapter.getSelectors((state: any) => state.api.api);
 
@@ -1367,7 +1367,7 @@ export default class App extends ToolkitElement {
                     }
                 }
                 // Generate sample variables from parameters (path-level + operation-level)
-                let sampleVariables = {};
+                const sampleVariables = {};
                 const pathParams = Array.isArray(extra?.pathItem?.parameters)
                     ? extra.pathItem.parameters
                     : [];

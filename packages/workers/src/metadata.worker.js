@@ -1,6 +1,8 @@
-import jsforce from 'imported/jsforce';
 import { Buffer } from 'buffer';
+
 import { unzipSync, strFromU8 } from 'fflate/browser';
+import jsforce from 'imported/jsforce';
+
 import { createIndexedDbFileSystem } from '../../lwc/main/core/fs/indexedDbFileSystem';
 import createMetadataFsService from '../../lwc/main/core/fs/metadataFsService';
 
@@ -136,7 +138,14 @@ const extractZipEntries = async base64Zip => {
 
 const fetchTypeRecords = async metadataType => {
     debugLog('fetchTypeRecords:start', { metadataType });
-    const isToolingBacked = ['ApexClass', 'ApexTrigger', 'ApexPage', 'ApexComponent', 'AuraDefinitionBundle', 'LightningComponentBundle'].includes(metadataType);
+    const isToolingBacked = [
+        'ApexClass',
+        'ApexTrigger',
+        'ApexPage',
+        'ApexComponent',
+        'AuraDefinitionBundle',
+        'LightningComponentBundle',
+    ].includes(metadataType);
     if (isToolingBacked) {
         const result = await conn.tooling.query(
             `SELECT Id, Name, DeveloperName, MasterLabel FROM ${metadataType}`
@@ -239,7 +248,9 @@ const retrieveMetadataPackageZip = async ({ metadataTypes = [], apiVersion = '63
         return retrieveResult.zipFile;
     }
     if (retrieveResult?.id) {
-        debugLog('retrieveMetadataPackageZip:checkingStatusViaSoap', { retrieveId: retrieveResult.id });
+        debugLog('retrieveMetadataPackageZip:checkingStatusViaSoap', {
+            retrieveId: retrieveResult.id,
+        });
         const statusResult = await checkRetrieveStatusViaSoap(retrieveResult.id);
         if (statusResult?.zipFile) {
             return statusResult.zipFile;
@@ -344,11 +355,17 @@ const loadSpecificMetadataRecord = async ({ sobject, recordId, fullName }) => {
     }
     if (sobject === 'ApexPage') {
         const data = await loadRecordFromToolingApi(sobject, recordId);
-        return { files: await loadApexLikeFiles(sobject, data, 'page', 'Markup'), selectedRecord: null };
+        return {
+            files: await loadApexLikeFiles(sobject, data, 'page', 'Markup'),
+            selectedRecord: null,
+        };
     }
     if (sobject === 'ApexComponent') {
         const data = await loadRecordFromToolingApi(sobject, recordId);
-        return { files: await loadApexLikeFiles(sobject, data, 'component', 'Markup'), selectedRecord: null };
+        return {
+            files: await loadApexLikeFiles(sobject, data, 'component', 'Markup'),
+            selectedRecord: null,
+        };
     }
 
     try {
@@ -420,7 +437,9 @@ const startSync = async ({ metadataTypes = [], alias = null, apiVersion = '63.0'
     });
     debugLog('startSync:persist:output', {
         status: writeResult?.status,
-        writtenCount: Array.isArray(writeResult?.filesWritten) ? writeResult.filesWritten.length : 0,
+        writtenCount: Array.isArray(writeResult?.filesWritten)
+            ? writeResult.filesWritten.length
+            : 0,
         sampleWritten: (writeResult?.filesWritten || []).slice(0, 20),
     });
 

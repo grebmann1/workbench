@@ -1,5 +1,6 @@
-import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { test } from 'node:test';
+
 import {
     isLlmProvider,
     normalizeLlmProvider,
@@ -180,10 +181,7 @@ test('isOpenAiCompatibleGateway: internal gateway always true', () => {
 });
 
 test('isOpenAiCompatibleGateway: native domain → false', () => {
-    assert.equal(
-        isOpenAiCompatibleGateway('anthropic', 'https://api.anthropic.com/v1'),
-        false
-    );
+    assert.equal(isOpenAiCompatibleGateway('anthropic', 'https://api.anthropic.com/v1'), false);
     assert.equal(
         isOpenAiCompatibleGateway('gemini', 'https://generativelanguage.googleapis.com/v1beta'),
         false
@@ -238,18 +236,12 @@ test('resolveAgentProviderBaseUrl: non-gemini passes through', () => {
 });
 
 test('resolveAgentProviderBaseUrl: empty baseUrl uses provider default', () => {
-    assert.equal(
-        resolveAgentProviderBaseUrl('openai', ''),
-        DEFAULT_PROVIDER_BASE_URLS.openai
-    );
+    assert.equal(resolveAgentProviderBaseUrl('openai', ''), DEFAULT_PROVIDER_BASE_URLS.openai);
 });
 
 test('resolveAgentProviderBaseUrl: gemini /v1beta appends /openai', () => {
     assert.equal(
-        resolveAgentProviderBaseUrl(
-            'gemini',
-            'https://generativelanguage.googleapis.com/v1beta'
-        ),
+        resolveAgentProviderBaseUrl('gemini', 'https://generativelanguage.googleapis.com/v1beta'),
         'https://generativelanguage.googleapis.com/v1beta/openai'
     );
 });

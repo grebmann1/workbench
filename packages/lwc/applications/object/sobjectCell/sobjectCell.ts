@@ -1,7 +1,7 @@
-import { LightningElement, api } from 'lwc';
-import { isEmpty, isNotUndefinedOrNull } from 'shared/utils';
-import { store as legacyStore, store_application } from 'shared/store';
 import Toast from 'lightning/toast';
+import { LightningElement, api } from 'lwc';
+import { store as legacyStore, store_application } from 'shared/store';
+import { isEmpty, isNotUndefinedOrNull } from 'shared/utils';
 
 export default class SobjectCell extends LightningElement {
     @api value;

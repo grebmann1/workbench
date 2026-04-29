@@ -1,6 +1,8 @@
-import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { test } from 'node:test';
+
 import { createSlice, configureStore } from '@reduxjs/toolkit';
+
 import { createInjectableStore } from '../createInjectableStore.ts';
 
 const PROBE_KEY = '__probe_slice__';
@@ -168,7 +170,7 @@ test('configure callback receives the static root reducer and middleware is pres
             configureStore({
                 reducer: rootReducer,
                 middleware: getDefault => getDefault().concat(marker),
-            }),
+            })
     );
     store.dispatch(core.actions.ping());
 

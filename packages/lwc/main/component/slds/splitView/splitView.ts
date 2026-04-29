@@ -1,6 +1,6 @@
 // splitView.js
-import { LightningElement, track, api } from 'lwc';
 import { classSet } from 'lightning/utils';
+import { LightningElement, track, api } from 'lwc';
 
 export default class SplitView extends LightningElement {
     @api leftMinWidth = 0;

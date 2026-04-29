@@ -1,9 +1,9 @@
 export type { ConnectorLike, ConnectionLike, ConnectorConfiguration } from 'shared/types/connector';
 
 import * as Oauth2 from './credentialStrategies/oauth';
+import { OAUTH_TYPES } from './credentialStrategies/oauthTypes';
 import * as Session from './credentialStrategies/session';
 import * as UsernamePassword from './credentialStrategies/usernamePassword';
-import { OAUTH_TYPES } from './credentialStrategies/oauthTypes';
 import * as IntegrationMatrix from './integrationMatrix';
 import * as NotificationService from './notificationService';
 import * as PlatformService from './platformService';

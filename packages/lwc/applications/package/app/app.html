@@ -98,8 +98,11 @@
                     <template lwc:if={isLoading}>
                         <slds-spinner alternative-text="Loading" size="small"></slds-spinner>
                     </template>
-                    <slds-tabset active-tab-value={currentMethod} class="slds-full-height slds-flex-column">
-                        <slds-tab class="slds-full-height slds-flex-column"
+                    <slds-tabset
+                        active-tab-value={currentMethod}
+                        class="slds-full-height slds-flex-column">
+                        <slds-tab
+                            class="slds-full-height slds-flex-column"
                             label={i18n.TAB_DEPLOY}
                             value={i18n.TAB_DEPLOY}
                             onactive={handleMethodTabActive}>
@@ -108,7 +111,8 @@
                                 class="slds-fill-height slds-flex-column"
                                 application-name={applicationName}></package-deploy>
                         </slds-tab>
-                        <slds-tab class="slds-full-height slds-flex-column"
+                        <slds-tab
+                            class="slds-full-height slds-flex-column"
                             label={i18n.TAB_RETRIEVE}
                             value={i18n.TAB_RETRIEVE}
                             onactive={handleMethodTabActive}>

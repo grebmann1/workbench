@@ -1,10 +1,13 @@
-import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { test } from 'node:test';
 
 test('resolver: shared/* wildcard (shared/salesforceUrl) resolves', async () => {
     const mod = await import('shared/salesforceUrl');
     assert.equal(typeof mod.normalizeInstanceUrl, 'function');
-    assert.equal(mod.normalizeInstanceUrl('foo.my.salesforce.com'), 'https://foo.my.salesforce.com');
+    assert.equal(
+        mod.normalizeInstanceUrl('foo.my.salesforce.com'),
+        'https://foo.my.salesforce.com'
+    );
 });
 
 test('resolver: shared/utils resolves via /index.ts fallback', async () => {

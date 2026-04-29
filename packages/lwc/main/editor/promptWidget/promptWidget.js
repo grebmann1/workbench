@@ -1,9 +1,9 @@
-import { LightningElement, api, track } from 'lwc';
-import Toast from 'lightning/toast';
-import { isEmpty } from 'shared/utils';
-import LOGGER from 'shared/logger';
-import { ROLES } from 'ai/utils';
 import ASSISTANTS from 'ai/assistants';
+import { ROLES } from 'ai/utils';
+import Toast from 'lightning/toast';
+import { LightningElement, api, track } from 'lwc';
+import LOGGER from 'shared/logger';
+import { isEmpty } from 'shared/utils';
 
 export default class PromptWidget extends LightningElement {
     @api value = ''; // For text input binding

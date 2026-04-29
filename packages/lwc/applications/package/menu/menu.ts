@@ -1,8 +1,9 @@
-import { api, wire, track } from 'lwc';
 import ToolkitElement from 'host-api/element';
-import { isNotUndefinedOrNull } from 'shared/utils';
 import { store, connectStore } from 'host-api/store';
+import { api, wire, track } from 'lwc';
 import { PACKAGE } from 'package/slices';
+import { isNotUndefinedOrNull } from 'shared/utils';
+
 import { getMetadataTypeIcon, METADATA_RECORD_ICON } from './constants';
 
 export default class Menu extends ToolkitElement {
@@ -33,8 +34,7 @@ export default class Menu extends ToolkitElement {
         this.currentMetadata = package2.menu_currentMetadata;
 
         if (
-            JSON.stringify(this.metadata_global) !==
-            JSON.stringify(package2.menu_metadata_global)
+            JSON.stringify(this.metadata_global) !== JSON.stringify(package2.menu_metadata_global)
         ) {
             this.metadata_global = package2.menu_metadata_global;
         }

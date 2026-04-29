@@ -1,9 +1,10 @@
-import { wire, api } from 'lwc';
-import ToolkitElement from 'host-api/element';
 import { getFlattenedFields } from '@jetstreamapp/soql-parser-js';
+import ToolkitElement from 'host-api/element';
 import { store, connectStore, SELECTORS, SOBJECT } from 'host-api/store';
-import { UI } from 'soql/slices';
 import { fullApiName, isSame, lowerCaseKey } from 'host-api/utils';
+import { wire, api } from 'lwc';
+import { UI } from 'soql/slices';
+
 import { getFieldTypeIcon } from './constants';
 
 export default class FieldsTree extends ToolkitElement {
@@ -129,7 +130,8 @@ export default class FieldsTree extends ToolkitElement {
             SOBJECT.describeSObject({
                 connector: this.connector.conn,
                 sObjectName: relationshipSObjectName,
-                useToolingApi: describe.nameMap[lowerCaseKey(relationshipSObjectName)]?.useToolingApi,
+                useToolingApi:
+                    describe.nameMap[lowerCaseKey(relationshipSObjectName)]?.useToolingApi,
             })
         );
     }
@@ -159,7 +161,9 @@ export default class FieldsTree extends ToolkitElement {
             if (!sobjectData?.data?.fields) continue;
             const relationshipPath = ref.relationshipPath;
             const level = relationshipPath.split('.').length + rootLevelNum;
-            const selectedForPath = (query ? getFlattenedFields(query).map(f => fullApiName(f)) : [])
+            const selectedForPath = (
+                query ? getFlattenedFields(query).map(f => fullApiName(f)) : []
+            )
                 .map(x => (x || '').toLowerCase())
                 .filter(f => f.startsWith((relationshipPath + '.').toLowerCase()));
             const childFields = sobjectData.data.fields.map(field => {
@@ -170,8 +174,7 @@ export default class FieldsTree extends ToolkitElement {
                 const canExpand = isRef && childLevel < maxLevel;
                 const details = `${field.type.toUpperCase()} / ${field.label}`;
                 const title = `${field.name} — ${details}`;
-                const nestedLoaded =
-                    nextLoaded[childId] ?? this.loadedChildrenByFieldId[childId];
+                const nestedLoaded = nextLoaded[childId] ?? this.loadedChildrenByFieldId[childId];
                 const childRelationshipPath = field.relationshipName
                     ? `${relationshipPath}.${field.relationshipName}`
                     : undefined;
@@ -185,7 +188,7 @@ export default class FieldsTree extends ToolkitElement {
                     isExpandable: canExpand,
                     relationshipSObjectName: field.referenceTo?.[0],
                     relationshipPath: childRelationshipPath,
-                    children: canExpand ? (nestedLoaded || []) : undefined,
+                    children: canExpand ? nestedLoaded || [] : undefined,
                     isLoadingChildren: canExpand && loadingIds.has(childId),
                 };
             });
@@ -293,9 +296,7 @@ export default class FieldsTree extends ToolkitElement {
                 ? this.relationship.split('.').length + rootLevelNum
                 : rootLevelNum;
             const canExpand = isRef && level < maxLevel;
-            const children = canExpand
-                ? (this.loadedChildrenByFieldId[id] || [])
-                : undefined;
+            const children = canExpand ? this.loadedChildrenByFieldId[id] || [] : undefined;
             return {
                 id,
                 name: field.name,

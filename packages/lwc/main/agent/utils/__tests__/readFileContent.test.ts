@@ -1,5 +1,5 @@
-import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { test } from 'node:test';
 
 type FileLike = { name: string; size: number; type: string; _content: string };
 

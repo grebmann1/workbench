@@ -1,4 +1,8 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import { getStore } from 'core/store/storeRef';
+import type { ConnectorLike } from 'host-api/connector';
+import { DESCRIBE, BACKGROUNDJOB, ERROR, SOBJECT } from 'host-api/store';
+import { getWorker } from 'host-api/worker';
 import { cacheManager, CACHE_CONFIG, CACHE_ORG_DATA_TYPES } from 'shared/cacheManager';
 import LOGGER from 'shared/logger';
 import {
@@ -8,12 +12,6 @@ import {
     sortObjectsByField,
     METADATA as METADATA_UTILS,
 } from 'shared/utils';
-import type { ConnectorLike } from 'host-api/connector';
-
-import { getStore } from 'core/store/storeRef';
-
-import { DESCRIBE, BACKGROUNDJOB, ERROR, SOBJECT } from 'host-api/store';
-import { getWorker } from 'host-api/worker';
 
 const METADATA_SETTINGS_KEY = 'METADATA_SETTINGS_KEY';
 let metadataSyncWorkerInstance = null;
@@ -109,9 +107,7 @@ export async function loadSpecificMetadata(
     globalRecords?: any[] | null
 ) {
     const records =
-        globalRecords ||
-        getStore()?.getState().metadata?.metadata_global?.records ||
-        [];
+        globalRecords || getStore()?.getState().metadata?.metadata_global?.records || [];
     const isSobject = records.find(x => x.name == sobject)?.isSobject || false;
 
     if (!isSobject) {
@@ -223,14 +219,14 @@ export async function loadSpecificMetadataException(
 }
 
 const handle_LWC = async (connector: Connector, sobject: string, key: string) => {
-    var queryString = `SELECT LightningComponentBundleId,LightningComponentBundle.MasterLabel,Format,FilePath,Source FROM LightningComponentResource WHERE `;
+    let queryString = `SELECT LightningComponentBundleId,LightningComponentBundle.MasterLabel,Format,FilePath,Source FROM LightningComponentResource WHERE `;
     if (isSalesforceId(key)) {
         queryString += `LightningComponentBundleId = '${key}' OR LightningComponentBundle.DeveloperName = '${key}'`; // in case developername match record Id length
     } else {
         queryString += `LightningComponentBundle.DeveloperName = '${key}'`;
     }
-    let resources = (await connector.conn.tooling.query(queryString)).records || [];
-    let files = formatFiles(
+    const resources = (await connector.conn.tooling.query(queryString)).records || [];
+    const files = formatFiles(
         resources.map(x => ({
             path: x.FilePath,
             name: x.FilePath.split('/').pop(),
@@ -269,15 +265,15 @@ const handle_APEX = async (
 };
 
 const handle_AURA = async (connector: Connector, sobject: string, data: any) => {
-    let resources =
+    const resources =
         (
             await connector.conn.tooling.query(
                 `SELECT AuraDefinitionBundleId,Format,DefType,Source FROM AuraDefinition WHERE AuraDefinitionBundleId = '${data.Id}'`
             )
         ).records || [];
-    let files = formatFiles(
+    const files = formatFiles(
         resources.map(x => {
-            let _name = _auraNameMapping(data.FullName, x.DefType);
+            const _name = _auraNameMapping(data.FullName, x.DefType);
             return {
                 path: _name,
                 name: _name,
@@ -315,8 +311,8 @@ const _auraNameMapping = (name, type) => {
 
 const runAndCacheQuery = async (connector: Connector, query: string, _byPassCaching?: boolean) => {
     const fetchAndSave = async query => {
-        let queryExec = connector.conn.tooling.query(query);
-        let result =
+        const queryExec = connector.conn.tooling.query(query);
+        const result =
             (await queryExec.run({
                 responseTarget: 'Records',
                 autoFetch: true,
@@ -724,12 +720,16 @@ const startMetadataBackgroundSync = createAsyncThunk(
             }
 
             const storageConfig = await getMetadataStorageConfig();
-            const isStorageEnabled = Boolean(storageConfig[CACHE_CONFIG.METADATA_STORAGE_ENABLED.key]);
+            const isStorageEnabled = Boolean(
+                storageConfig[CACHE_CONFIG.METADATA_STORAGE_ENABLED.key]
+            );
             const isBackgroundEnabled = Boolean(
                 storageConfig[CACHE_CONFIG.METADATA_STORAGE_BACKGROUND_SYNC_ENABLED.key]
             );
             if (!isStorageEnabled || !isBackgroundEnabled) {
-                return rejectWithValue('Metadata storage or background sync is disabled in settings.');
+                return rejectWithValue(
+                    'Metadata storage or background sync is disabled in settings.'
+                );
             }
 
             const requestedTypes = normalizeMetadataTypes(metadataTypes);
@@ -737,7 +737,9 @@ const startMetadataBackgroundSync = createAsyncThunk(
                 storageConfig[CACHE_CONFIG.METADATA_STORAGE_TYPES.key]
             );
             const selectedTypes = Array.from(
-                new Set((requestedTypes.length > 0 ? requestedTypes : configuredTypes).filter(Boolean))
+                new Set(
+                    (requestedTypes.length > 0 ? requestedTypes : configuredTypes).filter(Boolean)
+                )
             );
             if (selectedTypes.length === 0) {
                 return rejectWithValue('No metadata types selected for storage.');
@@ -1240,7 +1242,8 @@ const metadataSlice = createSlice({
                     ...state.syncJob,
                     status: 'error',
                     phase: 'error',
-                    error: action.payload || action.error?.message || 'Failed to cancel metadata sync',
+                    error:
+                        action.payload || action.error?.message || 'Failed to cancel metadata sync',
                 };
             });
     },

@@ -1,5 +1,9 @@
-import { api, wire } from 'lwc';
 import ToolkitElement from 'core/toolkitElement';
+import { api, wire } from 'lwc';
+import { NavigationContext, CurrentPageReference, navigate } from 'lwr/navigation';
+import { CACHE_CONFIG, loadExtensionConfigFromCache } from 'shared/cacheManager';
+import LOGGER from 'shared/logger';
+import { connectStore, store as legacyStore, store_application } from 'shared/store';
 import {
     isElectronApp,
     isChromeExtension,
@@ -9,12 +13,7 @@ import {
     isUndefinedOrNull,
     getVscodeEditorUrl,
 } from 'shared/utils';
-import { CACHE_CONFIG, loadExtensionConfigFromCache } from 'shared/cacheManager';
-
 import { CONFIG } from 'skeleton/app';
-import { connectStore, store as legacyStore, store_application } from 'shared/store';
-import { NavigationContext, CurrentPageReference, navigate } from 'lwr/navigation';
-import LOGGER from 'shared/logger';
 
 export default class Menu extends ToolkitElement {
     @api isUserLoggedIn = false;
@@ -143,7 +142,7 @@ export default class Menu extends ToolkitElement {
     };
 
     generateFilter = (name, hideMenuLabel = false) => {
-        var filtered = this.formatMenuItems(
+        let filtered = this.formatMenuItems(
             this.items.filter(x => x.type === name),
             hideMenuLabel
         );

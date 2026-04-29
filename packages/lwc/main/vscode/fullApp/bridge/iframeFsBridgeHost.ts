@@ -36,7 +36,6 @@ function normalizeAbsolutePath(path: unknown) {
     return `/${parts.join('/')}`;
 }
 
-
 function toArrayBuffer(value: unknown) {
     if (value instanceof ArrayBuffer) {
         return value;

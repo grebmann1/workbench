@@ -1,5 +1,5 @@
-import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { test } from 'node:test';
 
 function setGlobal(key: string, value: unknown) {
     Object.defineProperty(globalThis, key, {

@@ -1,5 +1,5 @@
-import { LightningElement, track, api } from 'lwc';
 import LightningAlert from 'lightning/alert';
+import { LightningElement, track, api } from 'lwc';
 import {
     isEmpty,
     classSet,

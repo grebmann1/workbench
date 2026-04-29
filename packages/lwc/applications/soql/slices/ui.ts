@@ -6,9 +6,9 @@ import {
     isQueryValid,
 } from '@jetstreamapp/soql-parser-js';
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import type { ConnectorLike, ConnectionLike } from 'host-api/connector';
 import { DOCUMENT } from 'host-api/store';
 import { stripNamespace, isNotUndefinedOrNull, isEmpty, guid, lowerCaseKey } from 'host-api/utils';
-import type { ConnectorLike, ConnectionLike } from 'host-api/connector';
 
 import * as QUERY from './query';
 

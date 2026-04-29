@@ -5,3 +5,10 @@ packages/server/assets/gifs/**
 dist/extension/**
 dist/web/**
 __lwr_cache__/**
+
+# Generated / compiled artifacts (out of scope for lint).
+packages/desktop/dist/**
+packages/lwc/shared/dist/**
+
+# VS Code webview has its own ESLint config (packages/vscode/eslint.config.js).
+packages/vscode/**

@@ -635,9 +635,10 @@ function ensureSandboxIframe() {
     iframeEl.style.width = '100%';
     iframeEl.style.height = '100%';
     iframeEl.style.border = '0';
-    const src = typeof chrome !== 'undefined' && chrome.runtime?.getURL
-        ? chrome.runtime.getURL('views/sandbox-render.html')
-        : '/views/sandbox-render.html';
+    const src =
+        typeof chrome !== 'undefined' && chrome.runtime?.getURL
+            ? chrome.runtime.getURL('views/sandbox-render.html')
+            : '/views/sandbox-render.html';
     iframeEl.src = src;
 }
 
@@ -1074,7 +1075,7 @@ downloadButton.addEventListener('click', () => {
 window.addEventListener('popstate', updateFromQuery);
 updateFromQuery();
 
-window.addEventListener('message', (event) => {
+window.addEventListener('message', event => {
     if (event.data?.type === 'sandbox-ready') {
         isSandboxReady = true;
         if (pendingHtml && iframeEl?.contentWindow) {
@@ -1086,7 +1087,7 @@ window.addEventListener('message', (event) => {
     const data = event.data;
     if (!data?.type || !data.type.endsWith('_REQUEST')) return;
 
-    const respond = (payload) => {
+    const respond = payload => {
         if (event.source && 'postMessage' in event.source) {
             event.source.postMessage(payload, '*');
         }
@@ -1105,7 +1106,8 @@ window.addEventListener('message', (event) => {
         case 'BASH_REQUEST': {
             const command = String(data.command || '');
             const nextCwd = data.cwd ? String(data.cwd) : null;
-            shellRunner.run(command, { cwd: nextCwd || undefined })
+            shellRunner
+                .run(command, { cwd: nextCwd || undefined })
                 .then(result =>
                     respond({
                         type: 'BASH_RESPONSE',
@@ -1135,9 +1137,7 @@ window.addEventListener('message', (event) => {
             fs.writeFile(String(data.path || ''), String(data.content ?? ''), {
                 encoding: data.encoding ? String(data.encoding) : undefined,
             })
-                .then(() =>
-                    respond({ type: 'FS_WRITE_RESPONSE', id: data.id, success: true })
-                )
+                .then(() => respond({ type: 'FS_WRITE_RESPONSE', id: data.id, success: true }))
                 .catch(error => fail('FS_WRITE_RESPONSE', data.id, error));
             return;
         case 'FS_LIST_REQUEST': {
@@ -1170,16 +1170,12 @@ window.addEventListener('message', (event) => {
                 recursive: data.recursive ?? true,
                 force: data.force ?? true,
             })
-                .then(() =>
-                    respond({ type: 'FS_DELETE_RESPONSE', id: data.id, success: true })
-                )
+                .then(() => respond({ type: 'FS_DELETE_RESPONSE', id: data.id, success: true }))
                 .catch(error => fail('FS_DELETE_RESPONSE', data.id, error));
             return;
         case 'FS_MKDIR_REQUEST':
             fs.mkdir(String(data.path || ''), { recursive: data.recursive ?? true })
-                .then(() =>
-                    respond({ type: 'FS_MKDIR_RESPONSE', id: data.id, success: true })
-                )
+                .then(() => respond({ type: 'FS_MKDIR_RESPONSE', id: data.id, success: true }))
                 .catch(error => fail('FS_MKDIR_RESPONSE', data.id, error));
             return;
         case 'FS_EXISTS_REQUEST':

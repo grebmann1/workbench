@@ -11,8 +11,7 @@ import dir from '@salesforce/i18n/dir';
 import { fetchIconLibrary, hasIconLibrary, getIconLibrary } from './fetch';
 
 export default class LightningPrimitiveIcon extends LightningShadowBaseClass {
-
-    static stylesheets = [iconStylesheets] // stylesheets that apply to every rendered template
+    static stylesheets = [iconStylesheets]; // stylesheets that apply to every rendered template
 
     @api src;
     @api svgClass;
@@ -64,7 +63,6 @@ export default class LightningPrimitiveIcon extends LightningShadowBaseClass {
         return !!this._iconLibrary;
     }
 
-    // eslint-disable-next-line @lwc/lwc/no-async-await
     async requestIconTemplates() {
         if (hasIconLibrary(dir, this.category)) {
             this._iconLibrary = getIconLibrary(dir, this.category);
@@ -75,10 +73,7 @@ export default class LightningPrimitiveIcon extends LightningShadowBaseClass {
             try {
                 this._iconLibrary = null;
                 if (isCSR) {
-                    this._iconLibrary = await fetchIconLibrary(
-                        dir,
-                        this.category
-                    );
+                    this._iconLibrary = await fetchIconLibrary(dir, this.category);
                 }
             } catch (e) {
                 // eslint-disable-next-line no-console
@@ -110,7 +105,7 @@ export default class LightningPrimitiveIcon extends LightningShadowBaseClass {
                         return template;
                     }*/
                     this._manualHref = `/assets/icons/${spriteName}-sprite/svg/symbols.svg#${iconName}`;
-               }
+                }
             }
         }
         return standardTemplate;

@@ -41,14 +41,9 @@
     },
     "content_scripts": [
         {
-            "matches": [
-                "https://*.sf-workbench.com/*",
-                "http://localhost:3000/*"
-            ],
+            "matches": ["https://*.sf-workbench.com/*", "http://localhost:3000/*"],
             "run_at": "document_end",
-            "js": [
-                "scripts/inject_toolkit.js"
-            ]
+            "js": ["scripts/inject_toolkit.js"]
         }
     ],
     "content_security_policy": {
@@ -57,26 +52,15 @@
     },
     "web_accessible_resources": [
         {
-            "matches": [
-                "<all_urls>"
-            ],
-            "resources": [
-                "scripts/*",
-                "assets/*",
-                "styles/*",
-                "libs/*",
-                "views/*",
-                "*/*"
-            ]
+            "matches": ["<all_urls>"],
+            "resources": ["scripts/*", "assets/*", "styles/*", "libs/*", "views/*", "*/*"]
         }
     ],
     "options_ui": {
         "page": "views/app.html?applicationName=settings",
         "open_in_tab": true
     },
-    "host_permissions": [
-        "<all_urls>"
-    ],
+    "host_permissions": ["<all_urls>"],
     "background": {
         "service_worker": "scripts/background.js",
         "type": "module"
@@ -96,9 +80,7 @@
     ],
     "incognito": "spanning",
     "externally_connectable": {
-        "matches": [
-            "*://*.sf-workbench.com/*"
-        ]
+        "matches": ["*://*.sf-workbench.com/*"]
     },
     "oauth2": {
         "client_id": "__googleOauthClientId__",
@@ -113,9 +95,6 @@
         ]
     },
     "sandbox": {
-        "pages": [
-            "views/sandbox.html",
-            "views/sandbox-render.html"
-        ]
+        "pages": ["views/sandbox.html", "views/sandbox-render.html"]
     }
 }

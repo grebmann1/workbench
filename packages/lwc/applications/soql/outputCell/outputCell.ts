@@ -1,9 +1,9 @@
-import { LightningElement, api, wire } from 'lwc';
-import Toast from 'lightning/toast';
-import { isUndefinedOrNull, isObject } from 'host-api/utils';
 import { store, SHELL } from 'host-api/store';
-import { UI } from 'soql/slices';
+import { isUndefinedOrNull, isObject } from 'host-api/utils';
+import Toast from 'lightning/toast';
+import { LightningElement, api, wire } from 'lwc';
 import { navigate, NavigationContext } from 'lwr/navigation';
+import { UI } from 'soql/slices';
 
 export default class OutputCell extends LightningElement {
     @wire(NavigationContext)

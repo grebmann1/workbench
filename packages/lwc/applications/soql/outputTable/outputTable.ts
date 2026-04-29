@@ -1,15 +1,16 @@
-import { api, wire } from 'lwc';
-import Toast from 'lightning/toast';
 import ToolkitElement from 'host-api/element';
 import { store, SOBJECT, SHELL, connectStore } from 'host-api/store';
-import { UI } from 'soql/slices';
-import { NavigationContext, navigate } from 'lwr/navigation';
 import {
     isNotUndefinedOrNull,
     isUndefinedOrNull,
     lowerCaseKey,
     runActionAfterTimeOut,
 } from 'host-api/utils';
+import Toast from 'lightning/toast';
+import { api, wire } from 'lwc';
+import { NavigationContext, navigate } from 'lwr/navigation';
+import { UI } from 'soql/slices';
+
 import { resolveFieldEditability, normalizeEditorValue } from './editable';
 
 class ColumnCollector {
@@ -50,7 +51,7 @@ class ColumnCollector {
     }
 
     _collectColumns(columnMap = this.columnMap, relationships = []) {
-        for (let [name, data] of columnMap) {
+        for (const [name, data] of columnMap) {
             if (data.size) {
                 this._collectColumns(data, [...relationships, name]);
             } else {
@@ -708,7 +709,7 @@ export default class OutputTable extends ToolkitElement {
         const startIdx = this._allRows ? this._allRows.length : 0;
         return res.records.map((record, rowIdx) => {
             const acutualRowIdx = startIdx + rowIdx;
-            let row = {
+            const row = {
                 key: acutualRowIdx,
                 values: [],
             };

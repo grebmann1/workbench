@@ -6,7 +6,6 @@ export * from './providerRuntime';
 export * from './skills';
 export * from './runnerHelpers';
 
-
 export const readFileContent = (file: File) => {
     return new Promise(resolve => {
         if (file.size > 20 * 1024 * 1024) {
@@ -41,4 +40,3 @@ export const readFileContent = (file: File) => {
         }
     });
 };
-

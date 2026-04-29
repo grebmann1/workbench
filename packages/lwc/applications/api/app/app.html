@@ -18,8 +18,7 @@
                             icon-name="utility:clear"
                             label="Abort"
                             variant="destructive"
-                            onclick={handleCancelApiRequest}
-                        ></lightning-button>
+                            onclick={handleCancelApiRequest}></lightning-button>
                     </template>
                     <template lwc:else>
                         <lightning-button
@@ -28,8 +27,7 @@
                             onclick={executeAction}
                             label={i18n.EDITOR_PANEL_RUN}
                             variant="danger"
-                            disabled={isExecuteApiDisabled}
-                        ></lightning-button>
+                            disabled={isExecuteApiDisabled}></lightning-button>
                     </template>
                 </div>
                 <div slot="meta" class="slds-flex-row slds-align-flex-end">
@@ -38,16 +36,14 @@
                         variant="border-filled"
                         icon-name="utility:notebook"
                         size="large"
-                        onclick={handle_apiTreeToggle}
-                    ></lightning-button-icon-stateful>
+                        onclick={handle_apiTreeToggle}></lightning-button-icon-stateful>
                     <lightning-button-icon-stateful
                         class="slds-p-left_xx-small"
                         selected={isCatalogToggled}
                         variant="border-filled"
                         icon-name="utility:apps"
                         size="large"
-                        onclick={handle_catalogToggle}
-                    ></lightning-button-icon-stateful>
+                        onclick={handle_catalogToggle}></lightning-button-icon-stateful>
 
                     <lightning-combobox
                         lwc:ref="method"
@@ -123,8 +119,7 @@
                 onupload={handle_apiTreeUpload}
                 onclose={handle_apiTreeClose}
                 onserverurlchange={handleServerUrlChange}
-                ondeletefile={handleDeleteApiProject}
-            ></api-api-tree-panel>
+                ondeletefile={handleDeleteApiProject}></api-api-tree-panel>
             <!-- Salesforce Catalog -->
             <api-catalog-panel
                 size="slds-size_medium"
@@ -135,8 +130,7 @@
                 error-message={apiCatalogError}
                 onselect={handle_catalogSelect}
                 onrefresh={handle_catalogRefresh}
-                onclose={handle_catalogClose}
-            ></api-catalog-panel>
+                onclose={handle_catalogClose}></api-catalog-panel>
             <!-- Content -->
             <article class="full-page-body slds-card">
                 <div class="slds-flex-column slds-full-height slds-api-container full-page-body">
@@ -167,22 +161,28 @@
                         right-min-width="200"
                         splitter-position="40"
                         is-horizontal={isApiSplitterHorizontal}>
-                        <div class="bottom-left-panel slds-p-around_small slds-full-height slds-full-width slds-light-bg" slot="left">
-                            <div class="slds-form-element slds-full-height slds-full-width slds-flex-column">
+                        <div
+                            class="bottom-left-panel slds-p-around_small slds-full-height slds-full-width slds-light-bg"
+                            slot="left">
+                            <div
+                                class="slds-form-element slds-full-height slds-full-width slds-flex-column">
                                 <lightning-tabset
                                     lwc:ref="requestTab"
                                     variant="scoped"
                                     class="slds-without-tab"
                                     active-tab-value={request_normalizedCurrent}>
-                                    <lightning-tab class="slds-sub-tabs__item"
+                                    <lightning-tab
+                                        class="slds-sub-tabs__item"
                                         label={PAGE_CONFIG.TABS.HEADERS}
                                         value={PAGE_CONFIG.TABS.HEADERS}
                                         onactive={request_handleSelectTab}></lightning-tab>
-                                    <lightning-tab class="slds-sub-tabs__item"
+                                    <lightning-tab
+                                        class="slds-sub-tabs__item"
                                         label={PAGE_CONFIG.TABS.BODY}
                                         value={PAGE_CONFIG.TABS.BODY}
                                         onactive={request_handleSelectTab}></lightning-tab>
-                                    <lightning-tab class="slds-sub-tabs__item"
+                                    <lightning-tab
+                                        class="slds-sub-tabs__item"
                                         label={PAGE_CONFIG.TABS.VARIABLES}
                                         value={PAGE_CONFIG.TABS.VARIABLES}
                                         onactive={request_handleSelectTab}></lightning-tab>
@@ -190,27 +190,34 @@
                                 <!-- BODY Section-->
                                 <template lwc:if={isRequestHeadersDisplayed}>
                                     <div class="request-section slds-fill-height slds-flex-column">
-                                        <div class="request-section__header slds-grid slds-grid_align-spread slds-grid_vertical-align-center">
+                                        <div
+                                            class="request-section__header slds-grid slds-grid_align-spread slds-grid_vertical-align-center">
                                             <div class="slds-text-title_bold">Headers</div>
-                                            <div class="slds-text-color_weak slds-text-body_small slds-truncate" title="Use variables like {sessionId} and custom placeholders from the Variables tab.">
+                                            <div
+                                                class="slds-text-color_weak slds-text-body_small slds-truncate"
+                                                title="Use variables like {sessionId} and custom placeholders from the Variables tab.">
                                                 Use {sessionId} and Variables placeholders
                                             </div>
                                         </div>
-                                        <div class="slds-form-element__control request-section__body">
+                                        <div
+                                            class="slds-form-element__control request-section__body">
                                             <api-header
                                                 header={effectiveHeader}
                                                 default-header={effectiveDefaultHeader}
                                                 onchange={header_change}
-                                                onsetdefault={handleSetDefaultHeader}
-                                            ></api-header>
+                                                onsetdefault={handleSetDefaultHeader}></api-header>
                                         </div>
                                     </div>
                                 </template>
                                 <template lwc:elseif={isRequestBodyDisplayed}>
-                                    <div class="slds-form-element slds-fill-height slds-flex-column">
-                                        <div class="request-section__header slds-grid slds-grid_align-spread slds-grid_vertical-align-center">
+                                    <div
+                                        class="slds-form-element slds-fill-height slds-flex-column">
+                                        <div
+                                            class="request-section__header slds-grid slds-grid_align-spread slds-grid_vertical-align-center">
                                             <div class="slds-text-title_bold">Body</div>
-                                            <div class="slds-text-color_weak slds-text-body_small slds-truncate" title="Tip: the editor auto-detects JSON/XML based on your headers.">
+                                            <div
+                                                class="slds-text-color_weak slds-text-body_small slds-truncate"
+                                                title="Tip: the editor auto-detects JSON/XML based on your headers.">
                                                 Auto-format based on headers
                                             </div>
                                         </div>
@@ -230,13 +237,21 @@
                                     </div>
                                 </template>
                                 <template lwc:elseif={isRequestVariablesDisplayed}>
-                                    <div class="slds-form-element slds-fill-height slds-flex-column">
-                                        <slds-information-block class="slds-p-around_x-small" title="Variables">
-                                            <p>Variables replace placeholders in headers, endpoints, and body.</p>
-                                            <p>Example: &#123;id&#125; becomes "123", &#123;name&#125; becomes "John Doe".</p>
+                                    <div
+                                        class="slds-form-element slds-fill-height slds-flex-column">
+                                        <slds-information-block
+                                            class="slds-p-around_x-small"
+                                            title="Variables">
+                                            <p>
+                                                Variables replace placeholders in headers,
+                                                endpoints, and body.
+                                            </p>
+                                            <p>
+                                                Example: &#123;id&#125; becomes "123",
+                                                &#123;name&#125; becomes "John Doe".
+                                            </p>
                                         </slds-information-block>
                                         <div class="slds-form-element__control slds-fill-height">
-                                            
                                             <editor-default
                                                 lwc:ref="variablesEditor"
                                                 class="slds-full-height slds-is-relative"
@@ -248,8 +263,10 @@
                                 </template>
                             </div>
                         </div>
-                        <div class="bottom-right-panel slds-full-height slds-full-width slds-p-around_xx-small slds-light-bg" slot="right">
-                            <div class="slds-grid slds-wrap slds-full-height slds-is-relative ">
+                        <div
+                            class="bottom-right-panel slds-full-height slds-full-width slds-p-around_xx-small slds-light-bg"
+                            slot="right">
+                            <div class="slds-grid slds-wrap slds-full-height slds-is-relative">
                                 <div class="slds-col slds-size_1-of-1">
                                     <template lwc:if={isApiRunning}>
                                         <slds-spinner message={_loadingMessage}></slds-spinner>
@@ -278,7 +295,8 @@
                                         </div>
                                         <!-- BODY Section-->
                                         <template lwc:if={isBodyDisplayed}>
-                                            <div class="result-toolbar slds-p-around_x-small slds-border_bottom">
+                                            <div
+                                                class="result-toolbar slds-p-around_x-small slds-border_bottom">
                                                 <div class="result-toolbar__viewers">
                                                     <lightning-radio-group
                                                         name="radioGroup"
@@ -288,8 +306,7 @@
                                                         required
                                                         type="button"
                                                         variant="label-hidden"
-                                                        onchange={viewer_handleChange}
-                                                    ></lightning-radio-group>
+                                                        onchange={viewer_handleChange}></lightning-radio-group>
                                                 </div>
                                                 <div class="result-toolbar__right">
                                                     <div class="result-toolbar__search">
@@ -299,8 +316,7 @@
                                                             variant="label-hidden"
                                                             value={viewerSearchMode}
                                                             options={viewerSearchModeOptions}
-                                                            onchange={viewer_handleSearchModeChange}
-                                                        ></lightning-combobox>
+                                                            onchange={viewer_handleSearchModeChange}></lightning-combobox>
                                                         <lightning-input
                                                             class="result-toolbar__query"
                                                             type="search"
@@ -309,15 +325,13 @@
                                                             placeholder="Search (substring or $.path)"
                                                             value={viewerSearchQuery}
                                                             onchange={viewer_handleSearchInput}
-                                                            onkeyup={viewer_handleSearchKeyUp}
-                                                        ></lightning-input>
+                                                            onkeyup={viewer_handleSearchKeyUp}></lightning-input>
                                                         <lightning-button-icon
                                                             icon-name="utility:search"
                                                             variant="border-filled"
                                                             alternative-text="Search"
                                                             title="Search"
-                                                            onclick={viewer_runSearch}
-                                                        ></lightning-button-icon>
+                                                            onclick={viewer_runSearch}></lightning-button-icon>
                                                     </div>
                                                     <div class="result-toolbar__actions">
                                                         <lightning-button-group>
@@ -326,30 +340,27 @@
                                                                 variant="border-filled"
                                                                 alternative-text="Copy response body"
                                                                 title="Copy response body"
-                                                                onclick={viewer_copyBody}
-                                                            ></lightning-button-icon>
+                                                                onclick={viewer_copyBody}></lightning-button-icon>
                                                             <lightning-button-icon
                                                                 icon-name="utility:download"
                                                                 variant="border-filled"
                                                                 alternative-text="Download response"
                                                                 title="Download response"
-                                                                onclick={viewer_downloadBody}
-                                                            ></lightning-button-icon>
+                                                                onclick={viewer_downloadBody}></lightning-button-icon>
                                                             <lightning-button-icon
                                                                 icon-name="utility:refresh"
                                                                 variant="border-filled"
                                                                 alternative-text="Retry last request"
                                                                 title="Retry last request"
                                                                 onclick={retryLastRequest}
-                                                                disabled={isRetryDisabled}
-                                                            ></lightning-button-icon>
+                                                                disabled={isRetryDisabled}></lightning-button-icon>
                                                         </lightning-button-group>
                                                     </div>
                                                     <div class="result-toolbar__status">
-                                                    <lightning-badge
-                                                        class={badgeClass}
-                                                        label={statusCode}></lightning-badge>
-                                                    <span>  {duration} ms</span>
+                                                        <lightning-badge
+                                                            class={badgeClass}
+                                                            label={statusCode}></lightning-badge>
+                                                        <span>{duration} ms</span>
                                                     </div>
                                                 </div>
                                             </div>
@@ -413,30 +424,38 @@
 
                                             <div class={snippetContainerClass}>
                                                 <div class="snippet-root">
-                                                    <slds-tabset variant="vertical" active-tab-value={snippetTabValue}>
-                                                        <slds-tab label="Apex" value="apex" onactive={handleSnippetTabActive}>
+                                                    <slds-tabset
+                                                        variant="vertical"
+                                                        active-tab-value={snippetTabValue}>
+                                                        <slds-tab
+                                                            label="Apex"
+                                                            value="apex"
+                                                            onactive={handleSnippetTabActive}>
                                                             <slds-code-block
                                                                 class="slds-full-height"
                                                                 code-block={apexHttpRequestSnippet}
                                                                 language="apex"
-                                                                title="Apex HttpRequest"
-                                                            ></slds-code-block>
+                                                                title="Apex HttpRequest"></slds-code-block>
                                                         </slds-tab>
-                                                        <slds-tab label="cURL" value="curl" onactive={handleSnippetTabActive}>
+                                                        <slds-tab
+                                                            label="cURL"
+                                                            value="curl"
+                                                            onactive={handleSnippetTabActive}>
                                                             <slds-code-block
                                                                 class="slds-full-height"
                                                                 code-block={curlSnippet}
                                                                 language="bash"
-                                                                title="cURL"
-                                                            ></slds-code-block>
+                                                                title="cURL"></slds-code-block>
                                                         </slds-tab>
-                                                        <slds-tab label="jsforce" value="jsforce" onactive={handleSnippetTabActive}>
+                                                        <slds-tab
+                                                            label="jsforce"
+                                                            value="jsforce"
+                                                            onactive={handleSnippetTabActive}>
                                                             <slds-code-block
                                                                 class="slds-full-height"
                                                                 code-block={jsforceSnippet}
                                                                 language="javascript"
-                                                                title="jsforce"
-                                                            ></slds-code-block>
+                                                                title="jsforce"></slds-code-block>
                                                         </slds-tab>
                                                     </slds-tabset>
                                                 </div>
@@ -444,13 +463,12 @@
                                         </template>
                                         <!-- HEADERS Section-->
                                         <template lwc:if={isHeadersDisplayed}>
-                                            <table class="slds-table slds-table_cell-buffer slds-table_bordered slds-table_fixed-layout slds-table_striped ">
+                                            <table
+                                                class="slds-table slds-table_cell-buffer slds-table_bordered slds-table_fixed-layout slds-table_striped">
                                                 <thead>
                                                     <tr class="slds-text-title_bold">
                                                         <th scope="col">
-                                                            <div
-                                                                class="slds-truncate"
-                                                                title="Key">
+                                                            <div class="slds-truncate" title="Key">
                                                                 Key
                                                             </div>
                                                         </th>
@@ -489,45 +507,67 @@
                                             <div class="slds-form-element slds-p-around_small">
                                                 <dl class="slds-dl_horizontal slds-wrap">
                                                     <dt class="slds-dl_horizontal__label">
-                                                        <p class="slds-truncate" title="Status">Status</p>
+                                                        <p class="slds-truncate" title="Status">
+                                                            Status
+                                                        </p>
                                                     </dt>
                                                     <dd class="slds-dl_horizontal__detail">
                                                         <p class="slds-truncate">{statusCode}</p>
                                                     </dd>
 
                                                     <dt class="slds-dl_horizontal__label">
-                                                        <p class="slds-truncate" title="Duration">Duration</p>
+                                                        <p class="slds-truncate" title="Duration">
+                                                            Duration
+                                                        </p>
                                                     </dt>
                                                     <dd class="slds-dl_horizontal__detail">
                                                         <p class="slds-truncate">{duration} ms</p>
                                                     </dd>
 
                                                     <dt class="slds-dl_horizontal__label">
-                                                        <p class="slds-truncate" title="Content-Type">Content-Type</p>
+                                                        <p
+                                                            class="slds-truncate"
+                                                            title="Content-Type">
+                                                            Content-Type
+                                                        </p>
                                                     </dt>
                                                     <dd class="slds-dl_horizontal__detail">
                                                         <p class="slds-truncate">{contentType}</p>
                                                     </dd>
 
                                                     <dt class="slds-dl_horizontal__label">
-                                                        <p class="slds-truncate" title="Size">Size</p>
+                                                        <p class="slds-truncate" title="Size">
+                                                            Size
+                                                        </p>
                                                     </dt>
                                                     <dd class="slds-dl_horizontal__detail">
-                                                        <p class="slds-truncate">{responseSizeLabel}</p>
+                                                        <p class="slds-truncate">
+                                                            {responseSizeLabel}
+                                                        </p>
                                                     </dd>
 
                                                     <dt class="slds-dl_horizontal__label">
-                                                        <p class="slds-truncate" title="Method">Method</p>
+                                                        <p class="slds-truncate" title="Method">
+                                                            Method
+                                                        </p>
                                                     </dt>
                                                     <dd class="slds-dl_horizontal__detail">
-                                                        <p class="slds-truncate">{executedFormattedRequest.method}</p>
+                                                        <p class="slds-truncate">
+                                                            {executedFormattedRequest.method}
+                                                        </p>
                                                     </dd>
 
                                                     <dt class="slds-dl_horizontal__label">
-                                                        <p class="slds-truncate" title="Full URL">Full URL</p>
+                                                        <p class="slds-truncate" title="Full URL">
+                                                            Full URL
+                                                        </p>
                                                     </dt>
                                                     <dd class="slds-dl_horizontal__detail">
-                                                        <p class="slds-truncate" title={fullEndpoint}>{fullEndpoint}</p>
+                                                        <p
+                                                            class="slds-truncate"
+                                                            title={fullEndpoint}>
+                                                            {fullEndpoint}
+                                                        </p>
                                                     </dd>
                                                 </dl>
                                             </div>
@@ -547,8 +587,10 @@
                                                         class="slds-text-heading_small slds-p-horizontal_xx-small">
                                                         CMD/CTRL + Enter
                                                     </span>
-                                                    to execute an API Call.<br />
-                                                    To change the splitter orientation (Vertical, Horizontal), click on the Settings icon
+                                                    to execute an API Call.
+                                                    <br />
+                                                    To change the splitter orientation (Vertical,
+                                                    Horizontal), click on the Settings icon
                                                 </p>
                                             </div>
                                         </illustration-empty>
@@ -580,8 +622,7 @@
                 is-open={isSettingsPanelOpen}
                 title="API Application Settings"
                 size="slds-size_medium"
-                onclose={handleSettingsPanelClose}
-            >
+                onclose={handleSettingsPanelClose}>
                 <div class="slds-p-around_medium">
                     <lightning-input
                         data-key="api_splitter_is_horizontal"

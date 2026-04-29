@@ -1,7 +1,7 @@
-import { track, wire } from 'lwc';
+import { store, connectStore, TEXTCOMPARE } from 'core/store';
 import ToolkitElement from 'core/toolkitElement';
 import Toast from 'lightning/toast';
-import { store, connectStore, TEXTCOMPARE } from 'core/store';
+import { track, wire } from 'lwc';
 import Analytics from 'shared/analytics';
 
 export default class App extends ToolkitElement {
