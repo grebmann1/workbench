@@ -1,0 +1,21 @@
+<template>
+    <settings-card is-first>
+        <div slot="title">
+            <h1>Layout</h1>
+            <p class="description slds-truncate">
+                Control how the request/response panels split inside API Explorer.
+            </p>
+        </div>
+        <div slot="actions">
+            <lightning-input
+                data-key="api_splitter_is_horizontal"
+                type="toggle"
+                label="Horizontal splitter"
+                message-toggle-active=""
+                message-toggle-inactive=""
+                variant="label-hidden"
+                checked={isSplitterHorizontal}
+                onchange={inputfield_change}></lightning-input>
+        </div>
+    </settings-card>
+</template>

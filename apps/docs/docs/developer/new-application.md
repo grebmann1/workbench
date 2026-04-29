@@ -160,53 +160,67 @@ Unknown fields and flags are rejected by the validator.
 
 ### Declaring user settings
 
-An app that needs user-facing preferences should declare them in its own
-manifest — no change to the host Settings page required. Two modes, mutually
-exclusive:
+An app that needs user-facing preferences ships its own LWC component for the
+Settings page's **Applications** tab. The host renders a vertical tabset
+there — one entry per app that declares `settingsComponent` — and mounts
+your component on the right.
 
-**Mode A — declarative `settings[]`** (default, covers most cases):
+1. Add `settingsComponent` to the manifest. The value is an LWC module
+   specifier pointing to the component folder you'll create next:
 
-```json
-"settings": [
-    {
-        "key": "myapp_compact_mode",
-        "label": "Compact mode",
-        "description": "Reduce spacing for dense layouts.",
-        "type": "toggle",
-        "defaultValue": false
+    ```json
+    "settingsComponent": "myapp/appSettings"
+    ```
+
+2. Create `packages/lwc/applications/myapp/appSettings/appSettings.{ts,html}`
+   extending `AppSettingsElement` from `host-api/settingsElement`:
+
+    ```ts
+    // appSettings.ts
+    import AppSettingsElement from 'host-api/settingsElement';
+
+    export default class MyAppSettings extends AppSettingsElement {
+        get isCompact() {
+            return !!this.getConfigValue('myapp_compact_mode', false);
+        }
     }
-]
-```
+    ```
 
-Supported `type` values: `toggle`, `text`, `password`, `number`, `select`,
-`multiselect`. Each `key` must already exist in `CACHE_CONFIG`
-(`packages/lwc/shared/modules/cacheManager/cacheManager.ts`) — the generator
-cross-checks at build time.
+    ```html
+    <!-- appSettings.html -->
+    <template>
+        <settings-card is-first>
+            <div slot="title"><h1>Compact mode</h1></div>
+            <div slot="actions">
+                <lightning-input
+                    data-key="myapp_compact_mode"
+                    type="toggle"
+                    label="Compact mode"
+                    variant="label-hidden"
+                    checked={isCompact}
+                    onchange={inputfield_change}></lightning-input>
+            </div>
+        </settings-card>
+    </template>
+    ```
 
-For `select` / `multiselect`, provide `options` as either an inline array
-(`[{ "label": "...", "value": "..." }]`) or a provider id string (e.g.
-`"myapp.regions"`). Dynamic providers are registered from the app's entry
-module:
+3. Wire the alias once: add `"myapp/appSettings":
+   ["../applications/myapp/appSettings/appSettings"]` to the `paths` block of
+   `packages/lwc/main/tsconfig.json`.
 
-```ts
-import { registerSettingOptionsProvider } from 'host-api/settings';
-registerSettingOptionsProvider('myapp.regions', () => [
-    { label: 'US', value: 'us' },
-    { label: 'EU', value: 'eu' },
-]);
-```
+`AppSettingsElement` ships three inherited `@api` props:
 
-**Mode B — custom `settingsComponent`** (escape hatch for complex UIs such as
-connection cards or server lists that don't fit the field primitives):
+- `config` — the host config map (keyed by `CACHE_CONFIG.*.key`), read-only.
+- `inputfield_change` — the host change handler. Bind it directly on
+  `<lightning-input onchange={inputfield_change}>`, and whatever key you set
+  on `data-key` is persisted automatically. Data keys must already exist in
+  `CACHE_CONFIG` (`packages/lwc/shared/modules/cacheManager/cacheManager.ts`).
+- `app` — the aggregated manifest entry (label, icon, …) in case you want to
+  reflect it in-panel.
 
-```json
-"settingsComponent": "myapp/appSettings"
-```
-
-Then create `packages/lwc/applications/myapp/appSettings/appSettings.{ts,html}`
-exposing `@api config` and `@api inputfield_change`. The host mounts it via
-`<lwc:component lwc:is>` inside the Settings > Applications tab, and changes
-flow through the same save pipeline as declarative settings.
+It also provides two convenience helpers: `getConfigValue(key, fallback)`
+and `updateConfig(key, value)` — the latter pushes a value into config
+without needing a DOM event.
 
 ---
 

@@ -13,15 +13,12 @@
  * Usage: node tools/scripts/generate_application_manifest.js
  */
 
+const { execFileSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
 const PROJECT_ROOT = path.resolve(__dirname, '../..');
 const APPLICATION_ROOT = path.join(PROJECT_ROOT, 'packages/lwc/main/application');
-const CACHE_MANAGER_PATH = path.join(
-    PROJECT_ROOT,
-    'packages/lwc/shared/modules/cacheManager/cacheManager.ts'
-);
 // Additional package roots that contribute App manifests (each root is scanned
 // like APPLICATION_ROOT — direct child folder name + `<name>.manifest.json`).
 // Extensions live outside packages/lwc/main so core can boot without them.
@@ -57,22 +54,9 @@ const ALLOWED_TOP_LEVEL = new Set([
     ...REQUIRED_FIELDS,
     'menuIcon',
     'reducerKey',
-    'settings',
     'settingsComponent',
 ]);
 const ALLOWED_FLAGS = new Set([...REQUIRED_FLAGS, 'isChromeOnly']);
-
-// User-facing setting types rendered by the generic <settings-app-section>.
-// Keep aligned with the switch inside appSection.html.
-const SETTING_TYPES = new Set(['toggle', 'text', 'password', 'number', 'select', 'multiselect']);
-const ALLOWED_SETTING_KEYS = new Set([
-    'key',
-    'label',
-    'description',
-    'type',
-    'defaultValue',
-    'options',
-]);
 
 // Matches the `<id>/<moduleName>` shape for `settingsComponent`. Same family
 // as NAME_PATTERN but the suffix isn't fixed to `/app`.
@@ -101,149 +85,42 @@ const PATH_PATTERN = /^[a-z][a-z0-9-]*$/;
 // renders as a broken icon glyph without any build error.
 const ICON_PATTERN = /^(standard|utility|custom|action|doctype):[a-z0-9_]+$/;
 
-/**
- * Parse `CACHE_CONFIG` cache keys from cacheManager.ts so manifests can be
- * cross-checked. A manifest setting referencing a non-existent cache key is
- * a build-time failure — silent rename drift would otherwise leave the UI
- * toggling a phantom key.
- */
-function loadCacheConfigKeys() {
-    if (!fs.existsSync(CACHE_MANAGER_PATH)) {
-        throw new Error(`cacheManager.ts not found at ${CACHE_MANAGER_PATH}`);
+function validateSettingsComponent(manifest, filePath, errors) {
+    if (!('settingsComponent' in manifest)) return;
+    if (typeof manifest.settingsComponent !== 'string' || manifest.settingsComponent.length === 0) {
+        errors.push('settingsComponent must be a non-empty string module specifier');
+        return;
     }
-    const source = fs.readFileSync(CACHE_MANAGER_PATH, 'utf8');
-    const keys = new Set();
-    const re = /new\s+CONFIG_OBJECT\s*(?:<[^>]*>)?\s*\(\s*['"]([^'"]+)['"]/g;
-    let m;
-    while ((m = re.exec(source)) !== null) {
-        keys.add(m[1]);
+    if (!SETTINGS_COMPONENT_PATTERN.test(manifest.settingsComponent)) {
+        errors.push(
+            `settingsComponent "${manifest.settingsComponent}" must match ${SETTINGS_COMPONENT_PATTERN}`
+        );
+        return;
     }
-    return keys;
-}
-
-const CACHE_KEYS = loadCacheConfigKeys();
-
-function validateSettings(manifest, filePath, errors) {
-    const hasSettings = Array.isArray(manifest.settings) && manifest.settings.length > 0;
-    const hasComponent =
-        typeof manifest.settingsComponent === 'string' && manifest.settingsComponent.length > 0;
-
-    if ('settings' in manifest && !Array.isArray(manifest.settings)) {
-        errors.push('settings must be an array');
+    // Verify the module folder exists so typos fail at build time.
+    const [ns, mod] = manifest.settingsComponent.split('/');
+    if (ns !== manifest.id || mod !== 'appSettings') {
+        errors.push(
+            `settingsComponent "${manifest.settingsComponent}" must be owned by this app as "${manifest.id}/appSettings"`
+        );
+        return;
     }
-    if ('settingsComponent' in manifest && typeof manifest.settingsComponent !== 'string') {
-        errors.push('settingsComponent must be a string module specifier');
+    const manifestDir = path.dirname(filePath);
+    const candidateLocal = path.join(manifestDir, mod);
+    if (!fs.existsSync(candidateLocal)) {
+        errors.push(
+            `settingsComponent "${manifest.settingsComponent}" folder not found at ${path.relative(PROJECT_ROOT, candidateLocal)}`
+        );
+        return;
     }
-    if (hasSettings && hasComponent) {
-        errors.push('settings and settingsComponent are mutually exclusive — choose one');
-    }
-
-    if (Array.isArray(manifest.settings)) {
-        manifest.settings.forEach((entry, i) => {
-            if (!entry || typeof entry !== 'object') {
-                errors.push(`settings[${i}] must be an object`);
-                return;
-            }
-            for (const k of Object.keys(entry)) {
-                if (!ALLOWED_SETTING_KEYS.has(k)) {
-                    errors.push(`settings[${i}]: unknown field "${k}"`);
-                }
-            }
-            if (typeof entry.key !== 'string' || entry.key.length === 0) {
-                errors.push(`settings[${i}].key must be a non-empty string`);
-            } else if (!CACHE_KEYS.has(entry.key)) {
-                errors.push(
-                    `settings[${i}].key "${entry.key}" is not a known CACHE_CONFIG key — add it to cacheManager.ts first`
-                );
-            }
-            if (typeof entry.label !== 'string' || entry.label.length === 0) {
-                errors.push(`settings[${i}].label must be a non-empty string`);
-            }
-            if (entry.description !== undefined && typeof entry.description !== 'string') {
-                errors.push(`settings[${i}].description must be a string`);
-            }
-            if (!SETTING_TYPES.has(entry.type)) {
-                errors.push(
-                    `settings[${i}].type "${entry.type}" must be one of ${[...SETTING_TYPES].join(', ')}`
-                );
-            } else {
-                switch (entry.type) {
-                    case 'toggle':
-                        if (typeof entry.defaultValue !== 'boolean') {
-                            errors.push(`settings[${i}].defaultValue must be boolean for toggle`);
-                        }
-                        break;
-                    case 'text':
-                    case 'password':
-                        if (
-                            entry.defaultValue !== undefined &&
-                            typeof entry.defaultValue !== 'string' &&
-                            entry.defaultValue !== null
-                        ) {
-                            errors.push(
-                                `settings[${i}].defaultValue must be string|null for ${entry.type}`
-                            );
-                        }
-                        break;
-                    case 'number':
-                        if (
-                            entry.defaultValue !== undefined &&
-                            typeof entry.defaultValue !== 'number'
-                        ) {
-                            errors.push(`settings[${i}].defaultValue must be number`);
-                        }
-                        break;
-                    case 'select':
-                        if (
-                            entry.defaultValue !== undefined &&
-                            typeof entry.defaultValue !== 'string'
-                        ) {
-                            errors.push(`settings[${i}].defaultValue must be string for select`);
-                        }
-                        if (!Array.isArray(entry.options) && typeof entry.options !== 'string') {
-                            errors.push(
-                                `settings[${i}].options must be an array or provider id string`
-                            );
-                        }
-                        break;
-                    case 'multiselect':
-                        if (
-                            entry.defaultValue !== undefined &&
-                            !Array.isArray(entry.defaultValue)
-                        ) {
-                            errors.push(
-                                `settings[${i}].defaultValue must be an array for multiselect`
-                            );
-                        }
-                        if (!Array.isArray(entry.options) && typeof entry.options !== 'string') {
-                            errors.push(
-                                `settings[${i}].options must be an array or provider id string`
-                            );
-                        }
-                        break;
-                }
-            }
-        });
-    }
-
-    if (hasComponent) {
-        if (!SETTINGS_COMPONENT_PATTERN.test(manifest.settingsComponent)) {
-            errors.push(
-                `settingsComponent "${manifest.settingsComponent}" must match ${SETTINGS_COMPONENT_PATTERN}`
-            );
-        } else {
-            // Verify the module folder exists so typos fail at build time.
-            const [ns, mod] = manifest.settingsComponent.split('/');
-            const manifestDir = path.dirname(filePath);
-            const candidateLocal = path.join(manifestDir, mod);
-            const rootDir = path.dirname(manifestDir);
-            const candidateSibling = path.join(rootDir, ns, mod);
-            if (!fs.existsSync(candidateLocal) && !fs.existsSync(candidateSibling)) {
-                errors.push(
-                    `settingsComponent "${manifest.settingsComponent}" folder not found (looked in ${path.relative(PROJECT_ROOT, candidateLocal)} and ${path.relative(PROJECT_ROOT, candidateSibling)})`
-                );
-            }
-        }
+    const entryCandidates = [
+        path.join(candidateLocal, 'appSettings.ts'),
+        path.join(candidateLocal, 'appSettings.js'),
+    ];
+    if (!entryCandidates.some(candidate => fs.existsSync(candidate))) {
+        errors.push(
+            `settingsComponent "${manifest.settingsComponent}" must provide appSettings.ts or appSettings.js`
+        );
     }
 }
 
@@ -342,7 +219,7 @@ function validate(manifest, filePath) {
         errors.push(`id "${manifest.id}" must equal parent folder name "${dirName}"`);
     }
 
-    validateSettings(manifest, filePath, errors);
+    validateSettingsComponent(manifest, filePath, errors);
 
     if (errors.length > 0) {
         throw new Error(
@@ -369,21 +246,26 @@ function flattenedEntryFromManifest(m) {
     // as the map key, not as a field of the value (see
     // core/applications/applications.ts which reconstructs it via
     // Object.keys(APP_MAPPING)).
-    const {
-        id: _id,
-        name: _name,
-        flags,
-        reducerKey: _rk,
-        settings: _s,
-        settingsComponent: _sc,
-        ...rest
-    } = m;
-    return { ...rest, ...flags };
+    const entry = { ...m, ...m.flags };
+    delete entry.id;
+    delete entry.name;
+    delete entry.flags;
+    delete entry.reducerKey;
+    delete entry.settingsComponent;
+    return entry;
 }
 
 /** Identifier for a `settingsComponent` module specifier. */
 function settingsComponentIdent(name) {
     return `${name.replace(/[^a-zA-Z0-9]+/g, '_')}_settings`;
+}
+
+function jsStringLiteral(value) {
+    return `'${String(value).replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'`;
+}
+
+function jsLiteral(value) {
+    return typeof value === 'string' ? jsStringLiteral(value) : JSON.stringify(value);
 }
 
 function renderGeneratedRegistryFlattened(manifests) {
@@ -427,17 +309,14 @@ function renderGeneratedRegistryFlattened(manifests) {
             lines.push(`        module: ${identForName(m.name)},`);
             for (const k of keyOrder) {
                 if (entry[k] === undefined) continue;
-                lines.push(`        ${k}: ${JSON.stringify(entry[k])},`);
-            }
-            if (Array.isArray(m.settings) && m.settings.length > 0) {
-                lines.push(`        settings: ${JSON.stringify(m.settings)},`);
+                lines.push(`        ${k}: ${jsLiteral(entry[k])},`);
             }
             if (typeof m.settingsComponent === 'string') {
                 lines.push(
                     `        settingsComponent: ${settingsComponentIdent(m.settingsComponent)},`
                 );
                 lines.push(
-                    `        settingsComponentName: ${JSON.stringify(m.settingsComponent)},`
+                    `        settingsComponentName: ${jsStringLiteral(m.settingsComponent)},`
                 );
             }
             return `    '${m.name}': {\n${lines.join('\n')}\n    },`;
@@ -452,6 +331,17 @@ function renderGeneratedRegistryFlattened(manifests) {
         `${entries}\n` +
         `};\n\n` +
         `export { APPLICATION_APP_MAPPING };\n`
+    );
+}
+
+function formatGeneratedOutputs() {
+    const prettierCli = require.resolve('prettier/bin/prettier.cjs');
+    execFileSync(
+        process.execPath,
+        [prettierCli, '--write', AGGREGATED_MANIFEST, GENERATED_REGISTRY],
+        {
+            stdio: 'inherit',
+        }
     );
 }
 
@@ -494,10 +384,11 @@ function generate() {
             'Auto-generated by tools/scripts/generate_application_manifest.js — do not edit. Run: npm run generate:application-manifest',
         apps: manifests.sort((a, b) => a.name.localeCompare(b.name)),
     };
-    fs.writeFileSync(AGGREGATED_MANIFEST, JSON.stringify(aggregated, null, 2) + '\n', 'utf8');
+    fs.writeFileSync(AGGREGATED_MANIFEST, JSON.stringify(aggregated, null, 4) + '\n', 'utf8');
 
     const registrySource = renderGeneratedRegistryFlattened(manifests);
     fs.writeFileSync(GENERATED_REGISTRY, registrySource, 'utf8');
+    formatGeneratedOutputs();
 
     console.log(
         `Generated ${path.relative(PROJECT_ROOT, AGGREGATED_MANIFEST)} and ` +

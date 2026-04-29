@@ -309,13 +309,22 @@
                             </div>
                         </slds-tab>
                         <slds-tab label="Applications" value="applications">
-                            <template for:each={appsWithSettings} for:item="appEntry">
-                                <settings-app-section
-                                    key={appEntry.name}
-                                    app={appEntry}
-                                    config={config}
-                                    inputfield_change={inputfield_change}></settings-app-section>
-                            </template>
+                            <slds-tabset variant="vertical">
+                                <template for:each={appsWithSettings} for:item="appEntry">
+                                    <slds-tab
+                                        key={appEntry.name}
+                                        label={appEntry.label}
+                                        value={appEntry.path}>
+                                        <div class="slds-p-around_small">
+                                            <lwc:component
+                                                lwc:is={appEntry.settingsComponent}
+                                                app={appEntry}
+                                                config={config}
+                                                inputfield_change={inputfield_change}></lwc:component>
+                                        </div>
+                                    </slds-tab>
+                                </template>
+                            </slds-tabset>
                         </slds-tab>
                         <slds-tab label="Shortcuts" value="shortcuts">
                             <div class="slds-grid slds-wrap slds-grid_vertical-stretch">

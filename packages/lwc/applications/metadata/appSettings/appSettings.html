@@ -1,0 +1,62 @@
+<template>
+    <div class="slds-grid slds-wrap">
+        <settings-card
+            class="slds-col slds-size_1-of-1 slds-large-size_1-of-2 slds-p-horizontal_small"
+            is-first>
+            <div slot="title">
+                <h1>Enable metadata storage</h1>
+                <p class="description slds-truncate">
+                    Cache retrieved metadata locally for faster subsequent loads.
+                </p>
+            </div>
+            <div slot="actions">
+                <lightning-input
+                    data-key="metadata_storage_enabled"
+                    label="Enable metadata storage"
+                    message-toggle-active=""
+                    message-toggle-inactive=""
+                    type="toggle"
+                    variant="label-hidden"
+                    checked={isStorageEnabled}
+                    onchange={inputfield_change}></lightning-input>
+            </div>
+        </settings-card>
+
+        <settings-card
+            class="slds-col slds-size_1-of-1 slds-large-size_1-of-2 slds-p-horizontal_small"
+            is-first>
+            <div slot="title">
+                <h1>Background sync</h1>
+                <p class="description slds-truncate">Refresh stored metadata in the background.</p>
+            </div>
+            <div slot="actions">
+                <lightning-input
+                    data-key="metadata_storage_background_sync_enabled"
+                    label="Background sync"
+                    message-toggle-active=""
+                    message-toggle-inactive=""
+                    type="toggle"
+                    variant="label-hidden"
+                    checked={isBackgroundSyncEnabled}
+                    onchange={inputfield_change}></lightning-input>
+            </div>
+        </settings-card>
+
+        <settings-card class="slds-col slds-size_1-of-1 slds-p-horizontal_small" is-first>
+            <div slot="title">
+                <h1>Tracked metadata types</h1>
+                <p class="description">
+                    Metadata types included in local storage and background sync.
+                </p>
+            </div>
+            <div slot="actions"></div>
+            <lightning-dual-listbox
+                data-key="metadata_storage_types"
+                label="Tracked metadata types"
+                variant="label-hidden"
+                value={storageTypesValue}
+                options={storageTypeOptions}
+                onchange={inputfield_change}></lightning-dual-listbox>
+        </settings-card>
+    </div>
+</template>

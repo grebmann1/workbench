@@ -590,17 +590,18 @@ export default class App extends ToolkitElement {
     }
 
     /**
-     * Apps that opt into the Settings > Applications tab — either by
-     * declaring `settings[]` in their manifest or a `settingsComponent`.
-     * Sorted by label so the rendering order is stable across reloads.
+     * Apps that opt into the Settings > Applications tab by declaring a
+     * `settingsComponent` in their manifest. Sorted by label so the
+     * vertical nav order is stable across reloads.
      */
     get appsWithSettings() {
         return Object.entries(APPLICATION_APP_MAPPING)
-            .filter(
-                ([, entry]) =>
-                    (Array.isArray(entry.settings) && entry.settings.length > 0) ||
-                    !!entry.settingsComponent
-            )
+            .filter(([, entry]) => {
+                if (!entry.settingsComponent) return false;
+                if (!isElectronApp() && entry.isElectronOnly) return false;
+                if (!isChromeExtension() && entry.isChromeOnly) return false;
+                return true;
+            })
             .map(([name, entry]) => ({ ...entry, name }))
             .sort((a, b) => (a.label || '').localeCompare(b.label || ''));
     }

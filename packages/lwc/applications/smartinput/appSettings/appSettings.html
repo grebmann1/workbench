@@ -1,0 +1,43 @@
+<template>
+    <div class="slds-grid slds-wrap">
+        <settings-card
+            class="slds-col slds-size_1-of-1 slds-large-size_1-of-2 slds-p-horizontal_small"
+            is-first>
+            <div slot="title">
+                <h1>Enable Smart Input (beta)</h1>
+                <p class="description slds-truncate">Turn on the Smart Input beta experience.</p>
+            </div>
+            <div slot="actions">
+                <lightning-input
+                    data-key="beta_smartinput_enabled"
+                    label="Enable Smart Input (beta)"
+                    message-toggle-active=""
+                    message-toggle-inactive=""
+                    type="toggle"
+                    variant="label-hidden"
+                    checked={isBetaEnabled}
+                    onchange={inputfield_change}></lightning-input>
+            </div>
+        </settings-card>
+
+        <settings-card
+            class="slds-col slds-size_1-of-1 slds-large-size_1-of-2 slds-p-horizontal_small"
+            is-first>
+            <div slot="title">
+                <h1>Enable Input Quick Pick</h1>
+                <p class="description slds-truncate">Surface the Quick Pick overlay on inputs.</p>
+            </div>
+            <div slot="actions">
+                <lightning-input
+                    data-key="input_quickpick_enabled"
+                    label="Enable Input Quick Pick"
+                    message-toggle-active=""
+                    message-toggle-inactive=""
+                    type="toggle"
+                    variant="label-hidden"
+                    checked={isQuickPickEnabled}
+                    onchange={inputfield_change}></lightning-input>
+            </div>
+        </settings-card>
+    </div>
+</template>

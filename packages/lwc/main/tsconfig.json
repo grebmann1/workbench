@@ -23,7 +23,7 @@
             "host-api/analytics": ["host-api/analytics"],
             "host-api/builder": ["host-api/builder"],
             "host-api/commands": ["host-api/commands"],
-            "host-api/settings": ["host-api/settings"],
+            "host-api/settingsElement": ["host-api/settingsElement"],
             "host-api/desktopBridge": ["host-api/desktopBridge"],
             "host-api/fs": ["host-api/fs"],
             "host-api/worker": ["host-api/worker"],
@@ -47,13 +47,20 @@
             "anonymousApex/slices/apex": ["../applications/anonymousApex/slices/apex"],
             "api/*": ["../applications/api/*"],
             "api/app": ["../applications/api/app/app"],
-            "api/apiSchemaImportModal": ["../applications/api/apiSchemaImportModal/apiSchemaImportModal"],
+            "api/appSettings": ["../applications/api/appSettings/appSettings"],
+            "api/apiSchemaImportModal": [
+                "../applications/api/apiSchemaImportModal/apiSchemaImportModal"
+            ],
             "api/slices": ["../applications/api/slices/slices"],
             "api/slices/api": ["../applications/api/slices/api"],
             "accessAnalyzer/*": ["../applications/accessAnalyzer/*"],
             "accessAnalyzer/app": ["../applications/accessAnalyzer/app/app"],
-            "accessAnalyzer/modalProfileFilter": ["../applications/accessAnalyzer/modalProfileFilter/modalProfileFilter"],
-            "accessAnalyzer/modalPermissionSetFilter": ["../applications/accessAnalyzer/modalPermissionSetFilter/modalPermissionSetFilter"],
+            "accessAnalyzer/modalProfileFilter": [
+                "../applications/accessAnalyzer/modalProfileFilter/modalProfileFilter"
+            ],
+            "accessAnalyzer/modalPermissionSetFilter": [
+                "../applications/accessAnalyzer/modalPermissionSetFilter/modalPermissionSetFilter"
+            ],
             "accessAnalyzer/utils": ["../applications/accessAnalyzer/utils/utils"],
             "code/*": ["../applications/code/*"],
             "code/app": ["../applications/code/app/app"],
@@ -65,6 +72,7 @@
             "org/app": ["../applications/org/app/app"],
             "metadata/*": ["../applications/metadata/*"],
             "metadata/app": ["../applications/metadata/app/app"],
+            "metadata/appSettings": ["../applications/metadata/appSettings/appSettings"],
             "metadata/slices": ["../applications/metadata/slices/slices"],
             "metadata/slices/metadata": ["../applications/metadata/slices/metadata"],
             "object/*": ["../applications/object/*"],
@@ -80,20 +88,27 @@
             "platformevent/*": ["../applications/platformevent/*"],
             "platformevent/app": ["../applications/platformevent/app/app"],
             "platformevent/editorModal": ["../applications/platformevent/editorModal/editorModal"],
-            "platformevent/publisherModal": ["../applications/platformevent/publisherModal/publisherModal"],
+            "platformevent/publisherModal": [
+                "../applications/platformevent/publisherModal/publisherModal"
+            ],
             "platformevent/utils": ["../applications/platformevent/utils/utils"],
             "platformevent/slices": ["../applications/platformevent/slices/slices"],
-            "platformevent/slices/platformEvent": ["../applications/platformevent/slices/platformEvent"],
+            "platformevent/slices/platformEvent": [
+                "../applications/platformevent/slices/platformEvent"
+            ],
             "recordviewer/*": ["../applications/recordviewer/*"],
             "recordviewer/app": ["../applications/recordviewer/app/app"],
             "recordviewer/slices": ["../applications/recordviewer/slices/slices"],
-            "recordviewer/slices/recordViewer": ["../applications/recordviewer/slices/recordViewer"],
+            "recordviewer/slices/recordViewer": [
+                "../applications/recordviewer/slices/recordViewer"
+            ],
             "urlencoder/*": ["../applications/urlencoder/*"],
             "urlencoder/app": ["../applications/urlencoder/app/app"],
             "textCompare/*": ["../applications/textCompare/*"],
             "textCompare/app": ["../applications/textCompare/app/app"],
             "smartinput/*": ["../applications/smartinput/*"],
             "smartinput/app": ["../applications/smartinput/app/app"],
+            "smartinput/appSettings": ["../applications/smartinput/appSettings/appSettings"],
             "smartinput/utils": ["../applications/smartinput/utils/utils"],
             "smartinput/composer": ["../applications/smartinput/composer/composer"],
             "smartinput/item": ["../applications/smartinput/item/item"],
