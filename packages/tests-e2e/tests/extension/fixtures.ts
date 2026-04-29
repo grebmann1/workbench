@@ -79,27 +79,40 @@ export const test = base.extend<Fixtures>({
         await ctx.close();
     },
     extensionId: async ({ context }, use) => {
-        // Always wait for the MV3 service worker to register before handing
-        // out the id — otherwise the first page.goto() to
-        // chrome-extension://<id>/... races the extension startup and
-        // Chromium returns ERR_BLOCKED_BY_CLIENT.
-        let [sw] = context.serviceWorkers();
-        if (!sw) {
-            sw = await context.waitForEvent('serviceworker', { timeout: 30_000 });
-        }
+        // MV3 service workers are lazy on Linux/xvfb and don't reliably emit
+        // the `serviceworker` event at launch. The manifest ships with a
+        // pinned `key`, so derive the id deterministically from it instead
+        // of waiting. Fall back to the SW url only if the key is absent.
         const manifest = JSON.parse(fs.readFileSync(path.join(EXT_DIR, 'manifest.json'), 'utf8'));
-        const id =
-            typeof manifest.key === 'string' && manifest.key.length > 0
-                ? deriveExtensionId(manifest.key)
-                : sw.url().split('/')[2];
+        let id: string | undefined;
+        if (typeof manifest.key === 'string' && manifest.key.length > 0) {
+            id = deriveExtensionId(manifest.key);
+        } else {
+            let [sw] = context.serviceWorkers();
+            if (!sw) sw = await context.waitForEvent('serviceworker', { timeout: 30_000 });
+            id = sw.url().split('/')[2];
+        }
         await use(id);
     },
     appPage: async ({ context, extensionId }, use) => {
         const open = async (applicationName: string) => {
             const page = await context.newPage();
-            await page.goto(
-                `chrome-extension://${extensionId}/views/app.html?applicationName=${applicationName}`
-            );
+            const url = `chrome-extension://${extensionId}/views/app.html?applicationName=${applicationName}`;
+            // Retry the initial navigation — on xvfb/Linux the extension
+            // can briefly return ERR_BLOCKED_BY_CLIENT before Chromium
+            // finishes registering it against the persistent context.
+            let lastErr: unknown;
+            for (let i = 0; i < 10; i++) {
+                try {
+                    await page.goto(url);
+                    lastErr = undefined;
+                    break;
+                } catch (err) {
+                    lastErr = err;
+                    await page.waitForTimeout(500);
+                }
+            }
+            if (lastErr) throw lastErr;
             // Shell readiness signal — wait for the skeleton-full-view to
             // render a heading. LWC shadow DOM is pierced natively by
             // Playwright's ARIA-role locators.
