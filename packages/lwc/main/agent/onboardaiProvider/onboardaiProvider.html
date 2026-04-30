@@ -53,8 +53,8 @@
                                 field-level-help="Keys start with sk- and look like sk-xxxxxx."
                                 value={employeeKey}
                                 onchange={handleEmployeeKeyChange}
-                                pattern="^sk-[A-Za-z0-9]+$"
-                                message-when-pattern-mismatch="Key must start with sk- and contain only letters and numbers."
+                                pattern={employeeKeyPattern}
+                                message-when-pattern-mismatch={employeeKeyPatternMessage}
                                 type="password"></lightning-input>
                         </div>
                         <template lwc:if={isEmployeeKeyValid}>

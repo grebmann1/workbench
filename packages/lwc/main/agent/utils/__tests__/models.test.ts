@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { INTERNAL_MODEL_OPTIONS } from '../../../../shared/modules/llm/llm.ts';
 import {
     MODELS,
     INTERNAL_MODELS,
@@ -10,7 +9,7 @@ import {
     getSummaryModelForAgentProvider,
     REASONING_OPTIONS,
     DEFAULT_REASONING,
-} from '../models.ts';
+} from '../models';
 
 test('models: MODELS / INTERNAL_MODELS have {label,value} entries', () => {
     assert.ok(Array.isArray(MODELS));
@@ -22,12 +21,10 @@ test('models: MODELS / INTERNAL_MODELS have {label,value} entries', () => {
     assert.ok(Array.isArray(INTERNAL_MODELS));
 });
 
-test('models: INTERNAL_MODELS preserves provider metadata for mixed internal catalogs', () => {
+test('models: INTERNAL_MODELS omits disabled internal Anthropic models', () => {
     const anthropicModel = INTERNAL_MODELS.find(model => model.provider === 'anthropic');
 
-    assert.ok(anthropicModel);
-    assert.equal(typeof anthropicModel.label, 'string');
-    assert.equal(typeof anthropicModel.value, 'string');
+    assert.equal(anthropicModel, undefined);
 });
 
 test('models: DEFAULT_MODEL is non-empty string', () => {
@@ -47,16 +44,8 @@ test('getDefaultModelForAgentProvider: internal flag routes to INTERNAL_MODELS',
     assert.equal(v, INTERNAL_MODELS[0].value);
 });
 
-test('getDefaultModelForAgentProvider: internal Anthropic returns first Anthropic internal model', () => {
-    const firstInternalAnthropicModel = INTERNAL_MODEL_OPTIONS.find(
-        model => model.provider === 'anthropic'
-    );
-
-    assert.ok(firstInternalAnthropicModel);
-    assert.equal(
-        getDefaultModelForAgentProvider('anthropic', true),
-        firstInternalAnthropicModel.value
-    );
+test('getDefaultModelForAgentProvider: disabled internal Anthropic falls back to default model', () => {
+    assert.equal(getDefaultModelForAgentProvider('anthropic', true), DEFAULT_MODEL);
 });
 
 test('getSummaryModelForAgentProvider: explicit lightweight selectedModel wins when supported', () => {
@@ -84,17 +73,14 @@ test('getSummaryModelForAgentProvider: no selectedModel falls back to preferred 
     assert.ok(v.length > 0);
 });
 
-test('getSummaryModelForAgentProvider: internal Anthropic prefers internal Haiku', () => {
-    assert.equal(
-        getSummaryModelForAgentProvider('anthropic', undefined, true),
-        'us.anthropic.claude-haiku-4-5-20251001-v1:0'
-    );
+test('getSummaryModelForAgentProvider: disabled internal Anthropic falls back to default model', () => {
+    assert.equal(getSummaryModelForAgentProvider('anthropic', undefined, true), DEFAULT_MODEL);
 });
 
-test('getSummaryModelForAgentProvider: internal Anthropic does not preserve stale public Haiku id', () => {
+test('getSummaryModelForAgentProvider: disabled internal Anthropic ignores stale public Haiku id', () => {
     assert.equal(
         getSummaryModelForAgentProvider('anthropic', 'claude-haiku-4-5-20251001', true),
-        'us.anthropic.claude-haiku-4-5-20251001-v1:0'
+        DEFAULT_MODEL
     );
 });
 

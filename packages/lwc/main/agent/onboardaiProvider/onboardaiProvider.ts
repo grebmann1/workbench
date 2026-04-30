@@ -7,6 +7,11 @@ import {
 import { INTERNAL_PROVIDER_BASE_URLS } from 'shared/llm';
 import { store, APPLICATION } from 'core/store';
 import { NavigationContext, navigate } from 'lwr/navigation';
+import {
+    EMPLOYEE_LLM_KEY_PATTERN,
+    EMPLOYEE_LLM_KEY_PATTERN_MESSAGE,
+    isEmployeeLlmKeyValid,
+} from './employeeKey';
 
 const EMPLOYEE_AI_SETUP_URL =
     'https://eng-ai-model-gateway.sfproxy.devx-preprod.aws-esvc1-useast2.aws.sfdc.cl';
@@ -20,6 +25,14 @@ export default class OnboardaiProvider extends LightningElement {
 
     get employeeSetupUrl() {
         return EMPLOYEE_AI_SETUP_URL;
+    }
+
+    get employeeKeyPattern() {
+        return EMPLOYEE_LLM_KEY_PATTERN;
+    }
+
+    get employeeKeyPatternMessage() {
+        return EMPLOYEE_LLM_KEY_PATTERN_MESSAGE;
     }
 
     get isEmployeeSelected() {
@@ -47,7 +60,7 @@ export default class OnboardaiProvider extends LightningElement {
     };
 
     get isEmployeeKeyValid() {
-        return this.employeeKey.length > 0;
+        return isEmployeeLlmKeyValid(this.employeeKey);
     }
 
     handleInstallEmployeeKey = async () => {
@@ -78,6 +91,7 @@ export default class OnboardaiProvider extends LightningElement {
             })
         );
         Toast.show({ message: 'Employee key installed', variant: 'success' });
+        this.dispatchEvent(new CustomEvent('setupcomplete'));
     };
 
     handleOpenSettings = () => {

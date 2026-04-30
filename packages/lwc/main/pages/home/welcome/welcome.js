@@ -33,9 +33,10 @@ export default class Welcome extends ToolkitElement {
 
     async _loadLatestRelease() {
         try {
-            const url = isChromeExtension() || isElectronApp()
-                ? chrome.runtime.getURL('releaseNotes.json')
-                : '/public/releaseNotes.json';
+            const url =
+                isChromeExtension() || isElectronApp()
+                    ? chrome.runtime.getURL('releaseNotes.json')
+                    : '/public/releaseNotes.json';
             const res = await fetch(url);
             if (!res.ok) return;
             const data = await res.json();
@@ -100,6 +101,13 @@ export default class Welcome extends ToolkitElement {
         navigate(this.navContext, {
             type: 'application',
             state: { applicationName: 'connections' },
+        });
+    };
+
+    handleOpenSettings = () => {
+        navigate(this.navContext, {
+            type: 'application',
+            state: { applicationName: 'settings' },
         });
     };
 

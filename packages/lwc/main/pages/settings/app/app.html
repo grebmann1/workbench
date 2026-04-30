@@ -92,15 +92,6 @@
                     </div>
                 </div>
             </slds-vertical-panel>
-            <!-- AI Provider Onboarding Panel -->
-            <slds-vertical-panel
-                title="AI Provider Setup"
-                position="right"
-                size="slds-size_large"
-                is-open={showOnboardAiProvider}
-                onclose={handleCloseOnboardAiProvider}>
-                <agent-onboardai-provider></agent-onboardai-provider>
-            </slds-vertical-panel>
             <article class="full-page-body">
                 <div
                     class="slds-is-relative slds-full-width slds-full-height slds-flex-column slds-p-around_medium"
@@ -580,10 +571,11 @@
                                             Configure API keys and endpoints for each LLM provider.
                                         </p>
                                     </div>
-                                    <div slot="actions" lwc:if={isSalesforceGoogleUser}>
+                                    <div slot="actions">
                                         <lightning-button
                                             label="Setup AI Provider"
                                             icon-name="utility:setup"
+                                            variant="brand"
                                             onclick={handleOpenOnboardAiProvider}></lightning-button>
                                     </div>
                                     <slds-tabset variant="vertical">
@@ -1264,6 +1256,16 @@
                     </slds-tabset>
                 </div>
             </article>
+            <!-- AI Provider Onboarding Panel -->
+            <slds-vertical-panel
+                title="AI Provider Setup"
+                position="right"
+                size="slds-size_large"
+                is-open={showOnboardAiProvider}
+                onclose={handleCloseOnboardAiProvider}>
+                <agent-onboardai-provider
+                    onsetupcomplete={handleOnboardAiProviderSetupComplete}></agent-onboardai-provider>
+            </slds-vertical-panel>
         </builder-editor>
     </div>
 </template>

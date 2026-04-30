@@ -43,9 +43,8 @@ function getInternalModelsForProvider(provider: unknown) {
     const providerModels = INTERNAL_MODEL_OPTIONS.filter(
         model => model.provider === normalizedProvider
     );
-    const models = providerModels.length > 0 ? providerModels : INTERNAL_MODEL_OPTIONS;
 
-    return models.map(model => ({
+    return providerModels.map(model => ({
         label: model.label,
         value: model.value,
     }));

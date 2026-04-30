@@ -93,10 +93,7 @@
                 </div>
 
                 <div class="welcome-card__footer">
-                    <button
-                        class="welcome-cta-btn"
-                        type="button"
-                        onclick={handleGoToConnections}>
+                    <button class="welcome-cta-btn" type="button" onclick={handleGoToConnections}>
                         <lightning-icon
                             icon-name="utility:list"
                             size="x-small"
@@ -106,26 +103,53 @@
                 </div>
             </div>
 
-            <!-- Quick Tips card -->
-            <div class="welcome-card welcome-card_notices">
-                <div class="welcome-card__header">
-                    <h2 class="welcome-card__title">Quick Tips</h2>
-                    <p class="welcome-card__desc">Get the most out of Workbench</p>
-                </div>
-                <div class="welcome-card__body welcome-card__body_tips">
-                    <template for:each={tips} for:item="tip">
-                        <div key={tip.id} class="tip-item">
-                            <span class="tip-item__icon" aria-hidden="true">
+            <div class="welcome-sidebar">
+                <div class="ai-setup-card">
+                    <span class="ai-setup-card__icon" aria-hidden="true">
+                        <lightning-icon icon-name="utility:einstein" size="small"></lightning-icon>
+                    </span>
+                    <div class="ai-setup-card__content">
+                        <h2 class="ai-setup-card__title">Set up your AI provider</h2>
+                        <p class="ai-setup-card__message">
+                            Configure provider keys and endpoints before using Agent or LLM
+                            features.
+                        </p>
+                        <div class="ai-setup-card__actions">
+                            <button
+                                class="ai-setup-card__btn ai-setup-card__btn_primary"
+                                type="button"
+                                onclick={handleOpenSettings}>
                                 <lightning-icon
-                                    icon-name={tip.icon}
-                                    size="x-small"></lightning-icon>
-                            </span>
-                            <div class="tip-item__content">
-                                <p class="tip-item__title">{tip.title}</p>
-                                <p class="tip-item__message">{tip.message}</p>
-                            </div>
+                                    icon-name="utility:settings"
+                                    size="x-small"
+                                    class="ai-setup-card__btn-icon"></lightning-icon>
+                                Open Settings
+                            </button>
                         </div>
-                    </template>
+                    </div>
+                </div>
+
+                <!-- Quick Tips card -->
+                <div class="welcome-card welcome-card_notices">
+                    <div class="welcome-card__header">
+                        <h2 class="welcome-card__title">Quick Tips</h2>
+                        <p class="welcome-card__desc">Get the most out of Workbench</p>
+                    </div>
+                    <div class="welcome-card__body welcome-card__body_tips">
+                        <template for:each={tips} for:item="tip">
+                            <div key={tip.id} class="tip-item">
+                                <span class="tip-item__icon" aria-hidden="true">
+                                    <lightning-icon
+                                        icon-name={tip.icon}
+                                        size="x-small"></lightning-icon>
+                                </span>
+                                <div class="tip-item__content">
+                                    <p class="tip-item__title">{tip.title}</p>
+                                    <p class="tip-item__message">{tip.message}</p>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
                 </div>
             </div>
         </div>
@@ -138,10 +162,7 @@
                 class="welcome-footer__icon"></lightning-icon>
             <span class="welcome-footer__text">
                 Have a question or feature request?&nbsp;
-                <button
-                    class="welcome-footer__link"
-                    type="button"
-                    onclick={handleGitHub}>
+                <button class="welcome-footer__link" type="button" onclick={handleGitHub}>
                     Open a GitHub issue
                 </button>
             </span>

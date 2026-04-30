@@ -1,5 +1,5 @@
-import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { test } from 'node:test';
 
 import {
     LLM_PROVIDERS,
@@ -15,7 +15,7 @@ import {
     WORKBENCH_MODEL_OPTIONS,
     GROK_MODEL_OPTIONS,
     PROVIDER_MODEL_OPTIONS,
-} from '../constants.ts';
+} from '../constants';
 
 test('LLM_PROVIDERS: includes the six known provider ids, no duplicates', () => {
     assert.ok(LLM_PROVIDERS.includes('openai'));
@@ -94,17 +94,11 @@ test('OPENAI_MODEL_OPTIONS + INTERNAL_MODEL_OPTIONS: values are unique within ea
     }
 });
 
-test('INTERNAL_MODEL_OPTIONS: internal Anthropic labels include model versions', () => {
-    const labelsByValue = new Map(
-        INTERNAL_MODEL_OPTIONS.filter(model => model.provider === 'anthropic').map(model => [
-            model.value,
-            model.label,
-        ])
+test('INTERNAL_MODEL_OPTIONS: excludes internal Anthropic models while disabled', () => {
+    assert.equal(
+        INTERNAL_MODEL_OPTIONS.some(model => model.provider === 'anthropic'),
+        false
     );
-
-    assert.equal(labelsByValue.get('us.anthropic.claude-opus-4-7'), 'opus-4.7');
-    assert.equal(labelsByValue.get('us.anthropic.claude-sonnet-4-6'), 'sonnet-4.6');
-    assert.equal(labelsByValue.get('us.anthropic.claude-haiku-4-5-20251001-v1:0'), 'haiku-4.5');
 });
 
 test('INTERNAL_MODEL_OPTIONS: includes internal Gemini models', () => {

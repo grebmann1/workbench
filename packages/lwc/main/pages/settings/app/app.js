@@ -279,6 +279,11 @@ export default class App extends ToolkitElement {
         this.showOnboardAiProvider = false;
     };
 
+    handleOnboardAiProviderSetupComplete = async () => {
+        await this.loadConfigFromCache();
+        this.handleCloseOnboardAiProvider();
+    };
+
     handleCacheFilterChange = e => {
         const value = e.target.value || '';
         clearTimeout(this._cacheFilterTimer);
@@ -631,14 +636,6 @@ export default class App extends ToolkitElement {
 
     get googleUserDisplayName() {
         return this.googleUser?.name || this.googleUser?.email || '';
-    }
-
-    get googleUserEmail() {
-        return this.googleUser?.email || '';
-    }
-
-    get isSalesforceGoogleUser() {
-        return /@salesforce\.com$/i.test(this.googleUserEmail);
     }
 
     get googleUserPicture() {

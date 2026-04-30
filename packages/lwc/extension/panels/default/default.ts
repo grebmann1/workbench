@@ -13,6 +13,8 @@ import {
     saveSingleExtensionConfigToCache,
 } from 'shared/cacheManager';
 
+import { buildApplicationRedirectUrl } from './navigation';
+
 const APPLICATIONS = {
     CONNECTION: 'connection',
     DOCUMENTATION: 'documentation',
@@ -211,12 +213,16 @@ export default class Default extends LightningElement {
                 // Non-blocking: spotlight will simply reappear on next open
             }
         }
-        const params = new URLSearchParams({
-            applicationName: 'home',
-        });
         redirectToUrlViaChrome({
             baseUrl: chrome.runtime.getURL('/views/app.html'),
-            redirectUrl: encodeURIComponent(params.toString()),
+            redirectUrl: buildApplicationRedirectUrl('home'),
+        });
+    };
+
+    openSettingsClick = () => {
+        redirectToUrlViaChrome({
+            baseUrl: chrome.runtime.getURL('/views/app.html'),
+            redirectUrl: buildApplicationRedirectUrl('settings'),
         });
     };
 

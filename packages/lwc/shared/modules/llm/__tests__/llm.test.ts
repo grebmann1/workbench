@@ -287,32 +287,20 @@ test('buildAvailableAgentModelOptions: multiple providers prefix labels', () => 
     assert.ok(options.some(o => o.label.startsWith('Anthropic: ')));
 });
 
-test('buildAvailableAgentModelOptions: internal Anthropic config uses Anthropic internal models', () => {
+test('buildAvailableAgentModelOptions: internal Anthropic config exposes no models while disabled', () => {
     const configs = createDefaultProviderConfigMap();
     configs.anthropic = {
         apiKey: 'sk-b',
         baseUrl:
             'https://eng-ai-model-gateway.sfproxy.devx-preprod.aws-esvc1-useast2.aws.sfdc.cl/bedrock',
     };
-    const anthropicInternalModels = INTERNAL_MODEL_OPTIONS.filter(
-        model => model.provider === 'anthropic'
-    );
     const options = buildAvailableAgentModelOptions({ providerConfigs: configs });
 
-    assert.ok(anthropicInternalModels.length > 0);
-    assert.deepEqual(
-        options.map(option => option.value),
-        anthropicInternalModels.map(model => model.value)
+    assert.equal(
+        INTERNAL_MODEL_OPTIONS.some(model => model.provider === 'anthropic'),
+        false
     );
-    assert.deepEqual(
-        options.map(option => option.value),
-        [
-            'us.anthropic.claude-opus-4-7',
-            'us.anthropic.claude-sonnet-4-6',
-            'us.anthropic.claude-haiku-4-5-20251001-v1:0',
-        ]
-    );
-    assert.ok(options.every(option => option.provider === 'anthropic'));
+    assert.deepEqual(options, []);
 });
 
 test('buildAvailableAgentModelOptions: internal Gemini config uses Gemini internal models', () => {

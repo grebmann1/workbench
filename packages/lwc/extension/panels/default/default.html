@@ -1,9 +1,7 @@
 <template>
     <div class="slds-popup-container slds-background-white">
         <!-- HEADER -->
-        <extension-header
-            is-toggle-visible={isToggleVisible}
-            onsearch={handleSearch}>
+        <extension-header is-toggle-visible={isToggleVisible} onsearch={handleSearch}>
             <lightning-button-group slot="action">
                 <!-- Actions for connections -->
                 <template lwc:if={isAgentDisplayed}>
@@ -38,6 +36,11 @@
                             value="Import"></lightning-menu-item>
                     </template>
                     <lightning-menu-item
+                        label="Settings"
+                        onclick={openSettingsClick}
+                        prefix-icon-name="utility:settings"
+                        value="Settings"></lightning-menu-item>
+                    <lightning-menu-item
                         label="Import Orgs"
                         onclick={importClick}
                         prefix-icon-name="utility:upload"
@@ -52,7 +55,8 @@
         </extension-header>
 
         <!-- BODY slds-background-white -->
-        <div class="slds-is-relative slds-grid slds-wrap slds-grid_vertical-stretch full-page-body slds-background-white">
+        <div
+            class="slds-is-relative slds-grid slds-wrap slds-grid_vertical-stretch full-page-body slds-background-white">
             <!-- SECTION -->
             <div class="slds-full-height slds-col slds-col slds-size_1-of-1">
                 <!-- Start -->
