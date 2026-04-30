@@ -1,5 +1,6 @@
 import { api, LightningElement, track } from 'lwc';
 import { classSet, calculateOverflow, LightningResizeObserver } from 'shared/utils';
+
 import { handleKeyDownOnTabList } from './keyboard';
 
 const i18n = {
@@ -125,7 +126,6 @@ export default class SldsTabBar extends LightningElement {
         this._queueSynchronizeA11 = true;
 
         if (this._connected && this.overflowSupported) {
-            // eslint-disable-next-line @lwc/lwc/no-async-operation
             requestAnimationFrame(this._queueOverflow.bind(this));
         }
     }
@@ -397,7 +397,6 @@ export default class SldsTabBar extends LightningElement {
         this._allTabs.forEach(tab => {
             tab.visible = true;
         });
-        // eslint-disable-next-line @lwc/lwc/no-async-operation
         requestAnimationFrame(this._recomputeOverflow.bind(this));
     }
 
@@ -415,7 +414,6 @@ export default class SldsTabBar extends LightningElement {
 
             const tab = this._findTabByValue(tabValue);
             let tabWidth = tabHeaderElement.getBoundingClientRect().width;
-            // eslint-disable-next-line lightning-global/check-return-value-for-nullable-call
             const computedStyle = getComputedStyle(tabHeaderElement);
             if (computedStyle) {
                 tabWidth +=

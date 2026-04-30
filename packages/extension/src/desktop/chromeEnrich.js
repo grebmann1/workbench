@@ -83,8 +83,8 @@ if (typeof window !== 'undefined' && window.desktop && typeof chrome !== 'undefi
         });
 
         chrome.storage = {
-            local: makeStore(localStorage),    // persists across restarts
-            sync: makeStore(localStorage),     // no real sync in desktop; uses same store
+            local: makeStore(localStorage), // persists across restarts
+            sync: makeStore(localStorage), // no real sync in desktop; uses same store
             session: makeStore(sessionStorage), // cleared when the window closes
         };
     }

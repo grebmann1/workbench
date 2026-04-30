@@ -1,13 +1,14 @@
-import { api, wire, track } from 'lwc';
 import ToolkitElement from 'host-api/element';
+import { store, SOBJECT } from 'host-api/store';
+import Toast from 'lightning/toast';
+import { api, wire, track } from 'lwc';
 import { NavigationContext, navigate } from 'lwr/navigation';
 import { ensureMermaidLoaded } from 'shared/loader';
-import { classSet, isEmpty, isNotUndefinedOrNull, isUndefinedOrNull } from 'shared/utils';
 import LOGGER from 'shared/logger';
-import Toast from 'lightning/toast';
-/** Store */
-import { store, SOBJECT } from 'host-api/store';
 import { store as legacyStore, store_application } from 'shared/store';
+import { classSet, isEmpty, isNotUndefinedOrNull, isUndefinedOrNull } from 'shared/utils';
+/** Store */
+
 import { getFieldTypeIcon, API_COLORS } from './constants';
 
 const deepClone = (obj: Record<string, any>) => JSON.parse(JSON.stringify(obj));
@@ -232,8 +233,16 @@ export default class Sobject extends ToolkitElement {
 
             field._isFormula = isFormula;
             field._isPicklist = isPicklist;
-            field._isRequired = field.nillable === false && field.createable === true && field.defaultedOnCreate !== true;
-            field._hasExtra = isFormula || isPicklist || field.unique === true || field.externalId === true || !isEmpty(field.inlineHelpText);
+            field._isRequired =
+                field.nillable === false &&
+                field.createable === true &&
+                field.defaultedOnCreate !== true;
+            field._hasExtra =
+                isFormula ||
+                isPicklist ||
+                field.unique === true ||
+                field.externalId === true ||
+                !isEmpty(field.inlineHelpText);
             field._iconName = getFieldTypeIcon(field.type).replace('lucide:', '');
 
             // Type label
@@ -332,7 +341,11 @@ export default class Sobject extends ToolkitElement {
 
     get expandedField(): AnyRecord | null {
         if (!this.expandedFieldKey || !this.selectedDetails) return null;
-        return (this.selectedDetails.fields || []).find((f: AnyRecord) => f.name === this.expandedFieldKey) || null;
+        return (
+            (this.selectedDetails.fields || []).find(
+                (f: AnyRecord) => f.name === this.expandedFieldKey
+            ) || null
+        );
     }
 
     get expandedFieldCapabilities() {

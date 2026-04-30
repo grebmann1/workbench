@@ -74,7 +74,12 @@ export type IframeAiBridgeChunk =
     | { type: 'reasoning_delta'; text: string }
     | { type: 'tool_call'; toolCallId: string; toolName: string; args: unknown }
     | { type: 'complete_messages'; messages: unknown[] }
-    | { type: 'ai_config'; provider: string; models: IframeAiBridgeModelInfo[]; isConfigured: boolean }
+    | {
+          type: 'ai_config';
+          provider: string;
+          models: IframeAiBridgeModelInfo[];
+          isConfigured: boolean;
+      }
     | { type: 'done'; finishReason?: string }
     | { type: 'error'; code: string; message: string };
 
@@ -95,8 +100,7 @@ export function isIframeAiBridgeEnvelope(value: unknown): value is Record<string
 
 export function isIframeAiBridgeMethod(value: unknown): value is IframeAiBridgeMethod {
     return (
-        typeof value === 'string' &&
-        (IFRAME_AI_BRIDGE_METHODS as readonly string[]).includes(value)
+        typeof value === 'string' && (IFRAME_AI_BRIDGE_METHODS as readonly string[]).includes(value)
     );
 }
 

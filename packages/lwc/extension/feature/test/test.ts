@@ -1,6 +1,5 @@
-import { LightningElement, api, createElement } from 'lwc';
-
 import promptWidget from 'editor/promptWidget';
+import { LightningElement, api, createElement } from 'lwc';
 
 export default class Test extends LightningElement {
     isDragging = false;

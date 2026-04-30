@@ -1,6 +1,6 @@
 import { normalizeApiVersion, normalizeInstanceUrl, normalizeProxyUrl, toSalesforcePath, } from 'shared/salesforceUrl';
-import { isRecord } from 'shared/utils';
 import { HttpError } from 'shared/types';
+import { isRecord } from 'shared/utils';
 /** @deprecated Subclass retained for callers that still reference the name; prefer {@link HttpError}. */
 class SalesforceApiError extends HttpError {
     constructor(message, status, payload) {
@@ -220,7 +220,10 @@ export function createToolingClient(options = {}) {
             const page = await requestJson(nextUrl);
             const pageRecord = isRecord(page) ? page : {};
             out.push(...(Array.isArray(pageRecord.records) ? pageRecord.records : []));
-            nextUrl = typeof pageRecord.nextRecordsUrl === 'string' ? pageRecord.nextRecordsUrl : undefined;
+            nextUrl =
+                typeof pageRecord.nextRecordsUrl === 'string'
+                    ? pageRecord.nextRecordsUrl
+                    : undefined;
         }
         return out;
     }

@@ -13,7 +13,10 @@ function redactRendererMessage(message: string): string {
     return message
         .replace(/force:\/\/[^@\s]+@[^\s]+/g, 'force://<redacted>@<redacted>')
         .replace(/Bearer\s+[A-Za-z0-9._~+/=-]+/gi, 'Bearer <redacted>')
-        .replace(/(accessToken|refreshToken|sessionId)["':=\s]+[A-Za-z0-9._~!+/=-]+/gi, '$1=<redacted>');
+        .replace(
+            /(accessToken|refreshToken|sessionId)["':=\s]+[A-Za-z0-9._~!+/=-]+/gi,
+            '$1=<redacted>'
+        );
 }
 
 export class WindowManager {
@@ -22,10 +25,7 @@ export class WindowManager {
     private mainWindow: BrowserWindow | null = null;
     private readonly instanceWindows = new Map<string, BrowserWindow>();
     private readonly instanceLoginStatus = new Map<string, boolean>();
-    private readonly instanceLoginWaiters = new Map<
-        string,
-        Array<(status: boolean) => void>
-    >();
+    private readonly instanceLoginWaiters = new Map<string, Array<(status: boolean) => void>>();
 
     constructor({ preloadPath, rendererUrl }: WindowManagerOptions) {
         this.preloadPath = preloadPath;
@@ -314,13 +314,16 @@ export class WindowManager {
             });
         });
 
-        window.webContents.on('did-fail-load', (_event, errorCode, errorDescription, validatedURL) => {
-            desktopLog.error('Renderer failed to load', {
-                errorCode,
-                errorDescription,
-                validatedURL,
-                windowKey,
-            });
-        });
+        window.webContents.on(
+            'did-fail-load',
+            (_event, errorCode, errorDescription, validatedURL) => {
+                desktopLog.error('Renderer failed to load', {
+                    errorCode,
+                    errorDescription,
+                    validatedURL,
+                    windowKey,
+                });
+            }
+        );
     }
 }

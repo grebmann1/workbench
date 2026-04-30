@@ -4,9 +4,9 @@ import {
     normalizeProxyUrl,
     toSalesforcePath,
 } from 'shared/salesforceUrl';
-import { isRecord } from 'shared/utils';
 import type { JsforceConnection, HttpRequestOptions } from 'shared/types';
 import { HttpError } from 'shared/types';
+import { isRecord } from 'shared/utils';
 
 /** Options accepted when constructing the tooling client. */
 export type CreateToolingClientOptions = {
@@ -223,7 +223,7 @@ export function createToolingClient(options: CreateToolingClientOptions = {}) {
                 throw new SalesforceApiError(
                     formatSfError(res.status, json ?? text),
                     res.status,
-                    json ?? text,
+                    json ?? text
                 );
             }
 
@@ -272,11 +272,7 @@ export function createToolingClient(options: CreateToolingClientOptions = {}) {
 
             const text = await res.text();
             if (!res.ok) {
-                throw new SalesforceApiError(
-                    formatSfError(res.status, text),
-                    res.status,
-                    text,
-                );
+                throw new SalesforceApiError(formatSfError(res.status, text), res.status, text);
             }
             return text;
         } catch (err) {
@@ -301,13 +297,17 @@ export function createToolingClient(options: CreateToolingClientOptions = {}) {
         const first = await requestJson(`/tooling/query?q=${encodeURIComponent(soql)}`);
         const firstRecord = isRecord(first) ? first : {};
         const out = [...(Array.isArray(firstRecord.records) ? firstRecord.records : [])];
-        let nextUrl = typeof firstRecord.nextRecordsUrl === 'string' ? firstRecord.nextRecordsUrl : undefined;
+        let nextUrl =
+            typeof firstRecord.nextRecordsUrl === 'string' ? firstRecord.nextRecordsUrl : undefined;
         while (nextUrl) {
             // eslint-disable-next-line no-await-in-loop
             const page = await requestJson(nextUrl);
             const pageRecord = isRecord(page) ? page : {};
             out.push(...(Array.isArray(pageRecord.records) ? pageRecord.records : []));
-            nextUrl = typeof pageRecord.nextRecordsUrl === 'string' ? pageRecord.nextRecordsUrl : undefined;
+            nextUrl =
+                typeof pageRecord.nextRecordsUrl === 'string'
+                    ? pageRecord.nextRecordsUrl
+                    : undefined;
         }
         return out;
     }

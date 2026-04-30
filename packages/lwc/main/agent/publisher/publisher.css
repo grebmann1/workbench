@@ -436,7 +436,9 @@
     padding: 0 3px;
     flex-shrink: 0;
     line-height: 1.4;
-    transition: background 0.1s, color 0.1s;
+    transition:
+        background 0.1s,
+        color 0.1s;
 }
 .chat-queue-item-action:hover,
 .chat-queue-item-action:focus {

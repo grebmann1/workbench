@@ -1,6 +1,10 @@
-import { api, track, wire } from 'lwc';
 import ToolkitElement from 'host-api/element';
+import { store, connectStore, injectReducer, DOCUMENT } from 'host-api/store';
+import Toast from 'lightning/toast';
+import { api, track, wire } from 'lwc';
 import { CurrentPageReference, NavigationContext, generateUrl, navigate } from 'lwr/navigation';
+import moment from 'moment';
+import { RECORDVIEWER } from 'recordviewer/slices';
 import {
     isUndefinedOrNull,
     isNotUndefinedOrNull,
@@ -10,8 +14,6 @@ import {
     getRecordId,
     isSalesforceId,
 } from 'shared/utils';
-import { store, connectStore, injectReducer, DOCUMENT } from 'host-api/store';
-import { RECORDVIEWER } from 'recordviewer/slices';
 
 let _recordViewerBootstrapped = false;
 function bootstrapRecordViewerExtension() {
@@ -20,8 +22,6 @@ function bootstrapRecordViewerExtension() {
     injectReducer('recordViewer', RECORDVIEWER.reduxSlice.reducer);
 }
 bootstrapRecordViewerExtension();
-import moment from 'moment';
-import Toast from 'lightning/toast';
 import { CATEGORY_STORAGE } from 'host-api/builder';
 
 export default class App extends ToolkitElement {
@@ -87,7 +87,15 @@ export default class App extends ToolkitElement {
     }
 
     @wire(connectStore, { store })
-    storeChange({ recordViewer, application, recents }: { recordViewer: any; application: any; recents: any }) {
+    storeChange({
+        recordViewer,
+        application,
+        recents,
+    }: {
+        recordViewer: any;
+        application: any;
+        recents: any;
+    }) {
         const isCurrentApp = this.verifyIsActive(application.currentApplication);
         if (!isCurrentApp) return;
 

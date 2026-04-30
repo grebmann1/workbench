@@ -1,6 +1,10 @@
 <template>
     <!-- eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -->
-    <div class="question-panel" role="dialog" aria-labelledby="question-panel-title" onkeydown={handleKeydown}>
+    <div
+        class="question-panel"
+        role="dialog"
+        aria-labelledby="question-panel-title"
+        onkeydown={handleKeydown}>
         <div class="question-header">
             <lightning-icon
                 icon-name="utility:question_mark"
@@ -49,14 +53,16 @@
 
             <div class="question-actions slds-m-top_small">
                 <button type="button" class="question-skip-btn" onclick={handleSkip}>
-                    Skip <span class="question-key-hint">Esc</span>
+                    Skip
+                    <span class="question-key-hint">Esc</span>
                 </button>
                 <button
                     type="button"
                     class="question-submit-btn"
                     disabled={isSubmitDisabled}
                     onclick={handleSubmit}>
-                    Continue <span class="question-key-hint">↵</span>
+                    Continue
+                    <span class="question-key-hint">↵</span>
                 </button>
             </div>
         </div>

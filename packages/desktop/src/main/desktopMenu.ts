@@ -80,11 +80,7 @@ export function registerDesktopMenu(options: DesktopMenuOptions): void {
         },
         {
             label: 'Window',
-            submenu: [
-                { role: 'minimize' },
-                { role: 'zoom' },
-                ...windowPlatformItems,
-            ],
+            submenu: [{ role: 'minimize' }, { role: 'zoom' }, ...windowPlatformItems],
         },
         {
             label: 'Automation',

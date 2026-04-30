@@ -112,10 +112,7 @@ export function isDesktopOrgSource(value: unknown): value is DesktopOrgSource {
 }
 
 function isStringRecord(value: unknown): value is Record<string, string> {
-    return (
-        isRecord(value) &&
-        Object.values(value).every(item => typeof item === 'string')
-    );
+    return isRecord(value) && Object.values(value).every(item => typeof item === 'string');
 }
 
 export function isDesktopRoute(value: unknown): value is DesktopRoute {
@@ -173,7 +170,10 @@ export function isDesktopCommand(value: unknown): value is DesktopCommand {
     }
 
     if (value.type === 'openOrg') {
-        return isDesktopOrgSource(value.org) && (value.route === undefined || isDesktopRoute(value.route));
+        return (
+            isDesktopOrgSource(value.org) &&
+            (value.route === undefined || isDesktopRoute(value.route))
+        );
     }
 
     if (value.type === 'openPage') {

@@ -1,5 +1,10 @@
-import { api, track, wire } from 'lwc';
 import ToolkitElement from 'host-api/element';
+import { store, connectStore } from 'host-api/store';
+import Toast from 'lightning/toast';
+import { api, track, wire } from 'lwc';
+import moment from 'moment';
+import ModalDeploy from 'package/modalDeploy';
+import { PACKAGE } from 'package/slices';
 import {
     lowerCaseKey,
     isUndefinedOrNull,
@@ -12,11 +17,6 @@ import {
     splitTextByTimestamp,
     API as API_UTILS,
 } from 'shared/utils';
-import { store, connectStore } from 'host-api/store';
-import { PACKAGE } from 'package/slices';
-import Toast from 'lightning/toast';
-import moment from 'moment';
-import ModalDeploy from 'package/modalDeploy';
 
 type AnyRecord = Record<string, any>;
 

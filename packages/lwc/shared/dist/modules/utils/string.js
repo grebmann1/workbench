@@ -12,7 +12,7 @@ export function checkIfPresent(a, b) {
 }
 export function isSalesforceId(str) {
     // Salesforce ID pattern
-    var idPattern = /^[a-zA-Z0-9]{15}(?:[a-zA-Z0-9]{3})?$/;
+    const idPattern = /^[a-zA-Z0-9]{15}(?:[a-zA-Z0-9]{3})?$/;
     // Check if the string matches the Salesforce ID pattern
     return idPattern.test(str);
 }
@@ -44,7 +44,7 @@ export const splitTextByTimestamp = (text) => {
     // Split the text by new lines
     const lines = text.split('\n');
     // Initialize an array to store the resulting chunks
-    let result = [];
+    const result = [];
     // Initialize a temporary string to build chunks
     let temp = '';
     // Iterate through each line

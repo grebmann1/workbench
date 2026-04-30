@@ -32,9 +32,9 @@ export const fileFormatter = function (
     const greenTreshold = options.greenTreshold || 10;
     const orangeTreshold = options.orangeTreshold || 20;
 
-    var headers = [];
-    var rows = [];
-    var tableWidth = 0;
+    const headers = [];
+    const rows = [];
+    let tableWidth = 0;
 
     //iterate over rows
     list.forEach((row, index) => {
@@ -121,8 +121,8 @@ export const fileFormatter = function (
         });
     }
 
-    let pageHeight = 80 + list.length * 30;
-    let pageWidth = 80 + tableWidth;
+    const pageHeight = 80 + list.length * 30;
+    const pageWidth = 80 + tableWidth;
 
     //setFileContents(doc.output('blob'), "application/pdf");
 };

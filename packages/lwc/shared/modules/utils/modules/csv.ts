@@ -70,10 +70,7 @@ export function serializeCsvFromObjects({
     const dataLines = (rows || []).map(row => {
         return (headers || [])
             .map(h =>
-                escapeCsvValue(
-                    separator,
-                    row?.[h] as string | number | boolean | null | undefined
-                )
+                escapeCsvValue(separator, row?.[h] as string | number | boolean | null | undefined)
             )
             .join(separator);
     });

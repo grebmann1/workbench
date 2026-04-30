@@ -1,9 +1,10 @@
-import { wire, api } from 'lwc';
-import ToolkitElement from 'host-api/element';
 import { getFlattenedFields } from '@jetstreamapp/soql-parser-js';
+import ToolkitElement from 'host-api/element';
 import { store, connectStore, SELECTORS, SOBJECT } from 'host-api/store';
-import { UI } from 'soql/slices';
 import { fullApiName, isSame, lowerCaseKey } from 'host-api/utils';
+import { wire, api } from 'lwc';
+import { UI } from 'soql/slices';
+
 import { getFieldTypeIcon, CHILD_RELATIONSHIP_ICON } from './constants';
 
 const ROOT_LEVEL = 2;
@@ -147,8 +148,7 @@ export default class RelationshipsTree extends ToolkitElement {
                               : [];
                       })()
                     : []
-            )
-                .map(x => (x || '').toLowerCase());
+            ).map(x => (x || '').toLowerCase());
             const childFields = sobjectData.data.fields.map(field => {
                 const childRawName = `${relationshipName}.${field.name}`;
                 const childId = lowerCaseKey(childRawName);

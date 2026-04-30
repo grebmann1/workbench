@@ -11,7 +11,7 @@ export function formatBytes(bytes, decimals = 2) {
     return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
 }
 export function basicTextFormatter(text, filter) {
-    var regex = new RegExp('(' + filter + ')', 'gim');
+    const regex = new RegExp('(' + filter + ')', 'gim');
     if (regex.test(text)) {
         text = text
             .toString()

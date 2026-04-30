@@ -38,7 +38,9 @@ export function parseSfdxAuthUrl(sfdxAuthUrl: string): {
     const value = String(sfdxAuthUrl || '').trim();
     const match = /^force:\/\/(?:[^:]+)?::([^@]+)@(.+)$/.exec(value);
     if (!match) {
-        throw new Error('Invalid sfdxAuthUrl format. Expected force://clientId::refreshToken@instanceHost.');
+        throw new Error(
+            'Invalid sfdxAuthUrl format. Expected force://clientId::refreshToken@instanceHost.'
+        );
     }
 
     const [, refreshToken, instanceHost] = match;

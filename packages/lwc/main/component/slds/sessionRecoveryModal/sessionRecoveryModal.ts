@@ -1,5 +1,5 @@
-import { api } from 'lwc';
 import LightningModal from 'lightning/modal';
+import { api } from 'lwc';
 
 export const RESULT = {
     CLOSE: 'close',

@@ -1,6 +1,6 @@
+import ToolkitElement from 'host-api/element';
 import { api, track } from 'lwc';
 import { isEmpty, runActionAfterTimeOut, checkIfPresent } from 'shared/utils';
-import ToolkitElement from 'host-api/element';
 const PAGE_LIST_SIZE = 70;
 export default class DeployList extends ToolkitElement {
     isLoading = false;

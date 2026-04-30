@@ -66,9 +66,9 @@ export const getVscodeEditorUrl = (seed) => {
 export async function getCurrentTab() {
     if (!isChromeExtension() || !chrome.tabs?.query)
         return null;
-    let queryOptions = { active: true, lastFocusedWindow: true };
+    const queryOptions = { active: true, lastFocusedWindow: true };
     // `tab` will either be a `tabs.Tab` instance or `undefined`.
-    let [tab] = await chrome.tabs.query(queryOptions);
+    const [tab] = await chrome.tabs.query(queryOptions);
     return tab;
 }
 export const refreshCurrentTab = () => {

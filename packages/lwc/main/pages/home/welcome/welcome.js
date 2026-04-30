@@ -1,8 +1,9 @@
-import { wire } from 'lwc';
+import { listOrgSessionsViaBackground } from 'core/connector';
 import ToolkitElement from 'core/toolkitElement';
+import { wire } from 'lwc';
 import { NavigationContext, navigate } from 'lwr/navigation';
 import { isChromeExtension, isElectronApp } from 'shared/utils';
-import { listOrgSessionsViaBackground } from 'core/connector';
+
 import { GITHUB_DISCUSSIONS_URL, QUICK_TIPS } from './constants.js';
 
 export default class Welcome extends ToolkitElement {

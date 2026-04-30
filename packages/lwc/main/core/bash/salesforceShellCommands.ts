@@ -70,8 +70,14 @@ type SalesforceShellHandlers = {
         ctx: ShellCommandContext;
         targetOrg?: string;
     }) => Promise<SalesforceCommandExecution>;
-    enableDebugLog: (args: { durationMinutes: number; targetOrg?: string }) => Promise<SalesforceCommandExecution>;
-    listDebugLogs: (args: { limit: number; targetOrg?: string }) => Promise<SalesforceCommandExecution>;
+    enableDebugLog: (args: {
+        durationMinutes: number;
+        targetOrg?: string;
+    }) => Promise<SalesforceCommandExecution>;
+    listDebugLogs: (args: {
+        limit: number;
+        targetOrg?: string;
+    }) => Promise<SalesforceCommandExecution>;
     getDebugLog: (args: {
         logId: string;
         outputPath: string | null;
@@ -79,7 +85,10 @@ type SalesforceShellHandlers = {
         targetOrg?: string;
     }) => Promise<SalesforceCommandExecution>;
     displayLimits: (args?: { targetOrg?: string }) => Promise<SalesforceCommandExecution>;
-    describeSObject: (args: { objectName: string; targetOrg?: string }) => Promise<SalesforceCommandExecution>;
+    describeSObject: (args: {
+        objectName: string;
+        targetOrg?: string;
+    }) => Promise<SalesforceCommandExecution>;
     deployMetadata: (args: {
         filePath: string;
         metadataType: string | null;
@@ -95,7 +104,10 @@ type SalesforceShellHandlers = {
         targetOrg?: string;
     }) => Promise<SalesforceCommandExecution>;
     listMetadataTypes: (args: { targetOrg?: string }) => Promise<SalesforceCommandExecution>;
-    listMetadataRecords: (args: { metadataType: string; targetOrg?: string }) => Promise<SalesforceCommandExecution>;
+    listMetadataRecords: (args: {
+        metadataType: string;
+        targetOrg?: string;
+    }) => Promise<SalesforceCommandExecution>;
 };
 
 export const APEX_HELP = `Run anonymous Apex (SF CLI shim).
@@ -490,7 +502,9 @@ export function registerSalesforceShellCommands({
         const fileFlag = ensureSingleValue(getFlagValue(flags, 'file', 'f'));
         const codeFlag = ensureSingleValue(getFlagValue(flags, 'apex-code', 'c'));
         const shouldOpenUi = !getFlagValue(flags, 'no-ui');
-        const targetOrg = ensureSingleValue(getFlagValue(flags, 'target-org', 'o', 'u')) as string | undefined;
+        const targetOrg = ensureSingleValue(getFlagValue(flags, 'target-org', 'o', 'u')) as
+            | string
+            | undefined;
         let apexCode = typeof codeFlag === 'string' ? codeFlag : '';
         let sourceFilePath: string | null = null;
         if (!apexCode && typeof fileFlag === 'string') {
@@ -548,7 +562,9 @@ export function registerSalesforceShellCommands({
         }
         const useToolingApi = Boolean(getFlagValue(flags, 'tooling'));
         const includeDeletedRecords = Boolean(getFlagValue(flags, 'all-rows'));
-        const targetOrg = ensureSingleValue(getFlagValue(flags, 'target-org', 'o', 'u')) as string | undefined;
+        const targetOrg = ensureSingleValue(getFlagValue(flags, 'target-org', 'o', 'u')) as
+            | string
+            | undefined;
         try {
             const handled = normalizeHandlerResult(
                 await handlers.executeSoql({
@@ -607,7 +623,9 @@ export function registerSalesforceShellCommands({
         }
 
         const headerText = headerValues.join('\n');
-        const targetOrg = ensureSingleValue(getFlagValue(flags, 'target-org', 'o')) as string | undefined;
+        const targetOrg = ensureSingleValue(getFlagValue(flags, 'target-org', 'o')) as
+            | string
+            | undefined;
 
         try {
             const handled = normalizeHandlerResult(
@@ -733,7 +751,9 @@ export function registerSalesforceShellCommands({
         );
         const timeoutFlag = ensureSingleValue(getFlagValue(flags, 'timeout'));
         const timeoutMs = typeof timeoutFlag === 'string' ? parseInt(timeoutFlag, 10) : 60000;
-        const targetOrg = ensureSingleValue(getFlagValue(flags, 'target-org', 'o', 'u')) as string | undefined;
+        const targetOrg = ensureSingleValue(getFlagValue(flags, 'target-org', 'o', 'u')) as
+            | string
+            | undefined;
 
         const classNames =
             typeof classNamesFlag === 'string'
@@ -775,7 +795,9 @@ export function registerSalesforceShellCommands({
             const durationFlag = ensureSingleValue(getFlagValue(flags, 'duration'));
             const durationMinutes =
                 typeof durationFlag === 'string' ? parseInt(durationFlag, 10) : 15;
-            const targetOrg = ensureSingleValue(getFlagValue(flags, 'target-org', 'o', 'u')) as string | undefined;
+            const targetOrg = ensureSingleValue(getFlagValue(flags, 'target-org', 'o', 'u')) as
+                | string
+                | undefined;
             try {
                 const handled = normalizeHandlerResult(
                     await handlers.enableDebugLog({ durationMinutes, targetOrg })
@@ -794,9 +816,13 @@ export function registerSalesforceShellCommands({
             const { flags } = parseCliArgs(rest);
             const limitFlag = ensureSingleValue(getFlagValue(flags, 'limit'));
             const limit = typeof limitFlag === 'string' ? parseInt(limitFlag, 10) : 25;
-            const targetOrg = ensureSingleValue(getFlagValue(flags, 'target-org', 'o', 'u')) as string | undefined;
+            const targetOrg = ensureSingleValue(getFlagValue(flags, 'target-org', 'o', 'u')) as
+                | string
+                | undefined;
             try {
-                const handled = normalizeHandlerResult(await handlers.listDebugLogs({ limit, targetOrg }));
+                const handled = normalizeHandlerResult(
+                    await handlers.listDebugLogs({ limit, targetOrg })
+                );
                 return {
                     stdout: formatCliOutput(handled.result),
                     stderr: '',
@@ -813,7 +839,9 @@ export function registerSalesforceShellCommands({
                 positionals[0] || String(ensureSingleValue(getFlagValue(flags, 'id')) || '');
             const outputFlag = ensureSingleValue(getFlagValue(flags, 'output'));
             const outputPath = typeof outputFlag === 'string' ? outputFlag : null;
-            const targetOrg = ensureSingleValue(getFlagValue(flags, 'target-org', 'o', 'u')) as string | undefined;
+            const targetOrg = ensureSingleValue(getFlagValue(flags, 'target-org', 'o', 'u')) as
+                | string
+                | undefined;
             if (!logId) {
                 return {
                     stdout: '',
@@ -847,7 +875,9 @@ export function registerSalesforceShellCommands({
             return { stdout: LIMITS_HELP, stderr: '', exitCode: 0 };
         }
         const { flags } = parseCliArgs(argv);
-        const targetOrg = ensureSingleValue(getFlagValue(flags, 'target-org', 'o', 'u')) as string | undefined;
+        const targetOrg = ensureSingleValue(getFlagValue(flags, 'target-org', 'o', 'u')) as
+            | string
+            | undefined;
         try {
             const handled = normalizeHandlerResult(await handlers.displayLimits({ targetOrg }));
             return {
@@ -868,7 +898,9 @@ export function registerSalesforceShellCommands({
         const objectName = String(
             ensureSingleValue(getFlagValue(flags, 'object')) || positionals[0] || ''
         ).trim();
-        const targetOrg = ensureSingleValue(getFlagValue(flags, 'target-org', 'o', 'u')) as string | undefined;
+        const targetOrg = ensureSingleValue(getFlagValue(flags, 'target-org', 'o', 'u')) as
+            | string
+            | undefined;
         if (!objectName) {
             return {
                 stdout: '',
@@ -877,7 +909,9 @@ export function registerSalesforceShellCommands({
             };
         }
         try {
-            const handled = normalizeHandlerResult(await handlers.describeSObject({ objectName, targetOrg }));
+            const handled = normalizeHandlerResult(
+                await handlers.describeSObject({ objectName, targetOrg })
+            );
             return {
                 stdout: formatCliOutput(handled.result),
                 stderr: '',
@@ -896,9 +930,13 @@ export function registerSalesforceShellCommands({
 
         if (subcommand === 'list-types') {
             const { flags } = parseCliArgs(rest);
-            const targetOrg = ensureSingleValue(getFlagValue(flags, 'target-org', 'o', 'u')) as string | undefined;
+            const targetOrg = ensureSingleValue(getFlagValue(flags, 'target-org', 'o', 'u')) as
+                | string
+                | undefined;
             try {
-                const handled = normalizeHandlerResult(await handlers.listMetadataTypes({ targetOrg }));
+                const handled = normalizeHandlerResult(
+                    await handlers.listMetadataTypes({ targetOrg })
+                );
                 return {
                     stdout: formatCliOutput(handled.result),
                     stderr: '',
@@ -912,7 +950,9 @@ export function registerSalesforceShellCommands({
         if (subcommand === 'list-records') {
             const { flags } = parseCliArgs(rest);
             const metadataTypeFlag = ensureSingleValue(getFlagValue(flags, 'metadata-type', 'm'));
-            const targetOrg = ensureSingleValue(getFlagValue(flags, 'target-org', 'o', 'u')) as string | undefined;
+            const targetOrg = ensureSingleValue(getFlagValue(flags, 'target-org', 'o', 'u')) as
+                | string
+                | undefined;
             if (!metadataTypeFlag || typeof metadataTypeFlag !== 'string') {
                 return {
                     stdout: '',
@@ -922,7 +962,10 @@ export function registerSalesforceShellCommands({
             }
             try {
                 const handled = normalizeHandlerResult(
-                    await handlers.listMetadataRecords({ metadataType: metadataTypeFlag, targetOrg })
+                    await handlers.listMetadataRecords({
+                        metadataType: metadataTypeFlag,
+                        targetOrg,
+                    })
                 );
                 return {
                     stdout: formatCliOutput(handled.result),
@@ -939,7 +982,9 @@ export function registerSalesforceShellCommands({
             const fileFlag = ensureSingleValue(getFlagValue(flags, 'file', 'f'));
             const metadataTypeFlag = ensureSingleValue(getFlagValue(flags, 'metadata-type', 'm'));
             const apiNameFlag = ensureSingleValue(getFlagValue(flags, 'api-name'));
-            const targetOrg = ensureSingleValue(getFlagValue(flags, 'target-org', 'o', 'u')) as string | undefined;
+            const targetOrg = ensureSingleValue(getFlagValue(flags, 'target-org', 'o', 'u')) as
+                | string
+                | undefined;
             if (!fileFlag || typeof fileFlag !== 'string') {
                 return {
                     stdout: '',
@@ -974,7 +1019,9 @@ export function registerSalesforceShellCommands({
             const metadataTypeFlag = ensureSingleValue(getFlagValue(flags, 'metadata-type', 'm'));
             const apiNameFlag = ensureSingleValue(getFlagValue(flags, 'api-name'));
             const outputFlag = ensureSingleValue(getFlagValue(flags, 'output'));
-            const targetOrg = ensureSingleValue(getFlagValue(flags, 'target-org', 'o', 'u')) as string | undefined;
+            const targetOrg = ensureSingleValue(getFlagValue(flags, 'target-org', 'o', 'u')) as
+                | string
+                | undefined;
             if (!metadataTypeFlag || typeof metadataTypeFlag !== 'string') {
                 return {
                     stdout: '',

@@ -1,15 +1,15 @@
-import { api, wire, track } from 'lwc';
 import ToolkitElement from 'host-api/element';
+import { store, connectStore, injectReducer } from 'host-api/store';
+import { api, wire, track } from 'lwc';
+import { CurrentPageReference, NavigationContext, navigate } from 'lwr/navigation';
+import { METADATA } from 'metadata/slices';
+import Analytics from 'shared/analytics';
 import {
     classSet,
     isUndefinedOrNull,
     isNotUndefinedOrNull,
     getVscodeEditorUrl,
 } from 'shared/utils';
-import { CurrentPageReference, NavigationContext, navigate } from 'lwr/navigation';
-import { store, connectStore, injectReducer } from 'host-api/store';
-import { METADATA } from 'metadata/slices';
-import Analytics from 'shared/analytics';
 
 let _metadataBootstrapped = false;
 function bootstrapMetadataExtension() {
@@ -155,7 +155,7 @@ export default class App extends ToolkitElement {
     };
 
     loadFromNavigation = async ({ state }: { state: any }): Promise<void> => {
-        let { applicationName } = state;
+        const { applicationName } = state;
         if (applicationName != 'metadata') return; // Only for metadata
         store.dispatch(METADATA.reduxSlice.actions.setAttributes(state));
     };

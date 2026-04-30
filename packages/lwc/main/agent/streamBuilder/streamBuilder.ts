@@ -1,4 +1,5 @@
 import type { AssistantModelMessage, ModelMessage } from 'ai';
+
 import type { StreamChunk } from '../Agent/Agent';
 
 export function createStreamMessageBuilder(

@@ -53,7 +53,7 @@ export function getObjectListLink({ host, sobjectName, keyPrefix, isCustomSettin
         return `${host}/lightning/o/${sobjectName}/list`;
     }
 }
-export function getRecordTypesLink({ host, sobjectName, durableId, }) {
+export function getRecordTypesLink({ host, sobjectName, durableId }) {
     if (sobjectName.endsWith('__c') || sobjectName.endsWith('__kav')) {
         return `${host}/lightning/setup/ObjectManager/${durableId}/RecordTypes/view`;
     }

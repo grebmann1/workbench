@@ -1,8 +1,6 @@
 import { getCurrentTab, isEmpty } from 'shared/utils';
 
-import {
-    getSalesforceURL,
-} from './base';
+import { getSalesforceURL } from './base';
 /*const getCurrentTab = async () => {
     let queryOptions = { active: true, lastFocusedWindow: true };
     // `tab` will either be a `tabs.Tab` instance or `undefined`.
@@ -14,11 +12,11 @@ import {
 
 const getHostAndSession = async paramTab => {
     try {
-        let tab = paramTab || (await getCurrentTab());
+        const tab = paramTab || (await getCurrentTab());
         if (!tab.url) return;
         // 1. Get the canonical Salesforce URL for the tab
         let url = getSalesforceURL(tab.url);
-        let cookieStoreId = await getCurrentTabCookieStoreId(tab.id);
+        const cookieStoreId = await getCurrentTabCookieStoreId(tab.id);
         // 2. Try to get the SID cookie for this URL
         let cookie = await chrome.cookies.get({
             name: 'sid',

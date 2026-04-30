@@ -1,6 +1,6 @@
 import { LightningElement, api } from 'lwc';
-import { classSet, isEmpty } from 'shared/utils';
 import LOGGER from 'shared/logger';
+import { classSet, isEmpty } from 'shared/utils';
 
 export default class Field extends LightningElement {
     //static delegatesFocus = true;

@@ -1,10 +1,12 @@
 import type { Application, NextFunction, Request, Response } from 'express';
+
 import { openai } from './llm/openaiModel';
 
 function authMiddleware(req: Request, res: Response, next: NextFunction) {
     const rawAuthHeader = req.headers['authorization'];
     const authHeader = Array.isArray(rawAuthHeader) ? rawAuthHeader[0] : rawAuthHeader;
-    const bearerToken = typeof authHeader === 'string' ? authHeader.replace(/^Bearer\s+/i, '') : null;
+    const bearerToken =
+        typeof authHeader === 'string' ? authHeader.replace(/^Bearer\s+/i, '') : null;
 
     const staticKeys = [
         process.env.SALESFORCE_KEY,
@@ -92,37 +94,40 @@ export default function openaiProxy(app: Application, options: OpenAiProxyOption
     });
 
     // POST /openai/v1/chat/completions
-    app.post(`${path}/chat/completions`, async (req: Request, res: Response, next: NextFunction) => {
-        try {
-            const body = req.body;
-            if (!body) {
-                return res.status(400).json({ error: 'Invalid JSON' });
-            }
-            if (!openaiModel.supportModels.includes(body.model)) {
-                return res.status(400).json({ error: `Model ${body.model} not supported` });
-            }
-            if (body.stream) {
-                return streamSSE(
-                    res,
-                    async signal => {
-                        for await (const chunk of openaiModel.stream(body, signal)) {
-                            res.write(`data: ${JSON.stringify(chunk)}\n\n`);
-                            tryFlush(res);
+    app.post(
+        `${path}/chat/completions`,
+        async (req: Request, res: Response, next: NextFunction) => {
+            try {
+                const body = req.body;
+                if (!body) {
+                    return res.status(400).json({ error: 'Invalid JSON' });
+                }
+                if (!openaiModel.supportModels.includes(body.model)) {
+                    return res.status(400).json({ error: `Model ${body.model} not supported` });
+                }
+                if (body.stream) {
+                    return streamSSE(
+                        res,
+                        async signal => {
+                            for await (const chunk of openaiModel.stream(body, signal)) {
+                                res.write(`data: ${JSON.stringify(chunk)}\n\n`);
+                                tryFlush(res);
+                            }
+                        },
+                        async (err, response) => {
+                            response.write(`data: ${JSON.stringify({ error: err.message })}\n\n`);
+                            response.end();
                         }
-                    },
-                    async (err, response) => {
-                        response.write(`data: ${JSON.stringify({ error: err.message })}\n\n`);
-                        response.end();
-                    }
-                );
+                    );
+                }
+                // Non-streaming
+                const result = await openaiModel.invoke(body);
+                res.json(result);
+            } catch (err) {
+                next(err);
             }
-            // Non-streaming
-            const result = await openaiModel.invoke(body);
-            res.json(result);
-        } catch (err) {
-            next(err);
         }
-    });
+    );
 
     // POST /openai/v1/responses
     app.post(`${path}/responses`, async (req: Request, res: Response, next: NextFunction) => {

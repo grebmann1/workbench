@@ -20,9 +20,9 @@ export function fullApiName(name: string | null | undefined, namespace?: string 
 }
 
 export function getSobject(href: string): string | null {
-    let url = new URL(href);
+    const url = new URL(href);
     if (url.pathname) {
-        let match = url.pathname.match(/\/lightning\/[r|o]\/([a-zA-Z0-9_]+)\/[a-zA-Z0-9]+/);
+        const match = url.pathname.match(/\/lightning\/[r|o]\/([a-zA-Z0-9_]+)\/[a-zA-Z0-9]+/);
         if (match) {
             return match[1];
         }
@@ -76,7 +76,7 @@ const extractRecordId = (href?: string | null): string | null => {
             }
         }
         // Visualforce page that does not follow standard Visualforce naming
-        for (let [, p] of searchParams) {
+        for (const [, p] of searchParams) {
             if (p.match(/^([a-zA-Z0-9]{15}|[a-zA-Z0-9]{18})$/) && p.includes('0000')) {
                 return p;
             }
@@ -108,7 +108,7 @@ export function getCurrentObjectType(
                 "ID a='" + recordId + "';Integer.valueOf(String.valueOf(a.getSObjectType()));"
             )
             .then(res => {
-                let _sobjectString = res.exceptionMessage.replace(/^.* (.*)$/, '$1');
+                const _sobjectString = res.exceptionMessage.replace(/^.* (.*)$/, '$1');
                 resolve(_sobjectString == 'null' ? null : _sobjectString);
             })
             .catch(e => {

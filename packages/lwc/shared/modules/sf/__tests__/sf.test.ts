@@ -1,6 +1,6 @@
-import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { chunkArray } from '../sf.ts';
+import { test } from 'node:test';
+
 import {
     Sobject,
     RecordType,
@@ -18,6 +18,7 @@ import {
     UserPermission,
     LoginIpRange,
 } from '../mapping.ts';
+import { chunkArray } from '../sf.ts';
 
 test('chunkArray: default chunk size 5', () => {
     const out = chunkArray([1, 2, 3, 4, 5, 6, 7]);

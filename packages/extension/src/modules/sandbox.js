@@ -1,6 +1,4 @@
-import {
-    connect
-} from 'puppeteer-core/lib/esm/puppeteer/puppeteer-core-browser.js';
+import { connect } from 'puppeteer-core/lib/esm/puppeteer/puppeteer-core-browser.js';
 
 // Console Overrides for debugging
 
@@ -843,7 +841,7 @@ let cachedTabId = null;
 // (e.g. retries) reuse the same tab instead of spawning a new one each time.
 let _agentTabId = null;
 
-const isInternalLogEnabled = false
+const isInternalLogEnabled = false;
 
 function sandboxLog(...args) {
     if (typeof console !== 'undefined' && console.log && isInternalLogEnabled) {
@@ -870,11 +868,11 @@ function withTimeout(promise, ms, label) {
             reject(new Error(`${label || 'Operation'} timed out after ${ms}ms`));
         }, ms);
         promise
-            .then((value) => {
+            .then(value => {
                 clearTimeout(timer);
                 resolve(value);
             })
-            .catch((err) => {
+            .catch(err => {
                 clearTimeout(timer);
                 reject(err);
             });
@@ -1049,28 +1047,31 @@ async function activateTab(tabId) {
 async function sendCdpAttachRequest(tabId) {
     return new Promise((e, t) => {
         const r = crypto.randomUUID();
-        sandboxLog("[SandboxTransport] sendAttachRequest called, tabId:", tabId, "requestId:", r);
+        sandboxLog('[SandboxTransport] sendAttachRequest called, tabId:', tabId, 'requestId:', r);
 
         /** @param {MessageEvent} s */
-        const n = (s) => {
+        const n = s => {
             s.source === window.parent &&
-                s.data?.type === "CDP_ATTACH_RESPONSE" &&
+                s.data?.type === 'CDP_ATTACH_RESPONSE' &&
                 s.data.id === r &&
-                (sandboxLog("[SandboxTransport] CDP_ATTACH_RESPONSE received, success:", s.data.success),
-                    window.removeEventListener("message", n),
-                    s.data.success ? e() : t(new Error(s.data.error || "Failed to attach debugger")));
+                (sandboxLog(
+                    '[SandboxTransport] CDP_ATTACH_RESPONSE received, success:',
+                    s.data.success
+                ),
+                window.removeEventListener('message', n),
+                s.data.success ? e() : t(new Error(s.data.error || 'Failed to attach debugger')));
         };
 
-        window.addEventListener("message", n);
+        window.addEventListener('message', n);
 
         setTimeout(() => {
-            sandboxLog("[SandboxTransport] sendAttachRequest timeout for requestId:", r);
-            window.removeEventListener("message", n);
-            t(new Error("Attach request timeout"));
+            sandboxLog('[SandboxTransport] sendAttachRequest timeout for requestId:', r);
+            window.removeEventListener('message', n);
+            t(new Error('Attach request timeout'));
         }, 1e4);
 
-        sandboxLog("[SandboxTransport] Posting CDP_ATTACH to parent");
-        window.parent.postMessage({ type: "CDP_ATTACH", id: r, tabId }, "*");
+        sandboxLog('[SandboxTransport] Posting CDP_ATTACH to parent');
+        window.parent.postMessage({ type: 'CDP_ATTACH', id: r, tabId }, '*');
     });
 }
 
@@ -1092,33 +1093,33 @@ class SandboxCdpTransport {
      */
     static async connectToTab(tabId) {
         return (
-            sandboxLog("[SandboxTransport] connectTab called, tabId:", tabId),
+            sandboxLog('[SandboxTransport] connectTab called, tabId:', tabId),
             await sendCdpAttachRequest(tabId),
-            sandboxLog("[SandboxTransport] sendAttachRequest completed, creating transport"),
+            sandboxLog('[SandboxTransport] sendAttachRequest completed, creating transport'),
             new SandboxCdpTransport(tabId)
         );
     }
 
     constructor(tabId) {
         this.tabId = tabId;
-        window.addEventListener("message", this.handleMessage);
+        window.addEventListener('message', this.handleMessage);
     }
 
     /** @param {MessageEvent} event */
-    handleMessage = (event) => {
+    handleMessage = event => {
         if (event.source !== window.parent) return;
 
         const data = event.data;
         if (!data || data.tabId !== this.tabId) return;
 
-        if (data.type === "CDP_RESPONSE" || data.type === "CDP_EVENT") {
+        if (data.type === 'CDP_RESPONSE' || data.type === 'CDP_EVENT') {
             setTimeout(() => {
                 this.onmessage?.(JSON.stringify(data.payload));
             }, 0);
             return;
         }
 
-        if (data.type === "CDP_CLOSE") {
+        if (data.type === 'CDP_CLOSE') {
             this.isClosed = true;
             this.onclose?.();
         }
@@ -1133,7 +1134,7 @@ class SandboxCdpTransport {
     send(stringPayload) {
         if (this.isClosed) return;
         const payload = JSON.parse(stringPayload);
-        window.parent.postMessage({ type: "CDP_REQUEST", tabId: this.tabId, payload }, "*");
+        window.parent.postMessage({ type: 'CDP_REQUEST', tabId: this.tabId, payload }, '*');
     }
 
     /**
@@ -1142,9 +1143,9 @@ class SandboxCdpTransport {
     close() {
         this.isClosed ||
             ((this.isClosed = true),
-                window.removeEventListener("message", this.handleMessage),
-                window.parent.postMessage({ type: "CDP_DETACH", tabId: this.tabId }, "*"),
-                this.onclose?.());
+            window.removeEventListener('message', this.handleMessage),
+            window.parent.postMessage({ type: 'CDP_DETACH', tabId: this.tabId }, '*'),
+            this.onclose?.());
     }
 }
 
@@ -1166,7 +1167,7 @@ async function connectToPage(tabId) {
 
     if (cachedBrowser && cachedTabId !== tabId) {
         sandboxLog('closing previous connection for tab:', cachedTabId);
-        await withTimeout(cachedBrowser.close(), 5000, 'browser.close').catch((err) => {
+        await withTimeout(cachedBrowser.close(), 5000, 'browser.close').catch(err => {
             sandboxLog('browser.close error:', err?.message ?? err);
         });
         clearPageCache();
@@ -1192,12 +1193,12 @@ async function connectToPage(tabId) {
     const targets = browser.targets();
     sandboxLog(
         'initial targets:',
-        targets.map((t) => ({ type: t.type(), url: t.url() }))
+        targets.map(t => ({ type: t.type(), url: t.url() }))
     );
     sandboxLog('waiting for page target...');
 
     const pageTarget = await browser.waitForTarget(
-        (t) => {
+        t => {
             sandboxLog('checking target:', t.type(), t.url());
             return t.type() === 'page';
         },
@@ -1213,7 +1214,7 @@ async function connectToPage(tabId) {
     cachedTabId = tabId;
     // Trick to bypass waitForTimeout issue in browser
     if (page) {
-        page.waitForTimeout = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+        page.waitForTimeout = ms => new Promise(resolve => setTimeout(resolve, ms));
     }
     return page;
 }
@@ -1235,7 +1236,9 @@ async function waitForPageLoad(page, options = {}) {
             const readyState = await page.evaluate(() => document.readyState);
             if (readyState === 'complete') {
                 const waitTimeMs = Date.now() - start;
-                sandboxLog(`[waitForPageLoad] Ready after ${waitTimeMs}ms, readyState: ${readyState}`);
+                sandboxLog(
+                    `[waitForPageLoad] Ready after ${waitTimeMs}ms, readyState: ${readyState}`
+                );
                 return {
                     success: true,
                     readyState,
@@ -1244,8 +1247,8 @@ async function waitForPageLoad(page, options = {}) {
                     timedOut: false,
                 };
             }
-        } catch (_) { }
-        await new Promise((resolve) => setTimeout(resolve, pollInterval));
+        } catch (_) {}
+        await new Promise(resolve => setTimeout(resolve, pollInterval));
     }
 
     try {
@@ -1353,7 +1356,9 @@ async function collectSnapshot(page, options = {}) {
         try {
             const frameSnapshot = await injectSnapshotScript(target);
             const frameUrl = await getTargetUrl(target);
-            const iframeRefs = Array.isArray(frameSnapshot?.iframeRefs) ? frameSnapshot.iframeRefs : [];
+            const iframeRefs = Array.isArray(frameSnapshot?.iframeRefs)
+                ? frameSnapshot.iframeRefs
+                : [];
             const yaml = typeof frameSnapshot?.yaml === 'string' ? frameSnapshot.yaml : '';
 
             frames.set(frameRef, { yaml, iframeRefs, frameUrl });
@@ -1405,13 +1410,13 @@ async function collectSnapshot(page, options = {}) {
 
 async function getSnapshot(page, options = {}) {
     const snapshot = await collectSnapshot(page, options);
-    // sandboxLog('getSnapshot', snapshot);   
+    // sandboxLog('getSnapshot', snapshot);
     return snapshot.yaml;
 }
 
 async function getElementByRef(page, ref) {
     await page.evaluate(SNAPSHOT_SCRIPT);
-    return page.evaluateHandle((refId) => window.__ariaSnapshot_selectRef(refId), ref);
+    return page.evaluateHandle(refId => window.__ariaSnapshot_selectRef(refId), ref);
 }
 
 /**
@@ -1423,7 +1428,7 @@ async function getElementByRef(page, ref) {
 async function clearInput(handle) {
     await handle.focus();
     await handle.click({ clickCount: 4 });
-    await handle.evaluate((el) => {
+    await handle.evaluate(el => {
         const target = el.closest('input, textarea, [contenteditable]') || el;
         if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement) {
             target.select();
@@ -1437,7 +1442,7 @@ async function clearInput(handle) {
             }
         }
     });
-    await new Promise((resolve) => setTimeout(resolve, 50));
+    await new Promise(resolve => setTimeout(resolve, 50));
     await handle.press('Backspace');
 }
 
@@ -1460,7 +1465,7 @@ function sendWorkspaceRequest(config, operation, input) {
         const id = crypto.randomUUID();
         const timeoutMs = config.timeoutMs ?? 30000;
 
-        const onMessage = (event) => {
+        const onMessage = event => {
             if (!config.isValidSource(event)) return;
             const data = event.data;
             if (data?.type !== WORKSPACE_RESPONSE || data.id !== id) return;
@@ -1496,12 +1501,12 @@ function sendWorkspaceRequest(config, operation, input) {
  */
 function createWorkspaceClient(overrides = {}) {
     const config = {
-        postMessage: (payload) => {
+        postMessage: payload => {
             if (window.parent !== window) {
                 window.parent.postMessage(payload, parentOrigin);
             }
         },
-        isValidSource: (event) => event.source === window.parent,
+        isValidSource: event => event.source === window.parent,
         ...overrides,
     };
     return {
@@ -1554,12 +1559,12 @@ function createWorkspaceClient(overrides = {}) {
 
 function createWorkspaceRequestConfig(overrides = {}) {
     return {
-        postMessage: (payload) => {
+        postMessage: payload => {
             if (window.parent !== window) {
                 window.parent.postMessage(payload, parentOrigin);
             }
         },
-        isValidSource: (event) => event.source === window.parent,
+        isValidSource: event => event.source === window.parent,
         ...overrides,
     };
 }
@@ -1587,7 +1592,7 @@ function sendFsRequest(requestType, payload, timeoutMs = 30000) {
     return new Promise((resolve, reject) => {
         const id = crypto.randomUUID();
         const responseType = FS_RESPONSE_TYPES[requestType];
-        const onMessage = (event) => {
+        const onMessage = event => {
             if (event.source !== window.parent) return;
             const data = event.data;
             if (data?.type !== responseType || data.id !== id) return;
@@ -1611,7 +1616,7 @@ function sendFsRequest(requestType, payload, timeoutMs = 30000) {
 function sendBashRequest(command, cwd, timeoutMs = 60000) {
     return new Promise((resolve, reject) => {
         const id = crypto.randomUUID();
-        const onMessage = (event) => {
+        const onMessage = event => {
             if (event.source !== window.parent) return;
             const data = event.data;
             if (data?.type !== 'BASH_RESPONSE' || data.id !== id) return;
@@ -1647,28 +1652,28 @@ window.getSnapshot = getSnapshot;
 window.getElementByRef = getElementByRef;
 window.clearInput = clearInput;
 window.workspace = createWorkspaceClient();
-window.readFile = function(path) {
+window.readFile = function (path) {
     return sendFsRequest('FS_READ_REQUEST', { path }).then(res => res.content);
 };
-window.writeFile = function(path, content) {
+window.writeFile = function (path, content) {
     return sendFsRequest('FS_WRITE_REQUEST', { path, content });
 };
-window.listFiles = function(path) {
+window.listFiles = function (path) {
     return sendFsRequest('FS_LIST_REQUEST', { path }).then(res => res.entries);
 };
-window.deleteFile = function(path) {
+window.deleteFile = function (path) {
     return sendFsRequest('FS_DELETE_REQUEST', { path });
 };
-window.mkdir = function(path) {
+window.mkdir = function (path) {
     return sendFsRequest('FS_MKDIR_REQUEST', { path });
 };
-window.exists = function(path) {
+window.exists = function (path) {
     return sendFsRequest('FS_EXISTS_REQUEST', { path }).then(res => res.exists);
 };
-window.stat = function(path) {
+window.stat = function (path) {
     return sendFsRequest('FS_STAT_REQUEST', { path }).then(res => res.stat);
 };
-window.bash = function(command, options) {
+window.bash = function (command, options) {
     return sendBashRequest(command, options?.cwd);
 };
 
@@ -1689,7 +1694,7 @@ const _pathModule = {
         }
         return result.replace(/\/+/g, '/').replace(/(?!^)\/$/, '') || '/';
     },
-    dirname: (p) => {
+    dirname: p => {
         const parts = p.replace(/\/$/, '').split('/');
         parts.pop();
         return parts.join('/') || '/';
@@ -1699,13 +1704,13 @@ const _pathModule = {
         if (ext && base.endsWith(ext)) base = base.slice(0, -ext.length);
         return base;
     },
-    extname: (p) => {
+    extname: p => {
         const base = p.split('/').pop() || '';
         const dot = base.lastIndexOf('.');
         return dot > 0 ? base.slice(dot) : '';
     },
-    normalize: (p) => p.replace(/\/+/g, '/').replace(/(?!^)\/$/, '') || '/',
-    isAbsolute: (p) => p.startsWith('/'),
+    normalize: p => p.replace(/\/+/g, '/').replace(/(?!^)\/$/, '') || '/',
+    isAbsolute: p => p.startsWith('/'),
     relative: (from, to) => {
         const fromParts = from.replace(/\/$/, '').split('/').filter(Boolean);
         const toParts = to.replace(/\/$/, '').split('/').filter(Boolean);
@@ -1719,22 +1724,27 @@ const _pathModule = {
 const _fsPromises = {
     readFile: (path /*, options */) => window.readFile(path),
     writeFile: (path, content /*, options */) => {
-        const data = content instanceof Uint8Array
-            ? new TextDecoder().decode(content)
-            : (typeof content === 'string' ? content : String(content));
+        const data =
+            content instanceof Uint8Array
+                ? new TextDecoder().decode(content)
+                : typeof content === 'string'
+                  ? content
+                  : String(content);
         return window.writeFile(path, data);
     },
     appendFile: async (path, content /*, options */) => {
         let existing = '';
-        try { existing = await window.readFile(path); } catch (_) {}
+        try {
+            existing = await window.readFile(path);
+        } catch (_) {}
         const data = typeof content === 'string' ? content : String(content);
         return window.writeFile(path, existing + data);
     },
     readdir: (path /*, options */) => window.listFiles(path),
     mkdir: (path /*, options */) => window.mkdir(path),
-    unlink: (path) => window.deleteFile(path),
+    unlink: path => window.deleteFile(path),
     rm: (path /*, options */) => window.deleteFile(path),
-    stat: async (path) => {
+    stat: async path => {
         const s = await window.stat(path);
         return {
             ...s,
@@ -1746,10 +1756,9 @@ const _fsPromises = {
     access: async (path /*, mode */) => {
         const ok = await window.exists(path);
         if (!ok) {
-            throw Object.assign(
-                new Error(`ENOENT: no such file or directory, access '${path}'`),
-                { code: 'ENOENT' }
-            );
+            throw Object.assign(new Error(`ENOENT: no such file or directory, access '${path}'`), {
+                code: 'ENOENT',
+            });
         }
     },
     copyFile: async (src, dest) => {
@@ -1764,53 +1773,71 @@ const _fsPromises = {
 };
 
 const _syncNotSupported = (method, asyncAlt) => () => {
-    throw new Error(
-        `fs.${method} is not supported in the sandbox. Use: ${asyncAlt}`
-    );
+    throw new Error(`fs.${method} is not supported in the sandbox. Use: ${asyncAlt}`);
 };
 
-const _wrapCallback = (promiseFn) => (...args) => {
-    const callback = args[args.length - 1];
-    const promiseArgs = args.slice(0, -1);
-    promiseFn(...promiseArgs).then(result => callback(null, result)).catch(err => callback(err));
-};
+const _wrapCallback =
+    promiseFn =>
+    (...args) => {
+        const callback = args[args.length - 1];
+        const promiseArgs = args.slice(0, -1);
+        promiseFn(...promiseArgs)
+            .then(result => callback(null, result))
+            .catch(err => callback(err));
+    };
 
 const _fsModule = {
     promises: _fsPromises,
-    readFile:    _wrapCallback(_fsPromises.readFile),
-    writeFile:   _wrapCallback(_fsPromises.writeFile),
-    appendFile:  _wrapCallback(_fsPromises.appendFile),
-    readdir:     _wrapCallback(_fsPromises.readdir),
-    mkdir:       _wrapCallback(_fsPromises.mkdir),
-    unlink:      _wrapCallback(_fsPromises.unlink),
-    rm:          _wrapCallback(_fsPromises.rm),
-    stat:        _wrapCallback(_fsPromises.stat),
-    access:      _wrapCallback(_fsPromises.access),
-    copyFile:    _wrapCallback(_fsPromises.copyFile),
-    rename:      _wrapCallback(_fsPromises.rename),
-    existsSync:  _syncNotSupported('existsSync',  'await exists(path) or await fs.promises.access(path)'),
-    readFileSync: _syncNotSupported('readFileSync', 'await readFile(path) or await fs.promises.readFile(path)'),
-    writeFileSync: _syncNotSupported('writeFileSync', 'await writeFile(path, content) or await fs.promises.writeFile(path, content)'),
-    readdirSync: _syncNotSupported('readdirSync', 'await listFiles(path) or await fs.promises.readdir(path)'),
-    mkdirSync:   _syncNotSupported('mkdirSync',   'await mkdir(path) or await fs.promises.mkdir(path)'),
+    readFile: _wrapCallback(_fsPromises.readFile),
+    writeFile: _wrapCallback(_fsPromises.writeFile),
+    appendFile: _wrapCallback(_fsPromises.appendFile),
+    readdir: _wrapCallback(_fsPromises.readdir),
+    mkdir: _wrapCallback(_fsPromises.mkdir),
+    unlink: _wrapCallback(_fsPromises.unlink),
+    rm: _wrapCallback(_fsPromises.rm),
+    stat: _wrapCallback(_fsPromises.stat),
+    access: _wrapCallback(_fsPromises.access),
+    copyFile: _wrapCallback(_fsPromises.copyFile),
+    rename: _wrapCallback(_fsPromises.rename),
+    existsSync: _syncNotSupported(
+        'existsSync',
+        'await exists(path) or await fs.promises.access(path)'
+    ),
+    readFileSync: _syncNotSupported(
+        'readFileSync',
+        'await readFile(path) or await fs.promises.readFile(path)'
+    ),
+    writeFileSync: _syncNotSupported(
+        'writeFileSync',
+        'await writeFile(path, content) or await fs.promises.writeFile(path, content)'
+    ),
+    readdirSync: _syncNotSupported(
+        'readdirSync',
+        'await listFiles(path) or await fs.promises.readdir(path)'
+    ),
+    mkdirSync: _syncNotSupported('mkdirSync', 'await mkdir(path) or await fs.promises.mkdir(path)'),
 };
 
-window.require = function(moduleId) {
+window.require = function (moduleId) {
     switch (moduleId) {
-        case 'fs':          return _fsModule;
-        case 'fs/promises': return _fsPromises;
-        case 'path':        return _pathModule;
-        case 'os':          return {
-            homedir:  () => '/workspace',
-            tmpdir:   () => '/tmp',
-            platform: () => 'linux',
-            type:     () => 'Linux',
-            EOL:      '\n',
-        };
+        case 'fs':
+            return _fsModule;
+        case 'fs/promises':
+            return _fsPromises;
+        case 'path':
+            return _pathModule;
+        case 'os':
+            return {
+                homedir: () => '/workspace',
+                tmpdir: () => '/tmp',
+                platform: () => 'linux',
+                type: () => 'Linux',
+                EOL: '\n',
+            };
         default:
             throw new Error(
                 `Module '${moduleId}' is not available in the sandbox. ` +
-                `Available built-ins: 'fs', 'fs/promises', 'path', 'os'`
+                    `Available built-ins: 'fs', 'fs/promises', 'path', 'os'`
             );
     }
 };
@@ -1844,7 +1871,6 @@ function formatConsoleArg(value) {
     return String(value);
 }
 
-
 async function runEval(id, code, timeoutMs) {
     aborted = false;
     currentEvalId = id;
@@ -1856,7 +1882,7 @@ async function runEval(id, code, timeoutMs) {
     const originalError = console.error;
     const originalInfo = console.info;
 
-    const runWithTimeout = async (runner) => {
+    const runWithTimeout = async runner => {
         let timer;
         try {
             return await Promise.race([
@@ -1891,7 +1917,7 @@ async function runEval(id, code, timeoutMs) {
 
     let settled = false;
     const startTime = Date.now();
-    const done = async (result) => {
+    const done = async result => {
         if (settled) return;
         settled = true;
         console.log = originalLog;
@@ -1902,28 +1928,28 @@ async function runEval(id, code, timeoutMs) {
         finishCurrentEval = null;
         const end = Date.now();
         const executionTime = end - result.startTime;
-        const consoleOutput = chunks.length > 0 ? chunks.join(`\n`) : "(no console output)";
+        const consoleOutput = chunks.length > 0 ? chunks.join(`\n`) : '(no console output)';
         const output = result.hasError
             ? [
-                result.aborted ? '[Aborted]' : '[Error]',
-                result.output || '',
-                '',
-                '[Console Output]',
-                consoleOutput,
-                '',
-                '[Execution Time]',
-                `${executionTime}ms`,
-            ].join(`\n`)
+                  result.aborted ? '[Aborted]' : '[Error]',
+                  result.output || '',
+                  '',
+                  '[Console Output]',
+                  consoleOutput,
+                  '',
+                  '[Execution Time]',
+                  `${executionTime}ms`,
+              ].join(`\n`)
             : [
-                '[Console Output]',
-                consoleOutput,
-                '',
-                '[Return Value]',
-                result.output || '',
-                '',
-                '[Execution Time]',
-                `${executionTime}ms`,
-            ].join(`\n`);
+                  '[Console Output]',
+                  consoleOutput,
+                  '',
+                  '[Return Value]',
+                  result.output || '',
+                  '',
+                  '[Execution Time]',
+                  `${executionTime}ms`,
+              ].join(`\n`);
         sendToParent({
             type: 'EVAL_RESULT',
             id,
@@ -1951,13 +1977,13 @@ async function runEval(id, code, timeoutMs) {
         }
     } catch (err) {
         if (!settled && currentEvalId === id) {
-            const output = err instanceof Error ? (err.message || String(err)) : String(err);
+            const output = err instanceof Error ? err.message || String(err) : String(err);
             await finish({ output, hasError: true, aborted });
         }
     }
 }
 
-window.addEventListener('message', (event) => {
+window.addEventListener('message', event => {
     const msg = event.data;
     if (!msg || typeof msg !== 'object' || !msg.type) return;
 
@@ -1976,7 +2002,12 @@ window.addEventListener('message', (event) => {
 
         case 'ABORT':
             aborted = true;
-            if (finishCurrentEval) void finishCurrentEval({ output: 'Execution aborted by user', hasError: true, aborted: true });
+            if (finishCurrentEval)
+                void finishCurrentEval({
+                    output: 'Execution aborted by user',
+                    hasError: true,
+                    aborted: true,
+                });
             break;
 
         default:

@@ -1,4 +1,5 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import type { ConnectorLike } from 'core/connector';
 import { cacheManager, CACHE_CONFIG } from 'shared/cacheManager';
 import {
     createDefaultProviderConfigMap,
@@ -10,7 +11,6 @@ import {
     type LlmProviderCatalog,
     type LlmProviderConfigMap,
 } from 'shared/llm';
-import type { ConnectorLike } from 'core/connector';
 
 const saveSession = value => {
     sessionStorage.setItem('currentConnection', JSON.stringify(value));

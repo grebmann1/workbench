@@ -1,5 +1,5 @@
-import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { test } from 'node:test';
 
 // platformService (transitive dep) reads window globals; stub before importing.
 (globalThis as unknown as { window: Record<string, unknown> }).window = {};

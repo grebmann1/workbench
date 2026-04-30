@@ -1,5 +1,6 @@
-import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { test } from 'node:test';
+
 import {
     createConnectionMock,
     createConnectorMock,
@@ -112,10 +113,7 @@ test('createConnectorMock: extra configuration keys override defaults', () => {
 test('createConnectorMock: frontDoorUrl builds a session redirect', () => {
     const connector = createConnectorMock();
     const url = connector.frontDoorUrl();
-    assert.equal(
-        url,
-        'https://test.my.salesforce.com/secur/frontdoor.jsp?sid=mock-access-token'
-    );
+    assert.equal(url, 'https://test.my.salesforce.com/secur/frontdoor.jsp?sid=mock-access-token');
 });
 
 test('withConnectionOverride: mutates a single method of an existing connection', async () => {

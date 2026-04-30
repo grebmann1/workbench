@@ -106,10 +106,7 @@ export function normalizeWorkspaceRoot(
     return normalized ? `/${normalized}` : defaultRoot;
 }
 
-export function normalizeSfApiVersion(
-    apiVersion: unknown,
-    fallback = DEFAULT_SOURCE_API_VERSION
-) {
+export function normalizeSfApiVersion(apiVersion: unknown, fallback = DEFAULT_SOURCE_API_VERSION) {
     const normalizedFallback =
         String(fallback ?? DEFAULT_SOURCE_API_VERSION).trim() || DEFAULT_SOURCE_API_VERSION;
     const normalizedValue = String(apiVersion ?? '').trim();
@@ -181,7 +178,10 @@ export function deriveConnectionWorkspaceRoot(
 // ── Connection record ────────────────────────────────────────────────────────
 
 function buildConnectionFromConnector(
-    connector: { conn?: Record<string, unknown>; configuration?: Record<string, unknown> } | null | undefined,
+    connector:
+        | { conn?: Record<string, unknown>; configuration?: Record<string, unknown> }
+        | null
+        | undefined,
     fallbackApiVersion = DEFAULT_SOURCE_API_VERSION
 ) {
     const liveConnection = (connector?.conn as Record<string, unknown>) ?? null;
@@ -213,9 +213,7 @@ function buildConnectionFromConnector(
             userInfo.organization_name
     );
     const organizationType = normalizeOrganizationType(
-        liveConnection.organizationType ||
-            configuration.organizationType ||
-            configuration.orgType
+        liveConnection.organizationType || configuration.organizationType || configuration.orgType
     );
     const apiVersion = toStringValue(
         liveConnection.version ||
@@ -271,7 +269,10 @@ export function buildWorkbenchConnection(
     } = {}
 ) {
     const connection = buildConnectionFromConnector(
-        connector as { conn?: Record<string, unknown>; configuration?: Record<string, unknown> } | null,
+        connector as {
+            conn?: Record<string, unknown>;
+            configuration?: Record<string, unknown>;
+        } | null,
         sfApiVersion
     );
     if (!connection) return null;
@@ -355,9 +356,9 @@ export function hasUsableConnection(
 ) {
     return Boolean(
         connection?.instanceUrl &&
-            connection?.accessToken &&
-            !connection?.sessionHasExpired &&
-            !connection?.hasError
+        connection?.accessToken &&
+        !connection?.sessionHasExpired &&
+        !connection?.hasError
     );
 }
 
@@ -427,8 +428,7 @@ export function buildOrgContext(connection: Record<string, unknown> = {}) {
     const safeConnection =
         connection && typeof connection === 'object' ? (connection as Record<string, unknown>) : {};
     const hasConnection = Boolean(
-        safeConnection.hasConnection ||
-            (safeConnection.instanceUrl && safeConnection.accessToken)
+        safeConnection.hasConnection || (safeConnection.instanceUrl && safeConnection.accessToken)
     );
 
     const organizationType = normalizeText(safeConnection.organizationType);

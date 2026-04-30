@@ -5,7 +5,10 @@ type NavigateTarget = string | Record<string, unknown>;
 type ActionSource = string;
 
 type LoginAction = { type: typeof CONST.LOGIN; payload: { connector: Connector } };
-type UpdateIdentityAction = { type: typeof CONST.UPDATE_IDENTITY; payload: { connector: Connector } };
+type UpdateIdentityAction = {
+    type: typeof CONST.UPDATE_IDENTITY;
+    payload: { connector: Connector };
+};
 type LogoutAction = { type: typeof CONST.LOGOUT };
 type NavigateAction = { type: typeof CONST.NAVIGATE; payload: { target: NavigateTarget } };
 type FakeNavigateAction = { type: typeof CONST.FAKE_NAVIGATE; payload: { target: NavigateTarget } };

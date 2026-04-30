@@ -1,8 +1,8 @@
-import Toast from 'lightning/toast';
 import { credentialStrategies, OAUTH_TYPES } from 'core/connector';
-import { store, APPLICATION } from 'core/store';
-import LOGGER from 'shared/logger';
 import type { ConnectorLike } from 'core/connector';
+import { store, APPLICATION } from 'core/store';
+import Toast from 'lightning/toast';
+import LOGGER from 'shared/logger';
 
 type QuickConnectOptions = {
     setLoading?: (message: string) => void;

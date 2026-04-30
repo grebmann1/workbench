@@ -1,5 +1,6 @@
 import logger from 'shared/middleware';
 
+import { configureStore, createInjectableStore } from './createInjectableStore';
 import {
     EINSTEIN,
     AGENT,
@@ -15,7 +16,6 @@ import {
 } from './modules/index';
 import { reportError } from './reportError';
 import { storeRef } from './storeRef';
-import { configureStore, createInjectableStore } from './createInjectableStore';
 
 // Static reducers (core host). Typed as a literal so `combineReducers` can
 // infer the precise RootState shape — replacing this with
@@ -39,57 +39,49 @@ const staticReducers = {
     textCompare: TEXTCOMPARE.reduxSlice.reducer,
 };
 
-const { store, injectReducer, removeReducer } = createInjectableStore(
-    staticReducers,
-    rootReducer =>
-        configureStore({
-            reducer: rootReducer,
-            middleware: getDefaultMiddleware => {
-                const middlewares = getDefaultMiddleware({
-                    serializableCheck: {
-                        // Ignore these action types
-                        ignoredActions: [
-                            'application/updateConnector',
-                            'application/login',
-                            'einstein/executeModel',
-                            'einstein/executeModel/rejected',
-                            'einstein/executeModel/fulfilled',
-                            'einstein/executeModel/pending',
-                            'application/updateCurrentApplication',
-                            'platformEvent/updateReadStatusOnSpecificMessage',
-                            'describe/describeVersion',
-                            'describe/describeSObjects/fulfilled',
-                            'describe/describeSObjects/pending',
-                            'describe/describeSObjects/rejected',
-                            'metadata/fetchSpecificMetadata/fulfilled',
-                            'metadata/fetchSpecificMetadata/pending',
-                            'metadata/fetchSpecificMetadata/rejected',
-                            'metadata/fetchGlobalMetadata/fulfilled',
-                            'metadata/fetchGlobalMetadata/pending',
-                            'metadata/fetchGlobalMetadata/rejected',
-                            'metadata/setAttributes',
-                        ],
-                        // Ignore these field paths in all actions
-                        ignoredActionPaths: [
-                            'meta.arg',
-                            'payload.Connector',
-                            'payload.connector',
-                        ],
-                        // Ignore these paths in the state
-                        ignoredPaths: [
-                            'application.connector',
-                            'package2.currentRetrieveJob.createdDate',
-                            'payload.connector',
-                            'metadata.metadata_global',
-                        ],
-                    },
-                });
-                return process.env.NODE_ENV !== 'production'
-                    ? middlewares.concat(logger)
-                    : middlewares;
-            },
-            devTools: process.env.NODE_ENV !== 'production',
-        })
+const { store, injectReducer, removeReducer } = createInjectableStore(staticReducers, rootReducer =>
+    configureStore({
+        reducer: rootReducer,
+        middleware: getDefaultMiddleware => {
+            const middlewares = getDefaultMiddleware({
+                serializableCheck: {
+                    // Ignore these action types
+                    ignoredActions: [
+                        'application/updateConnector',
+                        'application/login',
+                        'einstein/executeModel',
+                        'einstein/executeModel/rejected',
+                        'einstein/executeModel/fulfilled',
+                        'einstein/executeModel/pending',
+                        'application/updateCurrentApplication',
+                        'platformEvent/updateReadStatusOnSpecificMessage',
+                        'describe/describeVersion',
+                        'describe/describeSObjects/fulfilled',
+                        'describe/describeSObjects/pending',
+                        'describe/describeSObjects/rejected',
+                        'metadata/fetchSpecificMetadata/fulfilled',
+                        'metadata/fetchSpecificMetadata/pending',
+                        'metadata/fetchSpecificMetadata/rejected',
+                        'metadata/fetchGlobalMetadata/fulfilled',
+                        'metadata/fetchGlobalMetadata/pending',
+                        'metadata/fetchGlobalMetadata/rejected',
+                        'metadata/setAttributes',
+                    ],
+                    // Ignore these field paths in all actions
+                    ignoredActionPaths: ['meta.arg', 'payload.Connector', 'payload.connector'],
+                    // Ignore these paths in the state
+                    ignoredPaths: [
+                        'application.connector',
+                        'package2.currentRetrieveJob.createdDate',
+                        'payload.connector',
+                        'metadata.metadata_global',
+                    ],
+                },
+            });
+            return process.env.NODE_ENV !== 'production' ? middlewares.concat(logger) : middlewares;
+        },
+        devTools: process.env.NODE_ENV !== 'production',
+    })
 );
 
 storeRef.current = store;

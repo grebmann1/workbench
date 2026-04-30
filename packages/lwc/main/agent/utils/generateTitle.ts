@@ -1,7 +1,8 @@
 import { generateText } from 'ai';
-import { createProviderInstance, resolveProviderModelInstance } from './providerRuntime';
-import { getSummaryModelForAgentProvider } from './models';
 import LOGGER from 'shared/logger';
+
+import { getSummaryModelForAgentProvider } from './models';
+import { createProviderInstance, resolveProviderModelInstance } from './providerRuntime';
 
 const TITLE_PROMPT =
     'Generate a short, descriptive title (3-6 words) for a conversation that starts with this message. Return only the title, no quotes or punctuation:\n\n';

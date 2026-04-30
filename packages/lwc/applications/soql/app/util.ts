@@ -1,5 +1,5 @@
-import LightningConfirm from 'lightning/confirm';
 import { store } from 'host-api/store';
+import LightningConfirm from 'lightning/confirm';
 import { UI } from 'soql/slices';
 
 export const escapeCsvValue = (separator: string, value: unknown) => {

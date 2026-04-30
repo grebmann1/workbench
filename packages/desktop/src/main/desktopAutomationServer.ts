@@ -6,9 +6,9 @@ import {
     type DesktopCommand,
     type DesktopRoute,
 } from './desktopCommand';
+import type { DesktopLegacyBus } from './desktopLegacyBus';
 import { desktopLog } from './desktopLogger';
 import { getAllOrgs, getStoredOrg, seeOrgDetails } from './desktopServices';
-import type { DesktopLegacyBus } from './desktopLegacyBus';
 import type { WindowManager } from './windowManager';
 
 type DesktopAutomationServerOptions = {

@@ -1,5 +1,10 @@
+import type { ConnectorLike } from 'host-api/connector';
+import { reportError, store, connectStore } from 'host-api/store';
 import LightningModal from 'lightning/modal';
+import Toast from 'lightning/toast';
 import { api, wire } from 'lwc';
+import moment from 'moment';
+import { PACKAGE } from 'package/slices';
 import {
     lowerCaseKey,
     isUndefinedOrNull,
@@ -12,11 +17,6 @@ import {
     splitTextByTimestamp,
     API as API_UTILS,
 } from 'shared/utils';
-import { reportError, store, connectStore } from 'host-api/store';
-import { PACKAGE } from 'package/slices';
-import Toast from 'lightning/toast';
-import moment from 'moment';
-import type { ConnectorLike } from 'host-api/connector';
 
 const TESTLEVEL = {
     NoTestRun: 'NoTestRun',
@@ -196,7 +196,7 @@ export default class ModalDeploy extends LightningModal {
 
     fetchTaskForWorker = (): { options: Record<string, any>; zip64: string | null } => {
         const options: Record<string, any> = {};
-        let inputFields = this.template.querySelectorAll('.deployment-option');
+        const inputFields = this.template.querySelectorAll('.deployment-option');
         inputFields.forEach(inputField => {
             if (inputField.type === 'checkbox') {
                 options[inputField.name] = inputField.checked;
@@ -233,7 +233,7 @@ export default class ModalDeploy extends LightningModal {
 
     global_handleError = (e: any): void => {
         reportError(e, { source: 'package-deploy' });
-        let errors = e.message.split(':');
+        const errors = e.message.split(':');
         if (errors.length > 1) {
             this.error_title = errors.shift();
         } else {

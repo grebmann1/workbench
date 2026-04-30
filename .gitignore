@@ -3,6 +3,10 @@
 .env
 .env.dev
 .env.prod
+# .env.dev.ci contains only placeholder values and ships with the repo
+# so the CI e2e-smoke job can boot the Express server without needing
+# any secrets. Real credentials live in repository secrets.
+!/.env.dev.ci
 # apps/ui env files hold only public URLs (no secrets) and must ship with the repo
 # so cross-app links resolve correctly in dev and prod builds.
 !/apps/ui/.env

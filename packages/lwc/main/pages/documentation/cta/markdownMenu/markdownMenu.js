@@ -1,6 +1,7 @@
 import { api, LightningElement } from 'lwc';
-import { isEmpty } from 'shared/utils';
 import { marked } from 'shared/markdown';
+import { isEmpty } from 'shared/utils';
+
 import { structurizedMarkdown } from './utils';
 export default class MarkdownMenu extends LightningElement {
     init = false;
@@ -53,7 +54,6 @@ export default class MarkdownMenu extends LightningElement {
     }
 
     setMarkdown(markdown) {
-        // eslint-disable-next-line @lwc/lwc/no-inner-html
         this.refs.container.innerHTML = marked()(markdown);
         if (this.isMenu) this.runAsMenu();
     }

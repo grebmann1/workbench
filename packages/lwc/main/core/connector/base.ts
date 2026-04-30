@@ -1,13 +1,13 @@
 import constant from 'core/constant';
 import { isUndefinedOrNull, isEmpty } from 'shared/utils';
 
-import { PLATFORM } from './platform';
 import { OAUTH_TYPES } from './credentialStrategies/oauthTypes';
+import { PLATFORM } from './platform';
 
 /** Legacy Functions/Methods **/
 
 export const extractName = alias => {
-    let nameArray = (alias || '').split('-');
+    const nameArray = (alias || '').split('-');
     return {
         company: nameArray.length > 1 ? nameArray.shift() : '',
         name: nameArray.join('-'),
@@ -82,7 +82,7 @@ export const getSalesforceURL = origin => {
 
 export function validateInputs(template, selector) {
     let isValid = true;
-    let inputFields = template.querySelectorAll(selector);
+    const inputFields = template.querySelectorAll(selector);
     inputFields.forEach(inputField => {
         if (!inputField.checkValidity()) {
             inputField.reportValidity();
@@ -253,14 +253,12 @@ export function normalizeOrganizationType({
 }
 
 export const normalizeConnection = (credentialType, rawData, platform, extra = {}) => {
-    let params = {
+    const params = {
         instanceUrl: rawData.instanceUrl,
         accessToken: rawData.accessToken,
         sessionId: rawData.sessionId,
         proxyUrl:
-            extra.isProxyDisabled ||
-            platform === PLATFORM.CHROME ||
-            platform === PLATFORM.ELECTRON
+            extra.isProxyDisabled || platform === PLATFORM.CHROME || platform === PLATFORM.ELECTRON
                 ? null
                 : window.jsforceSettings?.proxyUrl, // For chrome extension, we run without proxy
         version: rawData.version || constant.apiVersion, // This might need to be refactored
@@ -429,7 +427,10 @@ export const buildConnectionFromConnector = (connector, fallbackApiVersion = '')
     const instanceUrl = connector.conn.instanceUrl || configuration.instanceUrl || '';
     const organizationType = normalizeOrganizationType({
         organizationType:
-            configuration.organizationType || configuration.orgType || userInfo.organization_type || '',
+            configuration.organizationType ||
+            configuration.orgType ||
+            userInfo.organization_type ||
+            '',
         isSandbox: configuration.isSandbox ?? configuration.sandbox ?? null,
         isScratch: configuration.isScratch ?? configuration.scratch ?? null,
         instanceUrl,
@@ -453,7 +454,10 @@ export const buildConnectionFromConnector = (connector, fallbackApiVersion = '')
         userId: userInfo.user_id || userInfo.id || configuration.userId || '',
         orgId: configuration.orgId || userInfo.organization_id || '',
         organizationName:
-            configuration.organizationName || configuration.orgName || userInfo.organization_name || '',
+            configuration.organizationName ||
+            configuration.orgName ||
+            userInfo.organization_name ||
+            '',
         organizationType,
         isScratch,
         isSandbox,

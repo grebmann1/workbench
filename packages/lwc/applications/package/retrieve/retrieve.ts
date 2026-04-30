@@ -1,5 +1,10 @@
-import { api, track, wire } from 'lwc';
 import ToolkitElement from 'host-api/element';
+import { reportError, store, connectStore } from 'host-api/store';
+import Toast from 'lightning/toast';
+import { api, track, wire } from 'lwc';
+import moment from 'moment';
+import { PACKAGE } from 'package/slices';
+import { TEMPLATE } from 'package/utils';
 import {
     lowerCaseKey,
     isUndefinedOrNull,
@@ -15,11 +20,6 @@ import {
     isChromeExtension,
     API as API_UTILS,
 } from 'shared/utils';
-import { reportError, store, connectStore } from 'host-api/store';
-import { PACKAGE } from 'package/slices';
-import Toast from 'lightning/toast';
-import moment from 'moment';
-import { TEMPLATE } from 'package/utils';
 
 type AnyRecord = Record<string, any>;
 
@@ -347,7 +347,7 @@ export default class Retrieve extends ToolkitElement {
 
     fetchTaskForWorker = (): { options: AnyRecord } => {
         const options = {};
-        let inputFields = this.template.querySelectorAll('.deployment-option');
+        const inputFields = this.template.querySelectorAll('.deployment-option');
         inputFields.forEach(inputField => {
             if (inputField.type === 'checkbox') {
                 options[inputField.name] = inputField.checked;
@@ -422,7 +422,7 @@ export default class Retrieve extends ToolkitElement {
 
     global_handleError = e => {
         reportError(e, { source: 'package-retrieve' });
-        let errors = e.message.split(':');
+        const errors = e.message.split(':');
         if (errors.length > 1) {
             this.error_title = errors.shift();
         } else {

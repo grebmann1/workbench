@@ -1,5 +1,5 @@
-import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { test } from 'node:test';
 
 function stubWindow(language: string) {
     (globalThis as unknown as { window: { navigator: { language: string } } }).window = {

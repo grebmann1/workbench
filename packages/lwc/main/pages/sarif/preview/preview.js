@@ -1,5 +1,5 @@
-import { LightningElement, api } from 'lwc';
 import hljs from 'highlight.js';
+import { LightningElement, api } from 'lwc';
 
 export default class Preview extends LightningElement {
     @api file;

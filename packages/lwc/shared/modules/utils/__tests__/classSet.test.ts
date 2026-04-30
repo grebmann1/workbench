@@ -1,5 +1,6 @@
-import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { test } from 'node:test';
+
 import { classSet } from '../classSet.ts';
 
 test('classSet: seeded from a string marks the class true', () => {

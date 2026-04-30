@@ -264,7 +264,12 @@ function transactionDonePromise(transaction) {
     });
 }
 
-function toStoredFileEntry(path, bytes, mode = DEFAULT_FILE_MODE, mtimeMs = Date.now()): StoredFileEntry {
+function toStoredFileEntry(
+    path,
+    bytes,
+    mode = DEFAULT_FILE_MODE,
+    mtimeMs = Date.now()
+): StoredFileEntry {
     return {
         path,
         type: 'file',
@@ -275,7 +280,11 @@ function toStoredFileEntry(path, bytes, mode = DEFAULT_FILE_MODE, mtimeMs = Date
     };
 }
 
-function toStoredDirectoryEntry(path, mode = DEFAULT_DIRECTORY_MODE, mtimeMs = Date.now()): StoredDirectoryEntry {
+function toStoredDirectoryEntry(
+    path,
+    mode = DEFAULT_DIRECTORY_MODE,
+    mtimeMs = Date.now()
+): StoredDirectoryEntry {
     return {
         path,
         type: 'directory',
@@ -284,7 +293,12 @@ function toStoredDirectoryEntry(path, mode = DEFAULT_DIRECTORY_MODE, mtimeMs = D
     };
 }
 
-function toStoredSymlinkEntry(path, target, mode = DEFAULT_SYMLINK_MODE, mtimeMs = Date.now()): StoredSymlinkEntry {
+function toStoredSymlinkEntry(
+    path,
+    target,
+    mode = DEFAULT_SYMLINK_MODE,
+    mtimeMs = Date.now()
+): StoredSymlinkEntry {
     return {
         path,
         type: 'symlink',
@@ -415,9 +429,13 @@ export class IndexedDbFileSystem {
             if (existing) continue;
 
             const mode =
-                value && typeof (value as any).mode === 'number' ? (value as any).mode : DEFAULT_FILE_MODE;
+                value && typeof (value as any).mode === 'number'
+                    ? (value as any).mode
+                    : DEFAULT_FILE_MODE;
             const mtimeMs =
-                value && (value as any).mtime instanceof Date ? (value as any).mtime.getTime() : Date.now();
+                value && (value as any).mtime instanceof Date
+                    ? (value as any).mtime.getTime()
+                    : Date.now();
             await this.writeFileInternal(path, (value as any)?.content ?? '', {
                 mode,
                 mtimeMs,
@@ -746,9 +764,15 @@ export class IndexedDbFileSystem {
         const normalizedExistingPath = normalizeAbsolutePath(existingPath);
         const normalizedNewPath = normalizeAbsolutePath(newPath);
         return this.runMutation(async () => {
-            const source = await this.resolveEntry(normalizedExistingPath, { followSymlinks: true });
+            const source = await this.resolveEntry(normalizedExistingPath, {
+                followSymlinks: true,
+            });
             if (source.type !== 'file') {
-                throw createFsError('EPERM', 'Hard links are only supported for files', existingPath);
+                throw createFsError(
+                    'EPERM',
+                    'Hard links are only supported for files',
+                    existingPath
+                );
             }
             await this.assertParentDirectory(normalizedNewPath);
             const existing = await this.getEntry(normalizedNewPath);

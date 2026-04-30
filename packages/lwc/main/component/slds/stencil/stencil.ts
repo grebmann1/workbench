@@ -36,7 +36,7 @@ export default class SldsStencil extends LightningElement {
     }
 
     get items() {
-        let itemArray = [];
+        const itemArray = [];
         for (let i = 0; i < this.count; i++) {
             itemArray.push(i.toString());
         }

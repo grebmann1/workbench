@@ -12,29 +12,40 @@ export interface TestStore {
     reset(): void;
 }
 
-export function createTestStore({ reducers = {}, preloadedState, middlewares = [] }: TestStoreOptions = {}): TestStore {
+export function createTestStore({
+    reducers = {},
+    preloadedState,
+    middlewares = [],
+}: TestStoreOptions = {}): TestStore {
     const dispatched: AnyAction[] = [];
     const recorder: Middleware = () => next => action => {
         dispatched.push(action as AnyAction);
         return next(action);
     };
-    const finalReducers = Object.keys(reducers).length > 0 ? reducers : { _noop: (s: unknown = null) => s };
+    const finalReducers =
+        Object.keys(reducers).length > 0 ? reducers : { _noop: (s: unknown = null) => s };
     const store = configureStore({
         reducer: finalReducers as Record<string, Reducer>,
         preloadedState,
-        middleware: getDefault => getDefault({ serializableCheck: false, immutableCheck: false }).concat(recorder, ...middlewares),
+        middleware: getDefault =>
+            getDefault({ serializableCheck: false, immutableCheck: false }).concat(
+                recorder,
+                ...middlewares
+            ),
     });
     return {
         store,
         dispatched,
-        reset() { dispatched.length = 0; },
+        reset() {
+            dispatched.length = 0;
+        },
     };
 }
 
 export async function waitForState<T>(
     store: { getState: () => unknown; subscribe: (l: () => void) => () => void },
     predicate: (state: unknown) => T | undefined | false,
-    { timeoutMs = 500 }: { timeoutMs?: number } = {},
+    { timeoutMs = 500 }: { timeoutMs?: number } = {}
 ): Promise<T> {
     const initial = predicate(store.getState());
     if (initial) return initial;

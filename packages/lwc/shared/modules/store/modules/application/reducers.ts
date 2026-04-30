@@ -1,4 +1,5 @@
 import * as CONST from '../../constants';
+
 import type { ApplicationAction } from './actions';
 
 type ApplicationState = {

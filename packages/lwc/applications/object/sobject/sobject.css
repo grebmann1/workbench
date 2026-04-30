@@ -102,7 +102,9 @@ tr:hover .copy-btn {
     border-radius: 50%;
     cursor: pointer;
     color: var(--slds-g-color-neutral-base-50, #706e6b);
-    transition: background 0.15s, color 0.15s;
+    transition:
+        background 0.15s,
+        color 0.15s;
 }
 
 .extra-toggle-btn:hover {
@@ -170,10 +172,22 @@ tr:hover .copy-btn {
     white-space: nowrap;
 }
 
-.cap-green  { background: #ecfdf5; color: #2e7d32; }
-.cap-blue   { background: #e8f4fd; color: #0070d2; }
-.cap-purple { background: #f4f0fb; color: #6b21a8; }
-.cap-red    { background: #fef2f2; color: #c0392b; }
+.cap-green {
+    background: #ecfdf5;
+    color: #2e7d32;
+}
+.cap-blue {
+    background: #e8f4fd;
+    color: #0070d2;
+}
+.cap-purple {
+    background: #f4f0fb;
+    color: #6b21a8;
+}
+.cap-red {
+    background: #fef2f2;
+    color: #c0392b;
+}
 
 /* Detail row key/value lines */
 .field-detail-row {

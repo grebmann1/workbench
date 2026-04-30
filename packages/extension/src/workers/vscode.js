@@ -30,4 +30,3 @@ export async function handleVscodeBackgroundMessage(message, api) {
     }
     return undefined;
 }
-

@@ -1,5 +1,5 @@
-import { api, track } from 'lwc';
 import ToolkitElement from 'core/toolkitElement';
+import { api, track } from 'lwc';
 import {
     isEmpty,
     isElectronApp,

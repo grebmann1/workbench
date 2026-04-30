@@ -16,12 +16,8 @@ export function sortObjectsByField<T extends Record<string, unknown>, K extends 
     // Sort function
     return objects.sort((a, b) => {
         // Get the order index, default to a large number if the item is not in the order array
-        const orderA = orderMap.hasOwnProperty(String(a[field]))
-            ? orderMap[String(a[field])]
-            : 999;
-        const orderB = orderMap.hasOwnProperty(String(b[field]))
-            ? orderMap[String(b[field])]
-            : 999;
+        const orderA = orderMap.hasOwnProperty(String(a[field])) ? orderMap[String(a[field])] : 999;
+        const orderB = orderMap.hasOwnProperty(String(b[field])) ? orderMap[String(b[field])] : 999;
 
         // Compare the order indices
         return orderA - orderB;

@@ -1,5 +1,6 @@
-import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { test } from 'node:test';
+
 import {
     registerCommand,
     invokeCommand,
@@ -102,8 +103,14 @@ test('concurrent invocations resolve independently with their own payloads', asy
 test('handlers registered to different ids do not share payload state', async () => {
     __resetCommandsForTests();
     const seen = [];
-    registerCommand('alpha', p => { seen.push(['alpha', p]); return 'alpha-result'; });
-    registerCommand('beta', p => { seen.push(['beta', p]); return 'beta-result'; });
+    registerCommand('alpha', p => {
+        seen.push(['alpha', p]);
+        return 'alpha-result';
+    });
+    registerCommand('beta', p => {
+        seen.push(['beta', p]);
+        return 'beta-result';
+    });
 
     const [a, b] = await Promise.all([
         invokeCommand('alpha', { n: 1 }),
@@ -113,7 +120,10 @@ test('handlers registered to different ids do not share payload state', async ()
     assert.equal(b, 'beta-result');
     assert.deepEqual(
         seen.sort((x, y) => x[0].localeCompare(y[0])),
-        [['alpha', { n: 1 }], ['beta', { n: 2 }]],
+        [
+            ['alpha', { n: 1 }],
+            ['beta', { n: 2 }],
+        ]
     );
 });
 

@@ -1,4 +1,5 @@
 name: test
+# Required status checks on master: unit, build, e2e-smoke, e2e-extension.
 on:
   pull_request:
     branches: [master]
@@ -48,13 +49,13 @@ jobs:
           node-version: '22.14'
           cache: 'npm'
       - run: npm ci --no-audit --no-fund
-      - name: Write placeholder .env.dev for the API server
-        run: |
-          cat > .env.dev <<'EOF'
-          CLIENT_ID=e2e_placeholder
-          CLIENT_SECRET=e2e_placeholder
-          PORT=3000
-          EOF
+      - name: Install apps/ui deps (landing site)
+        run: npm --prefix apps/ui ci --no-audit --no-fund
+      - name: Copy .env.dev.ci into place for the API server
+        # .env.dev.ci ships with the repo and only contains placeholder
+        # values — sufficient for /config to respond and for the OAuth
+        # routes to 4xx without a real `code` param.
+        run: cp .env.dev.ci .env.dev
       - run: npx playwright install --with-deps chromium
       - name: Start API server (port 3000)
         run: npm run start:dev:server &
@@ -80,6 +81,36 @@ jobs:
         if: failure()
         with:
           name: playwright-report
+          path: packages/tests-e2e/playwright-report
+          if-no-files-found: ignore
+          retention-days: 7
+
+  e2e-extension:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.14'
+          cache: 'npm'
+      - run: npm ci --no-audit --no-fund
+      - name: Build extension
+        run: npm run build:extension:main
+      - name: Install Playwright bundled Chromium
+        # Use Playwright's bundled Chromium (not Chrome for Testing).
+        # Chrome 137+ removed --load-extension from branded builds, which
+        # is why we can't use channel: 'chrome' for MV3 extension tests.
+        run: npx playwright install --with-deps chromium
+      - name: Run extension specs under xvfb
+        # MV3 extensions require headed mode. xvfb provides a virtual
+        # display on the headless Ubuntu runner.
+        run: xvfb-run --auto-servernum --server-args='-screen 0 1920x1080x24' npm run test:e2e:ext
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-ext-report
           path: packages/tests-e2e/playwright-report
           if-no-files-found: ignore
           retention-days: 7

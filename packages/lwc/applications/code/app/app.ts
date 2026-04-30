@@ -1,5 +1,3 @@
-import { track } from 'lwc';
-import { decodeError, getVscodeEditorUrl, isNotUndefinedOrNull } from 'shared/utils';
 import {
     exportDesktopMetadata,
     getDesktopCodeInitialConfig,
@@ -8,7 +6,9 @@ import {
     selectDesktopCodeProject,
 } from 'host-api/desktopBridge';
 import ToolkitElement from 'host-api/element';
+import { track } from 'lwc';
 import Analytics from 'shared/analytics';
+import { decodeError, getVscodeEditorUrl, isNotUndefinedOrNull } from 'shared/utils';
 
 export default class App extends ToolkitElement {
     isLoading = false;

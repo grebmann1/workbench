@@ -1,14 +1,9 @@
 import { createSlice, createAsyncThunk, createEntityAdapter } from '@reduxjs/toolkit';
-import {
-    lowerCaseKey,
-    guid,
-    isNotUndefinedOrNull,
-    METADATA as METADATA_UTILS,
-} from 'shared/utils';
-import { BACKGROUNDJOB, DESCRIBE, ERROR } from 'host-api/store';
-import { loadSpecificMetadata, loadSpecificMetadataException } from 'metadata/slices/metadata';
 import { getStore } from 'core/store/storeRef';
 import type { ConnectorLike, ConnectionLike } from 'host-api/connector';
+import { BACKGROUNDJOB, DESCRIBE, ERROR } from 'host-api/store';
+import { loadSpecificMetadata, loadSpecificMetadataException } from 'metadata/slices/metadata';
+import { lowerCaseKey, guid, isNotUndefinedOrNull, METADATA as METADATA_UTILS } from 'shared/utils';
 
 const PACKAGE_SETTINGS_KEY = 'PACKAGE_SETTINGS_KEY';
 
@@ -107,7 +102,9 @@ export const executePackageDeploy = createAsyncThunk(
                     ...job,
                     phase: 'done',
                     message: 'Package deployment finished',
-                    resultSummary: result?.status ? `Status: ${result.status}` : 'Deployment finished',
+                    resultSummary: result?.status
+                        ? `Status: ${result.status}`
+                        : 'Deployment finished',
                     updatedAt: Date.now(),
                 })
             );
@@ -138,7 +135,7 @@ const _retrievePackage = (
         const requestPromise = metadataApi.retrieve(request);
         // Temporary solution as JSFORCE is crashing when the zip file is too large.
         requestPromise.on('complete', async res => {
-            let body = `<?xml version="1.0" encoding="UTF-8"?><soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><soapenv:Header xmlns="http://soap.sforce.com/2006/04/metadata"><SessionHeader><sessionId>${connector.conn.accessToken}</sessionId></SessionHeader></soapenv:Header><soapenv:Body xmlns="http://soap.sforce.com/2006/04/metadata"><checkRetrieveStatus><asyncProcessId>${res.id}</asyncProcessId></checkRetrieveStatus></soapenv:Body></soapenv:Envelope>`;
+            const body = `<?xml version="1.0" encoding="UTF-8"?><soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><soapenv:Header xmlns="http://soap.sforce.com/2006/04/metadata"><SessionHeader><sessionId>${connector.conn.accessToken}</sessionId></SessionHeader></soapenv:Header><soapenv:Body xmlns="http://soap.sforce.com/2006/04/metadata"><checkRetrieveStatus><asyncProcessId>${res.id}</asyncProcessId></checkRetrieveStatus></soapenv:Body></soapenv:Envelope>`;
 
             // Fetch metadata using SOAP API
             const targetUrl = `${connector.conn.instanceUrl}/services/Soap/m/${connector.conn.version}`;

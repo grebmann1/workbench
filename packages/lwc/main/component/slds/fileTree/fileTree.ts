@@ -1,5 +1,6 @@
 import { api, LightningElement } from 'lwc';
 import { runActionAfterTimeOut } from 'shared/utils';
+
 import { searchDirectories } from './utils';
 const i18n = {
     NoFiles: 'No Files',
@@ -50,9 +51,7 @@ export default class FileTree extends LightningElement {
         const totalCount = this.displayList.length;
         if (totalCount <= VIRTUAL_SCROLL_THRESHOLD) return;
         const target = event.target;
-        const scrollDiff = Math.abs(
-            target.clientHeight - (target.scrollHeight - target.scrollTop)
-        );
+        const scrollDiff = Math.abs(target.clientHeight - (target.scrollHeight - target.scrollTop));
         const isScrolledToBottom = scrollDiff < 5;
         if (isScrolledToBottom) {
             this.pageNumber++;
@@ -62,7 +61,7 @@ export default class FileTree extends LightningElement {
     handleSearch(event) {
         runActionAfterTimeOut(
             event.target.value,
-            (value) => {
+            value => {
                 if (value.trim() === '') {
                     this.expandedMap = {};
                     this.searchValue = '';
@@ -183,10 +182,7 @@ export default class FileTree extends LightningElement {
                   this.injectState(child, level + 1, false, index + 1, childSetSize)
               )
             : undefined;
-        const visible =
-            searchInactive ||
-            isFolder ||
-            !this.nonMatchesInDirectory.has(item.id);
+        const visible = searchInactive || isFolder || !this.nonMatchesInDirectory.has(item.id);
         const displayName = item.displayName ?? item.name ?? '';
         return {
             ...item,

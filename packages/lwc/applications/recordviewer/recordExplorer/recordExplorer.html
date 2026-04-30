@@ -5,7 +5,8 @@
             <template lwc:if={isRecordIdAvailable}>
                 <!-- After loading -->
                 <template lwc:if={displayRecordHeader}>
-                    <div class="slds-grid slds-grid_align-spread slds-grid_vertical-align-center slds-m-bottom_xx-small">
+                    <div
+                        class="slds-grid slds-grid_align-spread slds-grid_vertical-align-center slds-m-bottom_xx-small">
                         <div class="slds-col slds-has-flexi-truncate"></div>
                         <div class="toolbar">
                             <button
@@ -182,9 +183,7 @@
                                 <span class="info-value">
                                     <template iterator:item={networkMembers}>
                                         <span class="slds-inline-flex" key={item.value.Id}>
-                                            <a
-                                                href={item.value._redirectLink}
-                                                target="_blank">
+                                            <a href={item.value._redirectLink} target="_blank">
                                                 {item.value.Network.Name}
                                             </a>
                                             <template lwc:if={item.last}></template>
@@ -227,7 +226,9 @@
 
         <!-- Table -->
         <template lwc:if={isRecordIdAvailable}>
-            <div class="full-page-body tableFixHead slds-p-horizontal_x-small" onscroll={handleScroll}>
+            <div
+                class="full-page-body tableFixHead slds-p-horizontal_x-small"
+                onscroll={handleScroll}>
                 <table
                     class="slds-table slds-table_cell slds-table_fixed-layout slds-table_bordered slds-table_resizable-cols slds-no-row-hover"
                     id="data-table"

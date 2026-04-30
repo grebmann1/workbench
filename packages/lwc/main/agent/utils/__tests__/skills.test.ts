@@ -1,5 +1,5 @@
-import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { test } from 'node:test';
 
 import { classifySkillPath, formatSkillsForPrompt, type DiscoveredSkill } from '../skills.ts';
 import { SKILLS_INSTRUCTIONS } from '../constants.ts';

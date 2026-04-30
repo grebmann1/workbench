@@ -140,10 +140,12 @@
                                                             size="x-small"
                                                             alternative-text="CSV file"></lightning-icon>
                                                         <span
-                                                            class="slds-text-body_small slds-text-color_weak"
-                                                            >{csvFileName}</span>
-                                                        <span class="di-badge"
-                                                            >{csvRowCountFormatted} rows</span>
+                                                            class="slds-text-body_small slds-text-color_weak">
+                                                            {csvFileName}
+                                                        </span>
+                                                        <span class="di-badge">
+                                                            {csvRowCountFormatted} rows
+                                                        </span>
                                                     </div>
                                                 </template>
                                                 <template lwc:if={csvError}>
@@ -192,8 +194,9 @@
                                                             <div
                                                                 class="slds-truncate"
                                                                 title={row.csvHeader}>
-                                                                <code class="data-import-csv-pill"
-                                                                    >{row.csvHeader}</code>
+                                                                <code class="data-import-csv-pill">
+                                                                    {row.csvHeader}
+                                                                </code>
                                                             </div>
                                                         </div>
                                                         <div class="slds-col slds-size_6-of-12">
@@ -397,8 +400,10 @@
                                                             </td>
                                                             <td data-label="State">
                                                                 <div title={job.state}>
-                                                                    <span class={job.stateBadgeClass}
-                                                                        >{job.state}</span>
+                                                                    <span
+                                                                        class={job.stateBadgeClass}>
+                                                                        {job.state}
+                                                                    </span>
                                                                 </div>
                                                             </td>
                                                             <td data-label="Processed">
@@ -535,7 +540,8 @@
                                                                         lwc:if={failedPreviewHasRows}>
                                                                         <div
                                                                             class="data-import-failed-preview-table">
-                                                                            <lightning-datatable class="slds-flex-column"
+                                                                            <lightning-datatable
+                                                                                class="slds-flex-column"
                                                                                 key-field="key"
                                                                                 data={failedPreviewRows}
                                                                                 columns={failedPreviewColumns}

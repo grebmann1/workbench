@@ -1,5 +1,8 @@
 type ResponseInit_ = { status?: number; body?: unknown; headers?: Record<string, string> };
-type RouteHandler = (req: { url: string; init?: RequestInit }) => Response | Promise<Response> | ResponseInit_ | Promise<ResponseInit_>;
+type RouteHandler = (req: {
+    url: string;
+    init?: RequestInit;
+}) => Response | Promise<Response> | ResponseInit_ | Promise<ResponseInit_>;
 
 export interface FetchMockCall {
     url: string;
@@ -43,7 +46,12 @@ export function createFetchMock(options: FetchMockOptions = {}): FetchMock {
     let installed = false;
 
     const mockFetch: typeof fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
-        const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : (input as Request).url;
+        const url =
+            typeof input === 'string'
+                ? input
+                : input instanceof URL
+                  ? input.toString()
+                  : (input as Request).url;
         calls.push({ url, init });
         const route = (options.routes ?? []).find(r => matches(r.match, url));
         const handler = route?.handler ?? options.default;

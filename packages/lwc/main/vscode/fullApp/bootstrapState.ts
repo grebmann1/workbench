@@ -57,7 +57,6 @@ export function isSessionAuthErrorMessage(message: unknown): boolean {
     return /(session expired|invalid session|invalid_session_id)/i.test(String(message || ''));
 }
 
-
 export function shouldRemountWorkbenchWorkspace({
     previousWorkspaceRoot,
     nextWorkspaceRoot,

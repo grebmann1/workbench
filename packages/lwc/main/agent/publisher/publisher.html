@@ -11,7 +11,11 @@
                         <template for:each={_queuedMessages} for:item="msg">
                             <div key={msg.id} class="chat-queue-item">
                                 <template lwc:if={msg.isPush}>
-                                    <span class="chat-queue-item-badge chat-queue-item-badge_push" title="Priority — executes next">↑</span>
+                                    <span
+                                        class="chat-queue-item-badge chat-queue-item-badge_push"
+                                        title="Priority — executes next">
+                                        ↑
+                                    </span>
                                 </template>
                                 <span class="chat-queue-item-text">{msg.prompt}</span>
                                 <button
@@ -19,13 +23,17 @@
                                     title="Promote to priority (execute next)"
                                     aria-label="Promote to priority"
                                     data-queue-id={msg.id}
-                                    onclick={handlePromoteQueued}>↑</button>
+                                    onclick={handlePromoteQueued}>
+                                    ↑
+                                </button>
                                 <button
                                     class="chat-queue-item-action chat-queue-item-remove"
                                     title="Remove queued message"
                                     aria-label="Remove queued message"
                                     data-queue-id={msg.id}
-                                    onclick={handleRemoveQueued}>×</button>
+                                    onclick={handleRemoveQueued}>
+                                    ×
+                                </button>
                             </div>
                         </template>
                     </div>

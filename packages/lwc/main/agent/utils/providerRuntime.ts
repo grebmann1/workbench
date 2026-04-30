@@ -1,8 +1,8 @@
 import { createAnthropic } from '@ai-sdk/anthropic';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { createOpenAI } from '@ai-sdk/openai';
-import { createXai } from '@ai-sdk/xai';
 import type { LanguageModelV3 } from '@ai-sdk/provider';
+import { createXai } from '@ai-sdk/xai';
 import { DEFAULT_PROVIDER_BASE_URLS, normalizeLlmProvider } from 'shared/llm';
 
 type ModelResolver = (modelId: string) => LanguageModelV3;

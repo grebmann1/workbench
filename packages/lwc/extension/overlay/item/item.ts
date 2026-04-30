@@ -1,6 +1,6 @@
-import { api } from 'lwc';
 import ToolkitElement from 'core/toolkitElement';
-
+import { api } from 'lwc';
+import { TYPE } from 'overlay/utils';
 import {
     isEmpty,
     getObjectDocLink,
@@ -9,7 +9,6 @@ import {
     getObjectSetupLink,
     redirectToUrlViaChrome,
 } from 'shared/utils';
-import { TYPE } from 'overlay/utils';
 
 function escapeRegExp(value) {
     return String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');

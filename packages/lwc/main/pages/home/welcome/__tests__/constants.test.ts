@@ -1,5 +1,5 @@
-import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { test } from 'node:test';
 
 import { GITHUB_DISCUSSIONS_URL, AI_DOC_URL, QUICK_TIPS } from '../constants.js';
 

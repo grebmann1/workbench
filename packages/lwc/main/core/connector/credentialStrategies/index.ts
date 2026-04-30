@@ -1,8 +1,7 @@
 import * as oauth from './oauth';
+import { OAUTH_TYPES } from './oauthTypes';
 import * as session from './session';
 import * as usernamePassword from './usernamePassword';
-
-import { OAUTH_TYPES } from './oauthTypes';
 
 export default {
     OAUTH: oauth,

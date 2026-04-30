@@ -2,9 +2,9 @@
 import LOGGER from 'shared/logger';
 import { isChromeExtension, isElectronApp } from 'shared/utils';
 
+import { normalizeConfiguration } from './base';
 import * as electron from './electron';
 import { PLATFORM } from './platform';
-import { normalizeConfiguration } from './base';
 import * as web from './web';
 
 export function getCurrentPlatform() {
@@ -19,7 +19,7 @@ export async function getConfigurations() {
     let configurations = [];
     switch (getCurrentPlatform()) {
         case PLATFORM.ELECTRON:
-            configurations = await electron.getConfigurations() as any[];
+            configurations = (await electron.getConfigurations()) as any[];
             break;
         /* case PLATFORM.CHROME:
             configurations = await chrome.getConfigurations(); */

@@ -1,5 +1,5 @@
-import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { test } from 'node:test';
 
 import { getFieldTypeIcon, SOBJECT_ICON, CHILD_RELATIONSHIP_ICON } from '../constants.ts';
 

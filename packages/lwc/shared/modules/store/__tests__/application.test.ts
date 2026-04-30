@@ -1,7 +1,6 @@
-import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { test } from 'node:test';
 
-import application from '../modules/application/reducers.ts';
 import {
     login,
     logout,
@@ -16,6 +15,7 @@ import {
     collapseAgentChat,
     expandAgentChat,
 } from '../modules/application/actions.ts';
+import application from '../modules/application/reducers.ts';
 
 test('application reducer: initial state is { connector: null }', () => {
     const state = application(undefined, { type: '@@INIT' });

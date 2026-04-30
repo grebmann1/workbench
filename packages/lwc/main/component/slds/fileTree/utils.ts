@@ -87,9 +87,10 @@ export function searchDirectories(searchTerm, tree, expandedMap = {}, options = 
     });
     // 6. nonMatchesInDirectory: leaf nodes in expanded folders that don't match (reference visibility)
     const nonMatchesInDirectory = new Set();
-    flatList.forEach((entry) => {
+    flatList.forEach(entry => {
         const isLeaf = !(entry.children && entry.children.length > 0);
-        const parentId = entry.parentIds.length > 0 ? entry.parentIds[entry.parentIds.length - 1] : null;
+        const parentId =
+            entry.parentIds.length > 0 ? entry.parentIds[entry.parentIds.length - 1] : null;
         const parentExpanded =
             parentId === null || expandedSet.has(parentId) || newExpandedMap[parentId];
         if (isLeaf && parentExpanded && !matchedIdSet.has(entry.id)) {

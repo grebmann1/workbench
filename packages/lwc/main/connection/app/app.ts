@@ -1,13 +1,30 @@
-import { api, track } from 'lwc';
-import Toast from 'lightning/toast';
-import ToolkitElement from 'core/toolkitElement';
-import ConnectionNewModal from 'connection/connectionNewModal';
 import ConnectionDetailModal from 'connection/connectionDetailModal';
 import ConnectionImportModal from 'connection/connectionImportModal';
 import ConnectionManualModal from 'connection/connectionManualModal';
+import ConnectionNewModal from 'connection/connectionNewModal';
 import { runQuickConnect } from 'connection/quickConnect';
 import { CONNECTION_ROW_ACTIONS, resolveRequestedConnectionAction } from 'connection/rowActions';
 import { buildConnectionShareMessage } from 'connection/shareUtils';
+import {
+    getConfigurations,
+    setConfigurations,
+    saveConfiguration,
+    removeConfiguration,
+    getConfiguration,
+    getCurrentTab,
+    credentialStrategies,
+    notificationService,
+    listOrgSessionsViaBackground,
+    OAUTH_TYPES,
+} from 'core/connector';
+import type { ConnectorLike } from 'core/connector';
+import { openDesktopInstance, openDesktopOrgUrl } from 'core/desktopBridge';
+import { reportError, store, APPLICATION } from 'core/store';
+import ToolkitElement from 'core/toolkitElement';
+import Toast from 'lightning/toast';
+import { api, track } from 'lwc';
+import { cacheManager } from 'shared/cacheManager';
+import LOGGER from 'shared/logger';
 import {
     download,
     classSet,
@@ -23,23 +40,6 @@ import {
     getChromePort,
     redirectToUrlViaChrome,
 } from 'shared/utils';
-import {
-    getConfigurations,
-    setConfigurations,
-    saveConfiguration,
-    removeConfiguration,
-    getConfiguration,
-    getCurrentTab,
-    credentialStrategies,
-    notificationService,
-    listOrgSessionsViaBackground,
-    OAUTH_TYPES,
-} from 'core/connector';
-import { reportError, store, APPLICATION } from 'core/store';
-import LOGGER from 'shared/logger';
-import { cacheManager } from 'shared/cacheManager';
-import type { ConnectorLike } from 'core/connector';
-import { openDesktopInstance, openDesktopOrgUrl } from 'core/desktopBridge';
 
 const { showToast, handleError } = notificationService;
 const ACTIONS = [
@@ -229,9 +229,9 @@ export default class App extends ToolkitElement {
 
     /** Actions */
     checkForInjected = async () => {
-        let el = document.getElementsByClassName('injected-connections');
+        const el = document.getElementsByClassName('injected-connections');
         if (el) {
-            let content = el[0]?.textContent;
+            const content = el[0]?.textContent;
             if (isEmpty(content)) return;
             this.isInjected = true;
             try {
@@ -444,7 +444,7 @@ export default class App extends ToolkitElement {
     };
 
     formatDataForCardView = () => {
-        let grouped = groupBy(this.data, 'company');
+        const grouped = groupBy(this.data, 'company');
         return Object.keys(grouped).map(key => ({
             key: key,
             title: key,
@@ -456,8 +456,8 @@ export default class App extends ToolkitElement {
         if (isElectronApp() && row.credentialType === OAUTH_TYPES.OAUTH) {
             await openDesktopInstance(row);
         } else {
-            let configuration = this.data.find(x => x.id == row.id);
-            let { alias, credentialType, ...settings } = configuration;
+            const configuration = this.data.find(x => x.id == row.id);
+            const { alias, credentialType, ...settings } = configuration;
             store.dispatch(
                 APPLICATION.reduxSlice.actions.startLoading({ message: `Connecting to ${alias}` })
             );
@@ -506,7 +506,7 @@ export default class App extends ToolkitElement {
         if (isElectronApp()) return;
 
         this.setLoading('Authorizing & Redirecting');
-        let { alias, loginUrl, instanceUrl, ...settings } = this.data.find(x => x.id == row.id);
+        const { alias, loginUrl, instanceUrl, ...settings } = this.data.find(x => x.id == row.id);
         try {
             LOGGER.log('settings', settings, alias, loginUrl, instanceUrl);
             const _loginUrl = instanceUrl || loginUrl;
@@ -571,7 +571,7 @@ export default class App extends ToolkitElement {
                             populate: false,
                             windowTypes: ['normal'],
                         });
-                        for (let w of windows) {
+                        for (const w of windows) {
                             if (w.incognito) {
                                 // Use this window.
                                 const tab = await chrome.tabs.create({ url: url, windowId: w.id });
@@ -616,7 +616,7 @@ export default class App extends ToolkitElement {
     openToolkit = async (row, redirect) => {
         this.setLoading('Opening Toolkit...');
         try {
-            let url = new URL(
+            const url = new URL(
                 isChromeExtension()
                     ? chrome.runtime.getURL('/views/app.html')
                     : 'https://www.sf-workbench.com/extension'
@@ -657,7 +657,7 @@ export default class App extends ToolkitElement {
                 }
             }
             if (!isChromeProcessSuccess) {
-                let params = new URLSearchParams();
+                const params = new URLSearchParams();
                 params.append('sessionId', connector.conn.accessToken);
                 params.append('serverUrl', connector.conn.instanceUrl);
                 if (redirect) {
@@ -711,7 +711,7 @@ export default class App extends ToolkitElement {
 
     seeDetails = async row => {
         this.setLoading('Loading Credentials...');
-        var { company, orgId, name, username, instanceUrl, sfdxAuthUrl, redirectUrl } = row;
+        let { company, orgId, name, username, instanceUrl, sfdxAuthUrl, redirectUrl } = row;
         const { alias, credentialType, password, ...settings } = this.data.find(
             x => x.id == row.id
         );
@@ -730,7 +730,11 @@ export default class App extends ToolkitElement {
             if (!strategy) throw new Error(`No strategy for credential type: ${credentialType}`);
             let accessToken, frontDoorUrl;
             try {
-                let connector = await strategy.connect({ ...settings, alias, disableEvent: true });
+                const connector = await strategy.connect({
+                    ...settings,
+                    alias,
+                    disableEvent: true,
+                });
                 accessToken = connector ? connector.conn.accessToken : null;
                 frontDoorUrl = connector ? connector.frontDoorUrl : null;
             } catch (e) {
@@ -739,7 +743,7 @@ export default class App extends ToolkitElement {
                 frontDoorUrl = null;
             }
             if (isElectronApp()) {
-                let settings = await getConfiguration(alias);
+                const settings = await getConfiguration(alias);
                 sfdxAuthUrl = settings.sfdxAuthUrl || sfdxAuthUrl;
             }
             ConnectionDetailModal.open({
@@ -784,7 +788,7 @@ export default class App extends ToolkitElement {
     };
 
     removeConfiguration = async row => {
-        var confirmed = window.confirm(
+        const confirmed = window.confirm(
             `Are you sure you wish to remove this Connection : ${row.alias}:${row.username} ?`
         );
         if (confirmed) {
@@ -800,7 +804,7 @@ export default class App extends ToolkitElement {
 
     createOrAddToTabGroup = async (tab, groupName, windowId) => {
         const groups = await chrome.tabGroups.query({ windowId: windowId });
-        let group = groups.find(g => g.title === groupName);
+        const group = groups.find(g => g.title === groupName);
         if (group) {
             // Group exists, add the tab to this group
             await chrome.tabs.group({ groupId: group.id, tabIds: tab.id });
@@ -835,7 +839,7 @@ export default class App extends ToolkitElement {
     };
 
     formatSpecificField = content => {
-        var regex = new RegExp('(' + this.filter + ')', 'gi');
+        const regex = new RegExp('(' + this.filter + ')', 'gi');
         if (regex.test(content)) {
             return content
                 .replace(/<?>?/, '')
@@ -983,7 +987,7 @@ export default class App extends ToolkitElement {
     }
 
     get columns() {
-        let _columns = [
+        const _columns = [
             {
                 label: 'Category',
                 fieldName: 'company',

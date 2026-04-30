@@ -1,9 +1,9 @@
-import { wire } from 'lwc';
-import { isEmpty, isElectronApp } from 'shared/utils';
 import { openDesktopOrgUrl } from 'host-api/desktopBridge';
 import ToolkitElement from 'host-api/element';
-import { store as legacyStore, store_application } from 'shared/store';
+import { wire } from 'lwc';
 import { NavigationContext, navigate } from 'lwr/navigation';
+import { store as legacyStore, store_application } from 'shared/store';
+import { isEmpty, isElectronApp } from 'shared/utils';
 const APPLICATION_PATHS: Record<string, string> = {
     'soql/app': 'soql',
     'metadata/app': 'metadata',

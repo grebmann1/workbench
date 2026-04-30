@@ -1,12 +1,13 @@
-import { api } from 'lwc';
-import { decodeError, isNotUndefinedOrNull, isUndefinedOrNull } from 'shared/utils';
 import {
     onDesktopLegacyChannel,
     runDesktopSfdxAnalyzer,
     runDesktopShell,
 } from 'host-api/desktopBridge';
 import ToolkitElement from 'host-api/element';
+import { api } from 'lwc';
+import { decodeError, isNotUndefinedOrNull, isUndefinedOrNull } from 'shared/utils';
 import xterm from 'xterm';
+
 import { theme } from './theme';
 declare const path: any;
 export default class Pmd extends ToolkitElement {

@@ -1,5 +1,9 @@
-import { api, LightningElement, wire } from 'lwc';
+import { getHostAndSession, credentialStrategies } from 'core/connector';
+import { connectStore, store, APPLICATION } from 'core/store';
+import { getCurrentTab, PANELS } from 'extension/utils';
 import Toast from 'lightning/toast';
+import { api, LightningElement, wire } from 'lwc';
+import { store as legacyStore } from 'shared/store';
 import {
     isNotUndefinedOrNull,
     isUndefinedOrNull,
@@ -7,12 +11,8 @@ import {
     runActionAfterTimeOut,
     getRecordId,
 } from 'shared/utils';
-import { getHostAndSession, credentialStrategies } from 'core/connector';
-import { getCurrentTab, PANELS } from 'extension/utils';
 
 /** Store **/
-import { store as legacyStore } from 'shared/store';
-import { connectStore, store, APPLICATION } from 'core/store';
 
 const VARIANT = {
     DEFAULT: 'default',

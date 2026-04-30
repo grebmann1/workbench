@@ -105,7 +105,9 @@ const writeApexLike = async ({ fs, alias, metadataType, fileExtension, sourceMet
     });
     const source = normalizedBody.files?.[0]?.body || normalizedBody.selectedRecord?.Body || '';
     const apiVersion =
-        normalizedBody.files?.[0]?.apiVersion || normalizedBody.selectedRecord?.ApiVersion || '63.0';
+        normalizedBody.files?.[0]?.apiVersion ||
+        normalizedBody.selectedRecord?.ApiVersion ||
+        '63.0';
     const sourcePath = `${sfdxRoot}/${folder}/${name}.${fileExtension}`;
     const metaPath = `${sourcePath}-meta.xml`;
     await writeFile(fs, sourcePath, source);
@@ -122,7 +124,8 @@ const writeLwcBundle = async ({ fs, alias, payload }) => {
     const writtenPaths = [];
     const first = files[0];
     const firstPath = parseLwcResourcePath(first.path || first.name || '');
-    const bundleName = firstPath.bundleName || getPrimaryName({ metadataType: 'LightningComponentBundle' });
+    const bundleName =
+        firstPath.bundleName || getPrimaryName({ metadataType: 'LightningComponentBundle' });
     const bundlePath = `${sfdxRoot}/lwc/${bundleName}`;
     await ensureDirectory(fs, bundlePath);
     for (const file of files) {
@@ -161,7 +164,8 @@ const writeAuraBundle = async ({ fs, alias, payload }) => {
 const writeJsonFallback = async ({ fs, alias, metadataType, payload }) => {
     const sfdxRoot = getSfdxRoot(alias);
     if (!sfdxRoot) return { status: 'skipped_no_alias' };
-    const folder = METADATA_FOLDER_BY_TYPE[metadataType] || `metadata/${sanitizePathSegment(metadataType)}`;
+    const folder =
+        METADATA_FOLDER_BY_TYPE[metadataType] || `metadata/${sanitizePathSegment(metadataType)}`;
     const name = getPrimaryName({
         label1: payload.label1,
         recordId: payload.recordId,
@@ -193,7 +197,9 @@ ${blocks}
 };
 
 const normalizeZipEntryPath = entryPath => {
-    const raw = String(entryPath || '').replace(/\\/g, '/').replace(/^\/+/, '');
+    const raw = String(entryPath || '')
+        .replace(/\\/g, '/')
+        .replace(/^\/+/, '');
     if (!raw || raw.endsWith('/')) return null;
     if (raw.startsWith('unpackaged/')) {
         return raw.slice('unpackaged/'.length);

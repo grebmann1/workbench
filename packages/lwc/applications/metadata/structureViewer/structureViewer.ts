@@ -1,5 +1,5 @@
-import { api, track } from 'lwc';
 import ToolkitElement from 'host-api/element';
+import { api, track } from 'lwc';
 import {
     isEmpty,
     isElectronApp,
@@ -30,15 +30,15 @@ export default class StructureViewer extends ToolkitElement {
     /** Events **/
 
     expandAll = e => {
-        var items = this.template.querySelectorAll('metadata-structure-viewer-item');
-        for (var i = 0; i < items.length; i++) {
+        const items = this.template.querySelectorAll('metadata-structure-viewer-item');
+        for (let i = 0; i < items.length; i++) {
             items[i].expandAll();
         }
     };
 
     collapseAll = e => {
-        var items = this.template.querySelectorAll('metadata-structure-viewer-item');
-        for (var i = 0; i < items.length; i++) {
+        const items = this.template.querySelectorAll('metadata-structure-viewer-item');
+        for (let i = 0; i < items.length; i++) {
             items[i].collapseAll();
         }
     };

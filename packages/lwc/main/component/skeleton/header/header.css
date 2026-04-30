@@ -60,7 +60,7 @@
     letter-spacing: 0.04em;
     text-transform: uppercase;
     transform: rotate(-8deg);
-    box-shadow: 0 1px 2px var(--slds-g-color-brand-base-20,#0176d3);
+    box-shadow: 0 1px 2px var(--slds-g-color-brand-base-20, #0176d3);
 }
 
 .right-panel-collapse {

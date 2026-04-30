@@ -1,8 +1,8 @@
-import { api } from 'lwc';
-import Toast from 'lightning/toast';
-import { classSet, ROLES } from 'shared/utils';
 import ToolkitElement from 'core/toolkitElement';
+import Toast from 'lightning/toast';
+import { api } from 'lwc';
 import LOGGER from 'shared/logger';
+import { classSet, ROLES } from 'shared/utils';
 
 export default class Message extends ToolkitElement {
     @api item: any;
@@ -94,7 +94,12 @@ export default class Message extends ToolkitElement {
                 return;
             }
             const type = typeof part.type === 'string' ? part.type : '';
-            if (type === 'dynamic-tool' || type.startsWith('tool-') || type === 'tool-call' || type === 'tool-result') {
+            if (
+                type === 'dynamic-tool' ||
+                type.startsWith('tool-') ||
+                type === 'tool-call' ||
+                type === 'tool-result'
+            ) {
                 const toolId =
                     part.toolCallId ||
                     part.callId ||
@@ -160,26 +165,28 @@ export default class Message extends ToolkitElement {
             return content.trim().length > 0 ? [{ type: 'text', text: content }] : [];
         }
         if (Array.isArray(content)) {
-            return content.map(part => {
-                if (!part || typeof part !== 'object') return null;
-                if (part.type === 'text' && typeof part.text === 'string') {
-                    return { type: 'text', text: part.text };
-                }
-                if (part.type === 'reasoning') {
-                    const text = typeof part.text === 'string' ? part.text : '';
-                    const state = typeof part.state === 'string' ? part.state : null;
-                    return { type: 'reasoning', text, state };
-                }
-                if (part.type === 'image' || part.type === 'file') {
-                    return {
-                        type: 'file',
-                        url: part.url || part.dataUrl || '',
-                        mediaType: part.mediaType || part.mimeType || '',
-                        filename: part.filename || '',
-                    };
-                }
-                return part;
-            }).filter(Boolean);
+            return content
+                .map(part => {
+                    if (!part || typeof part !== 'object') return null;
+                    if (part.type === 'text' && typeof part.text === 'string') {
+                        return { type: 'text', text: part.text };
+                    }
+                    if (part.type === 'reasoning') {
+                        const text = typeof part.text === 'string' ? part.text : '';
+                        const state = typeof part.state === 'string' ? part.state : null;
+                        return { type: 'reasoning', text, state };
+                    }
+                    if (part.type === 'image' || part.type === 'file') {
+                        return {
+                            type: 'file',
+                            url: part.url || part.dataUrl || '',
+                            mediaType: part.mediaType || part.mimeType || '',
+                            filename: part.filename || '',
+                        };
+                    }
+                    return part;
+                })
+                .filter(Boolean);
         }
         return [];
     }

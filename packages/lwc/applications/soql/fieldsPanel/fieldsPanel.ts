@@ -1,8 +1,8 @@
-import { wire, api } from 'lwc';
 import ToolkitElement from 'host-api/element';
 import { store, connectStore, SELECTORS, SOBJECT } from 'host-api/store';
-import { UI } from 'soql/slices';
 import { fullApiName, lowerCaseKey } from 'host-api/utils';
+import { wire, api } from 'lwc';
+import { UI } from 'soql/slices';
 
 export default class FieldsPanel extends ToolkitElement {
     @api namespace;

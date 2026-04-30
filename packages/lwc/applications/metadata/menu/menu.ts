@@ -1,9 +1,10 @@
-import { api, wire, track } from 'lwc';
 import ToolkitElement from 'host-api/element';
-import { isUndefinedOrNull, isNotUndefinedOrNull } from 'shared/utils';
-import { CurrentPageReference, NavigationContext } from 'lwr/navigation';
 import { store, connectStore } from 'host-api/store';
+import { api, wire, track } from 'lwc';
+import { CurrentPageReference, NavigationContext } from 'lwr/navigation';
 import { METADATA } from 'metadata/slices';
+import { isUndefinedOrNull, isNotUndefinedOrNull } from 'shared/utils';
+
 import { getMetadataTypeIcon, METADATA_RECORD_ICON } from './constants';
 
 export default class Menu extends ToolkitElement {
@@ -71,7 +72,7 @@ export default class Menu extends ToolkitElement {
     }
 
     loadFromNavigation = async ({ state }) => {
-        let { applicationName, sobject, param1, label1 } = state;
+        const { applicationName, sobject, param1, label1 } = state;
         if (applicationName != 'metadata') return;
         store.dispatch(async (dispatch, getState) => {
             await dispatch(METADATA.fetchSpecificMetadata({ sobject, force: true }));

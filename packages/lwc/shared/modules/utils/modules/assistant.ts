@@ -8,7 +8,7 @@ export const storeThread = async (threadId: string, messages: ThreadMessage[]): 
 };
 
 export const getThread = async (threadId?: string): Promise<ThreadMessage[]> => {
-    var messages: ThreadMessage[] = [];
+    let messages: ThreadMessage[] = [];
     if (threadId) {
         const messageText = localStorage.getItem(`assistant-thread-${threadId}`);
         if (messageText && messageText != '') {
@@ -20,7 +20,7 @@ export const getThread = async (threadId?: string): Promise<ThreadMessage[]> => 
 
 export const getThreadList = async (): Promise<string[]> => {
     const threadsText = localStorage.getItem(`assistant-threads`);
-    var threads: string[] = [];
+    let threads: string[] = [];
     if (threadsText && threadsText != '') {
         threads = JSON.parse(threadsText);
     }

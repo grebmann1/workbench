@@ -1,7 +1,16 @@
-import { track, wire } from 'lwc';
-import ToolkitElement from 'core/toolkitElement';
-import { isChromeExtension, isElectronApp } from 'shared/utils';
 import { GOOGLE_SIGNIN_SCOPES, GOOGLE_DRIVE_SCOPES } from 'agent/googleAuth';
+import {
+    discoverMcpServerTools,
+    formatMcpServersJson,
+    normalizeMcpServerConfigs,
+    parseMcpServersJson,
+} from 'agent/tools';
+import { APPLICATION_APP_MAPPING } from 'application/applicationRegistry';
+import { store, APPLICATION, connectStore } from 'core/store';
+import ToolkitElement from 'core/toolkitElement';
+import Toast from 'lightning/toast';
+import { track, wire } from 'lwc';
+import { NavigationContext, navigate } from 'lwr/navigation';
 import {
     buildProviderConfigCacheRecord,
     cacheManager,
@@ -13,12 +22,8 @@ import {
     resolveLlmProviderConfigMap,
     saveSingleExtensionConfigToCache,
 } from 'shared/cacheManager';
-import Toast from 'lightning/toast';
 import LOGGER from 'shared/logger';
-import { store, APPLICATION, connectStore } from 'core/store';
-import { NavigationContext, navigate } from 'lwr/navigation';
-import { METADATA as METADATA_UTILS } from 'shared/utils';
-import { APPLICATION_APP_MAPPING } from 'application/applicationRegistry';
+import { isChromeExtension, isElectronApp, METADATA as METADATA_UTILS } from 'shared/utils';
 
 function buildEditableProviderConfigs(config) {
     const currentProviderConfigs = resolveLlmProviderConfigMap(config);

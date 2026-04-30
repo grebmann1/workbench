@@ -68,7 +68,9 @@ tr:focus-within .right-actions {
     padding: 3px;
     cursor: pointer;
     color: var(--slds-g-color-neutral-base-40, #5a5a5a);
-    transition: background-color 120ms ease, color 120ms ease;
+    transition:
+        background-color 120ms ease,
+        color 120ms ease;
     vertical-align: middle;
 }
 

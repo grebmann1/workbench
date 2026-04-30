@@ -1,6 +1,6 @@
+import { classSet } from 'lightning/utils';
 import { LightningElement, api } from 'lwc';
 import { isEmpty, runActionAfterTimeOut } from 'shared/utils';
-import { classSet } from 'lightning/utils';
 
 export default class MenuItem extends LightningElement {
     @api isSelected;
@@ -48,7 +48,7 @@ export default class MenuItem extends LightningElement {
             return this.label;
         }
 
-        var regex = new RegExp('(' + this.highlight + ')', 'gi');
+        const regex = new RegExp('(' + this.highlight + ')', 'gi');
         if (regex.test(this.label)) {
             return this.label
                 .toString()

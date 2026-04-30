@@ -19,12 +19,17 @@
         </aside>
 
         <div class="onboarding-main-content">
-            <section class="onboarding-progress slds-m-bottom_medium" aria-label="Installation progress">
-                <div class="slds-grid slds-grid_align-spread slds-grid_vertical-align-center slds-m-bottom_x-small">
+            <section
+                class="onboarding-progress slds-m-bottom_medium"
+                aria-label="Installation progress">
+                <div
+                    class="slds-grid slds-grid_align-spread slds-grid_vertical-align-center slds-m-bottom_x-small">
                     <p class="slds-text-title_bold">Getting started</p>
                     <p class="slds-text-body_small">{stepCounterText}</p>
                 </div>
-                <lightning-progress-bar value={progressPercent} size="medium"></lightning-progress-bar>
+                <lightning-progress-bar
+                    value={progressPercent}
+                    size="medium"></lightning-progress-bar>
             </section>
 
             <div class="onboarding-nav-row slds-m-bottom_medium">
@@ -51,7 +56,9 @@
             <section class="onboarding-content-card">
                 <template if:true={currentStep}>
                     <div class="onboarding-content-copy">
-                        <h2 class="slds-text-heading_medium slds-m-bottom_small">{currentStep.title}</h2>
+                        <h2 class="slds-text-heading_medium slds-m-bottom_small">
+                            {currentStep.title}
+                        </h2>
                         <lightning-formatted-rich-text
                             value={currentStep.description}></lightning-formatted-rich-text>
                         <template if:true={currentStep.list}>
@@ -89,7 +96,9 @@
             </section>
 
             <div class="onboarding-footer-actions">
-                <button class="slds-button slds-button_link" onclick={handleSkip}>Skip tutorial</button>
+                <button class="slds-button slds-button_link" onclick={handleSkip}>
+                    Skip tutorial
+                </button>
             </div>
         </div>
     </div>

@@ -1,6 +1,6 @@
-import { api } from 'lwc';
 import Illustration from 'illustration/illustration';
 import { classSet } from 'lightning/utils';
+import { api } from 'lwc';
 
 export default class ConnectionIllustration extends Illustration {
     @api padding = false;

@@ -42,7 +42,9 @@
     padding: 4px;
     cursor: pointer;
     color: var(--slds-g-color-neutral-base-30, #444);
-    transition: background-color 120ms ease, color 120ms ease;
+    transition:
+        background-color 120ms ease,
+        color 120ms ease;
 }
 
 .toolbar-btn:hover:not(:disabled) {
@@ -73,7 +75,9 @@
     cursor: pointer;
     color: var(--slds-g-color-neutral-base-40, #5a5a5a);
     opacity: 0;
-    transition: opacity 120ms ease, background-color 120ms ease;
+    transition:
+        opacity 120ms ease,
+        background-color 120ms ease;
     vertical-align: middle;
 }
 
@@ -163,7 +167,10 @@
     border: 1px solid var(--slds-g-color-neutral-base-80, #d4d4d4);
     color: var(--slds-g-color-neutral-base-30, #444);
     text-decoration: none;
-    transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease;
+    transition:
+        background-color 120ms ease,
+        border-color 120ms ease,
+        color 120ms ease;
     white-space: nowrap;
 }
 

@@ -2,8 +2,8 @@
  * Central API to report errors to the global store so they appear in the footer error panel.
  * Use this from LWC and app-level handlers; store modules can keep dispatching addError directly.
  */
-import { getStore } from './storeRef';
 import * as ERROR from './modules/error';
+import { getStore } from './storeRef';
 
 /**
  * Report an error to the global error store (footer).

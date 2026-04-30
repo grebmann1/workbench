@@ -3,8 +3,6 @@ import { cacheManager, CACHE_ORG_DATA_TYPES, CACHE_SESSION_CONFIG } from 'shared
 import LOGGER from 'shared/logger';
 import { isElectronApp } from 'shared/utils';
 
-import { OAUTH_TYPES } from './credentialStrategies/oauthTypes';
-import { getConfiguration } from './platformService';
 import {
     extractName,
     inferScratchValue,
@@ -13,8 +11,10 @@ import {
     inferSandboxValue,
     normalizeOrganizationType,
 } from './base';
-import { saveConfiguration } from './web';
 import type { ConnectionLike, ConnectorConfiguration } from './connector';
+import { OAUTH_TYPES } from './credentialStrategies/oauthTypes';
+import { getConfiguration } from './platformService';
+import { saveConfiguration } from './web';
 
 export class Connector {
     conn: ConnectionLike | null;
@@ -83,7 +83,7 @@ export class Connector {
             return null;
         }
         const jwt = await this.conn.oauth2?.refreshToken?.(this.conn.refreshToken);
-        
+
         return {
             ...jwt,
             frontDoorUrl: jwt.instance_url + '/secur/frontdoor.jsp?sid=' + jwt.access_token,
@@ -120,7 +120,7 @@ export class Connector {
         try {
             const versions = await this.conn.request?.('/services/data/');
 
-            let latestVersion = Array.isArray(versions)
+            const latestVersion = Array.isArray(versions)
                 ? versions.sort((a, b) => b.version.localeCompare(a.version))[0]
                 : undefined;
 
@@ -153,7 +153,7 @@ export class Connector {
                 this.conn._maxSessionRefreshRetries = 1;
             }
 
-            let latestVersion = Array.isArray(versions)
+            const latestVersion = Array.isArray(versions)
                 ? versions.sort((a, b) => b.version.localeCompare(a.version))[0]
                 : undefined;
             const organizationType = normalizeOrganizationType({
@@ -204,7 +204,7 @@ export class Connector {
                         x => x.version === sessionSettings[CACHE_SESSION_CONFIG.API_VERSION.key]
                     ) || latestVersion;
             }
-            let callOptions = this.conn._callOptions || {};
+            const callOptions = this.conn._callOptions || {};
             if (sessionSettings && sessionSettings[CACHE_SESSION_CONFIG.CLIENT_ID.key]) {
                 callOptions.client = sessionSettings[CACHE_SESSION_CONFIG.CLIENT_ID.key];
             }
@@ -260,7 +260,7 @@ export class Connector {
             Object.assign(configuration, extractConfigurationValuesFromConnection(connection));
         }
 
-        let connector = new Connector(configuration, connection);
+        const connector = new Connector(configuration, connection);
         if (credentialType === OAUTH_TYPES.REDIRECT) {
             // If redirect credential type, we don't need to enrich the connector
             return connector;

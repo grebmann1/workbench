@@ -2,11 +2,11 @@
 import LOGGER from 'shared/logger';
 import { isUndefinedOrNull, isNotUndefinedOrNull } from 'shared/utils';
 
+import type { ConnectorLike } from '../../connector';
+import { getSalesforceURL, normalizeConnection } from '../base';
 import { Connector } from '../connectorClass';
 import { getCurrentPlatform, PLATFORM, getConfiguration } from '../platformService';
-import { getSalesforceURL, normalizeConnection } from '../base';
 import { saveConfiguration } from '../web';
-import type { ConnectorLike } from '../../connector';
 
 import { OAUTH_TYPES } from './oauthTypes';
 
@@ -91,7 +91,9 @@ export async function connect(
         return connector;
     }
 
-    const normalizedUrl = getSalesforceURL(loginUrl || configuration?.loginUrl || 'https://login.salesforce.com');
+    const normalizedUrl = getSalesforceURL(
+        loginUrl || configuration?.loginUrl || 'https://login.salesforce.com'
+    );
     LOGGER.log('normalizedUrl -> ', normalizedUrl);
 
     if (platform === PLATFORM.CHROME) {
@@ -148,7 +150,8 @@ export async function connect(
                 }
             );
         });
-    } else if ([PLATFORM.WEB].includes(platform)) { // PLATFORM.ELECTRON removed for now
+    } else if ([PLATFORM.WEB].includes(platform)) {
+        // PLATFORM.ELECTRON removed for now
         LOGGER.log('Web OAuth');
         // Web OAuth: use authorization code flow so the server can exchange code for tokens
         // and redirect to /callback#...; jsforce's default login() uses response_type=token

@@ -16,7 +16,9 @@ export interface ConnectionMockOptions {
     identity?: () => Promise<{ user_id: string; username: string; organization_id: string }>;
     tooling?: {
         query?: (soql: string) => Promise<MockQueryResult> | MockQueryResult;
-        sobject?: (name: string) => { describe: () => Promise<{ name: string; fields: unknown[] }> };
+        sobject?: (name: string) => {
+            describe: () => Promise<{ name: string; fields: unknown[] }>;
+        };
         request?: (url: string, init?: unknown) => Promise<unknown>;
     };
     metadata?: {
@@ -51,7 +53,9 @@ export function createConnectionMock(options: ConnectionMockOptions = {}) {
 
     const toolingDefaults = {
         query: tooling.query ?? (() => emptyQueryResult),
-        sobject: tooling.sobject ?? ((name: string) => ({ describe: async () => ({ name, fields: [] }) })),
+        sobject:
+            tooling.sobject ??
+            ((name: string) => ({ describe: async () => ({ name, fields: [] }) })),
         request: tooling.request ?? (async () => ({})),
     };
 
@@ -73,7 +77,10 @@ export function createConnectionMock(options: ConnectionMockOptions = {}) {
         accessToken,
         version,
         oauth2: {
-            refreshToken: async () => ({ access_token: 'refreshed-token', instance_url: instanceUrl }),
+            refreshToken: async () => ({
+                access_token: 'refreshed-token',
+                instance_url: instanceUrl,
+            }),
         },
     };
 }
@@ -110,10 +117,12 @@ export type ConnectorMock = ReturnType<typeof createConnectorMock>;
 export function withConnectionOverride<K extends keyof ConnectionMock>(
     conn: ConnectionMock,
     key: K,
-    override: ConnectionMock[K],
+    override: ConnectionMock[K]
 ): ConnectionMock {
     (conn as Record<string, unknown>)[key as string] = override as unknown;
     return conn;
 }
 
-export function ignoreUnused(_: Nullable<unknown>) { /* helper to silence unused-var lint in mocks */ }
+export function ignoreUnused(_: Nullable<unknown>) {
+    /* helper to silence unused-var lint in mocks */
+}

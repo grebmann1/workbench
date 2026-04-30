@@ -1,6 +1,6 @@
-import { api } from 'lwc';
 import { getErrorRowActionName } from 'connection/rowActions';
 import ToolkitElement from 'core/toolkitElement';
+import { api } from 'lwc';
 import {
     isEmpty,
     isElectronApp,

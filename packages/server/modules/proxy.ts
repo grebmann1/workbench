@@ -50,9 +50,7 @@ export default function proxy(options: ProxyOptions = {}) {
             }
         }
         const rawSfEndpoint = req.headers['salesforceproxy-endpoint'];
-        const sfEndpoint = Array.isArray(rawSfEndpoint)
-            ? rawSfEndpoint[0]
-            : rawSfEndpoint || '';
+        const sfEndpoint = Array.isArray(rawSfEndpoint) ? rawSfEndpoint[0] : rawSfEndpoint || '';
         if (!SF_PROD_ENDPOINT_REGEXP.test(sfEndpoint) && !SF_DEV_ENDPOINT_REGEXP.test(sfEndpoint)) {
             return res
                 .status(400)

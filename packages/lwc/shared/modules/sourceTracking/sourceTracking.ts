@@ -63,9 +63,7 @@ export function hashText(text: string | null | undefined): string {
     return (h >>> 0).toString(16).padStart(8, '0');
 }
 
-export async function loadSourceTracking(
-    vscode: VscodeLike
-): Promise<SourceTrackingData | null> {
+export async function loadSourceTracking(vscode: VscodeLike): Promise<SourceTrackingData | null> {
     try {
         const uri = vscode.Uri.file(SOURCE_TRACKING_PATH);
         const bytes = await vscode.workspace.fs.readFile(uri);

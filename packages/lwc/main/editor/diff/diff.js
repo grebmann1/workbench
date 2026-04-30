@@ -1,7 +1,7 @@
-import * as DiffLib from 'diff';
-import { api } from 'lwc';
 import ToolkitElement from 'core/toolkitElement';
+import * as DiffLib from 'diff';
 import { setupMonaco } from 'editor/utils';
+import { api } from 'lwc';
 
 const CHANGE_EVENT_TIMEOUT = 300;
 const LANGUAGE = 'plaintext';

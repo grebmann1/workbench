@@ -6,18 +6,6 @@ import {
 
 import { handleChromeInteraction } from './chromeApi.js';
 import {
-    compareMajorMinor,
-    getContentScriptPatterns,
-    ignoreRuntimeError,
-    isEmpty,
-    isHostMatching,
-    isNotNullOrUndefined,
-    normalizeUrlForPatternMatch,
-    refreshContentScriptPatternsCache,
-    safeDebug,
-    safeLog,
-} from './utils/utils.js';
-import {
     canonicalizeServerUrl,
     getCurrentTabCookieStoreId,
     getHostAndSession,
@@ -29,6 +17,18 @@ import {
     requestPermission,
     validateSession,
 } from './utils/salesforce.js';
+import {
+    compareMajorMinor,
+    getContentScriptPatterns,
+    ignoreRuntimeError,
+    isEmpty,
+    isHostMatching,
+    isNotNullOrUndefined,
+    normalizeUrlForPatternMatch,
+    refreshContentScriptPatternsCache,
+    safeDebug,
+    safeLog,
+} from './utils/utils.js';
 import { handleVscodeBackgroundMessage, isVscodeBackgroundAction } from './vscode.js';
 
 /** Command and menu ids */

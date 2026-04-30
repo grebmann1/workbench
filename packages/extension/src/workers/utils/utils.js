@@ -303,7 +303,10 @@ export function parsePatterns(patternString, fallback) {
         .filter(Boolean);
 }
 
-export async function refreshContentScriptPatternsCache(defaultIncludePatterns, defaultExcludePatterns) {
+export async function refreshContentScriptPatternsCache(
+    defaultIncludePatterns,
+    defaultExcludePatterns
+) {
     const data = await chrome.storage.local.get([
         'content_script_include_patterns',
         'content_script_exclude_patterns',

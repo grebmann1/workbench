@@ -1,6 +1,3 @@
-import { api, track } from 'lwc';
-import { isEmpty, isChromeExtension, runActionAfterTimeOut } from 'shared/utils';
-import ToolkitElement from 'core/toolkitElement';
 import {
     MODELS,
     INTERNAL_MODELS,
@@ -8,8 +5,11 @@ import {
     DEFAULT_REASONING,
     REASONING_OPTIONS,
 } from 'agent/utils';
+import ToolkitElement from 'core/toolkitElement';
+import { api, track } from 'lwc';
 import { normalizeModelSelection } from 'shared/llm';
 import LOGGER from 'shared/logger';
+import { isEmpty, runActionAfterTimeOut } from 'shared/utils';
 import { APPLICATION_SLASH_COMMANDS } from 'application/applicationRegistry';
 import { getSlashCommands, onSlashCommandsChange } from 'host-api/slashCommands';
 

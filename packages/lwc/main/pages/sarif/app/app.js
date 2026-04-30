@@ -7,6 +7,7 @@ import {
     runActionAfterTimeOut,
     isEmpty,
 } from 'shared/utils';
+
 import { Level, Rule, FileItem, Item } from './utils';
 
 export default class App extends LightningElement {

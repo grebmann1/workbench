@@ -1,15 +1,16 @@
 import { LightningElement, track, api } from 'lwc';
-import { guid, isNotUndefinedOrNull, isEmpty } from 'shared/utils';
 import {
     CACHE_CONFIG,
     loadSingleExtensionConfigFromCache,
     saveSingleExtensionConfigToCache,
     getOpenAIKeyFromCache,
 } from 'shared/cacheManager';
-import { isTextInputLike, positionFor, positionForFallback, isMac } from './utils';
-import { checkQuery } from 'slds/hashtagDropdown';
 import LOGGER from 'shared/logger';
+import { guid, isNotUndefinedOrNull, isEmpty } from 'shared/utils';
+import { checkQuery } from 'slds/hashtagDropdown';
 import { sanitizeCategories, sanitizeItems } from 'smartinput/utils';
+
+import { isTextInputLike, positionFor, positionForFallback, isMac } from './utils';
 
 const getDeepActiveElement = (doc = document) => {
     let activeElement = doc.activeElement;

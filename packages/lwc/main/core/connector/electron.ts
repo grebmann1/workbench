@@ -1,17 +1,13 @@
-import { cacheManager, CACHE_ORG_DATA_TYPES } from 'shared/cacheManager';
-import LOGGER from 'shared/logger';
-import {
-    isNotUndefinedOrNull,
-    isEmpty,
-    classSet,
-} from 'shared/utils';
-
 import {
     getDesktopOrgs,
     getDesktopStoredOrg,
     removeDesktopStoredOrg,
     renameDesktopStoredOrg,
 } from 'core/desktopBridge';
+import { cacheManager, CACHE_ORG_DATA_TYPES } from 'shared/cacheManager';
+import LOGGER from 'shared/logger';
+import { isNotUndefinedOrNull, isEmpty, classSet } from 'shared/utils';
+
 import { extractName, extractConfig } from './base';
 import { OAUTH_TYPES } from './credentialStrategies/oauthTypes';
 
@@ -91,9 +87,9 @@ function normalizeOrgs(sfdxOrgs, storedOrgs) {
     );
     orgs = orgs.filter(x => isNotUndefinedOrNull(x.alias));
     orgs = orgs.map((item, index) => {
-        let alias = item.alias || 'Empty';
+        const alias = item.alias || 'Empty';
         const { name, company } = extractName(alias);
-        let _typeClass = classSet('')
+        const _typeClass = classSet('')
             .add({
                 'slds-color-brand': item._type === 'DevHub',
                 'slds-color-orange-light': item._type === 'Sandbox',

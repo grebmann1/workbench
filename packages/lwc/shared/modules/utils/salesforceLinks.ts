@@ -115,11 +115,7 @@ export function getObjectListLink({
     }
 }
 
-export function getRecordTypesLink({
-    host,
-    sobjectName,
-    durableId,
-}: RecordTypesParams): string {
+export function getRecordTypesLink({ host, sobjectName, durableId }: RecordTypesParams): string {
     if (sobjectName.endsWith('__c') || sobjectName.endsWith('__kav')) {
         return `${host}/lightning/setup/ObjectManager/${durableId}/RecordTypes/view`;
     } else {

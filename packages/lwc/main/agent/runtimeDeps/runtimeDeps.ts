@@ -20,5 +20,3 @@ export function getOrCreateBashInstanceForConversation(conversationId: string) {
 export function cleanupBashInstanceForConversation(conversationId: string) {
     bashInstancesByConversationId.delete(conversationId);
 }
-
-

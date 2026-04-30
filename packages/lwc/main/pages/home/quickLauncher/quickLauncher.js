@@ -1,11 +1,10 @@
-import { wire } from 'lwc';
+import { runQuickConnect } from 'connection/quickConnect';
 import ToolkitElement from 'core/toolkitElement';
-
+import { wire } from 'lwc';
+import { NavigationContext, navigate } from 'lwr/navigation';
+import { store_application, store as legacyStore } from 'shared/store';
 import { isEmpty } from 'shared/utils';
 import { CONFIG } from 'skeleton/app';
-import { store_application, store as legacyStore } from 'shared/store';
-import { NavigationContext, navigate } from 'lwr/navigation';
-import { runQuickConnect } from 'connection/quickConnect';
 
 export default class QuickLauncher extends ToolkitElement {
     @wire(NavigationContext)

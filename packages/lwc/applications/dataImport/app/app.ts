@@ -1,9 +1,9 @@
-import { api, track, wire } from 'lwc';
 import ToolkitElement from 'host-api/element';
-import Toast from 'lightning/toast';
 import { connectStore, store, DESCRIBE } from 'host-api/store';
-import { CSV, isEmpty, isUndefinedOrNull } from 'shared/utils';
+import Toast from 'lightning/toast';
+import { api, track, wire } from 'lwc';
 import Analytics from 'shared/analytics';
+import { CSV, isEmpty, isUndefinedOrNull } from 'shared/utils';
 
 const MODE = {
     REST: 'REST',
@@ -1205,7 +1205,8 @@ export default class App extends ToolkitElement {
         if (state === 'JobComplete') return 'di-badge di-badge_success';
         if (state === 'Failed') return 'di-badge di-badge_error';
         if (state === 'Aborted') return 'di-badge di-badge_aborted';
-        if (state === 'InProgress' || state === 'UploadComplete') return 'di-badge di-badge_warning';
+        if (state === 'InProgress' || state === 'UploadComplete')
+            return 'di-badge di-badge_warning';
         return 'di-badge';
     }
 
@@ -1333,8 +1334,10 @@ export default class App extends ToolkitElement {
 
     get lastRunMessageClass() {
         const base = 'data-import-run-message';
-        if (this.lastRunMessageVariant === 'success') return `${base} data-import-run-message_success`;
-        if (this.lastRunMessageVariant === 'warning') return `${base} data-import-run-message_warning`;
+        if (this.lastRunMessageVariant === 'success')
+            return `${base} data-import-run-message_success`;
+        if (this.lastRunMessageVariant === 'warning')
+            return `${base} data-import-run-message_warning`;
         if (this.lastRunMessageVariant === 'error') return `${base} data-import-run-message_error`;
         return `${base} data-import-run-message_info`;
     }

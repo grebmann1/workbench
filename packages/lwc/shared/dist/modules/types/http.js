@@ -18,6 +18,8 @@ export class HttpError extends Error {
 /** Narrow to {@link HttpError} without relying on `instanceof` alone. */
 export function isHttpError(err) {
     return (err instanceof HttpError ||
-        (err instanceof Error && 'status' in err && typeof err.status === 'number'));
+        (err instanceof Error &&
+            'status' in err &&
+            typeof err.status === 'number'));
 }
 //# sourceMappingURL=http.js.map

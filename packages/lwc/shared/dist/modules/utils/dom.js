@@ -15,13 +15,11 @@ export function disableBodyScroll() {
 }
 export function timeout(interval) {
     return new Promise(resolve => {
-        // eslint-disable-next-line @lwc/lwc/no-async-operation
         setTimeout(resolve, interval);
     });
 }
 export function animationFrame() {
     return new Promise(resolve => {
-        // eslint-disable-next-line @lwc/lwc/no-async-operation
         window.requestAnimationFrame(resolve);
     });
 }
