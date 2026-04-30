@@ -16,5 +16,14 @@
         "isOfflineAvailable": false,
         "isMenuVisible": true,
         "isTabVisible": true
-    }
+    },
+    "slashCommands": [
+        {
+            "command": "soql",
+            "description": "Open the SOQL Explorer",
+            "iconName": "standard:data_model",
+            "autoExecute": true,
+            "commandId": "soql.open"
+        }
+    ]
 }

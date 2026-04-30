@@ -381,6 +381,8 @@
                             onsend={handleSendClick}
                             onstop={handleStopClick}
                             onclear={handleClearClick}
+                            onskillscommand={handleSkillsCommand}
+                            onslashcommand={handleSlashCommand}
                             onmodelchange={handleModelChange}
                             onreasoningchange={handleReasoningChange}
                             is-loading={isStreaming}
@@ -455,6 +457,8 @@
                             onsend={handleSendClick}
                             onstop={handleStopClick}
                             onclear={handleClearClick}
+                            onskillscommand={handleSkillsCommand}
+                            onslashcommand={handleSlashCommand}
                             onmodelchange={handleModelChange}
                             onreasoningchange={handleReasoningChange}
                             is-loading={isStreaming}
@@ -466,6 +470,14 @@
             </template>
             <template lwc:else>
                 <agent-onboardai-provider class="slds-fill-height"></agent-onboardai-provider>
+            </template>
+            <template lwc:if={isSkillsPanelOpen}>
+                <div class="agent-skills-overlay">
+                    <agent-skills-panel
+                        is-open={isSkillsPanelOpen}
+                        initial-query={skillsPanelInitialQuery}
+                        onclose={handleSkillsPanelClose}></agent-skills-panel>
+                </div>
             </template>
         </div>
     </div>

@@ -5,6 +5,7 @@ import {
     LLM_PROVIDERS,
     DEFAULT_LLM_PROVIDER,
     DEFAULT_PROVIDER_BASE_URLS,
+    INTERNAL_PROVIDER_BASE_URLS,
     LLM_PROVIDER_OPTIONS,
     OPENAI_MODEL_OPTIONS,
     INTERNAL_MODEL_OPTIONS,
@@ -14,7 +15,7 @@ import {
     WORKBENCH_MODEL_OPTIONS,
     GROK_MODEL_OPTIONS,
     PROVIDER_MODEL_OPTIONS,
-} from '../constants.ts';
+} from '../constants';
 
 test('LLM_PROVIDERS: includes the six known provider ids, no duplicates', () => {
     assert.ok(LLM_PROVIDERS.includes('openai'));
@@ -42,6 +43,17 @@ test('DEFAULT_PROVIDER_BASE_URLS: has one entry per provider, all non-empty', ()
     assert.ok(DEFAULT_PROVIDER_BASE_URLS.anthropic.startsWith('https://'));
     // workbench is proxied via same-origin relative path.
     assert.ok(DEFAULT_PROVIDER_BASE_URLS.workbench.startsWith('/'));
+});
+
+test('INTERNAL_PROVIDER_BASE_URLS: routes Anthropic employee traffic to Bedrock gateway', () => {
+    assert.equal(
+        INTERNAL_PROVIDER_BASE_URLS.anthropic,
+        'https://eng-ai-model-gateway.sfproxy.devx-preprod.aws-esvc1-useast2.aws.sfdc.cl/bedrock'
+    );
+    assert.equal(
+        INTERNAL_PROVIDER_BASE_URLS.gemini,
+        'https://eng-ai-model-gateway.sfproxy.devx-preprod.aws-esvc1-useast2.aws.sfdc.cl/v1beta'
+    );
 });
 
 test('LLM_PROVIDER_OPTIONS: one entry per provider, label+value both non-empty', () => {
@@ -80,6 +92,25 @@ test('OPENAI_MODEL_OPTIONS + INTERNAL_MODEL_OPTIONS: values are unique within ea
         const values = list.map(m => m.value);
         assert.equal(values.length, new Set(values).size);
     }
+});
+
+test('INTERNAL_MODEL_OPTIONS: excludes internal Anthropic models while disabled', () => {
+    assert.equal(
+        INTERNAL_MODEL_OPTIONS.some(model => model.provider === 'anthropic'),
+        false
+    );
+});
+
+test('INTERNAL_MODEL_OPTIONS: includes internal Gemini models', () => {
+    const geminiModelValues = INTERNAL_MODEL_OPTIONS.filter(
+        model => model.provider === 'gemini'
+    ).map(model => model.value);
+
+    assert.deepEqual(geminiModelValues, [
+        'gemini-3-pro-preview',
+        'gemini-3-flash-preview',
+        'gemini-3.1-pro-preview',
+    ]);
 });
 
 test('model options: maxOutputTokens is a positive integer when set', () => {

@@ -1,3 +1,17 @@
+/* Skills overlay — takes over the chat area while keeping left conversations panel visible */
+.agent-skills-overlay {
+    position: absolute;
+    inset: 0.5rem;
+    background-color: var(--slds-g-color-neutral-base-100, #fff);
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--slds-g-color-border-base-4, #dddbda);
+    border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+}
+
 /* Free-tier callout */
 .agent-freetier-callout {
     background: var(--slds-g-color-brand-base-95, #e8f4fd);

@@ -17,10 +17,18 @@
             ]
           },
           {
+            "category": "Agent & Skills",
+            "items": [
+              "Added slash-command suggestions in the Agent composer, including keyboard navigation and built-in commands such as /skill, /clear, and /stop.",
+              "Added a Skills panel so users can browse, search, edit, duplicate, create, and delete custom Agent skills directly from Workbench.",
+              "Added app-registered slash commands, including /soql for quickly opening SOQL Explorer from the Agent prompt."
+            ]
+          },
+          {
             "category": "Settings & Storage",
             "items": [
               "Added a new About tab in Settings with the current Workbench version, runtime surface, release metadata, and a shortcut to the full release notes.",
-              "Reworked Settings > Applications so apps can declare their own settings in their manifest or provide a custom settings component.",
+              "Reworked Settings > Applications so apps can provide their own settings panel from their manifest.",
               "Moved API Explorer, Metadata storage, Smart Input, and Quick Pick configuration into app-owned settings.",
               "Added a Side Panel Behavior setting so Chrome users can choose whether opening Workbench in a tab closes the side panel or keeps the Agent visible.",
               "Improved settings export and import to include both localStorage and chrome.storage.local, helping recover saved queries, Apex snippets, API requests, and cache-backed settings after upgrades.",
@@ -31,7 +39,7 @@
             "category": "Application Platform",
             "items": [
               "Migrated built-in tools into the packages/applications layout and simplified app package structure for cleaner extension registration.",
-              "Added host-api/settings so applications can register dynamic option providers for Settings UI fields.",
+              "Added host-api/slashCommands so applications can register their own Agent slash commands.",
               "Improved the application manifest workflow and validator coverage for packaged apps."
             ]
           }
@@ -64,6 +72,25 @@
               "Added safer workspace defaults for sandbox and scratch orgs, plus retry support when initialization can reuse the current Workbench session.",
               "Expanded the embedded VS Code walkthrough with guided steps for metadata sync, logs, Org Browser, SOQL, Anonymous Apex, and deploy/validate workflows.",
               "Focused the Salesforce panel on startup and aligned the iframe origin with the configured VS Code host."
+            ]
+          }
+        ]
+      },
+      {
+        "title": "Quality & Automation",
+        "categories": [
+          {
+            "category": "Tests & CI",
+            "items": [
+              "Expanded unit coverage across shared utilities, LWC applications, extension helpers, Agent modules, VS Code bridge code, and server modules.",
+              "Added pull-request smoke automation for the dev server and Playwright-based extension checks.",
+              "Added /config and /version endpoint smokes so server configuration regressions fail earlier."
+            ]
+          },
+          {
+            "category": "Build Pipeline",
+            "items": [
+              "Added a dedicated build job for application dependencies and updated build wiring for slash-command host APIs."
             ]
           }
         ]

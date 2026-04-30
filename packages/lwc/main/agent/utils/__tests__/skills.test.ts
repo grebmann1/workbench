@@ -1,8 +1,13 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
+import {
+    __testables,
+    classifySkillPath,
+    formatSkillsForPrompt,
+    type DiscoveredSkill,
+} from '../skills.ts';
 import { SKILLS_INSTRUCTIONS } from '../constants.ts';
-import { formatSkillsForPrompt, type DiscoveredSkill } from '../skills.ts';
 
 function mkSkill(partial: Partial<DiscoveredSkill>): DiscoveredSkill {
     return {
@@ -11,6 +16,7 @@ function mkSkill(partial: Partial<DiscoveredSkill>): DiscoveredSkill {
         skillMdPath: '/workspace/skills/sample/SKILL.md',
         rootDir: '/workspace/skills/sample',
         scope: 'project',
+        source: 'bundled',
         ...partial,
     };
 }
@@ -54,6 +60,86 @@ test('formatSkillsForPrompt: escapes XML-sensitive characters', () => {
     assert.ok(out.includes('/path/with &amp; &lt;weird&gt;.md'));
     // Raw unescaped markers must not leak through
     assert.equal(out.includes('<name>tricky & <name></name>'), false);
+});
+
+test('classifySkillPath: bundled path defaults to project/bundled', () => {
+    const out = classifySkillPath('/workspace/skills/salesforce/soql/SKILL.md');
+    assert.equal(out.source, 'bundled');
+    assert.equal(out.scope, 'project');
+});
+
+test('classifySkillPath: custom-skills path is project/custom', () => {
+    const out = classifySkillPath('/workspace/skills/custom-skills/alpha/SKILL.md');
+    assert.equal(out.source, 'custom');
+    assert.equal(out.scope, 'project');
+});
+
+test('classifySkillPath: .cursor/skills path is user/custom', () => {
+    const out = classifySkillPath('/workspace/.cursor/skills/beta/SKILL.md');
+    assert.equal(out.source, 'custom');
+    assert.equal(out.scope, 'user');
+});
+
+test('discoverSkillsFromFileSystem: discovers bundled and custom skills from all roots', async () => {
+    const files = new Map([
+        [
+            '/workspace/skills/salesforce/soql.SKILL.md',
+            [
+                '---',
+                'name: soql',
+                'description: Write SOQL queries',
+                '---',
+                '',
+                'Use SOQL patterns.',
+            ].join('\n'),
+        ],
+        [
+            '/workspace/skills/custom-skills/custom/SKILL.md',
+            [
+                '---',
+                'name: custom',
+                'description: Custom project skill',
+                '---',
+                '',
+                'Use project-specific guidance.',
+            ].join('\n'),
+        ],
+    ]);
+    const directories = new Map([
+        [
+            '/workspace/skills',
+            [
+                { name: 'salesforce', isDirectory: true },
+                { name: 'custom-skills', isDirectory: true },
+            ],
+        ],
+        ['/workspace/skills/salesforce', [{ name: 'soql.SKILL.md', isDirectory: false }]],
+        ['/workspace/skills/custom-skills', [{ name: 'custom', isDirectory: true }]],
+        ['/workspace/skills/custom-skills/custom', [{ name: 'SKILL.md', isDirectory: false }]],
+        ['/workspace/.cursor/skills', []],
+    ]);
+    const fs = {
+        readdirWithFileTypes: async path => directories.get(path) || [],
+        readFile: async path => {
+            const file = files.get(path);
+            if (file == null) throw new Error(`missing ${path}`);
+            return file;
+        },
+    };
+
+    const skills = await __testables.discoverSkillsFromFileSystem(fs);
+
+    assert.deepEqual(
+        skills.map(skill => ({
+            name: skill.name,
+            scope: skill.scope,
+            source: skill.source,
+        })),
+        [
+            { name: 'custom', scope: 'project', source: 'custom' },
+            { name: 'soql', scope: 'project', source: 'bundled' },
+        ]
+    );
 });
 
 test('formatSkillsForPrompt: joins multiple skills with newlines', () => {

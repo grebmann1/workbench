@@ -92,15 +92,6 @@
                     </div>
                 </div>
             </slds-vertical-panel>
-            <!-- AI Provider Onboarding Panel -->
-            <slds-vertical-panel
-                title="AI Provider Setup"
-                position="right"
-                size="slds-size_large"
-                is-open={showOnboardAiProvider}
-                onclose={handleCloseOnboardAiProvider}>
-                <agent-onboardai-provider></agent-onboardai-provider>
-            </slds-vertical-panel>
             <article class="full-page-body">
                 <div
                     class="slds-is-relative slds-full-width slds-full-height slds-flex-column slds-p-around_medium"
@@ -580,10 +571,11 @@
                                             Configure API keys and endpoints for each LLM provider.
                                         </p>
                                     </div>
-                                    <div slot="actions" lwc:if={isSalesforceGoogleUser}>
+                                    <div slot="actions">
                                         <lightning-button
                                             label="Setup AI Provider"
                                             icon-name="utility:setup"
+                                            variant="brand"
                                             onclick={handleOpenOnboardAiProvider}></lightning-button>
                                     </div>
                                     <slds-tabset variant="vertical">
@@ -762,239 +754,38 @@
                                                 </div>
                                             </div>
                                         </slds-tab>
-                                        <slds-tab label="MCP" value="mcp">
-                                            <div class="mcp-settings slds-p-around_small">
-                                                <div class="mcp-server-layout slds-grid slds-wrap">
-                                                    <div
-                                                        class="slds-col slds-size_1-of-1 slds-large-size_1-of-3 slds-p-right_small">
-                                                        <template lwc:if={hasMcpServers}>
-                                                            <slds-vertical-navigation
-                                                                sections={mcpServerSections}
-                                                                selected-item-name={selectedMcpServerId}
-                                                                onselect={handleMcpServerSelect}></slds-vertical-navigation>
-                                                        </template>
-                                                        <template lwc:else>
-                                                            <div class="mcp-empty-state">
-                                                                <p class="description">
-                                                                    Add MCP server JSON in the
-                                                                    Config tab to start discovering
-                                                                    tools.
-                                                                </p>
-                                                            </div>
-                                                        </template>
-                                                    </div>
-                                                    <div
-                                                        class="slds-col slds-size_1-of-1 slds-large-size_2-of-3">
-                                                        <slds-tabset>
-                                                            <slds-tab
-                                                                label="Overview"
-                                                                value="overview">
-                                                                <template
-                                                                    lwc:if={selectedMcpServer}>
-                                                                    <div
-                                                                        class="mcp-panel slds-p-around_small">
-                                                                        <div
-                                                                            class="mcp-server-summary">
-                                                                            <div>
-                                                                                <h2>
-                                                                                    {selectedMcpServerName}
-                                                                                </h2>
-                                                                                <p
-                                                                                    class="description">
-                                                                                    {selectedMcpServerUrl}
-                                                                                </p>
-                                                                            </div>
-                                                                            <div>
-                                                                                <lightning-badge
-                                                                                    label={selectedMcpServerStatusLabel}></lightning-badge>
-                                                                            </div>
-                                                                        </div>
-                                                                        <div
-                                                                            class="mcp-kpi-grid slds-m-top_medium">
-                                                                            <div class="mcp-kpi">
-                                                                                <span
-                                                                                    class="mcp-kpi__value">
-                                                                                    {selectedMcpServerToolCount}
-                                                                                </span>
-                                                                                <span
-                                                                                    class="mcp-kpi__label">
-                                                                                    Tools
-                                                                                </span>
-                                                                            </div>
-                                                                            <div class="mcp-kpi">
-                                                                                <span
-                                                                                    class="mcp-kpi__value">
-                                                                                    {selectedMcpServerEnabledToolCount}
-                                                                                </span>
-                                                                                <span
-                                                                                    class="mcp-kpi__label">
-                                                                                    Enabled
-                                                                                </span>
-                                                                            </div>
-                                                                            <div class="mcp-kpi">
-                                                                                <span
-                                                                                    class="mcp-kpi__value">
-                                                                                    {selectedMcpServerDisabledToolCount}
-                                                                                </span>
-                                                                                <span
-                                                                                    class="mcp-kpi__label">
-                                                                                    Disabled
-                                                                                </span>
-                                                                            </div>
-                                                                        </div>
-                                                                        <dl
-                                                                            class="mcp-detail-list slds-m-top_medium">
-                                                                            <div>
-                                                                                <dt>Transport</dt>
-                                                                                <dd>
-                                                                                    {selectedMcpServerTransportLabel}
-                                                                                </dd>
-                                                                            </div>
-                                                                            <div>
-                                                                                <dt>Headers</dt>
-                                                                                <dd>
-                                                                                    {selectedMcpServerHeadersLabel}
-                                                                                </dd>
-                                                                            </div>
-                                                                            <div>
-                                                                                <dt>
-                                                                                    Last tool
-                                                                                    refresh
-                                                                                </dt>
-                                                                                <dd>
-                                                                                    {selectedMcpServerLastRefreshLabel}
-                                                                                </dd>
-                                                                            </div>
-                                                                        </dl>
-                                                                        <template
-                                                                            lwc:if={selectedMcpServerError}>
-                                                                            <div
-                                                                                class="slds-notify slds-notify_alert slds-alert_error slds-m-top_medium"
-                                                                                role="alert">
-                                                                                <span>
-                                                                                    {selectedMcpServerError}
-                                                                                </span>
-                                                                            </div>
-                                                                        </template>
-                                                                        <div
-                                                                            class="slds-grid slds-grid_align-spread slds-m-top_medium">
-                                                                            <lightning-input
-                                                                                type="toggle"
-                                                                                label="Server enabled"
-                                                                                checked={selectedMcpServerEnabled}
-                                                                                data-id={selectedMcpServer.id}
-                                                                                onchange={handleToggleMcpServerEnabled}></lightning-input>
-                                                                            <div>
-                                                                                <lightning-button
-                                                                                    label="Test Connection"
-                                                                                    data-id={selectedMcpServer.id}
-                                                                                    onclick={handleTestMcpServerClick}
-                                                                                    disabled={isTestingSelectedMcpServer}></lightning-button>
-                                                                                <lightning-button
-                                                                                    label="Refresh Tools"
-                                                                                    data-id={selectedMcpServer.id}
-                                                                                    onclick={handleRefreshMcpToolsClick}
-                                                                                    disabled={isRefreshingSelectedMcpServer}
-                                                                                    class="slds-m-left_x-small"></lightning-button>
-                                                                            </div>
-                                                                        </div>
-                                                                    </div>
-                                                                </template>
-                                                            </slds-tab>
-                                                            <slds-tab label="Tools" value="tools">
-                                                                <div
-                                                                    class="mcp-panel slds-p-around_small">
-                                                                    <template
-                                                                        lwc:if={hasSelectedMcpServerTools}>
-                                                                        <div
-                                                                            class="slds-grid slds-grid_align-spread slds-m-bottom_small">
-                                                                            <p class="description">
-                                                                                Choose which
-                                                                                discovered MCP tools
-                                                                                are available to the
-                                                                                agent.
-                                                                            </p>
-                                                                            <div>
-                                                                                <lightning-button
-                                                                                    label="Enable All"
-                                                                                    onclick={handleEnableAllMcpToolsClick}></lightning-button>
-                                                                                <lightning-button
-                                                                                    label="Disable All"
-                                                                                    onclick={handleDisableAllMcpToolsClick}
-                                                                                    class="slds-m-left_x-small"></lightning-button>
-                                                                            </div>
-                                                                        </div>
-                                                                        <template
-                                                                            for:each={selectedMcpServerTools}
-                                                                            for:item="tool">
-                                                                            <article
-                                                                                key={tool.key}
-                                                                                class="mcp-tool-row">
-                                                                                <div>
-                                                                                    <h3>
-                                                                                        {tool.name}
-                                                                                    </h3>
-                                                                                    <p
-                                                                                        class="description">
-                                                                                        {tool.description}
-                                                                                    </p>
-                                                                                </div>
-                                                                                <lightning-input
-                                                                                    type="toggle"
-                                                                                    label="Enabled"
-                                                                                    checked={tool.enabled}
-                                                                                    data-name={tool.name}
-                                                                                    onchange={handleToggleMcpToolEnabled}></lightning-input>
-                                                                            </article>
-                                                                        </template>
-                                                                    </template>
-                                                                    <template lwc:else>
-                                                                        <div
-                                                                            class="mcp-empty-state">
-                                                                            <p class="description">
-                                                                                No tools discovered
-                                                                                yet. Use Refresh
-                                                                                Tools from the
-                                                                                Overview tab.
-                                                                            </p>
-                                                                        </div>
-                                                                    </template>
-                                                                </div>
-                                                            </slds-tab>
-                                                            <slds-tab label="Config" value="config">
-                                                                <div
-                                                                    class="mcp-panel slds-p-around_small">
-                                                                    <lightning-textarea
-                                                                        label="MCP JSON Configuration"
-                                                                        value={mcpServersJson}
-                                                                        placeholder={mcpServersJsonPlaceholder}
-                                                                        onchange={handleMcpJsonChange}
-                                                                        variant="label-stacked"></lightning-textarea>
-                                                                    <p
-                                                                        class="description slds-m-top_x-small">
-                                                                        Use Claude Desktop-style
-                                                                        JSON with an
-                                                                        <code>mcpServers</code>
-                                                                        object. Tool metadata is
-                                                                        preserved after refreshes.
-                                                                        Use HTTP transport when
-                                                                        running in the Chrome
-                                                                        extension.
-                                                                    </p>
-                                                                    <div class="slds-m-top_small">
-                                                                        <lightning-button
-                                                                            label="Parse & Save"
-                                                                            variant="brand"
-                                                                            onclick={handleParseMcpServersClick}></lightning-button>
-                                                                    </div>
-                                                                </div>
-                                                            </slds-tab>
-                                                        </slds-tabset>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </slds-tab>
                                     </slds-tabset>
+                                </lightning-card>
+                                <lightning-card
+                                    class="settings slds-col slds-size_1-of-1 slds-p-around_medium">
+                                    <div slot="title">
+                                        <h1>
+                                            MCP
+                                            <lightning-badge
+                                                label="Under development"
+                                                class="slds-m-left_x-small"></lightning-badge>
+                                        </h1>
+                                        <p class="description slds-truncate">
+                                            Model Context Protocol server configuration.
+                                        </p>
+                                    </div>
+                                    <div class="slds-grid slds-wrap">
+                                        <settings-card
+                                            class="slds-col slds-size_1-of-1 slds-p-horizontal_small"
+                                            is-first>
+                                            <div slot="title">
+                                                <h1>MCP Server Configuration</h1>
+                                                <p class="description slds-truncate">
+                                                    Configure Model Context Protocol servers for the
+                                                    agent.
+                                                </p>
+                                            </div>
+                                            <slds-information-block>
+                                                Model Context Protocol server configuration will be
+                                                available in a future update.
+                                            </slds-information-block>
+                                        </settings-card>
+                                    </div>
                                 </lightning-card>
                                 <!-- Tools -->
                                 <lightning-card
@@ -1465,6 +1256,16 @@
                     </slds-tabset>
                 </div>
             </article>
+            <!-- AI Provider Onboarding Panel -->
+            <slds-vertical-panel
+                title="AI Provider Setup"
+                position="right"
+                size="slds-size_large"
+                is-open={showOnboardAiProvider}
+                onclose={handleCloseOnboardAiProvider}>
+                <agent-onboardai-provider
+                    onsetupcomplete={handleOnboardAiProviderSetupComplete}></agent-onboardai-provider>
+            </slds-vertical-panel>
         </builder-editor>
     </div>
 </template>

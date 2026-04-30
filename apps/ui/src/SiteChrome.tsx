@@ -3,17 +3,20 @@ import type { ReactNode } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 import { SUPPORTED_LANGUAGES } from './i18n';
 
-export const DOCS_URL = import.meta.env.VITE_DOCS_URL || '/docs';
-export const GITHUB_URL = import.meta.env.VITE_GITHUB_URL || 'https://github.com/grebmann1/workbench';
-export const CHROME_STORE_URL = import.meta.env.VITE_CHROME_STORE_URL || 'https://chromewebstore.google.com/detail/salesforce-toolkit/konbmllgicfccombdckckakhnmejjoei?hl=en';
+export const DOCS_URL = import.meta.env.VITE_DOCS_URL || 'https://doc.sf-workbench.com';
+export const GITHUB_URL =
+    import.meta.env.VITE_GITHUB_URL || 'https://github.com/grebmann1/workbench';
+export const CHROME_STORE_URL =
+    import.meta.env.VITE_CHROME_STORE_URL ||
+    'https://chromewebstore.google.com/detail/salesforce-toolkit/konbmllgicfccombdckckakhnmejjoei?hl=en';
 
 function LanguagePicker() {
     const { i18n } = useTranslation();
     const [open, setOpen] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
 
-    const current = SUPPORTED_LANGUAGES.find(l => l.code === i18n.resolvedLanguage)
-        ?? SUPPORTED_LANGUAGES[0];
+    const current =
+        SUPPORTED_LANGUAGES.find(l => l.code === i18n.resolvedLanguage) ?? SUPPORTED_LANGUAGES[0];
 
     useEffect(() => {
         if (!open) return;
@@ -35,12 +38,20 @@ function LanguagePicker() {
                 aria-expanded={open}
                 aria-label={`Language: ${current.name}`}
             >
-                <span className="lang-picker-flag" aria-hidden="true">{current.flag}</span>
+                <span className="lang-picker-flag" aria-hidden="true">
+                    {current.flag}
+                </span>
                 <svg
                     className={`lang-picker-chevron${open ? ' lang-picker-chevron--open' : ''}`}
-                    width="10" height="10" viewBox="0 0 24 24"
-                    fill="none" stroke="currentColor" strokeWidth="2.5"
-                    strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"
+                    width="10"
+                    height="10"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
                 >
                     <polyline points="6 9 12 15 18 9" />
                 </svg>
@@ -48,15 +59,35 @@ function LanguagePicker() {
             {open && (
                 <ul className="lang-picker-dropdown" role="listbox" aria-label="Language">
                     {SUPPORTED_LANGUAGES.map(lang => (
-                        <li key={lang.code} role="option" aria-selected={lang.code === current.code}>
+                        <li
+                            key={lang.code}
+                            role="option"
+                            aria-selected={lang.code === current.code}
+                        >
                             <button
                                 className={`lang-picker-option${lang.code === current.code ? ' lang-picker-option--active' : ''}`}
-                                onClick={() => { i18n.changeLanguage(lang.code); setOpen(false); }}
+                                onClick={() => {
+                                    i18n.changeLanguage(lang.code);
+                                    setOpen(false);
+                                }}
                             >
-                                <span className="lang-picker-option-flag" aria-hidden="true">{lang.flag}</span>
+                                <span className="lang-picker-option-flag" aria-hidden="true">
+                                    {lang.flag}
+                                </span>
                                 <span className="lang-picker-option-name">{lang.name}</span>
                                 {lang.code === current.code && (
-                                    <svg className="lang-picker-check" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                    <svg
+                                        className="lang-picker-check"
+                                        width="12"
+                                        height="12"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        strokeWidth="2.5"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        aria-hidden="true"
+                                    >
                                         <polyline points="20 6 9 17 4 12" />
                                     </svg>
                                 )}
@@ -150,7 +181,13 @@ export function SiteFooter() {
     );
 }
 
-export function FakeBrowser({ url = 'app.workbench.io', screenshot }: { url?: string; screenshot?: string }) {
+export function FakeBrowser({
+    url = 'app.workbench.io',
+    screenshot,
+}: {
+    url?: string;
+    screenshot?: string;
+}) {
     const { t } = useTranslation();
     return (
         <div className="fake-browser">
@@ -161,27 +198,69 @@ export function FakeBrowser({ url = 'app.workbench.io', screenshot }: { url?: st
                     <span className="dot dot-green" />
                 </div>
                 <div className="fake-browser-nav">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <svg
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2.2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        aria-hidden="true"
+                    >
                         <polyline points="15 18 9 12 15 6" />
                     </svg>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <svg
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2.2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        aria-hidden="true"
+                    >
                         <polyline points="9 18 15 12 9 6" />
                     </svg>
                 </div>
                 <div className="fake-browser-url">
-                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <svg
+                        width="11"
+                        height="11"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2.2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        aria-hidden="true"
+                    >
                         <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
                         <path d="M7 11V7a5 5 0 0 1 10 0v4" />
                     </svg>
                     <span>{url}</span>
                 </div>
             </div>
-            <div className={`fake-browser-content${screenshot ? ' fake-browser-content--screenshot' : ''}`}>
+            <div
+                className={`fake-browser-content${screenshot ? ' fake-browser-content--screenshot' : ''}`}
+            >
                 {screenshot ? (
                     <img src={screenshot} alt="" className="fake-browser-screenshot" />
                 ) : (
                     <div className="fake-browser-placeholder">
-                        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <svg
+                            width="36"
+                            height="36"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1.1"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            aria-hidden="true"
+                        >
                             <rect x="3" y="3" width="18" height="18" rx="2" />
                             <path d="M3 9h18" />
                             <path d="M9 21V9" />

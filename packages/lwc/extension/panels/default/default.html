@@ -36,6 +36,11 @@
                             value="Import"></lightning-menu-item>
                     </template>
                     <lightning-menu-item
+                        label="Settings"
+                        onclick={openSettingsClick}
+                        prefix-icon-name="utility:settings"
+                        value="Settings"></lightning-menu-item>
+                    <lightning-menu-item
                         label="Import Orgs"
                         onclick={importClick}
                         prefix-icon-name="utility:upload"

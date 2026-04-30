@@ -15,6 +15,7 @@ import {
     readFileContent,
     generateConversationTitle,
 } from 'agent/utils';
+import { invokeCommand } from 'host-api/commands';
 import type { ModelMessage, UIMessage } from 'ai';
 import { reportError, store, connectStore, AGENT, APPLICATION } from 'core/store';
 import ToolkitElement from 'core/toolkitElement';
@@ -75,6 +76,8 @@ export default class App extends ToolkitElement {
     @track loadingStatus = '';
     @track displayedMessages = [];
     @track isDebugMode = false;
+    @track isSkillsPanelOpen = false;
+    @track skillsPanelInitialQuery = '';
     @track selectedDebugTabId = 'messages';
     @track debugMessages = [];
     @track debugStreamHistory = [];
@@ -654,6 +657,28 @@ You have full access to the toolkit UI. All navigation and display tools work no
 
     toggleSidePanel = () => {
         this.isSidePanelOpen = !this.isSidePanelOpen;
+    };
+
+    handleSkillsCommand = event => {
+        const query = event?.detail?.query || '';
+        this.skillsPanelInitialQuery = query;
+        this.isSkillsPanelOpen = true;
+    };
+
+    handleSlashCommand = async event => {
+        const detail = event?.detail || {};
+        const { commandId, query, appId, command } = detail;
+        if (!commandId || typeof commandId !== 'string') return;
+        try {
+            await invokeCommand(commandId, { query, appId, command });
+        } catch (err) {
+            LOGGER.warn('[agent-app] slash command failed', { commandId, err });
+        }
+    };
+
+    handleSkillsPanelClose = () => {
+        this.isSkillsPanelOpen = false;
+        this.skillsPanelInitialQuery = '';
     };
 
     createNewConversation = async () => {

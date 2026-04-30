@@ -20,6 +20,7 @@ import {
     resolveAgentProviderBaseUrl,
     DEFAULT_LLM_PROVIDER,
     DEFAULT_PROVIDER_BASE_URLS,
+    INTERNAL_MODEL_OPTIONS,
     LLM_PROVIDERS,
     OPENAI_MODEL_OPTIONS,
     ANTHROPIC_MODEL_OPTIONS,
@@ -168,6 +169,12 @@ test('isInternalProviderBaseUrl: detects eng-ai-model-gateway substring', () => 
         isInternalProviderBaseUrl('https://eng-ai-model-gateway.internal.salesforce.com/v1'),
         true
     );
+    assert.equal(
+        isInternalProviderBaseUrl(
+            'https://eng-ai-model-gateway.sfproxy.devx-preprod.aws-esvc1-useast2.aws.sfdc.cl/bedrock'
+        ),
+        true
+    );
     assert.equal(isInternalProviderBaseUrl('https://api.openai.com/v1'), false);
     assert.equal(isInternalProviderBaseUrl(''), false);
     assert.equal(isInternalProviderBaseUrl(null), false);
@@ -279,6 +286,42 @@ test('buildAvailableAgentModelOptions: multiple providers prefix labels', () => 
     const options = buildAvailableAgentModelOptions({ providerConfigs: configs });
     assert.ok(options.some(o => o.label.startsWith('OpenAI: ')));
     assert.ok(options.some(o => o.label.startsWith('Anthropic: ')));
+});
+
+test('buildAvailableAgentModelOptions: internal Anthropic config exposes no models while disabled', () => {
+    const configs = createDefaultProviderConfigMap();
+    configs.anthropic = {
+        apiKey: 'sk-b',
+        baseUrl:
+            'https://eng-ai-model-gateway.sfproxy.devx-preprod.aws-esvc1-useast2.aws.sfdc.cl/bedrock',
+    };
+    const options = buildAvailableAgentModelOptions({ providerConfigs: configs });
+
+    assert.equal(
+        INTERNAL_MODEL_OPTIONS.some(model => model.provider === 'anthropic'),
+        false
+    );
+    assert.deepEqual(options, []);
+});
+
+test('buildAvailableAgentModelOptions: internal Gemini config uses Gemini internal models', () => {
+    const configs = createDefaultProviderConfigMap();
+    configs.gemini = {
+        apiKey: 'sk-g',
+        baseUrl:
+            'https://eng-ai-model-gateway.sfproxy.devx-preprod.aws-esvc1-useast2.aws.sfdc.cl/v1beta',
+    };
+    const geminiInternalModels = INTERNAL_MODEL_OPTIONS.filter(
+        model => model.provider === 'gemini'
+    );
+    const options = buildAvailableAgentModelOptions({ providerConfigs: configs });
+
+    assert.ok(geminiInternalModels.length > 0);
+    assert.deepEqual(
+        options.map(option => option.value),
+        geminiInternalModels.map(model => model.value)
+    );
+    assert.ok(options.every(option => option.provider === 'gemini'));
 });
 
 test('buildAvailableAgentModelOptions: server-provided catalog overrides defaults', () => {

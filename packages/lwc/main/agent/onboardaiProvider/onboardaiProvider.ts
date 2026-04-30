@@ -6,11 +6,15 @@ import {
     loadLlmProviderConfigMapFromCache,
     saveLlmProviderConfigMapToCache,
 } from 'shared/cacheManager';
+import { INTERNAL_PROVIDER_BASE_URLS } from 'shared/llm';
+import {
+    EMPLOYEE_LLM_KEY_PATTERN,
+    EMPLOYEE_LLM_KEY_PATTERN_MESSAGE,
+    isEmployeeLlmKeyValid,
+} from './employeeKey';
 
 const EMPLOYEE_AI_SETUP_URL =
     'https://eng-ai-model-gateway.sfproxy.devx-preprod.aws-esvc1-useast2.aws.sfdc.cl';
-const EMPLOYEE_OPENAI_PROXY_URL =
-    'https://eng-ai-model-gateway.sfproxy.devx-preprod.aws-esvc1-useast2.aws.sfdc.cl/v1';
 
 export default class OnboardaiProvider extends LightningElement {
     @wire(NavigationContext)
@@ -21,6 +25,14 @@ export default class OnboardaiProvider extends LightningElement {
 
     get employeeSetupUrl() {
         return EMPLOYEE_AI_SETUP_URL;
+    }
+
+    get employeeKeyPattern() {
+        return EMPLOYEE_LLM_KEY_PATTERN;
+    }
+
+    get employeeKeyPatternMessage() {
+        return EMPLOYEE_LLM_KEY_PATTERN_MESSAGE;
     }
 
     get isEmployeeSelected() {
@@ -48,7 +60,7 @@ export default class OnboardaiProvider extends LightningElement {
     };
 
     get isEmployeeKeyValid() {
-        return this.employeeKey.length > 0;
+        return isEmployeeLlmKeyValid(this.employeeKey);
     }
 
     handleInstallEmployeeKey = async () => {
@@ -59,17 +71,17 @@ export default class OnboardaiProvider extends LightningElement {
             openai: {
                 ...providerConfigs.openai,
                 apiKey: this.employeeKey,
-                baseUrl: EMPLOYEE_OPENAI_PROXY_URL,
+                baseUrl: INTERNAL_PROVIDER_BASE_URLS.openai,
             },
             anthropic: {
                 ...providerConfigs.anthropic,
                 apiKey: this.employeeKey,
-                baseUrl: EMPLOYEE_OPENAI_PROXY_URL,
+                baseUrl: INTERNAL_PROVIDER_BASE_URLS.anthropic,
             },
             gemini: {
                 ...providerConfigs.gemini,
                 apiKey: this.employeeKey,
-                baseUrl: EMPLOYEE_OPENAI_PROXY_URL,
+                baseUrl: INTERNAL_PROVIDER_BASE_URLS.gemini,
             },
         };
         await saveLlmProviderConfigMapToCache(nextProviderConfigs);
@@ -79,6 +91,7 @@ export default class OnboardaiProvider extends LightningElement {
             })
         );
         Toast.show({ message: 'Employee key installed', variant: 'success' });
+        this.dispatchEvent(new CustomEvent('setupcomplete'));
     };
 
     handleOpenSettings = () => {

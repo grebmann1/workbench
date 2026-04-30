@@ -9,7 +9,41 @@ import ToolkitElement from 'core/toolkitElement';
 import { api, track } from 'lwc';
 import { normalizeModelSelection } from 'shared/llm';
 import LOGGER from 'shared/logger';
-import { isEmpty, isChromeExtension, runActionAfterTimeOut } from 'shared/utils';
+import { isEmpty, runActionAfterTimeOut } from 'shared/utils';
+import { APPLICATION_SLASH_COMMANDS } from 'application/applicationRegistry';
+import { getSlashCommands, onSlashCommandsChange } from 'host-api/slashCommands';
+
+type SlashCommand = {
+    command: string;
+    description: string;
+    iconName: string;
+    autoExecute?: boolean;
+    commandId?: string;
+    appId?: string;
+};
+
+const BUILT_IN_SLASH_COMMANDS: SlashCommand[] = [
+    {
+        command: 'skill',
+        description: 'Browse, edit, or create agent skills',
+        iconName: 'utility:magicwand',
+        autoExecute: true,
+    },
+    {
+        command: 'clear',
+        description: 'Clear the current conversation',
+        iconName: 'utility:delete',
+        autoExecute: true,
+    },
+    {
+        command: 'stop',
+        description: 'Stop the current generation',
+        iconName: 'utility:stop',
+        autoExecute: true,
+    },
+];
+
+const BUILT_IN_COMMAND_NAMES = new Set(BUILT_IN_SLASH_COMMANDS.map(c => c.command));
 
 export default class App extends ToolkitElement {
     @track _queuedMessages: Array<{ id: string; prompt: string; isPush?: boolean }> = [];
@@ -46,12 +80,17 @@ export default class App extends ToolkitElement {
     @track selectedReasoning = DEFAULT_REASONING;
 
     get resolvedAvailableModels() {
+        const providedModels =
+            Array.isArray(this.availableModels) && this.availableModels.length > 0
+                ? this.availableModels
+                : null;
+        if (providedModels) {
+            return providedModels;
+        }
         if (this.isInternal) {
             return INTERNAL_MODELS;
         }
-        return Array.isArray(this.availableModels) && this.availableModels.length > 0
-            ? this.availableModels
-            : MODELS;
+        return MODELS;
     }
 
     normalizeModelValue = value => {
@@ -128,6 +167,46 @@ export default class App extends ToolkitElement {
     imagePreviews: Record<string, string> = {};
 
     @track dragActive = false;
+
+    @track slashSuggestions: Array<{
+        command: string;
+        label: string;
+        description: string;
+        iconName: string;
+        autoExecute: boolean;
+        matchedPart: string;
+        remainderPart: string;
+        key: string;
+        isActive: boolean;
+        activeClass: string;
+    }> = [];
+    @track slashActiveIndex = 0;
+
+    @track _runtimeSlashCommandsVersion = 0;
+    _unsubscribeSlashCommands: (() => void) | null = null;
+
+    get _slashCommands(): Array<SlashCommand & { label: string; autoExecute: boolean }> {
+        void this._runtimeSlashCommandsVersion;
+        const merged = new Map<string, SlashCommand>();
+        // Runtime first, then manifest, then built-ins — later writes win so
+        // built-ins always trump collisions and the user sees a stable set.
+        for (const entry of getSlashCommands()) {
+            merged.set(entry.command, entry);
+        }
+        for (const entry of APPLICATION_SLASH_COMMANDS as SlashCommand[]) {
+            merged.set(entry.command, entry);
+        }
+        for (const entry of BUILT_IN_SLASH_COMMANDS) {
+            merged.set(entry.command, entry);
+        }
+        return Array.from(merged.values())
+            .map(entry => ({
+                ...entry,
+                label: `/${entry.command}`,
+                autoExecute: entry.autoExecute !== false,
+            }))
+            .sort((a, b) => a.command.localeCompare(b.command));
+    }
 
     isSupportedFile = (file: File) => {
         if (!file || !file.type) return false;
@@ -283,6 +362,25 @@ export default class App extends ToolkitElement {
         target.style.overflowY = target.scrollHeight > maxHeight ? 'auto' : 'hidden';
     };
 
+    connectedCallback() {
+        this._unsubscribeSlashCommands = onSlashCommandsChange(() => {
+            this._runtimeSlashCommandsVersion++;
+            const textarea = this.template.querySelector(
+                '.chat-textarea'
+            ) as HTMLTextAreaElement | null;
+            if (textarea && this.slashSuggestions.length > 0) {
+                this._updateSlashSuggestions(textarea.value || '');
+            }
+        });
+    }
+
+    disconnectedCallback() {
+        if (this._unsubscribeSlashCommands) {
+            this._unsubscribeSlashCommands();
+            this._unsubscribeSlashCommands = null;
+        }
+    }
+
     renderedCallback() {
         const modelOptions = this.resolvedAvailableModels;
         const normalized = this.normalizeModelValue(this.selectedModel);
@@ -309,6 +407,7 @@ export default class App extends ToolkitElement {
         this._prompt = null;
         this.selectedFiles = [];
         this.imagePreviews = {};
+        this._clearSlashSuggestions();
         const textarea = this.template.querySelector(
             '.chat-textarea'
         ) as HTMLTextAreaElement | null;
@@ -323,6 +422,7 @@ export default class App extends ToolkitElement {
 
     handleInputChange = e => {
         this.resizeTextarea(e.target);
+        this._updateSlashSuggestions(e.target.value);
         runActionAfterTimeOut(
             e.target.value,
             async newValue => {
@@ -333,11 +433,192 @@ export default class App extends ToolkitElement {
     };
 
     handleKeyDown = e => {
+        if (this.slashSuggestions.length > 0) {
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                this._moveSlashActive(1);
+                return;
+            }
+            if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                this._moveSlashActive(-1);
+                return;
+            }
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                this._clearSlashSuggestions();
+                return;
+            }
+            if (e.key === 'Tab' || (e.key === 'Enter' && !e.shiftKey)) {
+                e.preventDefault();
+                this._applySlashSuggestion(this.slashActiveIndex);
+                return;
+            }
+        }
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault(); // Prevent the default behavior of Enter key
             this.handleSendClick();
         }
     };
+
+    handleSlashSuggestionClick = (event: Event) => {
+        const index = Number((event.currentTarget as HTMLElement).dataset.index);
+        if (Number.isNaN(index)) return;
+        this._applySlashSuggestion(index);
+    };
+
+    handleSlashSuggestionHover = (event: Event) => {
+        const index = Number((event.currentTarget as HTMLElement).dataset.index);
+        if (Number.isNaN(index)) return;
+        this.slashActiveIndex = index;
+        this._refreshSlashActiveState();
+    };
+
+    _isSlashInsideQuotes(value: string, slashIndex: number): boolean {
+        let inSingle = false;
+        let inDouble = false;
+        let inBacktick = false;
+        for (let i = 0; i < slashIndex; i++) {
+            const ch = value[i];
+            const prev = i > 0 ? value[i - 1] : '';
+            if (prev === '\\') continue;
+            if (ch === "'" && !inDouble && !inBacktick) inSingle = !inSingle;
+            else if (ch === '"' && !inSingle && !inBacktick) inDouble = !inDouble;
+            else if (ch === '`' && !inSingle && !inDouble) inBacktick = !inBacktick;
+        }
+        return inSingle || inDouble || inBacktick;
+    }
+
+    _detectSlashQuery(value: string): string | null {
+        if (!value) return null;
+        const firstNonWhitespace = value.search(/\S/);
+        if (firstNonWhitespace < 0 || value[firstNonWhitespace] !== '/') return null;
+        if (this._isSlashInsideQuotes(value, firstNonWhitespace)) return null;
+        const rest = value.slice(firstNonWhitespace + 1);
+        const match = rest.match(/^([a-z0-9_-]*)/i);
+        if (!match) return null;
+        const after = rest.slice(match[0].length);
+        // Hide suggestions once the user has typed whitespace (e.g. "/skill foo")
+        if (after.length > 0 && /\s/.test(after.charAt(0))) return null;
+        return match[1].toLowerCase();
+    }
+
+    _updateSlashSuggestions(value: string) {
+        const query = this._detectSlashQuery(value);
+        if (query === null) {
+            this._clearSlashSuggestions();
+            return;
+        }
+        const matches = this._slashCommands
+            .filter(cmd => cmd.command !== 'stop' || this._isLoading)
+            .filter(cmd => cmd.command.startsWith(query));
+        if (matches.length === 0) {
+            this._clearSlashSuggestions();
+            return;
+        }
+        this.slashActiveIndex = 0;
+        const queryLen = query.length;
+        this.slashSuggestions = matches.map((cmd, idx) => ({
+            ...cmd,
+            key: cmd.command,
+            matchedPart: cmd.command.slice(0, queryLen),
+            remainderPart: cmd.command.slice(queryLen),
+            isActive: idx === 0,
+            activeClass:
+                idx === 0
+                    ? 'publisher-slash-item publisher-slash-item_active'
+                    : 'publisher-slash-item',
+        }));
+    }
+
+    _moveSlashActive(delta: number) {
+        const total = this.slashSuggestions.length;
+        if (total === 0) return;
+        this.slashActiveIndex = (this.slashActiveIndex + delta + total) % total;
+        this._refreshSlashActiveState();
+    }
+
+    _refreshSlashActiveState() {
+        this.slashSuggestions = this.slashSuggestions.map((item, idx) => ({
+            ...item,
+            isActive: idx === this.slashActiveIndex,
+            activeClass:
+                idx === this.slashActiveIndex
+                    ? 'publisher-slash-item publisher-slash-item_active'
+                    : 'publisher-slash-item',
+        }));
+    }
+
+    _applySlashSuggestion(index: number) {
+        const suggestion = this.slashSuggestions[index];
+        if (!suggestion) return;
+        const textarea = this.template.querySelector(
+            '.chat-textarea'
+        ) as HTMLTextAreaElement | null;
+        if (!textarea) return;
+        if (suggestion.autoExecute) {
+            this._dispatchSlashCommand(suggestion.command, '');
+            this.resetPrompt();
+            return;
+        }
+        const nextValue = `/${suggestion.command} `;
+        textarea.value = nextValue;
+        this._prompt = nextValue;
+        this.resizeTextarea(textarea);
+        this._clearSlashSuggestions();
+        textarea.focus();
+        textarea.setSelectionRange(nextValue.length, nextValue.length);
+    }
+
+    _dispatchSlashCommand(command: string, query: string): boolean {
+        if (command === 'skill' || command === 'skills') {
+            this.dispatchEvent(
+                new CustomEvent('skillscommand', {
+                    detail: { query },
+                    bubbles: true,
+                    composed: true,
+                })
+            );
+            return true;
+        }
+        if (command === 'clear') {
+            this.dispatchEvent(new CustomEvent('clear', { bubbles: true, composed: true }));
+            return true;
+        }
+        if (command === 'stop') {
+            if (!this._isLoading) return true;
+            this.dispatchEvent(new CustomEvent('stop', { bubbles: true, composed: true }));
+            return true;
+        }
+        const entry = this._slashCommands.find(cmd => cmd.command === command);
+        if (entry && entry.commandId) {
+            this.dispatchEvent(
+                new CustomEvent('slashcommand', {
+                    detail: {
+                        command,
+                        commandId: entry.commandId,
+                        appId: entry.appId,
+                        query,
+                    },
+                    bubbles: true,
+                    composed: true,
+                })
+            );
+            return true;
+        }
+        return false;
+    }
+
+    _clearSlashSuggestions() {
+        if (this.slashSuggestions.length > 0) {
+            this.slashSuggestions = [];
+        }
+        this.slashActiveIndex = 0;
+    }
+
+    get hasSlashSuggestions() {
+        return this.slashSuggestions.length > 0;
+    }
 
     handleClearClick = e => {
         this.resetPrompt();
@@ -356,12 +637,26 @@ export default class App extends ToolkitElement {
         }
     };
 
+    _parseSlashCommand(value: string): { command: string; query: string } | null {
+        const trimmed = String(value || '').trim();
+        if (!trimmed.startsWith('/')) return null;
+        const match = trimmed.match(/^\/([a-z][a-z0-9_-]*)\b\s*(.*)$/i);
+        if (!match) return null;
+        return { command: match[1].toLowerCase(), query: match[2].trim() };
+    }
+
     handleSendClick = async () => {
         const textarea = this.template.querySelector(
             '.chat-textarea'
         ) as HTMLTextAreaElement | null;
         const value = textarea?.value || '';
         if (isEmpty(value) && this.selectedFiles.length === 0) return;
+
+        const slash = this._parseSlashCommand(value);
+        if (slash && this._dispatchSlashCommand(slash.command, slash.query)) {
+            this.resetPrompt();
+            return;
+        }
 
         if (this._isLoading) {
             this._queuedMessages = [

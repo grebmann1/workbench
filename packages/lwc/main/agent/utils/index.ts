@@ -1,4 +1,5 @@
 export * from './constants';
+export * from './errorMessage';
 export * from './generateTitle';
 export * from './message';
 export * from './models';

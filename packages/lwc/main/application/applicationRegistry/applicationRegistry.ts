@@ -4,22 +4,22 @@
 import accessAnalyzer_app_module from 'accessAnalyzer/app';
 import anonymousApex_app_module from 'anonymousApex/app';
 import api_app_module from 'api/app';
-import api_appSettings_settings from 'api/appSettings';
 import code_app_module from 'code/app';
 import dataImport_app_module from 'dataImport/app';
 import files_app_module from 'files/app';
 import metadata_app_module from 'metadata/app';
-import metadata_appSettings_settings from 'metadata/appSettings';
 import object_app_module from 'object/app';
 import org_app_module from 'org/app';
 import package_app_module from 'package/app';
 import platformevent_app_module from 'platformevent/app';
 import recordviewer_app_module from 'recordviewer/app';
 import smartinput_app_module from 'smartinput/app';
-import smartinput_appSettings_settings from 'smartinput/appSettings';
 import soql_app_module from 'soql/app';
 import textCompare_app_module from 'textCompare/app';
 import urlencoder_app_module from 'urlencoder/app';
+import api_appSettings_settings from 'api/appSettings';
+import metadata_appSettings_settings from 'metadata/appSettings';
+import smartinput_appSettings_settings from 'smartinput/appSettings';
 
 const APPLICATION_APP_MAPPING = {
     'accessAnalyzer/app': {
@@ -304,4 +304,15 @@ const APPLICATION_APP_MAPPING = {
     },
 };
 
-export { APPLICATION_APP_MAPPING };
+const APPLICATION_SLASH_COMMANDS = [
+    {
+        command: 'soql',
+        description: 'Open the SOQL Explorer',
+        iconName: 'standard:data_model',
+        autoExecute: true,
+        commandId: 'soql.open',
+        appId: 'soql',
+    },
+];
+
+export { APPLICATION_APP_MAPPING, APPLICATION_SLASH_COMMANDS };

@@ -1,5 +1,5 @@
 import { unzipSync, zipSync } from 'fflate';
-import { normalizeApiVersion, normalizeInstanceUrl, normalizeProxyUrl, } from 'shared/salesforceUrl';
+import { normalizeApiVersion, normalizeInstanceUrl, normalizeProxyUrl } from 'shared/salesforceUrl';
 import { HttpError } from 'shared/types';
 function escapeXml(text) {
     return String(text ?? '')
@@ -146,7 +146,7 @@ export function createMetadataApiClient(options = {}) {
             const doc = await requestSoap(`<met:describeMetadata><met:asOfVersion>${escapeXml(asOfVersion)}</met:asOfVersion></met:describeMetadata>`);
             return doc;
         },
-        async listMetadata({ queries, asOfVersion = effectiveApiVersion } = {}) {
+        async listMetadata({ queries, asOfVersion = effectiveApiVersion, } = {}) {
             const q = Array.isArray(queries) ? queries : [];
             if (!q.length)
                 return [];
@@ -177,14 +177,16 @@ export function createMetadataApiClient(options = {}) {
             }))
                 .filter(x => x.fullName || x.fileName);
         },
-        async retrieve({ typesMap, apiVersion = effectiveApiVersion } = {}) {
+        async retrieve({ typesMap, apiVersion = effectiveApiVersion, } = {}) {
             const typesXml = xmlForTypes(typesMap || new Map());
             if (typeof jsforceConnection?.metadata?.retrieve === 'function') {
                 const unpackaged = {
                     version: apiVersion,
                     types: Array.from(typesMap?.entries?.() || []).map(([name, members]) => ({
                         name,
-                        members: Array.isArray(members) ? members : Array.from(members || []),
+                        members: Array.isArray(members)
+                            ? members
+                            : Array.from(members || []),
                     })),
                 };
                 const result = await jsforceConnection.metadata.retrieve({
@@ -225,7 +227,7 @@ export function createMetadataApiClient(options = {}) {
             const errorMessage = firstText(doc, 'errorMessage') || '';
             return { done, success, status, zipFile, errorMessage, raw: doc };
         },
-        async deploy(zipBytes, { checkOnly = false, testLevel = 'NoTestRun' } = {}) {
+        async deploy(zipBytes, { checkOnly = false, testLevel = 'NoTestRun', } = {}) {
             const zipB64 = bytesToBase64(zipBytes instanceof Uint8Array ? zipBytes : new Uint8Array(zipBytes || []));
             if (typeof jsforceConnection?.metadata?.deploy === 'function') {
                 const result = await jsforceConnection.metadata.deploy(zipB64, {

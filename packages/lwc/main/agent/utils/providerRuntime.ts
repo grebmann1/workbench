@@ -11,6 +11,11 @@ export type ProviderInstance = ModelResolver & {
     responses?: ModelResolver;
     messages?: ModelResolver;
 };
+type FormattedRequest = {
+    url: RequestInfo | URL;
+    options?: RequestInit;
+    transformResponse?: (response: Response) => Promise<Response>;
+};
 export type ProviderReasoningConfig = {
     reasoningEffort: string;
     reasoningSummary: string;
@@ -20,24 +25,206 @@ function normalizeBaseUrl(value: unknown) {
     return typeof value === 'string' ? value.trim().replace(/\/+$/, '') : '';
 }
 
-function createSanitizedFetch(isInternal = false) {
-    return (url, options) => {
-        let formattedUrl = url;
-        if (isInternal) {
-            // just keep the domain and add '/responses'
-            const urlObj = new URL(url);
-            formattedUrl = `${urlObj.origin}/responses`;
+function getModelFromRequestBody(body: unknown) {
+    if (typeof body !== 'string') {
+        return '';
+    }
+    try {
+        const payload = JSON.parse(body);
+        return typeof payload?.model === 'string' ? payload.model.trim() : '';
+    } catch {
+        return '';
+    }
+}
+
+function toAnthropicBedrockBody(body: BodyInit | null | undefined): BodyInit | null | undefined {
+    if (typeof body !== 'string') {
+        return body;
+    }
+    try {
+        const payload = JSON.parse(body);
+        if (!payload || typeof payload !== 'object') {
+            return body;
+        }
+        const { model: _model, stream: _stream, ...bedrockPayload } = payload;
+        return JSON.stringify({
+            anthropic_version: 'bedrock-2023-05-31',
+            ...bedrockPayload,
+        });
+    } catch {
+        return body;
+    }
+}
+
+function toSseEvent(event: string, data: unknown) {
+    return `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
+}
+
+async function toAnthropicStreamResponse(response: Response) {
+    const contentType = response.headers.get('content-type') || '';
+    if (!response.ok || contentType.includes('text/event-stream')) {
+        return response;
+    }
+    if (!contentType.includes('application/json')) {
+        return response;
+    }
+
+    const payload = await response.json();
+    const content = Array.isArray(payload?.content) ? payload.content : [];
+    const usage = payload?.usage || {};
+    const events: string[] = [
+        toSseEvent('message_start', {
+            type: 'message_start',
+            message: {
+                id: payload?.id ?? null,
+                model: payload?.model ?? null,
+                role: payload?.role ?? 'assistant',
+                usage: {
+                    input_tokens: usage.input_tokens ?? 0,
+                    cache_creation_input_tokens: usage.cache_creation_input_tokens ?? 0,
+                    cache_read_input_tokens: usage.cache_read_input_tokens ?? 0,
+                },
+            },
+        }),
+    ];
+
+    content.forEach((part, index) => {
+        if (part?.type === 'thinking') {
+            events.push(
+                toSseEvent('content_block_start', {
+                    type: 'content_block_start',
+                    index,
+                    content_block: { type: 'thinking', thinking: '' },
+                }),
+                toSseEvent('content_block_delta', {
+                    type: 'content_block_delta',
+                    index,
+                    delta: { type: 'thinking_delta', thinking: part.thinking || '' },
+                })
+            );
+            if (part.signature) {
+                events.push(
+                    toSseEvent('content_block_delta', {
+                        type: 'content_block_delta',
+                        index,
+                        delta: { type: 'signature_delta', signature: part.signature },
+                    })
+                );
+            }
+            events.push(toSseEvent('content_block_stop', { type: 'content_block_stop', index }));
+            return;
         }
 
-        return fetch(formattedUrl, {
-            ...options,
+        if (part?.type === 'text') {
+            events.push(
+                toSseEvent('content_block_start', {
+                    type: 'content_block_start',
+                    index,
+                    content_block: { type: 'text', text: '' },
+                }),
+                toSseEvent('content_block_delta', {
+                    type: 'content_block_delta',
+                    index,
+                    delta: { type: 'text_delta', text: part.text || '' },
+                }),
+                toSseEvent('content_block_stop', { type: 'content_block_stop', index })
+            );
+        }
+    });
+
+    events.push(
+        toSseEvent('message_delta', {
+            type: 'message_delta',
+            delta: {
+                stop_reason: payload?.stop_reason ?? 'end_turn',
+                stop_sequence: payload?.stop_sequence ?? null,
+            },
+            usage: {
+                output_tokens: usage.output_tokens ?? 0,
+            },
+        }),
+        toSseEvent('message_stop', { type: 'message_stop' })
+    );
+
+    const headers = new Headers(response.headers);
+    headers.set('content-type', 'text/event-stream');
+    return new Response(events.join(''), {
+        status: response.status,
+        statusText: response.statusText,
+        headers,
+    });
+}
+
+function createSanitizedFetch(
+    formatRequest: (url: RequestInfo | URL, options?: RequestInit) => FormattedRequest = (
+        url,
+        options
+    ) => ({
+        url,
+        options,
+    })
+) {
+    return async (url, options) => {
+        const formattedRequest = formatRequest(url, options);
+
+        const response = await fetch(formattedRequest.url, {
+            ...formattedRequest.options,
             credentials: 'omit',
             headers: {
                 ...Object.fromEntries(
-                    Object.entries(options?.headers || {}).filter(([key]) => key !== 'cookie')
+                    Object.entries(formattedRequest.options?.headers || {}).filter(
+                        ([key]) => key !== 'cookie'
+                    )
                 ),
             },
         });
+        return formattedRequest.transformResponse
+            ? formattedRequest.transformResponse(response)
+            : response;
+    };
+}
+
+function toOpenAiResponsesRequest(url: RequestInfo | URL, options?: RequestInit) {
+    const urlObj = new URL(url.toString());
+    return { url: `${urlObj.origin}/responses`, options };
+}
+
+function toOpenAiChatCompletionsRequest(url: RequestInfo | URL, options?: RequestInit) {
+    const urlObj = new URL(url.toString());
+    return { url: `${urlObj.origin}/chat/completions`, options };
+}
+
+function toAnthropicBedrockRequest(url: RequestInfo | URL, options?: RequestInit) {
+    const urlObj = new URL(url.toString());
+    const nextOptions = {
+        ...options,
+        body: toAnthropicBedrockBody(options?.body),
+    };
+    if (urlObj.pathname.includes('/bedrock/model/')) {
+        urlObj.pathname = urlObj.pathname.replace(/\/messages$/, '/invoke-with-response-stream');
+        return {
+            url: urlObj.toString(),
+            options: nextOptions,
+            transformResponse: toAnthropicStreamResponse,
+        };
+    }
+
+    const bedrockPrefix = '/bedrock/';
+    const bedrockIndex = urlObj.pathname.indexOf(bedrockPrefix);
+    const model = getModelFromRequestBody(options?.body);
+    if (bedrockIndex === -1 || !model) {
+        return { url: urlObj.toString(), options: nextOptions };
+    }
+
+    const prefix = urlObj.pathname.slice(0, bedrockIndex);
+    const endpoint = urlObj.pathname
+        .slice(bedrockIndex + bedrockPrefix.length)
+        .replace(/^messages$/, 'invoke-with-response-stream');
+    urlObj.pathname = `${prefix}/bedrock/model/${model}/${endpoint}`;
+    return {
+        url: urlObj.toString(),
+        options: nextOptions,
+        transformResponse: toAnthropicStreamResponse,
     };
 }
 
@@ -73,6 +260,13 @@ function resolveProviderRuntimeBaseUrl(
     return effectiveUrl;
 }
 
+function isAnthropicBedrockGateway(provider: unknown, baseUrl: unknown) {
+    return (
+        normalizeLlmProvider(provider) === 'anthropic' &&
+        normalizeBaseUrl(baseUrl).endsWith('/bedrock')
+    );
+}
+
 export function createProviderInstance({
     provider,
     apiKey,
@@ -85,22 +279,38 @@ export function createProviderInstance({
     isInternal?: boolean;
 }): ProviderInstance {
     const normalizedProvider = normalizeLlmProvider(provider);
+    const settings = {
+        apiKey: apiKey || '',
+        baseURL: resolveProviderRuntimeBaseUrl(normalizedProvider, baseUrl),
+        fetch: createSanitizedFetch(),
+    };
 
-    // Internal gateway is OpenAI-compatible for every provider it proxies,
-    // so always use the OpenAI SDK pointed at the gateway URL.
+    // For now it's mainly targeting internal Anthropic Bedrock gateway.
+    if (isAnthropicBedrockGateway(normalizedProvider, baseUrl)) {
+        return createAnthropic({
+            ...settings,
+            fetch: createSanitizedFetch(toAnthropicBedrockRequest),
+        });
+    }
+
+    if (isInternal && normalizedProvider === 'gemini') {
+        return createGoogleGenerativeAI({
+            apiKey: apiKey || '',
+            baseURL: resolveProviderRuntimeBaseUrl('gemini', baseUrl),
+            headers: apiKey ? { Authorization: `Bearer ${apiKey}` } : undefined,
+            fetch: createSanitizedFetch(),
+        });
+    }
+
+    // Internal /v1 gateway is OpenAI-compatible for the providers it proxies,
+    // so use the OpenAI SDK and route requests to its /responses endpoint.
     if (isInternal) {
         return createOpenAI({
             apiKey: apiKey || '',
             baseURL: resolveProviderRuntimeBaseUrl('openai', baseUrl),
-            fetch: createSanitizedFetch(isInternal),
+            fetch: createSanitizedFetch(toOpenAiResponsesRequest),
         });
     }
-
-    const settings = {
-        apiKey: apiKey || '',
-        baseURL: resolveProviderRuntimeBaseUrl(normalizedProvider, baseUrl),
-        fetch: createSanitizedFetch(isInternal),
-    };
 
     switch (normalizedProvider) {
         case 'anthropic':
@@ -148,6 +358,14 @@ export function resolveProviderModelInstance(
     }
 
     if (normalizedProvider === 'mistral' && typeof providerInstance.chat === 'function') {
+        return providerInstance.chat(modelId);
+    }
+
+    if (
+        isInternal &&
+        normalizedProvider === 'gemini' &&
+        typeof providerInstance.chat === 'function'
+    ) {
         return providerInstance.chat(modelId);
     }
 

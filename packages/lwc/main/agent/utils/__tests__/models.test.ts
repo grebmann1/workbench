@@ -9,7 +9,7 @@ import {
     getSummaryModelForAgentProvider,
     REASONING_OPTIONS,
     DEFAULT_REASONING,
-} from '../models.ts';
+} from '../models';
 
 test('models: MODELS / INTERNAL_MODELS have {label,value} entries', () => {
     assert.ok(Array.isArray(MODELS));
@@ -19,6 +19,12 @@ test('models: MODELS / INTERNAL_MODELS have {label,value} entries', () => {
         assert.equal(typeof m.value, 'string');
     }
     assert.ok(Array.isArray(INTERNAL_MODELS));
+});
+
+test('models: INTERNAL_MODELS omits disabled internal Anthropic models', () => {
+    const anthropicModel = INTERNAL_MODELS.find(model => model.provider === 'anthropic');
+
+    assert.equal(anthropicModel, undefined);
 });
 
 test('models: DEFAULT_MODEL is non-empty string', () => {
@@ -36,6 +42,10 @@ test('getDefaultModelForAgentProvider: internal flag routes to INTERNAL_MODELS',
     if (INTERNAL_MODELS.length === 0) return;
     const v = getDefaultModelForAgentProvider('openai', true);
     assert.equal(v, INTERNAL_MODELS[0].value);
+});
+
+test('getDefaultModelForAgentProvider: disabled internal Anthropic falls back to default model', () => {
+    assert.equal(getDefaultModelForAgentProvider('anthropic', true), DEFAULT_MODEL);
 });
 
 test('getSummaryModelForAgentProvider: explicit lightweight selectedModel wins when supported', () => {
@@ -61,6 +71,17 @@ test('getSummaryModelForAgentProvider: no selectedModel falls back to preferred 
     const v = getSummaryModelForAgentProvider('openai');
     assert.equal(typeof v, 'string');
     assert.ok(v.length > 0);
+});
+
+test('getSummaryModelForAgentProvider: disabled internal Anthropic falls back to default model', () => {
+    assert.equal(getSummaryModelForAgentProvider('anthropic', undefined, true), DEFAULT_MODEL);
+});
+
+test('getSummaryModelForAgentProvider: disabled internal Anthropic ignores stale public Haiku id', () => {
+    assert.equal(
+        getSummaryModelForAgentProvider('anthropic', 'claude-haiku-4-5-20251001', true),
+        DEFAULT_MODEL
+    );
 });
 
 test('REASONING_OPTIONS / DEFAULT_REASONING: shape and default points at "low"', () => {

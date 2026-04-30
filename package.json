@@ -100,6 +100,7 @@
         "@ai-sdk/google": "^3.0.60",
         "@ai-sdk/mcp": "^1.0.36",
         "@ai-sdk/openai": "^3.0.41",
+        "@ai-sdk/openai-compatible": "^2.0.42",
         "@ai-sdk/xai": "^3.0.80",
         "@jetstreamapp/soql-parser-js": "^6.2.4",
         "@lwc/synthetic-shadow": "^9.1.1",

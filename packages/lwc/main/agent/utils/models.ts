@@ -15,13 +15,19 @@ export const MODELS = OPENAI_MODEL_OPTIONS.map(model => ({
 export const INTERNAL_MODELS = INTERNAL_MODEL_OPTIONS.map(model => ({
     label: model.label,
     value: model.value,
+    provider: model.provider,
 }));
 
 export const DEFAULT_MODEL = getDefaultModelForProvider('openai') || MODELS[0].value;
 
 const SUMMARY_MODEL_PREFERENCES: Record<LlmProvider, string[]> = {
     openai: ['gpt-5.4-mini', 'gpt-5-mini', 'gpt-5.4-nano', 'gpt-5-nano-2025-08-07'],
-    anthropic: ['claude-haiku-4-5-20251001', 'claude-sonnet-4-6'],
+    anthropic: [
+        'us.anthropic.claude-haiku-4-5-20251001-v1:0',
+        'claude-haiku-4-5-20251001',
+        'us.anthropic.claude-sonnet-4-6',
+        'claude-sonnet-4-6',
+    ],
     gemini: ['gemini-3.1-flash-lite-preview', 'gemini-3-flash-preview'],
     mistral: ['mistral-small-2603', 'mistral-medium-2508'],
     grok: ['grok-4-1-fast-reasoning'],
@@ -32,9 +38,21 @@ function isLightweightSummaryModel(modelId: string) {
     return /mini|nano|lite|flash|haiku|small|fast/i.test(modelId);
 }
 
+function getInternalModelsForProvider(provider: unknown) {
+    const normalizedProvider = normalizeLlmProvider(provider);
+    const providerModels = INTERNAL_MODEL_OPTIONS.filter(
+        model => model.provider === normalizedProvider
+    );
+
+    return providerModels.map(model => ({
+        label: model.label,
+        value: model.value,
+    }));
+}
+
 function getModelsForProvider(provider: unknown, isInternal = false) {
     if (isInternal) {
-        return INTERNAL_MODELS;
+        return getInternalModelsForProvider(provider);
     }
 
     return getProviderModelOptions(normalizeLlmProvider(provider)).map(model => ({
@@ -69,7 +87,7 @@ export function getSummaryModelForAgentProvider(
         return normalizedSelectedModel;
     }
 
-    if (normalizedSelectedModel && !availableModelIds.has(normalizedSelectedModel)) {
+    if (normalizedSelectedModel && !availableModelIds.has(normalizedSelectedModel) && !isInternal) {
         return normalizedSelectedModel;
     }
 

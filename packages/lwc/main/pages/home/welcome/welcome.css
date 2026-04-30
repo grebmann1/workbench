@@ -13,6 +13,12 @@
     gap: 0.625rem;
 }
 
+.welcome-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
+}
+
 /* ── Hero header ───────────────────────────────────────────────── */
 .welcome-hero {
     border-radius: 0.625rem;
@@ -575,7 +581,7 @@
         min-width: 0;
     }
 
-    .welcome-card_notices {
+    .welcome-sidebar {
         flex: 2;
         min-width: 0;
     }
@@ -599,7 +605,7 @@
         flex: 2;
     }
 
-    .welcome-card_notices {
+    .welcome-sidebar {
         flex: 1;
     }
 }

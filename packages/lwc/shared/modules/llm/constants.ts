@@ -60,6 +60,13 @@ export const DEFAULT_PROVIDER_BASE_URLS = {
     workbench: '/openai/v1',
 } satisfies Record<LlmProvider, string>;
 
+export const INTERNAL_PROVIDER_BASE_URLS = {
+    openai: 'https://eng-ai-model-gateway.sfproxy.devx-preprod.aws-esvc1-useast2.aws.sfdc.cl/v1',
+    anthropic:
+        'https://eng-ai-model-gateway.sfproxy.devx-preprod.aws-esvc1-useast2.aws.sfdc.cl/bedrock',
+    gemini: 'https://eng-ai-model-gateway.sfproxy.devx-preprod.aws-esvc1-useast2.aws.sfdc.cl/v1beta',
+} satisfies Partial<Record<LlmProvider, string>>;
+
 export const LLM_PROVIDER_OPTIONS = [
     { label: 'OpenAI', value: 'openai' },
     { label: 'Anthropic', value: 'anthropic' },
@@ -92,6 +99,24 @@ export const INTERNAL_MODEL_OPTIONS: LlmModelOption[] = [
     { label: 'gpt-5-mini', value: 'gpt-5-mini', provider: 'openai', maxOutputTokens: 16000 },
     { label: 'gpt-5.2-codex', value: 'gpt-5.2-codex', provider: 'openai', maxOutputTokens: 16000 },
     { label: 'gpt-5.3-codex', value: 'gpt-5.3-codex', provider: 'openai', maxOutputTokens: 16000 },
+    {
+        label: 'gemini-3-pro-preview',
+        value: 'gemini-3-pro-preview',
+        provider: 'gemini',
+        maxOutputTokens: 16000,
+    },
+    {
+        label: 'gemini-3-flash-preview',
+        value: 'gemini-3-flash-preview',
+        provider: 'gemini',
+        maxOutputTokens: 16000,
+    },
+    {
+        label: 'gemini-3.1-pro-preview',
+        value: 'gemini-3.1-pro-preview',
+        provider: 'gemini',
+        maxOutputTokens: 16000,
+    },
 ];
 
 export const ANTHROPIC_MODEL_OPTIONS: LlmModelOption[] = [

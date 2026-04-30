@@ -57,7 +57,6 @@ export function runActionOnBufferedTypedCharacters(event, action) {
     buffer._keyBuffer.push(letter);
     const matchText = buffer._keyBuffer.join('').toLowerCase();
     action(matchText);
-    // eslint-disable-next-line @lwc/lwc/no-async-operation
     buffer._clearBufferId = setTimeout(() => {
         buffer._keyBuffer = [];
     }, 700);

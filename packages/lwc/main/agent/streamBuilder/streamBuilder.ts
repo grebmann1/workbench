@@ -90,8 +90,15 @@ export function createStreamMessageBuilder(
             toolCallId,
             toolName,
             input,
+            providerOptions,
             state,
-        }: { toolCallId: string; toolName?: string; input?: unknown; state: string }
+        }: {
+            toolCallId: string;
+            toolName?: string;
+            input?: unknown;
+            providerOptions?: unknown;
+            state: string;
+        }
     ) => {
         const idx = parts.findIndex(part => {
             if (!part || typeof part !== 'object') return false;
@@ -105,6 +112,7 @@ export function createStreamMessageBuilder(
             ...(toolName ? { toolName } : {}),
             input,
             arguments: typeof input === 'string' ? input : undefined,
+            ...(providerOptions ? { providerOptions } : {}),
             state,
         };
         if (idx === -1) {
@@ -130,11 +138,13 @@ export function createStreamMessageBuilder(
                 finalizeReasoning(false);
                 updateParts(parts => {
                     chunk.toolCalls.forEach((tc, index) => {
+                        const toolCallWithMetadata = tc as any;
                         const toolCallId = normalizeToolCallId(tc, `tool-${Date.now()}-${index}`);
                         upsertToolCallPart(parts, {
                             toolCallId,
                             toolName: tc?.toolName,
                             input: tc?.input,
+                            providerOptions: toolCallWithMetadata?.providerOptions,
                             state: 'input-available',
                         });
                     });
@@ -164,6 +174,7 @@ export function createStreamMessageBuilder(
                         toolCallId,
                         toolName: chunk.toolName || existing?.toolName,
                         input: nextText,
+                        providerOptions: chunk.providerOptions || existing?.providerOptions,
                         state: 'input-streaming',
                     });
                 });

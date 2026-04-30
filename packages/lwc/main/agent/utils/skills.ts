@@ -1,9 +1,12 @@
-import { getIndexedDbFileSystem } from 'core/fs';
+import { ensureIndexedDbDefaultFiles, getIndexedDbFileSystem } from 'core/fs';
 import LOGGER from 'shared/logger';
+
+import { SKILL_ROOT_DIR_BY_SCOPE } from '../tools/constants';
 
 import { SKILLS_ROOT, SKILLS_INSTRUCTIONS } from './constants';
 
 export type SkillScope = 'project' | 'user';
+export type SkillSource = 'bundled' | 'custom';
 
 export interface DiscoveredSkill {
     name: string;
@@ -11,7 +14,13 @@ export interface DiscoveredSkill {
     skillMdPath: string;
     rootDir: string;
     scope: SkillScope;
+    source: SkillSource;
 }
+
+type SkillFileSystem = {
+    readdirWithFileTypes: (path: string) => Promise<Array<{ name: string; isDirectory: boolean }>>;
+    readFile: (path: string, encoding?: string) => Promise<string>;
+};
 
 function escapeXml(text: string): string {
     return text
@@ -87,8 +96,7 @@ function joinPath(root: string, child: string): string {
 }
 
 // Recursively collects every file whose name ends with "SKILL.md" under dir.
-async function findAllSkillFiles(dir: string): Promise<string[]> {
-    const fs = getIndexedDbFileSystem();
+async function findAllSkillFiles(fs: SkillFileSystem, dir: string): Promise<string[]> {
     const results: string[] = [];
     try {
         const entries = await fs.readdirWithFileTypes(dir).catch(() => []);
@@ -96,7 +104,7 @@ async function findAllSkillFiles(dir: string): Promise<string[]> {
             if (entry.name.startsWith('.')) continue;
             const fullPath = joinPath(dir, entry.name);
             if (entry.isDirectory) {
-                const nested = await findAllSkillFiles(fullPath);
+                const nested = await findAllSkillFiles(fs, fullPath);
                 results.push(...nested);
             } else if (entry.name.endsWith('SKILL.md')) {
                 results.push(fullPath);
@@ -108,9 +116,21 @@ async function findAllSkillFiles(dir: string): Promise<string[]> {
     return results.sort();
 }
 
+export function classifySkillPath(filePath: string): { scope: SkillScope; source: SkillSource } {
+    if (filePath.startsWith(`${SKILL_ROOT_DIR_BY_SCOPE.user}/`)) {
+        return { scope: 'user', source: 'custom' };
+    }
+    if (filePath.startsWith(`${SKILL_ROOT_DIR_BY_SCOPE.project}/`)) {
+        return { scope: 'project', source: 'custom' };
+    }
+    return { scope: 'project', source: 'bundled' };
+}
+
 // Loads skill metadata from any *SKILL.md file path.
-async function loadSkillFile(filePath: string, scope: SkillScope): Promise<DiscoveredSkill | null> {
-    const fs = getIndexedDbFileSystem();
+async function loadSkillFile(
+    fs: SkillFileSystem,
+    filePath: string
+): Promise<DiscoveredSkill | null> {
     try {
         const content = await fs.readFile(filePath, 'utf-8');
         const { frontmatter, ok } = extractFrontmatter(content);
@@ -121,21 +141,42 @@ async function loadSkillFile(filePath: string, scope: SkillScope): Promise<Disco
         if (!name || !description) return null;
         const lastSlash = filePath.lastIndexOf('/');
         const rootDir = lastSlash > 0 ? filePath.slice(0, lastSlash) : filePath;
-        return { name, description, skillMdPath: filePath, rootDir, scope };
+        const { scope, source } = classifySkillPath(filePath);
+        return { name, description, skillMdPath: filePath, rootDir, scope, source };
     } catch {
         return null;
     }
 }
 
-export async function discoverSkills(): Promise<DiscoveredSkill[]> {
+async function discoverSkillsFromFileSystem(
+    fs: SkillFileSystem,
+    roots = [SKILLS_ROOT, SKILL_ROOT_DIR_BY_SCOPE.user, SKILL_ROOT_DIR_BY_SCOPE.project]
+): Promise<DiscoveredSkill[]> {
     const byName = new Map<string, DiscoveredSkill>();
-    const files = await findAllSkillFiles(SKILLS_ROOT);
-    for (const filePath of files) {
-        const skill = await loadSkillFile(filePath, 'project');
-        if (skill) byName.set(skill.name, skill);
+    const uniqueRoots = Array.from(new Set(roots));
+    const files: string[] = [];
+    for (const root of uniqueRoots) {
+        const nested = await findAllSkillFiles(fs, root);
+        files.push(...nested);
+    }
+    const uniqueFiles = Array.from(new Set(files)).sort();
+    for (const filePath of uniqueFiles) {
+        const skill = await loadSkillFile(fs, filePath);
+        if (!skill) continue;
+        const existing = byName.get(skill.name);
+        // Prefer custom over bundled on name collision; otherwise keep first.
+        if (!existing || (existing.source === 'bundled' && skill.source === 'custom')) {
+            byName.set(skill.name, skill);
+        }
     }
     LOGGER.debug('[agent] discovered skills', { skills: [...byName.values()] });
     return [...byName.values()].sort((a, b) => a.name.localeCompare(b.name));
+}
+
+export async function discoverSkills(): Promise<DiscoveredSkill[]> {
+    const fs = getIndexedDbFileSystem();
+    await ensureIndexedDbDefaultFiles();
+    return discoverSkillsFromFileSystem(fs);
 }
 
 export async function fetchSkillByName(
@@ -165,3 +206,7 @@ export function formatSkillsForPrompt(skills: DiscoveredSkill[]): string | null 
     );
     return `${SKILLS_INSTRUCTIONS}\n\n<available_skills>\n${parts.join('\n')}\n</available_skills>`;
 }
+
+export const __testables = {
+    discoverSkillsFromFileSystem,
+};

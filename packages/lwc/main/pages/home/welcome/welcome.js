@@ -105,6 +105,13 @@ export default class Welcome extends ToolkitElement {
         });
     };
 
+    handleOpenSettings = () => {
+        navigate(this.navContext, {
+            type: 'application',
+            state: { applicationName: 'settings' },
+        });
+    };
+
     handleViewReleaseNotes = () => {
         navigate(this.navContext, {
             type: 'application',
