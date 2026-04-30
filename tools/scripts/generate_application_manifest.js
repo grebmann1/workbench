@@ -396,4 +396,14 @@ function generate() {
     );
 }
 
-generate();
+if (require.main === module) {
+    generate();
+}
+
+module.exports = {
+    validate,
+    flattenedEntryFromManifest,
+    identForName,
+    settingsComponentIdent,
+    renderGeneratedRegistryFlattened,
+};
