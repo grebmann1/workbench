@@ -10,6 +10,14 @@
     overflow: clip;
 }
 
+.field-column {
+    width: 34%;
+}
+
+.value-column {
+    width: 66%;
+}
+
 .tableFixHead thead {
     position: sticky;
     top: 0;

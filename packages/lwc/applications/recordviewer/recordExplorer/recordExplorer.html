@@ -232,6 +232,10 @@
                     class="slds-table slds-table_cell slds-table_fixed-layout slds-table_bordered slds-table_resizable-cols slds-no-row-hover"
                     id="data-table"
                     role="grid">
+                    <colgroup>
+                        <col class="field-column" />
+                        <col class="value-column" />
+                    </colgroup>
                     <thead>
                         <tr class="slds-line-height_reset head">
                             <th
@@ -323,9 +327,6 @@
                         label="Save"
                         onclick={handleSaveClick}
                         variant="brand"></lightning-button>
-                </div>
-                <div class="slds-grid slds-grid_align-center slds-p-bottom_x-small">
-                    <p>(Record Editing is currently in beta phase)</p>
                 </div>
             </div>
         </template>
