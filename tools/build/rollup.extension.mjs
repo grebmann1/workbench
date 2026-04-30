@@ -419,10 +419,18 @@ const getChromeCopyTargets = (isProduction) => [
                         'https://www.sf-workbench.com'
                 ).trim().replace(/\/+$/, '') + '/'
             );
-            newContents = newContents.replace(
-                '__googleOauthClientId__',
-                String(process.env.GOOGLE_CLIENT_ID_EXTENSION || '')
-            );
+            const googleClientId = String(process.env.GOOGLE_CLIENT_ID_EXTENSION || '');
+            if (googleClientId) {
+                newContents = newContents.replace('__googleOauthClientId__', googleClientId);
+            } else {
+                // Chrome refuses to load an extension whose oauth2.client_id
+                // is an empty string ("Invalid value for 'oauth2.client_id'"),
+                // so strip the entire oauth2 block when no id is configured.
+                // Parse/serialize via JSON to avoid hand-rolling comma cleanup.
+                const parsed = JSON.parse(newContents);
+                delete parsed.oauth2;
+                newContents = JSON.stringify(parsed, null, 4);
+            }
             return newContents;
         }
     }

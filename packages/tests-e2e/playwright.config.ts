@@ -20,15 +20,13 @@ export default defineConfig({
             // with --load-extension, which is substantially slower to boot
             // than the landing-site smokes — give it more headroom.
             //
-            // TODO(#track3b): chrome-extension:// navigations resolve with
-            // ERR_BLOCKED_BY_CLIENT on GitHub Actions Ubuntu runners even
-            // with Chrome for Testing + --no-sandbox + xvfb. Runs pass
-            // locally on macOS. Until we figure out the Linux/CI flag mix,
-            // the project stays in the repo (so local devs can run it) but
-            // is empty on CI to avoid a perma-red job.
+            // Uses Playwright's bundled Chromium (channel: 'chromium') in
+            // headed mode because MV3 extensions don't load in the old
+            // headless shell. On CI the `e2e-extension` job wraps this in
+            // xvfb-run. See fixtures.ts for the flag set.
             name: 'extension',
             testDir: './tests/extension',
-            testMatch: process.env.EXT_E2E === '1' ? /.*\.spec\.ts/ : /__never__/,
+            testMatch: /.*\.spec\.ts/,
             timeout: 90_000,
         },
     ],
