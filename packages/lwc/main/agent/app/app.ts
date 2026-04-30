@@ -27,6 +27,7 @@ import type { ConnectorLike } from 'core/connector';
 import { createUserModelMessage } from 'agent/utils';
 import { persistPromptImageFiles } from 'agent/utils';
 import { getIndexedDbFileSystem } from 'core/fs';
+import { invokeCommand } from 'host-api/commands';
 import { Agent } from 'agent/Agent';
 import { browserAgentInstructions } from 'agent/agents';
 import { askUserTool, resolveQuestion, rejectQuestion, workbenchContextTools } from 'agent/tools';
@@ -662,6 +663,17 @@ You have full access to the toolkit UI. All navigation and display tools work no
         const query = event?.detail?.query || '';
         this.skillsPanelInitialQuery = query;
         this.isSkillsPanelOpen = true;
+    };
+
+    handleSlashCommand = async event => {
+        const detail = event?.detail || {};
+        const { commandId, query, appId, command } = detail;
+        if (!commandId || typeof commandId !== 'string') return;
+        try {
+            await invokeCommand(commandId, { query, appId, command });
+        } catch (err) {
+            LOGGER.warn('[agent-app] slash command failed', { commandId, err });
+        }
     };
 
     handleSkillsPanelClose = () => {

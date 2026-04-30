@@ -16,6 +16,7 @@ import {
 import { UI, QUERY } from 'soql/slices';
 import { querySelectors } from 'soql/slices/query';
 import { registerCommand } from 'host-api/commands';
+import { store as legacyStore, store_application as legacyStore_application } from 'shared/store';
 import {
     guid,
     guidFromHash,
@@ -58,6 +59,17 @@ function bootstrapSoqlExtension() {
     registerCommand('soql.selectTab', (payload: { tabId: string }) =>
         store.dispatch(UI.reduxSlice.actions.selectionTab({ id: payload.tabId }))
     );
+
+    // Zero-arg "open the SOQL app" — backs the `/soql` slash command.
+    // Navigates to the SOQL route without touching tab state, so the user
+    // lands on whatever tab they last had open.
+    registerCommand('soql.open', () => {
+        const target = `sftoolkit:${JSON.stringify({
+            type: 'application',
+            state: { applicationName: 'soql' },
+        })}`;
+        return legacyStore.dispatch(legacyStore_application.navigate(target));
+    });
 
     registerCommand(
         'soql.openOrSelectTab',

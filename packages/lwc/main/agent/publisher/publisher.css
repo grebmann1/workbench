@@ -67,8 +67,18 @@
 .publisher-slash-item-label {
     font-family: var(--lwc-fontFamilyMonospace, Menlo, Consolas, monospace);
     font-weight: 600;
-    color: var(--slds-g-color-brand-base-30, #014486);
     flex-shrink: 0;
+}
+
+.publisher-slash-item-match {
+    color: var(--slds-g-color-brand-base-30, #014486);
+    background: var(--slds-g-color-brand-base-90, #c9e3f8);
+    border-radius: 2px;
+    padding: 0 1px;
+}
+
+.publisher-slash-item-remainder {
+    color: var(--lwc-colorTextWeak, #6b6b6b);
 }
 
 .publisher-slash-item-desc {

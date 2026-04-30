@@ -3,13 +3,13 @@ import ToolkitElement from 'core/toolkitElement';
 import { isChromeExtension, isElectronApp } from 'shared/utils';
 import { GOOGLE_SIGNIN_SCOPES, GOOGLE_DRIVE_SCOPES } from 'agent/googleAuth';
 import {
+    buildProviderConfigCacheRecord,
     cacheManager,
     CACHE_CONFIG,
-    CACHE_SESSION_CONFIG,
-    getSyncedSettingsInitializedFromCache,
     CACHE_ORG_DATA_TYPES,
-    buildProviderConfigCacheRecord,
+    CACHE_SESSION_CONFIG,
     getAiProviderFromConfig,
+    getSyncedSettingsInitializedFromCache,
     resolveLlmProviderConfigMap,
     saveSingleExtensionConfigToCache,
 } from 'shared/cacheManager';
@@ -18,12 +18,6 @@ import LOGGER from 'shared/logger';
 import { store, APPLICATION, connectStore } from 'core/store';
 import { NavigationContext, navigate } from 'lwr/navigation';
 import { METADATA as METADATA_UTILS } from 'shared/utils';
-import {
-    discoverMcpServerTools,
-    formatMcpServersJson,
-    normalizeMcpServerConfigs,
-    parseMcpServersJson,
-} from 'agent/tools';
 import { APPLICATION_APP_MAPPING } from 'application/applicationRegistry';
 
 function buildEditableProviderConfigs(config) {
@@ -121,11 +115,6 @@ export default class App extends ToolkitElement {
 
     // AI Provider Onboarding
     @track showOnboardAiProvider = false;
-    @track mcpServersJson = '';
-    @track mcpServers = [];
-    @track selectedMcpServerId = null;
-    @track mcpTestingServerId = null;
-    @track mcpRefreshingServerId = null;
 
     @track metadataStorageTypeOptions = App.DEFAULT_METADATA_STORAGE_TYPES.map(type => ({
         label: type,
@@ -249,115 +238,6 @@ export default class App extends ToolkitElement {
                 }
             });
         }
-    };
-
-    handleMcpJsonChange = e => {
-        this.mcpServersJson = e.detail?.value ?? e.target?.value ?? '';
-    };
-
-    handleMcpServerSelect = event => {
-        this.selectedMcpServerId = event.detail?.name || null;
-    };
-
-    handleParseMcpServersClick = async () => {
-        const { servers, errors } = parseMcpServersJson(this.mcpServersJson);
-        if (errors.length) {
-            Toast.show({
-                label: errors[0],
-                variant: 'error',
-            });
-            return;
-        }
-        await this.saveMcpServers(servers);
-        Toast.show({
-            label: `Saved ${servers.length} MCP server${servers.length === 1 ? '' : 's'}.`,
-            variant: 'success',
-        });
-    };
-
-    handleToggleMcpServerEnabled = async e => {
-        const serverId = e.currentTarget.dataset.id;
-        const enabled = e.currentTarget.checked;
-        const servers = this.mcpServers.map(server =>
-            server.id === serverId ? { ...server, enabled } : server
-        );
-        await this.saveMcpServers(servers);
-    };
-
-    handleTestMcpServerClick = async e => {
-        const serverId = e.currentTarget.dataset.id;
-        const server = this.mcpServers.find(item => item.id === serverId);
-        if (!server) {
-            return;
-        }
-        this.mcpTestingServerId = serverId;
-        try {
-            const refreshedServer = await discoverMcpServerTools(server);
-            await this.saveMcpServer(refreshedServer);
-            if (refreshedServer.lastConnectionStatus === 'error') {
-                throw new Error(refreshedServer.lastConnectionError || 'Unable to connect');
-            }
-            const toolCount = refreshedServer.tools?.length || 0;
-            Toast.show({
-                label: `${server.name} connected (${toolCount} tool${toolCount === 1 ? '' : 's'}).`,
-                variant: 'success',
-            });
-        } catch (err) {
-            LOGGER.error('MCP connection test failed', err);
-            Toast.show({
-                label: `MCP connection failed: ${err.message}`,
-                variant: 'error',
-            });
-        } finally {
-            this.mcpTestingServerId = null;
-        }
-    };
-
-    handleRefreshMcpToolsClick = async e => {
-        const serverId = e.currentTarget.dataset.id;
-        const server = this.mcpServers.find(item => item.id === serverId);
-        if (!server) {
-            return;
-        }
-        this.mcpRefreshingServerId = serverId;
-        try {
-            const refreshedServer = await discoverMcpServerTools(server);
-            await this.saveMcpServer(refreshedServer);
-            if (refreshedServer.lastConnectionStatus === 'error') {
-                Toast.show({
-                    label: `Tool refresh failed: ${refreshedServer.lastConnectionError}`,
-                    variant: 'error',
-                });
-                return;
-            }
-            Toast.show({
-                label: `Refreshed ${refreshedServer.tools?.length || 0} MCP tool${refreshedServer.tools?.length === 1 ? '' : 's'}.`,
-                variant: 'success',
-            });
-        } finally {
-            this.mcpRefreshingServerId = null;
-        }
-    };
-
-    handleToggleMcpToolEnabled = async e => {
-        const toolName = e.currentTarget.dataset.name;
-        const enabled = e.currentTarget.checked;
-        const server = this.selectedMcpServer;
-        if (!server || !toolName) {
-            return;
-        }
-        const tools = (server.tools || []).map(tool =>
-            tool.name === toolName ? { ...tool, enabled } : tool
-        );
-        await this.saveMcpServer({ ...server, tools });
-    };
-
-    handleEnableAllMcpToolsClick = async () => {
-        await this.setAllSelectedMcpToolsEnabled(true);
-    };
-
-    handleDisableAllMcpToolsClick = async () => {
-        await this.setAllSelectedMcpToolsEnabled(false);
     };
 
     handleToggleQaMode = () => {
@@ -839,41 +719,6 @@ export default class App extends ToolkitElement {
         });
     };
 
-    saveMcpServers = async servers => {
-        const normalizedServers = normalizeMcpServerConfigs(servers);
-        await saveSingleExtensionConfigToCache(CACHE_CONFIG.MCP_SERVERS.key, normalizedServers);
-        this.config = {
-            ...this.config,
-            [CACHE_CONFIG.MCP_SERVERS.key]: normalizedServers,
-        };
-        this.originalConfig = {
-            ...this.originalConfig,
-            [CACHE_CONFIG.MCP_SERVERS.key]: normalizedServers,
-        };
-        this.syncMcpStateFromConfig(this.config);
-        store.dispatch(
-            APPLICATION.reduxSlice.actions.updateSettings({
-                [CACHE_CONFIG.MCP_SERVERS.key]: normalizedServers,
-            })
-        );
-    };
-
-    saveMcpServer = async server => {
-        const servers = this.mcpServers.map(item => (item.id === server.id ? server : item));
-        await this.saveMcpServers(servers);
-    };
-
-    setAllSelectedMcpToolsEnabled = async enabled => {
-        const server = this.selectedMcpServer;
-        if (!server || !server.tools?.length) {
-            return;
-        }
-        await this.saveMcpServer({
-            ...server,
-            tools: server.tools.map(tool => ({ ...tool, enabled })),
-        });
-    };
-
     saveSessionConfigToCache = async () => {
         const sessionConfigurationList = Object.values(CACHE_SESSION_CONFIG);
         const sessionConfig = {};
@@ -910,7 +755,6 @@ export default class App extends ToolkitElement {
         }
         this.config = config;
         this.originalConfig = { ...config };
-        this.syncMcpStateFromConfig(config);
 
         // Load the session specific settings from the cache
 
@@ -938,15 +782,6 @@ export default class App extends ToolkitElement {
 
         // Google session state is now driven by application.settings via storeChange;
         // no manual assignment needed here.
-    };
-
-    syncMcpStateFromConfig = config => {
-        const servers = normalizeMcpServerConfigs(config?.[CACHE_CONFIG.MCP_SERVERS.key]);
-        this.mcpServers = servers;
-        this.mcpServersJson = formatMcpServersJson(servers);
-        if (!servers.some(server => server.id === this.selectedMcpServerId)) {
-            this.selectedMcpServerId = servers[0]?.id || null;
-        }
     };
 
     loadMetadataStorageTypeOptions = async () => {
@@ -1076,129 +911,6 @@ export default class App extends ToolkitElement {
         // Disable if config hasn't changed or if API version is invalid
         if (this._isApiVersionValid === false) return true;
         return !this.hasChanged;
-    }
-
-    get mcpServersJsonPlaceholder() {
-        return JSON.stringify(
-            {
-                mcpServers: {
-                    'basic-test': {
-                        url: 'http://localhost:3999/mcp',
-                        transport: 'http',
-                    },
-                },
-            },
-            null,
-            2
-        );
-    }
-
-    get hasMcpServers() {
-        return this.mcpServers.length > 0;
-    }
-
-    get mcpServerSections() {
-        return [
-            {
-                label: 'MCP Servers',
-                items: this.mcpServers.map(server => ({
-                    name: server.id,
-                    label: server.name,
-                    iconName: server.enabled ? 'utility:connected_apps' : 'utility:ban',
-                    badgeText: server.transport.toUpperCase(),
-                    isSelected: server.id === this.selectedMcpServerId,
-                })),
-            },
-        ];
-    }
-
-    get selectedMcpServer() {
-        return (
-            this.mcpServers.find(server => server.id === this.selectedMcpServerId) ||
-            this.mcpServers[0] ||
-            null
-        );
-    }
-
-    get selectedMcpServerName() {
-        return this.selectedMcpServer?.name || '';
-    }
-
-    get selectedMcpServerUrl() {
-        return this.selectedMcpServer?.url || '';
-    }
-
-    get selectedMcpServerTransportLabel() {
-        return (this.selectedMcpServer?.transport || '').toUpperCase();
-    }
-
-    get selectedMcpServerEnabled() {
-        return !!this.selectedMcpServer?.enabled;
-    }
-
-    get selectedMcpServerHeadersLabel() {
-        const headers = this.selectedMcpServer?.headers || {};
-        const count = Object.keys(headers).length;
-        return `${count} custom header${count === 1 ? '' : 's'}`;
-    }
-
-    get selectedMcpServerStatusLabel() {
-        const status = this.selectedMcpServer?.lastConnectionStatus || 'unknown';
-        if (status === 'connected') {
-            return 'Connected';
-        }
-        if (status === 'error') {
-            return 'Error';
-        }
-        return 'Not tested';
-    }
-
-    get selectedMcpServerLastRefreshLabel() {
-        const value = this.selectedMcpServer?.lastToolRefreshAt;
-        if (!value) {
-            return 'Never refreshed';
-        }
-        try {
-            return new Date(value).toLocaleString();
-        } catch {
-            return value;
-        }
-    }
-
-    get selectedMcpServerError() {
-        return this.selectedMcpServer?.lastConnectionError || '';
-    }
-
-    get selectedMcpServerTools() {
-        return (this.selectedMcpServer?.tools || []).map(tool => ({
-            ...tool,
-            description: tool.description || 'No description provided by this MCP server.',
-            key: `${this.selectedMcpServer?.id || 'server'}:${tool.name}`,
-        }));
-    }
-
-    get hasSelectedMcpServerTools() {
-        return this.selectedMcpServerTools.length > 0;
-    }
-
-    get selectedMcpServerToolCount() {
-        return this.selectedMcpServerTools.length;
-    }
-
-    get selectedMcpServerEnabledToolCount() {
-        return this.selectedMcpServerTools.filter(tool => tool.enabled !== false).length;
-    }
-
-    get selectedMcpServerDisabledToolCount() {
-        return this.selectedMcpServerToolCount - this.selectedMcpServerEnabledToolCount;
-    }
-
-    get isTestingSelectedMcpServer() {
-        return this.mcpTestingServerId === this.selectedMcpServer?.id;
-    }
-
-    get isRefreshingSelectedMcpServer() {
-        return this.mcpRefreshingServerId === this.selectedMcpServer?.id;
     }
 
     get isFullIncognitoAccess() {

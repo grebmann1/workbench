@@ -10,6 +10,40 @@ import {
 } from 'agent/utils';
 import { normalizeModelSelection } from 'shared/llm';
 import LOGGER from 'shared/logger';
+import { APPLICATION_SLASH_COMMANDS } from 'application/applicationRegistry';
+import { getSlashCommands, onSlashCommandsChange } from 'host-api/slashCommands';
+
+type SlashCommand = {
+    command: string;
+    description: string;
+    iconName: string;
+    autoExecute?: boolean;
+    commandId?: string;
+    appId?: string;
+};
+
+const BUILT_IN_SLASH_COMMANDS: SlashCommand[] = [
+    {
+        command: 'skill',
+        description: 'Browse, edit, or create agent skills',
+        iconName: 'utility:magicwand',
+        autoExecute: true,
+    },
+    {
+        command: 'clear',
+        description: 'Clear the current conversation',
+        iconName: 'utility:delete',
+        autoExecute: true,
+    },
+    {
+        command: 'stop',
+        description: 'Stop the current generation',
+        iconName: 'utility:stop',
+        autoExecute: true,
+    },
+];
+
+const BUILT_IN_COMMAND_NAMES = new Set(BUILT_IN_SLASH_COMMANDS.map(c => c.command));
 
 export default class App extends ToolkitElement {
     @track _queuedMessages: Array<{ id: string; prompt: string; isPush?: boolean }> = [];
@@ -139,20 +173,40 @@ export default class App extends ToolkitElement {
         label: string;
         description: string;
         iconName: string;
+        autoExecute: boolean;
+        matchedPart: string;
+        remainderPart: string;
         key: string;
         isActive: boolean;
         activeClass: string;
     }> = [];
     @track slashActiveIndex = 0;
 
-    _slashCommands = [
-        {
-            command: 'skill',
-            label: '/skill',
-            description: 'Browse, edit, or create agent skills',
-            iconName: 'utility:magicwand',
-        },
-    ];
+    @track _runtimeSlashCommandsVersion = 0;
+    _unsubscribeSlashCommands: (() => void) | null = null;
+
+    get _slashCommands(): Array<SlashCommand & { label: string; autoExecute: boolean }> {
+        void this._runtimeSlashCommandsVersion;
+        const merged = new Map<string, SlashCommand>();
+        // Runtime first, then manifest, then built-ins — later writes win so
+        // built-ins always trump collisions and the user sees a stable set.
+        for (const entry of getSlashCommands()) {
+            merged.set(entry.command, entry);
+        }
+        for (const entry of APPLICATION_SLASH_COMMANDS as SlashCommand[]) {
+            merged.set(entry.command, entry);
+        }
+        for (const entry of BUILT_IN_SLASH_COMMANDS) {
+            merged.set(entry.command, entry);
+        }
+        return Array.from(merged.values())
+            .map(entry => ({
+                ...entry,
+                label: `/${entry.command}`,
+                autoExecute: entry.autoExecute !== false,
+            }))
+            .sort((a, b) => a.command.localeCompare(b.command));
+    }
 
     isSupportedFile = (file: File) => {
         if (!file || !file.type) return false;
@@ -308,6 +362,25 @@ export default class App extends ToolkitElement {
         target.style.overflowY = target.scrollHeight > maxHeight ? 'auto' : 'hidden';
     };
 
+    connectedCallback() {
+        this._unsubscribeSlashCommands = onSlashCommandsChange(() => {
+            this._runtimeSlashCommandsVersion++;
+            const textarea = this.template.querySelector(
+                '.chat-textarea'
+            ) as HTMLTextAreaElement | null;
+            if (textarea && this.slashSuggestions.length > 0) {
+                this._updateSlashSuggestions(textarea.value || '');
+            }
+        });
+    }
+
+    disconnectedCallback() {
+        if (this._unsubscribeSlashCommands) {
+            this._unsubscribeSlashCommands();
+            this._unsubscribeSlashCommands = null;
+        }
+    }
+
     renderedCallback() {
         const modelOptions = this.resolvedAvailableModels;
         const normalized = this.normalizeModelValue(this.selectedModel);
@@ -436,15 +509,20 @@ export default class App extends ToolkitElement {
             this._clearSlashSuggestions();
             return;
         }
-        const matches = this._slashCommands.filter(cmd => cmd.command.startsWith(query));
+        const matches = this._slashCommands
+            .filter(cmd => cmd.command !== 'stop' || this._isLoading)
+            .filter(cmd => cmd.command.startsWith(query));
         if (matches.length === 0) {
             this._clearSlashSuggestions();
             return;
         }
         this.slashActiveIndex = 0;
+        const queryLen = query.length;
         this.slashSuggestions = matches.map((cmd, idx) => ({
             ...cmd,
             key: cmd.command,
+            matchedPart: cmd.command.slice(0, queryLen),
+            remainderPart: cmd.command.slice(queryLen),
             isActive: idx === 0,
             activeClass:
                 idx === 0
@@ -478,6 +556,11 @@ export default class App extends ToolkitElement {
             '.chat-textarea'
         ) as HTMLTextAreaElement | null;
         if (!textarea) return;
+        if (suggestion.autoExecute) {
+            this._dispatchSlashCommand(suggestion.command, '');
+            this.resetPrompt();
+            return;
+        }
         const nextValue = `/${suggestion.command} `;
         textarea.value = nextValue;
         this._prompt = nextValue;
@@ -485,6 +568,45 @@ export default class App extends ToolkitElement {
         this._clearSlashSuggestions();
         textarea.focus();
         textarea.setSelectionRange(nextValue.length, nextValue.length);
+    }
+
+    _dispatchSlashCommand(command: string, query: string): boolean {
+        if (command === 'skill' || command === 'skills') {
+            this.dispatchEvent(
+                new CustomEvent('skillscommand', {
+                    detail: { query },
+                    bubbles: true,
+                    composed: true,
+                })
+            );
+            return true;
+        }
+        if (command === 'clear') {
+            this.dispatchEvent(new CustomEvent('clear', { bubbles: true, composed: true }));
+            return true;
+        }
+        if (command === 'stop') {
+            if (!this._isLoading) return true;
+            this.dispatchEvent(new CustomEvent('stop', { bubbles: true, composed: true }));
+            return true;
+        }
+        const entry = this._slashCommands.find(cmd => cmd.command === command);
+        if (entry && entry.commandId) {
+            this.dispatchEvent(
+                new CustomEvent('slashcommand', {
+                    detail: {
+                        command,
+                        commandId: entry.commandId,
+                        appId: entry.appId,
+                        query,
+                    },
+                    bubbles: true,
+                    composed: true,
+                })
+            );
+            return true;
+        }
+        return false;
     }
 
     _clearSlashSuggestions() {
@@ -531,14 +653,7 @@ export default class App extends ToolkitElement {
         if (isEmpty(value) && this.selectedFiles.length === 0) return;
 
         const slash = this._parseSlashCommand(value);
-        if (slash && (slash.command === 'skill' || slash.command === 'skills')) {
-            this.dispatchEvent(
-                new CustomEvent('skillscommand', {
-                    detail: { query: slash.query },
-                    bubbles: true,
-                    composed: true,
-                })
-            );
+        if (slash && this._dispatchSlashCommand(slash.command, slash.query)) {
             this.resetPrompt();
             return;
         }

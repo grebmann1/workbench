@@ -32,8 +32,38 @@ export default class SkillsPanel extends LightningElement {
         if (next && !wasOpen) {
             this.searchTerm = String(this.initialQuery || '');
             this.refresh();
+            document.addEventListener('keydown', this._handleDocumentKeydown, true);
+        } else if (!next && wasOpen) {
+            document.removeEventListener('keydown', this._handleDocumentKeydown, true);
         }
     }
+
+    disconnectedCallback() {
+        document.removeEventListener('keydown', this._handleDocumentKeydown, true);
+    }
+
+    _handleDocumentKeydown = (event: KeyboardEvent) => {
+        if (event.key !== 'Escape' || !this._isOpen) return;
+        const target = event.target as HTMLElement | null;
+        if (target) {
+            const tag = target.tagName;
+            if (
+                tag === 'INPUT' ||
+                tag === 'TEXTAREA' ||
+                tag === 'SELECT' ||
+                target.isContentEditable
+            ) {
+                return;
+            }
+        }
+        event.preventDefault();
+        event.stopPropagation();
+        if (this.isEditorMode) {
+            this.handleCancel();
+        } else {
+            this.handleClose();
+        }
+    };
 
     @track mode: Mode = 'list';
     @track searchTerm = '';

@@ -108,10 +108,15 @@ test('INTERNAL_MODEL_OPTIONS: internal Anthropic labels include model versions',
 });
 
 test('INTERNAL_MODEL_OPTIONS: includes internal Gemini models', () => {
-    const geminiModels = INTERNAL_MODEL_OPTIONS.filter(model => model.provider === 'gemini');
+    const geminiModelValues = INTERNAL_MODEL_OPTIONS.filter(
+        model => model.provider === 'gemini'
+    ).map(model => model.value);
 
-    assert.ok(geminiModels.length > 0);
-    assert.ok(geminiModels.some(model => model.value === 'gemini-3-flash-preview'));
+    assert.deepEqual(geminiModelValues, [
+        'gemini-3-pro-preview',
+        'gemini-3-flash-preview',
+        'gemini-3.1-pro-preview',
+    ]);
 });
 
 test('model options: maxOutputTokens is a positive integer when set', () => {

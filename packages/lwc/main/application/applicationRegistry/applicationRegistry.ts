@@ -304,4 +304,15 @@ const APPLICATION_APP_MAPPING = {
     },
 };
 
-export { APPLICATION_APP_MAPPING };
+const APPLICATION_SLASH_COMMANDS = [
+    {
+        command: 'soql',
+        description: 'Open the SOQL Explorer',
+        iconName: 'standard:data_model',
+        autoExecute: true,
+        commandId: 'soql.open',
+        appId: 'soql',
+    },
+];
+
+export { APPLICATION_APP_MAPPING, APPLICATION_SLASH_COMMANDS };

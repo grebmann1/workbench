@@ -69,14 +69,14 @@ export const INTERNAL_MODEL_OPTIONS = [
         maxOutputTokens: 8192,
     },
     {
-        label: 'gemini-3-flash-preview',
-        value: 'gemini-3-flash-preview',
+        label: 'gemini-3-pro-preview',
+        value: 'gemini-3-pro-preview',
         provider: 'gemini',
         maxOutputTokens: 16000,
     },
     {
-        label: 'gemini-3.1-flash-lite-preview',
-        value: 'gemini-3.1-flash-lite-preview',
+        label: 'gemini-3-flash-preview',
+        value: 'gemini-3-flash-preview',
         provider: 'gemini',
         maxOutputTokens: 16000,
     },
