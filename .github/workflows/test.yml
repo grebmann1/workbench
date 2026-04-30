@@ -1,4 +1,5 @@
 name: test
+# Required status checks on master: unit, build, e2e-smoke, e2e-extension.
 on:
   pull_request:
     branches: [master]
