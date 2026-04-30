@@ -15,17 +15,19 @@ type IndexedDbFsOptions = {
 };
 
 const fsByDbName = new Map();
-const seededDefaultsByDbName = new Set();
+const defaultFilesSeedPromiseByDbName = new Map<string, Promise<void>>();
 
-const DEFAULT_SKILLS_BASE_URL = '/public/skills';
+const DEFAULT_SKILLS_BASE_URLS = ['/public/skills', '/skills'];
 
-function getSkillsBaseUrl() {
+function getSkillsBaseUrls() {
     const origin =
         typeof globalThis !== 'undefined' && globalThis.location?.origin
             ? globalThis.location.origin
             : '';
-    if (!origin) return DEFAULT_SKILLS_BASE_URL;
-    return `${origin.replace(/\/$/, '')}${DEFAULT_SKILLS_BASE_URL}`;
+    const baseUrls = DEFAULT_SKILLS_BASE_URLS;
+    if (!origin) return baseUrls;
+    const normalizedOrigin = origin.replace(/\/$/, '');
+    return baseUrls.map(baseUrl => `${normalizedOrigin}${baseUrl}`);
 }
 
 /**
@@ -34,28 +36,38 @@ function getSkillsBaseUrl() {
  * Falls back to an empty array on any error so a network hiccup never breaks the app.
  */
 async function fetchSkillManifest(): Promise<string[]> {
-    try {
-        const url = `${getSkillsBaseUrl()}/skill.manifest.json`;
-        const res = await fetch(url);
-        if (!res.ok) return [];
-        const data = await res.json();
-        return Array.isArray(data?.skills) ? (data.skills as string[]) : [];
-    } catch {
-        return [];
+    for (const baseUrl of getSkillsBaseUrls()) {
+        try {
+            const res = await fetch(`${baseUrl}/skill.manifest.json`);
+            if (!res.ok) continue;
+            const data = await res.json();
+            if (Array.isArray(data?.skills)) {
+                return data.skills as string[];
+            }
+        } catch {
+            // Try the next runtime asset location.
+        }
     }
+    return [];
 }
 
 function buildFileProvidersFromRelativePaths(relativePaths) {
-    const prefix = getSkillsBaseUrl();
+    const prefixes = getSkillsBaseUrls();
     const files = {};
     for (const rel of relativePaths) {
         if (!rel) continue;
         const bashPath = `/workspace/skills/${rel}`;
-        const url = `${prefix}/${rel}`;
         files[bashPath] = async () => {
-            const res = await fetch(url);
-            if (!res.ok) throw new Error(`Failed to load skill file: ${url} (${res.status})`);
-            return res.text();
+            for (const prefix of prefixes) {
+                const url = `${prefix}/${rel}`;
+                try {
+                    const res = await fetch(url);
+                    if (res.ok) return res.text();
+                } catch {
+                    // Try the next runtime asset location.
+                }
+            }
+            throw new Error(`Failed to load skill file: ${rel}`);
         };
     }
     return files as Record<string, LazyFileProvider>;
@@ -80,12 +92,12 @@ function getParentDirectoriesForFilePaths(filePaths) {
     return Array.from(out).sort((a, b) => a.length - b.length);
 }
 
-function seedDefaultFilesIfNeeded(fs, dbName) {
-    if (seededDefaultsByDbName.has(dbName)) return;
-    seededDefaultsByDbName.add(dbName);
+function seedDefaultFilesIfNeeded(fs, dbName): Promise<void> {
+    const existing = defaultFilesSeedPromiseByDbName.get(dbName);
+    if (existing) return existing;
 
     // Async best-effort seed; never blocks app boot.
-    (async () => {
+    const seedPromise = (async () => {
         try {
             await fs.ready;
 
@@ -116,6 +128,8 @@ function seedDefaultFilesIfNeeded(fs, dbName) {
             // ignore seeding failures (offline, blocked fetch, etc.)
         }
     })();
+    defaultFilesSeedPromiseByDbName.set(dbName, seedPromise);
+    return seedPromise;
 }
 
 function mergeEnsureDirectories(ensureDirectories, initialFiles) {
@@ -160,4 +174,12 @@ export function getIndexedDbFileSystem(options: IndexedDbFsOptions = {}) {
     }
 
     return existing;
+}
+
+export async function ensureIndexedDbDefaultFiles(
+    options: Pick<IndexedDbFsOptions, 'dbName'> = {}
+) {
+    const { dbName = INDEXED_DB_DEFAULT_NAME } = options;
+    const fs = getIndexedDbFileSystem({ dbName });
+    await seedDefaultFilesIfNeeded(fs, dbName);
 }
