@@ -9,9 +9,10 @@ import openaiProxy from '../openaiProxy.ts';
  * registered middlewares and handlers is enough to exercise the behaviours
  * that matter (auth rejection, model validation, CORS headers).
  */
+type Handler = (...args: any[]) => any;
 type RouteSlot = {
     path: string;
-    handlers: Function[];
+    handlers: Handler[];
 };
 
 function makeFakeApp() {
@@ -24,16 +25,16 @@ function makeFakeApp() {
         gets,
         posts,
         optionss,
-        use(path: string, ...handlers: Function[]) {
+        use(path: string, ...handlers: Handler[]) {
             uses.push({ path, handlers });
         },
-        get(path: string, ...handlers: Function[]) {
+        get(path: string, ...handlers: Handler[]) {
             gets.push({ path, handlers });
         },
-        post(path: string, ...handlers: Function[]) {
+        post(path: string, ...handlers: Handler[]) {
             posts.push({ path, handlers });
         },
-        options(path: string, ...handlers: Function[]) {
+        options(path: string, ...handlers: Handler[]) {
             optionss.push({ path, handlers });
         },
     };
