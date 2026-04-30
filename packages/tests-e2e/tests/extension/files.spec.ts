@@ -13,4 +13,16 @@ test.describe('@extension files', () => {
         // toolbar rendered.
         await expect(page.getByRole('button', { name: /refresh/i }).first()).toBeVisible();
     });
+
+    test('shows the tree region alongside the toolbar', async ({ appPage }) => {
+        const page = await appPage('files');
+        // Any tree-style container should be visible — the app always renders
+        // a navigation/tree region even on empty FS. Use role=tree or
+        // role=navigation; either signals the sidebar mounted.
+        const navOrTree = page
+            .getByRole('tree')
+            .or(page.getByRole('navigation'))
+            .or(page.locator('[role="tree"], [role="navigation"]'));
+        await expect(navOrTree.first()).toBeVisible();
+    });
 });

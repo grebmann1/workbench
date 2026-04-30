@@ -15,4 +15,18 @@ test.describe('@extension urlencoder', () => {
         await page.getByRole('button', { name: /^run$/i }).click();
         await expect(output).toHaveValue(/hello%20world/);
     });
+
+    test('decode mode reverses a percent-encoded string', async ({ appPage }) => {
+        const page = await appPage('urlencoder');
+        const input = page.getByRole('textbox', { name: /input/i });
+        const output = page.getByRole('textbox', { name: /output/i });
+
+        // Flip to Decode, paste encoded text, Run, assert decoded output.
+        // The SLDS radio visual overlay (slds-radio_faux) intercepts clicks
+        // on the actual input — click the label by text instead.
+        await page.locator('label').filter({ hasText: /^decode$/i }).click();
+        await input.fill('hello%20world%26foo%3Dbar');
+        await page.getByRole('button', { name: /^run$/i }).click();
+        await expect(output).toHaveValue('hello world&foo=bar');
+    });
 });

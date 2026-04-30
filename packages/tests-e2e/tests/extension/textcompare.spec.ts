@@ -15,4 +15,15 @@ test.describe('@extension textcompare', () => {
             await expect(page.getByRole('button', { name })).toBeVisible();
         }
     });
+
+    test('clear toolbar button is clickable without throwing', async ({ appPage }) => {
+        const page = await appPage('textcompare');
+        // Clicking Clear on an already-empty editor is a safe no-op that
+        // still exercises the click handler wiring. If the handler throws,
+        // Playwright surfaces the uncaught exception via page errors.
+        const errors: Error[] = [];
+        page.on('pageerror', e => errors.push(e));
+        await page.getByRole('button', { name: /^clear$/i }).click();
+        expect(errors).toEqual([]);
+    });
 });
