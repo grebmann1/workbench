@@ -61,19 +61,24 @@ export const test = base.extend<Fixtures>({
                 `Extension not built at ${EXT_DIR}. Run npm run build:prod:extension first.`
             );
         }
-        // Chrome extensions don't load in headless mode — launch headed.
-        // On CI this runs under xvfb-run; locally macOS shows a window briefly.
-        // Must drop `--disable-extensions` (Playwright default) or the
+        // Use Playwright's bundled Chromium (patched) rather than
+        // channel: 'chrome'. Chrome for Testing 137+ removed support for
+        // `--load-extension` / `--disable-extensions-except` from branded
+        // builds (see crbug.com/1426531), which caused
+        // ERR_BLOCKED_BY_CLIENT on all chrome-extension:// navigations on
+        // GitHub Actions. Bundled Chromium still supports those flags.
+        //
+        // Playwright's default args include `--disable-extensions`
+        // unconditionally; we must drop it via ignoreDefaultArgs or the
         // extension's service worker is never registered.
+        //
+        // On CI this runs under xvfb-run (headed); locally macOS shows a
+        // window briefly. MV3 extensions do not load in the old headless
+        // shell, so `headless: false` is required here.
         const ctx = await chromium.launchPersistentContext('', {
-            // Playwright's bundled chromium on Linux is headless-shell and
-            // does not load extensions. Use `chrome` (Chrome for Testing,
-            // installed via `npx playwright install chrome` in CI).
-            channel: 'chrome',
+            channel: 'chromium',
             headless: false,
-            // `--enable-automation` makes Chromium reject
-            // chrome-extension://<id>/... with ERR_BLOCKED_BY_CLIENT.
-            ignoreDefaultArgs: ['--disable-extensions', '--enable-automation'],
+            ignoreDefaultArgs: ['--disable-extensions'],
             args: [
                 `--disable-extensions-except=${EXT_DIR}`,
                 `--load-extension=${EXT_DIR}`,
@@ -107,23 +112,7 @@ export const test = base.extend<Fixtures>({
         const open = async (applicationName: string) => {
             const page = await context.newPage();
             const url = `chrome-extension://${extensionId}/views/app.html?applicationName=${applicationName}`;
-            // Retry the first navigation. On CI under xvfb, the extension
-            // occasionally returns ERR_BLOCKED_BY_CLIENT for up to a few
-            // seconds after Chrome launches while the extension's manifest
-            // is registered against the persistent context.
-            let lastErr: unknown;
-            for (let i = 0; i < 20; i++) {
-                try {
-                    await page.goto(url);
-                    lastErr = undefined;
-                    break;
-                } catch (err) {
-                    lastErr = err;
-                    if (!String(err).includes('ERR_BLOCKED_BY_CLIENT')) throw err;
-                    await page.waitForTimeout(500);
-                }
-            }
-            if (lastErr) throw lastErr;
+            await page.goto(url);
             // Shell readiness signal — wait for the skeleton-full-view to
             // render a heading. LWC shadow DOM is pierced natively by
             // Playwright's ARIA-role locators.
