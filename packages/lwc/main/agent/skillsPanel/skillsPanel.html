@@ -21,8 +21,9 @@
                     </div>
                 </div>
                 <p class="slds-text-body_small slds-text-color_weak slds-m-top_xx-small">
-                    Customize or create skills the agent can use. Type <code>/skill</code> anytime
-                    to open this panel.
+                    Customize or create skills the agent can use. Type
+                    <code>/skill</code>
+                    anytime to open this panel.
                 </p>
                 <div class="skills-panel-toolbar slds-m-top_small">
                     <input
@@ -47,7 +48,9 @@
             <div class="skills-panel-body slds-scrollable_y slds-p-around_small">
                 <template lwc:if={isLoading}>
                     <div class="slds-p-around_medium slds-text-align_center">
-                        <lightning-spinner alternative-text="Loading" size="small"></lightning-spinner>
+                        <lightning-spinner
+                            alternative-text="Loading"
+                            size="small"></lightning-spinner>
                     </div>
                 </template>
                 <template lwc:if={error}>
@@ -58,14 +61,20 @@
                 <template lwc:if={hasRows}>
                     <ul class="skills-list">
                         <template for:each={rows} for:item="row">
-                            <li key={row.key} class="skills-row slds-border_bottom slds-p-vertical_x-small">
-                                <div class="slds-grid slds-grid_align-spread slds-grid_vertical-align-center">
+                            <li
+                                key={row.key}
+                                class="skills-row slds-border_bottom slds-p-vertical_x-small">
+                                <div
+                                    class="slds-grid slds-grid_align-spread slds-grid_vertical-align-center">
                                     <div class="skills-row-info">
                                         <div class="slds-grid slds-grid_vertical-align-center">
                                             <span class="slds-text-title_bold">{row.name}</span>
-                                            <span class={row.scopeBadgeClass}>{row.scopeBadge}</span>
+                                            <span class={row.scopeBadgeClass}>
+                                                {row.scopeBadge}
+                                            </span>
                                         </div>
-                                        <p class="slds-text-body_small slds-text-color_weak skills-row-desc">
+                                        <p
+                                            class="slds-text-body_small slds-text-color_weak skills-row-desc">
                                             {row.description}
                                         </p>
                                         <p class="slds-text-body_small skills-row-path">
