@@ -17,6 +17,26 @@ jobs:
       - run: npm run lint
       - run: npm test
 
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.14'
+          cache: 'npm'
+      - run: npm ci --no-audit --no-fund
+      - name: Install apps/ui + apps/docs deps
+        run: |
+          npm --prefix apps/ui ci --no-audit --no-fund
+          npm --prefix apps/docs ci --no-audit --no-fund
+      - run: npm run build:shared
+      - run: npm run build:workers
+      - run: npm run build:extension:main
+      - run: npm run build:server
+      - run: npm run site:build
+
   e2e-smoke:
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
