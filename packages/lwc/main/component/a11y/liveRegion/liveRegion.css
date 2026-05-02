@@ -1,0 +1,15 @@
+:host {
+    /* Live regions must remain in the accessibility tree but out of view.
+       `slds-assistive-text` already handles that, but we harden :host so
+       CSS resets from a consumer can't accidentally make the content
+       visible. */
+    position: absolute;
+    overflow: hidden;
+    clip: rect(1px, 1px, 1px, 1px);
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    border: 0;
+    white-space: nowrap;
+}

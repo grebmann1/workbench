@@ -1,0 +1,56 @@
+<template>
+    <template lwc:if={isOpen}>
+        <div class="slds-backdrop slds-backdrop_open" aria-hidden="true"></div>
+        <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="shortcuts-help-title"
+            class="shortcuts-help-modal slds-modal slds-fade-in-open slds-modal_small"
+            onkeydown={handleKeydown}>
+            <div class="slds-modal__container">
+                <header class="slds-modal__header">
+                    <button
+                        type="button"
+                        class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse"
+                        onclick={handleClose}
+                        aria-label="Close shortcuts help">
+                        <lightning-icon
+                            icon-name="utility:close"
+                            size="small"
+                            alternative-text="Close"></lightning-icon>
+                    </button>
+                    <h1 id="shortcuts-help-title" class="slds-modal__title slds-hyphenate">
+                        Keyboard shortcuts
+                    </h1>
+                </header>
+                <div class="slds-modal__content slds-p-around_medium">
+                    <template lwc:if={groups.length} lwc:else>
+                        <p class="slds-text-body_regular">No shortcuts registered yet.</p>
+                    </template>
+                    <template for:each={groups} for:item="group">
+                        <section key={group.scope} class="slds-m-bottom_medium">
+                            <h2 class="slds-text-title_caps slds-m-bottom_x-small">{group.scope}</h2>
+                            <dl class="slds-dl_horizontal">
+                                <template for:each={group.items} for:item="item">
+                                    <template lwc:if={item.id} for:item="item">
+                                        <dt key={item.id} class="slds-dl_horizontal__label">
+                                            {item.label}
+                                            <template lwc:if={item.description}>
+                                                <span class="slds-text-body_small slds-text-color_weak slds-m-left_x-small">
+                                                    — {item.description}
+                                                </span>
+                                            </template>
+                                        </dt>
+                                        <dd key={item.id} class="slds-dl_horizontal__detail">
+                                            <kbd class="shortcut-keys">{item.keys}</kbd>
+                                        </dd>
+                                    </template>
+                                </template>
+                            </dl>
+                        </section>
+                    </template>
+                </div>
+            </div>
+        </section>
+    </template>
+</template>

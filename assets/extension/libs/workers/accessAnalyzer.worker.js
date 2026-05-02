@@ -812,9 +812,9 @@ function _getAppDefinition() {
           //console.log('getAppDefinition');
           appDefinitions = {};
           _context17.n = 1;
-          return conn.tooling.query('select Id, DeveloperName,Label,NamespacePrefix FROM CustomApplication');
+          return conn.tooling.query('select Id, DeveloperName,Label,NamespacePrefix FROM CustomApplication').records;
         case 1:
-          _t16 = _context17.v.records;
+          _t16 = _context17.v;
           if (_t16) {
             _context17.n = 2;
             break;
@@ -915,9 +915,9 @@ var getTabDefinitions = /*#__PURE__*/function () {
           //console.log('getTabDefinitions');
           tabDefinitions = {};
           _context5.n = 1;
-          return conn.tooling.query('select Name, Label from TabDefinition');
+          return conn.tooling.query('select Name, Label from TabDefinition').records;
         case 1:
-          _t5 = _context5.v.records;
+          _t5 = _context5.v;
           if (_t5) {
             _context5.n = 2;
             break;
@@ -1050,7 +1050,7 @@ var setUserPermissions = /*#__PURE__*/function () {
           records.forEach(function (record) {
             if (permissionSets[record.Id]) {
               var userPermissions = profileFieldsToArray.map(function (item) {
-                return new UserPermission(item.name, item.label, record[item.name]);
+                return new UserPermission(item.name, item.label, Boolean(record[item.name]));
               });
               permissionSets[record.Id].userPermissions = userPermissions;
             }
@@ -1107,7 +1107,6 @@ var setPermissionSetTabSetting = /*#__PURE__*/function () {
       while (1) switch (_context1.n) {
         case 0:
           tabDefinitions = _ref1.tabDefinitions;
-          //console.log('setPermissionSetTabSetting');
           fetchPermissionSetTabSetting = /*#__PURE__*/function () {
             var _ref11 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee0(ids) {
               var query, _t0;
@@ -1259,21 +1258,25 @@ var getSetupEntityAccess = /*#__PURE__*/function () {
     return _ref12.apply(this, arguments);
   };
 }();
-/** Utils for worker */
+/**
+ * Worker bundles of this file historically inlined local copies of these
+ * helpers; the worker bundler can't resolve `shared/*` aliases. Keep tiny
+ * local wrappers so the shape stays the same.
+ */
 function isUndefinedOrNull(value) {
   return value === null || value === undefined;
 }
 function isNotUndefinedOrNull(value) {
-  return !isUndefinedOrNull(value);
+  return value !== null && value !== undefined;
 }
 function chunkPromises(arr, size, method) {
   if (!Array.isArray(arr) || !arr.length) {
     return Promise.resolve([]);
   }
-  size = size ? size : 10;
+  var resolvedSize = size;
   var chunks = [];
-  for (var i = 0, j = arr.length; i < j; i += size) {
-    chunks.push(arr.slice(i, i + size));
+  for (var i = 0, j = arr.length; i < j; i += resolvedSize) {
+    chunks.push(arr.slice(i, i + resolvedSize));
   }
   var collector = Promise.resolve([]);
   var _loop = function _loop() {
