@@ -29,6 +29,18 @@
     gap: 0.25rem;
 }
 
+.internal-provider-hint {
+    margin: 0;
+    line-height: 1.35;
+    /* Pin background so .slds-text-color_weak on body-small text keeps ≥4.5:1 (WCAG 1.4.3). */
+    background-color: var(--slds-g-color-neutral-base-100, #ffffff);
+}
+
+.internal-provider-hint code {
+    font-size: 0.75rem;
+    padding: 0 0.15rem;
+}
+
 /* Pushes the toggle button down to align with the input field
    when the sibling lightning-input uses variant="label-stacked" */
 .provider-key-btn {

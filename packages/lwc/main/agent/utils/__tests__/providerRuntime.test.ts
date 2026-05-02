@@ -113,42 +113,18 @@ test('createProviderInstance: internal Anthropic Bedrock uses Anthropic message 
     assert.equal(model.provider, 'anthropic.messages');
 });
 
-test('createProviderInstance: internal Anthropic Bedrock targets streaming endpoint', async () => {
+test('createProviderInstance: internal Anthropic Bedrock targets /invoke-with-response-stream on streaming requests', async () => {
     const originalFetch = globalThis.fetch;
     let requestedUrl = '';
     let requestedBody = '';
     globalThis.fetch = (async (url: RequestInfo | URL, options?: RequestInit) => {
         requestedUrl = String(url);
         requestedBody = String(options?.body || '');
-        return new Response(
-            JSON.stringify({
-                model: 'claude-sonnet-4-6',
-                id: 'msg_bdrk_01',
-                type: 'message',
-                role: 'assistant',
-                content: [
-                    {
-                        type: 'thinking',
-                        thinking: 'The user is just saying hello.',
-                        signature: 'sig',
-                    },
-                    {
-                        type: 'text',
-                        text: 'Hello! How can I help you today?',
-                    },
-                ],
-                stop_reason: 'end_turn',
-                stop_sequence: null,
-                usage: {
-                    input_tokens: 10,
-                    output_tokens: 7,
-                },
-            }),
-            {
-                status: 200,
-                headers: { 'content-type': 'application/json' },
-            }
-        );
+        // Emulate the gateway's AWS eventstream content-type response header.
+        return new Response(new Uint8Array(0), {
+            status: 200,
+            headers: { 'content-type': 'application/vnd.amazon.eventstream' },
+        });
     }) as typeof fetch;
     try {
         const instance = createProviderInstance({
@@ -176,7 +152,6 @@ test('createProviderInstance: internal Anthropic Bedrock targets streaming endpo
         );
 
         const parsedBody = JSON.parse(requestedBody);
-        const responseText = await response.text();
         assert.equal(
             requestedUrl,
             'https://eng-ai-model-gateway.sfproxy.devx-preprod.aws-esvc1-useast2.aws.sfdc.cl/bedrock/model/us.anthropic.claude-haiku-4-5-20251001-v1:0/invoke-with-response-stream'
@@ -184,14 +159,8 @@ test('createProviderInstance: internal Anthropic Bedrock targets streaming endpo
         assert.equal(parsedBody.anthropic_version, 'bedrock-2023-05-31');
         assert.equal('model' in parsedBody, false);
         assert.equal('stream' in parsedBody, false);
+        // Eventstream responses are rewritten to SSE so the SDK parser can read them.
         assert.equal(response.headers.get('content-type'), 'text/event-stream');
-        assert.match(responseText, /"type":"message_start"/);
-        assert.match(responseText, /"type":"thinking_delta"/);
-        assert.match(
-            responseText,
-            /"type":"text_delta","text":"Hello! How can I help you today\?"/
-        );
-        assert.match(responseText, /"type":"message_stop"/);
     } finally {
         globalThis.fetch = originalFetch;
     }
@@ -234,6 +203,142 @@ test('createProviderInstance: internal Gemini uses native streamGenerateContent 
     } finally {
         globalThis.fetch = originalFetch;
     }
+});
+
+test('createProviderInstance: internal Anthropic Bedrock targets /invoke when not streaming', async () => {
+    const originalFetch = globalThis.fetch;
+    let requestedUrl = '';
+    globalThis.fetch = (async (url: RequestInfo | URL) => {
+        requestedUrl = String(url);
+        return new Response(
+            JSON.stringify({
+                model: 'claude-haiku-4-5',
+                id: 'msg_bdrk_02',
+                type: 'message',
+                role: 'assistant',
+                content: [{ type: 'text', text: 'ok' }],
+                stop_reason: 'end_turn',
+                stop_sequence: null,
+                usage: { input_tokens: 1, output_tokens: 1 },
+            }),
+            { status: 200, headers: { 'content-type': 'application/json' } }
+        );
+    }) as typeof fetch;
+    try {
+        const instance = createProviderInstance({
+            provider: 'anthropic',
+            apiKey: 'k',
+            baseUrl:
+                'https://eng-ai-model-gateway.sfproxy.devx-preprod.aws-esvc1-useast2.aws.sfdc.cl/bedrock',
+            isInternal: true,
+        });
+        const model = resolveProviderModelInstance(instance, {
+            provider: 'anthropic',
+            modelId: 'us.anthropic.claude-haiku-4-5-20251001-v1:0',
+            isInternal: true,
+        }) as any;
+
+        await model.config.fetch(
+            'https://eng-ai-model-gateway.sfproxy.devx-preprod.aws-esvc1-useast2.aws.sfdc.cl/bedrock/messages',
+            {
+                method: 'POST',
+                body: JSON.stringify({
+                    model: 'us.anthropic.claude-haiku-4-5-20251001-v1:0',
+                }),
+            }
+        );
+
+        assert.equal(
+            requestedUrl,
+            'https://eng-ai-model-gateway.sfproxy.devx-preprod.aws-esvc1-useast2.aws.sfdc.cl/bedrock/model/us.anthropic.claude-haiku-4-5-20251001-v1:0/invoke'
+        );
+    } finally {
+        globalThis.fetch = originalFetch;
+    }
+});
+
+test('createProviderInstance: internal Anthropic Bedrock passes /invoke JSON through unchanged', async () => {
+    const originalFetch = globalThis.fetch;
+    const invokeJson = JSON.stringify({
+        model: 'claude-haiku-4-5',
+        id: 'msg_bdrk_03',
+        type: 'message',
+        role: 'assistant',
+        content: [{ type: 'text', text: 'Calling tool...' }],
+        stop_reason: 'end_turn',
+        stop_sequence: null,
+        usage: { input_tokens: 3, output_tokens: 5 },
+    });
+    globalThis.fetch = (async () =>
+        new Response(invokeJson, {
+            status: 200,
+            headers: { 'content-type': 'application/json' },
+        })) as typeof fetch;
+    try {
+        const instance = createProviderInstance({
+            provider: 'anthropic',
+            apiKey: 'k',
+            baseUrl:
+                'https://eng-ai-model-gateway.sfproxy.devx-preprod.aws-esvc1-useast2.aws.sfdc.cl/bedrock',
+            isInternal: true,
+        });
+        const model = resolveProviderModelInstance(instance, {
+            provider: 'anthropic',
+            modelId: 'us.anthropic.claude-haiku-4-5-20251001-v1:0',
+            isInternal: true,
+        }) as any;
+
+        const response = await model.config.fetch(
+            'https://eng-ai-model-gateway.sfproxy.devx-preprod.aws-esvc1-useast2.aws.sfdc.cl/bedrock/messages',
+            {
+                method: 'POST',
+                body: JSON.stringify({
+                    model: 'us.anthropic.claude-haiku-4-5-20251001-v1:0',
+                }),
+            }
+        );
+        assert.equal(response.headers.get('content-type'), 'application/json');
+        assert.equal(await response.text(), invokeJson);
+    } finally {
+        globalThis.fetch = originalFetch;
+    }
+});
+
+test('createProviderInstance: internal Anthropic Bedrock decodes eventstream frames to SSE', async () => {
+    const { createEventstreamToSseTransformer } =
+        await import('../provider/anthropic/eventstream.ts');
+
+    // Build a single AWS eventstream frame wrapping an Anthropic message_start event.
+    const innerJson = JSON.stringify({
+        type: 'message_start',
+        message: { id: 'msg_test', model: 'claude-haiku', role: 'assistant', usage: {} },
+    });
+    const base64 =
+        typeof btoa === 'function'
+            ? btoa(innerJson)
+            : Buffer.from(innerJson, 'utf-8').toString('base64');
+    const payload = new TextEncoder().encode(JSON.stringify({ bytes: base64 }));
+    const headers = new Uint8Array(0);
+    const totalLen = 12 + headers.length + payload.length + 4;
+    const frame = new Uint8Array(totalLen);
+    const view = new DataView(frame.buffer);
+    view.setUint32(0, totalLen, false);
+    view.setUint32(4, headers.length, false);
+    view.setUint32(8, 0, false); // prelude CRC (unvalidated)
+    frame.set(payload, 12 + headers.length);
+    view.setUint32(totalLen - 4, 0, false); // message CRC (unvalidated)
+
+    const upstream = new ReadableStream<Uint8Array>({
+        start(controller) {
+            controller.enqueue(frame);
+            controller.close();
+        },
+    });
+    const out = upstream.pipeThrough(createEventstreamToSseTransformer());
+    const sseText = await new Response(out).text();
+    assert.match(sseText, /^event: message_start\n/);
+    assert.match(sseText, /"type":"message_start"/);
+    assert.match(sseText, /"id":"msg_test"/);
 });
 
 test('resolveProviderModelInstance: openai invokes provider as function', () => {

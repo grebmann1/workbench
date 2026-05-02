@@ -110,6 +110,12 @@ export function normalizeModelSelection(
     return fallback;
 }
 
+/**
+ * UX signal only — used to filter the model list and show the internal-provider
+ * hint in Settings. This is NOT a security boundary: it's a loose substring
+ * match. Any privileged code path (auth, data-exfil gates, etc.) must use an
+ * exact URL match rather than this function.
+ */
 export function isInternalProviderBaseUrl(baseUrl: unknown) {
     return normalizeString(baseUrl).includes('eng-ai-model-gateway');
 }

@@ -288,7 +288,7 @@ test('buildAvailableAgentModelOptions: multiple providers prefix labels', () => 
     assert.ok(options.some(o => o.label.startsWith('Anthropic: ')));
 });
 
-test('buildAvailableAgentModelOptions: internal Anthropic config exposes no models while disabled', () => {
+test('buildAvailableAgentModelOptions: internal Anthropic config surfaces Bedrock models', () => {
     const configs = createDefaultProviderConfigMap();
     configs.anthropic = {
         apiKey: 'sk-b',
@@ -296,12 +296,15 @@ test('buildAvailableAgentModelOptions: internal Anthropic config exposes no mode
             'https://eng-ai-model-gateway.sfproxy.devx-preprod.aws-esvc1-useast2.aws.sfdc.cl/bedrock',
     };
     const options = buildAvailableAgentModelOptions({ providerConfigs: configs });
-
-    assert.equal(
-        INTERNAL_MODEL_OPTIONS.some(model => model.provider === 'anthropic'),
-        false
+    const anthropicInternalModels = INTERNAL_MODEL_OPTIONS.filter(
+        model => model.provider === 'anthropic'
     );
-    assert.deepEqual(options, []);
+
+    assert.ok(anthropicInternalModels.length > 0);
+    assert.equal(options.length, anthropicInternalModels.length);
+    for (const option of options) {
+        assert.ok(option.value.startsWith('us.anthropic.'));
+    }
 });
 
 test('buildAvailableAgentModelOptions: internal Gemini config uses Gemini internal models', () => {
