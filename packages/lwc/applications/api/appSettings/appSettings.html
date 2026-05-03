@@ -1,4 +1,7 @@
 <template>
+    <!-- ----------------------------------------------------------------- -->
+    <!--  Layout                                                            -->
+    <!-- ----------------------------------------------------------------- -->
     <settings-card is-first>
         <div slot="title">
             <h1>Layout</h1>
@@ -15,6 +18,162 @@
                 message-toggle-inactive=""
                 variant="label-hidden"
                 checked={isSplitterHorizontal}
+                onchange={inputfield_change}></lightning-input>
+        </div>
+    </settings-card>
+
+    <!-- ----------------------------------------------------------------- -->
+    <!--  Defaults                                                          -->
+    <!-- ----------------------------------------------------------------- -->
+    <settings-card>
+        <div slot="title">
+            <h1>Defaults</h1>
+            <p class="description">
+                Starting values applied to new request tabs.
+            </p>
+        </div>
+        <div slot="body">
+            <lightning-input
+                data-key="api_default_version"
+                type="text"
+                label="Default API version"
+                value={defaultApiVersion}
+                pattern="^\d+\.\d+$"
+                message-when-pattern-mismatch="Use the format 59.0"
+                onchange={inputfield_change}></lightning-input>
+
+            <lightning-combobox
+                data-key="api_default_content_type"
+                label="Default Content-Type"
+                value={defaultContentType}
+                options={defaultContentTypeOptions}
+                onchange={inputfield_change}></lightning-combobox>
+
+            <lightning-input
+                data-key="api_default_timeout_ms"
+                type="number"
+                label="Request timeout (ms)"
+                value={defaultTimeoutMs}
+                min="1000"
+                max="600000"
+                step="500"
+                onchange={inputfield_change}></lightning-input>
+
+            <lightning-input
+                data-key="api_abort_on_navigate"
+                type="toggle"
+                label="Abort in-flight requests when navigating away"
+                checked={abortOnNavigate}
+                onchange={inputfield_change}></lightning-input>
+        </div>
+    </settings-card>
+
+    <!-- ----------------------------------------------------------------- -->
+    <!--  Response handling                                                 -->
+    <!-- ----------------------------------------------------------------- -->
+    <settings-card>
+        <div slot="title">
+            <h1>Response handling</h1>
+            <p class="description">
+                How the response viewer treats large or structured payloads.
+            </p>
+        </div>
+        <div slot="body">
+            <lightning-input
+                data-key="api_preview_byte_threshold"
+                type="number"
+                label="Preview byte threshold"
+                field-level-help="Responses larger than this (in bytes) show the download button instead of the Preview tab."
+                value={previewByteThreshold}
+                min="1024"
+                step="1024"
+                onchange={inputfield_change}></lightning-input>
+
+            <lightning-input
+                data-key="api_auto_prettify_json"
+                type="toggle"
+                label="Auto-prettify JSON responses"
+                checked={autoPrettifyJson}
+                onchange={inputfield_change}></lightning-input>
+
+            <lightning-input
+                data-key="api_auto_prettify_xml"
+                type="toggle"
+                label="Auto-prettify XML responses"
+                checked={autoPrettifyXml}
+                onchange={inputfield_change}></lightning-input>
+        </div>
+    </settings-card>
+
+    <!-- ----------------------------------------------------------------- -->
+    <!--  Redaction rules                                                   -->
+    <!-- ----------------------------------------------------------------- -->
+    <settings-card>
+        <div slot="title">
+            <h1>Header redaction</h1>
+            <p class="description">
+                Header names (case-insensitive) whose values are replaced with placeholders inside generated snippets. One per line.
+            </p>
+        </div>
+        <div slot="body">
+            <lightning-textarea
+                label="Redacted headers"
+                variant="label-hidden"
+                value={redactHeadersText}
+                placeholder="Authorization&#10;Cookie&#10;X-Api-Key"
+                onchange={handleRedactHeadersChange}></lightning-textarea>
+        </div>
+    </settings-card>
+
+    <!-- ----------------------------------------------------------------- -->
+    <!--  Snippet preferences                                               -->
+    <!-- ----------------------------------------------------------------- -->
+    <settings-card>
+        <div slot="title">
+            <h1>Snippets</h1>
+            <p class="description">
+                Configure which code-snippet languages appear in the Result → Snippet tab.
+            </p>
+        </div>
+        <div slot="body">
+            <lightning-combobox
+                data-key="api_snippet_default_language"
+                label="Default snippet language"
+                value={snippetDefaultLanguage}
+                options={snippetLanguageOptions}
+                onchange={inputfield_change}></lightning-combobox>
+
+            <template for:each={snippetLanguageRows} for:item="row">
+                <lightning-input
+                    key={row.value}
+                    data-key={row.value}
+                    type="checkbox"
+                    label={row.label}
+                    checked={row.enabled}
+                    onchange={handleSnippetLanguageToggle}></lightning-input>
+            </template>
+        </div>
+    </settings-card>
+
+    <!-- ----------------------------------------------------------------- -->
+    <!--  Agent integration                                                 -->
+    <!-- ----------------------------------------------------------------- -->
+    <settings-card>
+        <div slot="title">
+            <h1>Agent integration</h1>
+            <p class="description">
+                Expose the API Explorer as an agent tool (`api_execute_request`) so the AI can issue Salesforce API calls via your current org connector.
+            </p>
+        </div>
+        <div slot="actions">
+            <lightning-input
+                data-key="api_agent_tool_enabled"
+                type="toggle"
+                label="Enable agent tool"
+                message-toggle-active=""
+                message-toggle-inactive=""
+                variant="label-hidden"
+                checked={agentToolEnabled}
                 onchange={inputfield_change}></lightning-input>
         </div>
     </settings-card>

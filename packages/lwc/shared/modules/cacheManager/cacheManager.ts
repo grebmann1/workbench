@@ -239,6 +239,38 @@ export const CACHE_CONFIG = {
     CHROME_SYNC_ORG_INITIALIZED_STORAGE_KEY: new CONFIG_OBJECT('chrome_syncOrgInitialized', false),
     // Applications Settings are stored in the general store
     API_SPLITTER_IS_HORIZONTAL: new CONFIG_OBJECT('api_splitter_is_horizontal', true),
+    // API Explorer — defaults & response handling
+    API_DEFAULT_VERSION: new CONFIG_OBJECT<string>('api_default_version', '59.0'),
+    API_DEFAULT_CONTENT_TYPE: new CONFIG_OBJECT<string>(
+        'api_default_content_type',
+        'application/json'
+    ),
+    API_DEFAULT_TIMEOUT_MS: new CONFIG_OBJECT<number>('api_default_timeout_ms', 30000),
+    API_ABORT_ON_NAVIGATE: new CONFIG_OBJECT<boolean>('api_abort_on_navigate', true),
+    API_PREVIEW_BYTE_THRESHOLD: new CONFIG_OBJECT<number>(
+        'api_preview_byte_threshold',
+        100_000
+    ),
+    API_AUTO_PRETTIFY_JSON: new CONFIG_OBJECT<boolean>('api_auto_prettify_json', true),
+    API_AUTO_PRETTIFY_XML: new CONFIG_OBJECT<boolean>('api_auto_prettify_xml', true),
+    // API Explorer — snippets
+    API_SNIPPET_DEFAULT_LANGUAGE: new CONFIG_OBJECT<string>(
+        'api_snippet_default_language',
+        'curl'
+    ),
+    API_SNIPPET_ENABLED_LANGUAGES: new CONFIG_OBJECT<string[]>(
+        'api_snippet_enabled_languages',
+        ['apex', 'curl', 'jsforce', 'fetch', 'python', 'powershell']
+    ),
+    // API Explorer — redaction for snippet output
+    API_REDACT_HEADERS: new CONFIG_OBJECT<string[]>('api_redact_headers_v1', [
+        'Authorization',
+        'Cookie',
+        'X-Api-Key',
+        'Sforce-Call-Options',
+    ]),
+    // API Explorer — agent integration toggle
+    API_AGENT_TOOL_ENABLED: new CONFIG_OBJECT<boolean>('api_agent_tool_enabled', true),
     EINSTEIN_AGENT_CONVERSATIONS: new CONFIG_OBJECT('einstein_agent_conversations', []),
     EINSTEIN_AGENT_CONVERSATION_ACTIVE_ID: new CONFIG_OBJECT(
         'einstein_agent_conversation_active_id',

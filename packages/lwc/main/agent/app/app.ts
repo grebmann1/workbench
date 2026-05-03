@@ -403,6 +403,11 @@ You have full access to the toolkit UI. All navigation and display tools work no
             (appSettings[CACHE_CONFIG.TOOL_BRIGHT_DATA_KEY.key] as string) ?? null;
         const googleSheetEnabled = !!appSettings[CACHE_CONFIG.TOOL_GOOGLE_SHEET_ENABLED.key];
         const mcpServers = normalizeMcpServerConfigs(appSettings[CACHE_CONFIG.MCP_SERVERS.key]);
+        // API Explorer tool is opt-in via settings; default on. Stored as
+        // api_agent_tool_enabled in cacheManager.
+        const apiAgentToolEnabled =
+            appSettings[CACHE_CONFIG.API_AGENT_TOOL_ENABLED.key] !== false;
+        const enabledApiExplorerTools = apiAgentToolEnabled ? apiExplorerTools : [];
 
         return {
             conversationId,
@@ -421,7 +426,7 @@ You have full access to the toolkit UI. All navigation and display tools work no
                 systemPrompt: `${browserAgentInstructions}${this._buildRunningEnvironmentContext()}`,
                 isStoreEnabled: true,
                 store,
-                extraTools: [askUserTool, ...workbenchContextTools, ...apiExplorerTools],
+                extraTools: [askUserTool, ...workbenchContextTools, ...enabledApiExplorerTools],
                 brightDataApiKey: brightDataApiKey ?? null,
                 googleSheetEnabled: googleSheetEnabled ?? false,
                 mcpServers,

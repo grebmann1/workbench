@@ -5,7 +5,7 @@ import { registerCommand, __resetCommandsForTests } from 'host-api/commands';
 import {
     apiExecuteRequestTool,
     apiOpenTabTool,
-} from '../apiExplorerTools.ts';
+} from '../apiExplorerTools';
 
 const resetCommands = () => __resetCommandsForTests();
 
