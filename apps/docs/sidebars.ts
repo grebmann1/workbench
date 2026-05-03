@@ -73,7 +73,11 @@ const sidebars: SidebarsConfig = {
         {
             type: 'category',
             label: 'Contributing',
-            items: ['contributing/how-to-contribute', 'contributing/reporting-issues'],
+            items: [
+                'contributing/how-to-contribute',
+                'contributing/reporting-issues',
+                'contributing/a11y',
+            ],
         },
     ],
 };

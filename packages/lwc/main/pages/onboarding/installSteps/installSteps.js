@@ -211,9 +211,7 @@ export default class installSteps extends LightningElement {
     _announceCurrentStep() {
         const step = this.currentStep;
         if (!step) return;
-        announce(
-            `Step ${this.currentStepIndex + 1} of ${this.steps.length} — ${step.title}`
-        );
+        announce(`Step ${this.currentStepIndex + 1} of ${this.steps.length} — ${step.title}`);
     }
 
     handleKeyDown(event) {

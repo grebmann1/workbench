@@ -10,12 +10,16 @@
                     <lightning-button-group>
                         <lightning-button-icon
                             icon-name="utility:filterList"
+                            alternative-text="Filter"
+                            title="Filter"
                             disabled={isLoading}
                             onclick={filtering_handleClick}
                             variant={filtering_variant}></lightning-button-icon>
                         <template lwc:if={isResponsive}>
                             <lightning-button-icon
                                 icon-name="utility:rows"
+                                alternative-text="Toggle menu"
+                                title="Toggle menu"
                                 disabled={isLoading}
                                 onclick={menu_handleClick}
                                 variant={menu_variant}></lightning-button-icon>

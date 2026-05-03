@@ -54,7 +54,9 @@ const FIXTURE_HTML = `<!DOCTYPE html>
   </body>
 </html>`;
 
-function formatViolations(violations: Array<{ id: string; impact?: string; help?: string; nodes?: unknown[] }>): string {
+function formatViolations(
+    violations: Array<{ id: string; impact?: string; help?: string; nodes?: unknown[] }>
+): string {
     return violations
         .map(
             v =>
@@ -85,7 +87,9 @@ test.describe('@ext a11y onboarding', () => {
         // aria-current-moves-with-active-step assertion without booting the
         // full LWC bundle. Mirrors the JS branch in installSteps.js.
         const page = await context.newPage();
-        await page.setContent(FIXTURE_HTML + `
+        await page.setContent(
+            FIXTURE_HTML +
+                `
             <script>
               (function () {
                 const buttons = document.querySelectorAll('aside button');
@@ -99,7 +103,8 @@ test.describe('@ext a11y onboarding', () => {
                 });
                 render();
               })();
-            </script>`);
+            </script>`
+        );
         await expect(page.locator('aside button').nth(0)).toHaveAttribute('aria-current', 'step');
         await page.keyboard.press('ArrowRight');
         await expect(page.locator('aside button').nth(1)).toHaveAttribute('aria-current', 'step');

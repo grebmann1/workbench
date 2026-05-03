@@ -98,6 +98,7 @@
                                     slot="input"
                                     class="slds-input"
                                     type="text"
+                                    aria-label="Header value"
                                     value={header.value}
                                     onchange={disableEvent} />
                                 <div slot="output" class="slds-truncate" onclick={handleValueClick}>
@@ -117,6 +118,8 @@
                                     variant="bare"
                                     icon-size="x-small"
                                     icon-name="utility:delete"
+                                    alternative-text="Delete header"
+                                    title="Delete header"
                                     data-index={header.index}
                                     onclick={handleDelete}></lightning-button-icon>
                             </template>

@@ -183,9 +183,7 @@ export default class Menu extends ToolkitElement {
     }
 
     get recordsTreeAriaLabel() {
-        return this.currentMetadata
-            ? `${this.currentMetadata} records`
-            : 'Metadata records';
+        return this.currentMetadata ? `${this.currentMetadata} records` : 'Metadata records';
     }
 
     get attributes() {

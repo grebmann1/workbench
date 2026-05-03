@@ -16,7 +16,9 @@ import { test, expect } from './fixtures';
 
 const AXE_WCAG_TAGS = ['wcag2a', 'wcag2aa'];
 
-function formatViolations(violations: Array<{ id: string; impact?: string; help?: string; nodes?: unknown[] }>): string {
+function formatViolations(
+    violations: Array<{ id: string; impact?: string; help?: string; nodes?: unknown[] }>
+): string {
     return violations
         .map(
             v =>
@@ -38,11 +40,7 @@ test.describe('@ext a11y shell', () => {
             // lightning-button-icon stamps aria-label via aria-labelledby in a
             // separate shadow root that axe's button-name rule cannot trace.
             // Documented in docs/a11y-follow-ups.md.
-            .disableRules([
-                'aria-required-children',
-                'aria-required-parent',
-                'button-name',
-            ])
+            .disableRules(['aria-required-children', 'aria-required-parent', 'button-name'])
             .analyze();
         const blocking = results.violations.filter(
             v => v.impact === 'critical' || v.impact === 'serious'
@@ -74,10 +72,7 @@ test.describe('@ext a11y shell', () => {
         const page = await appPage('settings');
         // The live-region host renders two nodes with aria-live polite +
         // assertive. Confirm at least the polite one is in the shadow tree.
-        const polite = await page
-            .locator('[aria-live="polite"]')
-            .first()
-            .elementHandle();
+        const polite = await page.locator('[aria-live="polite"]').first().elementHandle();
         expect(polite).not.toBeNull();
     });
 });

@@ -36,7 +36,10 @@ test('registerShortcut: unregister removes only its own entry', () => {
     const un1 = registerShortcut({ id: 'a', keys: 'A', label: 'A' });
     registerShortcut({ id: 'b', keys: 'B', label: 'B' });
     un1();
-    assert.deepEqual(listShortcuts().map(s => s.id), ['b']);
+    assert.deepEqual(
+        listShortcuts().map(s => s.id),
+        ['b']
+    );
 });
 
 test('registerShortcut: re-registering the same id replaces (hot reload)', () => {

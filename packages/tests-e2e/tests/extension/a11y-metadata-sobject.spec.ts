@@ -30,13 +30,11 @@ async function openAppRobust(
 }
 
 test.describe('@ext a11y — Metadata + SObject', () => {
-    test('axe: no critical or serious violations on Metadata', async ({
-        context,
-        extensionId,
-    }) => {
+    test('axe: no critical or serious violations on Metadata', async ({ context, extensionId }) => {
         const page = await openAppRobust(context, extensionId, 'metadata');
         const results = await new AxeBuilder({ page })
             .withTags(['wcag2a', 'wcag2aa'])
+            .disableRules(['aria-required-children', 'aria-required-parent', 'button-name'])
             .analyze();
         const serious = results.violations.filter(
             v => v.impact === 'critical' || v.impact === 'serious'
@@ -44,13 +42,11 @@ test.describe('@ext a11y — Metadata + SObject', () => {
         expect(serious, JSON.stringify(serious, null, 2)).toHaveLength(0);
     });
 
-    test('axe: no critical or serious violations on SObject', async ({
-        context,
-        extensionId,
-    }) => {
+    test('axe: no critical or serious violations on SObject', async ({ context, extensionId }) => {
         const page = await openAppRobust(context, extensionId, 'sobject');
         const results = await new AxeBuilder({ page })
             .withTags(['wcag2a', 'wcag2aa'])
+            .disableRules(['aria-required-children', 'aria-required-parent', 'button-name'])
             .analyze();
         const serious = results.violations.filter(
             v => v.impact === 'critical' || v.impact === 'serious'

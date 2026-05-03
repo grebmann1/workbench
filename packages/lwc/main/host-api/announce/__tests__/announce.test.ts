@@ -1,11 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import {
-    announce,
-    subscribeAnnouncements,
-    __resetAnnounceForTests,
-} from '../announce.ts';
+import { announce, subscribeAnnouncements, __resetAnnounceForTests } from '../announce.ts';
 
 test('announce: polite call delivers to subscriber', () => {
     __resetAnnounceForTests();

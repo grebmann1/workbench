@@ -58,11 +58,7 @@ test.describe('@ext settings → AI internal hint', () => {
             // lightning-button-icon stamps aria-label via aria-labelledby in a
             // separate shadow root that axe's button-name rule cannot trace.
             // Documented in docs/a11y-follow-ups.md.
-            .disableRules([
-                'aria-required-children',
-                'aria-required-parent',
-                'button-name',
-            ])
+            .disableRules(['aria-required-children', 'aria-required-parent', 'button-name'])
             .analyze();
         const blocking = results.violations.filter(
             v => v.impact === 'critical' || v.impact === 'serious'

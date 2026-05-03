@@ -53,11 +53,7 @@ function makeEl(tagName: string, attrs: Record<string, string> = {}): FakeEl {
             for (const part of parts) {
                 if (part === 'a[href]' && el.tagName === 'A' && el.attrs.href !== undefined)
                     return true;
-                if (
-                    part === 'button:not([disabled])' &&
-                    el.tagName === 'BUTTON' &&
-                    !el.disabled
-                )
+                if (part === 'button:not([disabled])' && el.tagName === 'BUTTON' && !el.disabled)
                     return true;
                 if (
                     part === 'input:not([disabled]):not([type="hidden"])' &&

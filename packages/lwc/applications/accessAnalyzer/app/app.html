@@ -11,6 +11,8 @@
                         <!--<lightning-button icon-name="utility:adduser" disabled={isLoading} onclick={adduser_handleClick} label="Select Users"></lightning-button>-->
                         <lightning-button-icon
                             icon-name="utility:filterList"
+                            alternative-text="Filter"
+                            title="Filter"
                             disabled={isLoading}
                             onclick={filtering_handleClick}
                             variant={filtering_variant}></lightning-button-icon>
@@ -26,6 +28,8 @@
                             label="CSV"></lightning-button>
                         <lightning-button-icon
                             icon-name="utility:refresh"
+                            alternative-text="Refresh"
+                            title="Refresh"
                             disabled={isRefreshDisabled}
                             onclick={refreshMetadata}
                             variant="border-filled"></lightning-button-icon>

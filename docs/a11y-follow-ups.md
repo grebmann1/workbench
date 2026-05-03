@@ -48,3 +48,45 @@ Items intentionally deferred from the T1-C additive a11y sweep (SOQL, Metadata, 
 - File:line: `node_modules/lightning-base-components/src/lightning/verticalNavigationItem/verticalNavigationItem.html` — emits `<div role="listitem">` in its own shadow root, separate from the parent `role="list"` container.
 - Why pre-existing: same shadow-DOM distribution problem as above — axe can't walk through the slot to match parent/child roles when the `role="list"` and the `role="listitem"` live in different shadow roots.
 - Suppression: same `.disableRules(...)` entry on the two T1-A specs that traverse the Settings/shell surface.
+
+## T2 backlog — Tier 2 app sweep (audit-only items)
+
+Filed during the Tier-2 sweep. Criticals in these files were fixed inline in the same sweep. Items below are Serious / Moderate / Minor.
+
+### Missing accessible sub-label / help text wiring
+- [Serious] `packages/lwc/applications/api/header/header.html:81-85` — `slds-searchable-combobox` inside the Key column has no `aria-label`; column context only. Fix: pass `aria-label="Header key"` through the combobox. Effort: S.
+- [Serious] `packages/lwc/applications/api/header/header.html:97-103` — still uses the table column "Value" as implicit label. aria-label added in this sweep covers axe but pattern should use a real `<label>` via `slds-field-light`'s label slot. Effort: M.
+- [Serious] `packages/lwc/applications/smartinput/app/app.html:87-92` — bare `<input>` inside `slds-field` whose `label` prop does not wire to the inner input's `aria-labelledby`. Column is labeled "Category name" via the parent `slds-field`, but axe sees the raw input. Effort: M (slds-field enhancement).
+- [Serious] `packages/lwc/main/pages/documentation/cta/basicSearch/basicSearch.html:25` — submit `<button tabindex="-1">` with `slds-assistive-text`. Visible text is present (axe passes), but negative tabindex on a submit button means keyboard users cannot tab to it. Form still submits via Enter in the input. Effort: S.
+
+### Native `<button>` accessible name via `title` only
+Native buttons with `title=` but no visible text or `aria-label`. Axe accepts `title` as last-resort accessible name so these are NOT critical, but best practice is to add an explicit `aria-label`. Effort: S each.
+- [Minor] `packages/lwc/applications/recordviewer/recordExplorer/recordExplorer.html:12, 23, 34, 44, 70, 95, 250`
+- [Minor] `packages/lwc/applications/recordviewer/recordExplorerRow/recordExplorerRow.html:26, 43, 54, 65, 76, 85`
+
+### Missing landmarks / region roles
+- [Moderate] `packages/lwc/main/pages/home/welcome/welcome.html` — page uses `<div class="welcome-page">` with no top-level `<main>` / landmark. Effort: S.
+- [Moderate] `packages/lwc/main/pages/home/quickLauncher/quickLauncher.html` — `<div role="button" tabindex="0">` items have keyboard handlers; should also use `<button>` element for semantics. Effort: M.
+- [Moderate] `packages/lwc/main/pages/release/notes/notes.html:8-21` — `<li onclick>` entries in the version list are clickable but not focusable and have no keydown handler. Effort: M.
+- [Moderate] `packages/lwc/applications/platformevent/eventViewer/eventViewer.html:70-134` — schema table lacks a `<caption>` / aria-label tying it to the channel being viewed. Effort: S.
+- [Moderate] `packages/lwc/applications/recordviewer/recordExplorer/recordExplorer.html:232-296` — table `role="grid"` but rows / cells rendered by child components don't set `role="row"` / `role="gridcell"`. Effort: M.
+
+### Form / input refinements
+- [Moderate] `packages/lwc/applications/api/appSettings/appSettings.html:10-18` — `lightning-input type="toggle"` uses `variant="label-hidden"`; helper text ("Control how the request/response panels split inside API Explorer.") should be wired via `aria-describedby`. Effort: S.
+- [Moderate] `packages/lwc/applications/smartinput/appSettings/appSettings.html:11-19, 31-39` — same pattern (label-hidden toggle + external description). Effort: S.
+- [Moderate] `packages/lwc/applications/textCompare/app/app.html:42-50` — `lightning-input type="toggle"` has label but toolbar context is not conveyed to AT; wrap with `role="toolbar"` + `aria-label`. Effort: S.
+
+### Icon-only toggles / stateful announcements
+- [Moderate] `packages/lwc/applications/anonymousApex/app/app.html:35, 42` — `lightning-button-icon-stateful` (Debug, Recent) now has alt-text; when toggled, the stateful change isn't announced. Wire `announce()` on toggle. Effort: M.
+- [Moderate] `packages/lwc/applications/api/app/app.html:34, 40, 89, 96` — same pattern; announce toggle changes. Effort: M.
+- [Moderate] `packages/lwc/applications/smartinput/app/app.html:11, 17` — same. Effort: M.
+- [Moderate] `packages/lwc/applications/package/app/app.html:10-17` — same. Effort: M.
+- [Moderate] `packages/lwc/applications/recordviewer/app/app.html:10-16` — same. Effort: M.
+- [Moderate] `packages/lwc/applications/platformevent/app/app.html:96-102` — same. Effort: M.
+- [Moderate] `packages/lwc/applications/platformevent/messageList/messageList.html:5-13` — filter stateful toggle: no announce on change. Effort: M.
+
+### GraphQL Explorer app — not present
+- [Info] `packages/lwc/applications/graphql/**` directory does not exist in this worktree. Tier-2 spec references it but there is no source to audit or route to visit. Skipped from the smoke spec.
+
+### Tier-2 smoke spec axe rule suppressions
+The Tier-2 smoke spec disables the same pre-existing lightning-base-components noise rules as T1-A (see "Pre-existing noise workarounds" above): `aria-required-children`, `aria-required-parent`, `button-name`. These are out-of-scope for additive template fixes.

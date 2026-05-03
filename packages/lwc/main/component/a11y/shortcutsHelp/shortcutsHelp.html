@@ -29,14 +29,17 @@
                     </template>
                     <template for:each={groups} for:item="group">
                         <section key={group.scope} class="slds-m-bottom_medium">
-                            <h2 class="slds-text-title_caps slds-m-bottom_x-small">{group.scope}</h2>
+                            <h2 class="slds-text-title_caps slds-m-bottom_x-small">
+                                {group.scope}
+                            </h2>
                             <dl class="slds-dl_horizontal">
                                 <template for:each={group.items} for:item="item">
                                     <template lwc:if={item.id} for:item="item">
                                         <dt key={item.id} class="slds-dl_horizontal__label">
                                             {item.label}
                                             <template lwc:if={item.description}>
-                                                <span class="slds-text-body_small slds-text-color_weak slds-m-left_x-small">
+                                                <span
+                                                    class="slds-text-body_small slds-text-color_weak slds-m-left_x-small">
                                                     — {item.description}
                                                 </span>
                                             </template>

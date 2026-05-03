@@ -8,17 +8,20 @@
                 <lightning-button-group class="slds-m-right_medium">
                     <lightning-button-icon
                         icon-name="utility:refresh"
+                        alternative-text="Refresh the requests"
                         tooltip="Refresh the requests"
                         onclick={handleRefreshClick}></lightning-button-icon>
                     <template lwc:if={isAutoRefreshMessageDisplayed}>
                         <lightning-button-icon
                             icon-name="utility:stop"
+                            alternative-text="Stop auto-refresh"
                             tooltip="Stop auto-refresh"
                             onclick={handleStopAutoRefreshClick}></lightning-button-icon>
                     </template>
                     <template lwc:else>
                         <lightning-button-icon
                             icon-name="utility:right"
+                            alternative-text="Enable auto-refresh"
                             tooltip="Enable auto-refresh"
                             onclick={handleStartAutoRefreshClick}></lightning-button-icon>
                     </template>
