@@ -247,21 +247,19 @@ export const CACHE_CONFIG = {
     ),
     API_DEFAULT_TIMEOUT_MS: new CONFIG_OBJECT<number>('api_default_timeout_ms', 30000),
     API_ABORT_ON_NAVIGATE: new CONFIG_OBJECT<boolean>('api_abort_on_navigate', true),
-    API_PREVIEW_BYTE_THRESHOLD: new CONFIG_OBJECT<number>(
-        'api_preview_byte_threshold',
-        100_000
-    ),
+    API_PREVIEW_BYTE_THRESHOLD: new CONFIG_OBJECT<number>('api_preview_byte_threshold', 100_000),
     API_AUTO_PRETTIFY_JSON: new CONFIG_OBJECT<boolean>('api_auto_prettify_json', true),
     API_AUTO_PRETTIFY_XML: new CONFIG_OBJECT<boolean>('api_auto_prettify_xml', true),
     // API Explorer — snippets
-    API_SNIPPET_DEFAULT_LANGUAGE: new CONFIG_OBJECT<string>(
-        'api_snippet_default_language',
-        'curl'
-    ),
-    API_SNIPPET_ENABLED_LANGUAGES: new CONFIG_OBJECT<string[]>(
-        'api_snippet_enabled_languages',
-        ['apex', 'curl', 'jsforce', 'fetch', 'python', 'powershell']
-    ),
+    API_SNIPPET_DEFAULT_LANGUAGE: new CONFIG_OBJECT<string>('api_snippet_default_language', 'curl'),
+    API_SNIPPET_ENABLED_LANGUAGES: new CONFIG_OBJECT<string[]>('api_snippet_enabled_languages', [
+        'apex',
+        'curl',
+        'jsforce',
+        'fetch',
+        'python',
+        'powershell',
+    ]),
     // API Explorer — redaction for snippet output
     API_REDACT_HEADERS: new CONFIG_OBJECT<string[]>('api_redact_headers_v1', [
         'Authorization',

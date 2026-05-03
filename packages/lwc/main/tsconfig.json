@@ -54,15 +54,15 @@
             ],
             "api/slices": ["../applications/api/slices/slices"],
             "api/slices/api": ["../applications/api/slices/api"],
-            "api/slices/apiHeaderPresets": [
-                "../applications/api/slices/apiHeaderPresets"
-            ],
-            "api/slices/apiAuthProfiles": [
-                "../applications/api/slices/apiAuthProfiles"
-            ],
+            "api/slices/apiHeaderPresets": ["../applications/api/slices/apiHeaderPresets"],
+            "api/slices/apiAuthProfiles": ["../applications/api/slices/apiAuthProfiles"],
             "api/slices/apiChains": ["../applications/api/slices/apiChains"],
             "api/chainRunner": ["../applications/api/chainRunner/chainRunner"],
             "api/responsePanel": ["../applications/api/responsePanel/responsePanel"],
+            "api/bodyEditor": ["../applications/api/bodyEditor/bodyEditor"],
+            "api/authProfileSelector": [
+                "../applications/api/authProfileSelector/authProfileSelector"
+            ],
             "accessAnalyzer/*": ["../applications/accessAnalyzer/*"],
             "accessAnalyzer/app": ["../applications/accessAnalyzer/app/app"],
             "accessAnalyzer/modalProfileFilter": [

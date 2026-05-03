@@ -60,10 +60,7 @@ function bootstrapApiExtension() {
 
         const state: any = store.getState();
         const connector = state?.application?.connector;
-        const accessToken =
-            explicitAccessToken ??
-            connector?.conn?.accessToken ??
-            undefined;
+        const accessToken = explicitAccessToken ?? connector?.conn?.accessToken ?? undefined;
         const instanceUrl = connector?.conn?.instanceUrl || '';
 
         // Resolve URL: accept absolute, or `url` + instanceUrl, or `endpoint` + instanceUrl.
@@ -75,9 +72,7 @@ function bootstrapApiExtension() {
 
         // Optional variable substitution across url, headers, body.
         const applyVars = (s: string | undefined) =>
-            s && variables
-                ? API_UTILS.substituteVariables(s, variables, accessToken)
-                : s;
+            s && variables ? API_UTILS.substituteVariables(s, variables, accessToken) : s;
 
         const substitutedHeaders: Record<string, string> = {};
         if (headers) {
@@ -181,8 +176,7 @@ function bootstrapApiExtension() {
     registerCommand('api.new', async (_payload: any) => {
         try {
             const tab = API_UTILS.generateDefaultTab(
-                (store.getState() as any)?.api?.currentApiVersion ||
-                    API_UTILS.DEFAULT_API_VERSION
+                (store.getState() as any)?.api?.currentApiVersion || API_UTILS.DEFAULT_API_VERSION
             );
             store.dispatch(API.reduxSlice.actions.addTab({ tab }));
             return { success: true, tabId: tab.id };

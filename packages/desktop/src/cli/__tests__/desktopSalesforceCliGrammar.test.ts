@@ -20,10 +20,7 @@ test('api request: positional METHOD + URL', () => {
 });
 
 test('api request: positional defaults method to GET when only URL given', () => {
-    const cmd = compileSalesforceCliCommand(
-        ['api', 'request', '/x'],
-        { json: false, org: ORG }
-    );
+    const cmd = compileSalesforceCliCommand(['api', 'request', '/x'], { json: false, org: ORG });
     if (cmd.type === 'execute' && cmd.action.kind === 'apiRequest') {
         assert.equal(cmd.action.method, 'GET');
         assert.equal(cmd.action.endpoint, '/x');
@@ -47,17 +44,20 @@ test('api request: repeated -H headers concatenated newline-joined', () => {
         { json: false, org: ORG }
     );
     if (cmd.type === 'execute' && cmd.action.kind === 'apiRequest') {
-        assert.match(cmd.action.headerText, /Content-Type: application\/json\nAccept: application\/json/);
+        assert.match(
+            cmd.action.headerText,
+            /Content-Type: application\/json\nAccept: application\/json/
+        );
     } else {
         assert.fail('expected apiRequest command');
     }
 });
 
 test('api request: --json propagates output=json', () => {
-    const cmd = compileSalesforceCliCommand(
-        ['api', 'request', 'GET', '/x'],
-        { json: true, org: ORG }
-    );
+    const cmd = compileSalesforceCliCommand(['api', 'request', 'GET', '/x'], {
+        json: true,
+        org: ORG,
+    });
     if (cmd.type === 'execute') {
         assert.equal(cmd.output, 'json');
     } else {

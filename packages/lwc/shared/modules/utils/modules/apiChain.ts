@@ -73,8 +73,7 @@ export const resolveJsonPath = (root: unknown, path: string): unknown => {
             let end = i;
             while (end < path.length && path[end] !== '.' && path[end] !== '[') end++;
             const key = path.slice(i, end);
-            if (cursor == null || typeof cursor !== 'object')
-                return undefined;
+            if (cursor == null || typeof cursor !== 'object') return undefined;
             cursor = (cursor as Record<string, unknown>)[key];
             i = end;
         } else if (ch === '[') {
@@ -120,14 +119,19 @@ const evalAssertion = (
         const ok = Array.isArray(assertion.status)
             ? assertion.status.includes(response.statusCode)
             : assertion.status === response.statusCode;
-        return ok ? { ok } : { ok, reason: `expected status ${assertion.status}, got ${response.statusCode}` };
+        return ok
+            ? { ok }
+            : { ok, reason: `expected status ${assertion.status}, got ${response.statusCode}` };
     }
     if ('jsonPath' in assertion && 'equals' in assertion) {
         const actual = resolveJsonPath(response.content, assertion.jsonPath);
         const ok = deepEqual(actual, assertion.equals);
         return ok
             ? { ok }
-            : { ok, reason: `${assertion.jsonPath}: expected ${JSON.stringify(assertion.equals)}, got ${JSON.stringify(actual)}` };
+            : {
+                  ok,
+                  reason: `${assertion.jsonPath}: expected ${JSON.stringify(assertion.equals)}, got ${JSON.stringify(actual)}`,
+              };
     }
     if ('jsonPath' in assertion && 'exists' in assertion) {
         const actual = resolveJsonPath(response.content, assertion.jsonPath);
@@ -159,10 +163,9 @@ const deepEqual = (a: unknown, b: unknown): boolean => {
     const keysA = Object.keys(a as Record<string, unknown>);
     const keysB = Object.keys(b as Record<string, unknown>);
     if (keysA.length !== keysB.length) return false;
-    return keysA.every(k => deepEqual(
-        (a as Record<string, unknown>)[k],
-        (b as Record<string, unknown>)[k]
-    ));
+    return keysA.every(k =>
+        deepEqual((a as Record<string, unknown>)[k], (b as Record<string, unknown>)[k])
+    );
 };
 
 /* -------------------------------------------------------------------------- */

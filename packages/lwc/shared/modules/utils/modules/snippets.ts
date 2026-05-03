@@ -20,13 +20,7 @@ export type SnippetRequest = {
     headers?: Record<string, string>;
 };
 
-export type SnippetLanguage =
-    | 'apex'
-    | 'curl'
-    | 'jsforce'
-    | 'fetch'
-    | 'python'
-    | 'powershell';
+export type SnippetLanguage = 'apex' | 'curl' | 'jsforce' | 'fetch' | 'python' | 'powershell';
 
 export type SnippetOptions = {
     /**
@@ -77,9 +71,7 @@ export const apexSnippet = (req: SnippetRequest, opts: SnippetOptions = {}): str
     Object.keys(headers).forEach(key => {
         const val = headers[key];
         if (isUndefinedOrNull(val)) return;
-        lines.push(
-            `req.setHeader(${apexStringLiteral(key)}, ${apexStringLiteral(val)});`
-        );
+        lines.push(`req.setHeader(${apexStringLiteral(key)}, ${apexStringLiteral(val)});`);
     });
     if (req.body && String(req.body).length > 0) {
         lines.push(`req.setBody(${apexStringLiteral(req.body)});`);
@@ -107,10 +99,7 @@ export const curlSnippet = (req: SnippetRequest, opts: SnippetOptions = {}): str
     return parts.join(' \\\n');
 };
 
-export const jsforceSnippet = (
-    req: SnippetRequest,
-    opts: SnippetOptions = {}
-): string => {
+export const jsforceSnippet = (req: SnippetRequest, opts: SnippetOptions = {}): string => {
     if (isUndefinedOrNull(req) || !req.url) return '/* Unable to format request */';
 
     let instanceUrl = '';
@@ -169,9 +158,7 @@ export const fetchSnippet = (req: SnippetRequest, opts: SnippetOptions = {}): st
     const init: Record<string, unknown> = { method };
     if (Object.keys(headers).length > 0) init.headers = headers;
     if (req.body && String(req.body).length > 0) init.body = req.body;
-    const initStr = JSON.stringify(init, null, 2)
-        .split('\n')
-        .join('\n');
+    const initStr = JSON.stringify(init, null, 2).split('\n').join('\n');
     return [
         `const res = await fetch(${JSON.stringify(req.url)}, ${initStr});`,
         'console.log(res.status);',
@@ -179,10 +166,7 @@ export const fetchSnippet = (req: SnippetRequest, opts: SnippetOptions = {}): st
     ].join('\n');
 };
 
-export const pythonSnippet = (
-    req: SnippetRequest,
-    opts: SnippetOptions = {}
-): string => {
+export const pythonSnippet = (req: SnippetRequest, opts: SnippetOptions = {}): string => {
     if (isUndefinedOrNull(req) || !req.url) return '# Unable to format request';
     const headers = sanitizeHeadersForSnippet(req.headers, opts.redactHeaders);
     const method = (req.method || 'GET').toLowerCase();
@@ -207,10 +191,7 @@ export const pythonSnippet = (
     return lines.join('\n');
 };
 
-export const powershellSnippet = (
-    req: SnippetRequest,
-    opts: SnippetOptions = {}
-): string => {
+export const powershellSnippet = (req: SnippetRequest, opts: SnippetOptions = {}): string => {
     if (isUndefinedOrNull(req) || !req.url) return '# Unable to format request';
     const headers = sanitizeHeadersForSnippet(req.headers, opts.redactHeaders);
     const method = req.method || 'GET';
@@ -234,10 +215,7 @@ export const powershellSnippet = (
     return parts.join('\n');
 };
 
-const GENERATORS: Record<
-    SnippetLanguage,
-    (req: SnippetRequest, opts: SnippetOptions) => string
-> = {
+const GENERATORS: Record<SnippetLanguage, (req: SnippetRequest, opts: SnippetOptions) => string> = {
     apex: apexSnippet,
     curl: curlSnippet,
     jsforce: jsforceSnippet,

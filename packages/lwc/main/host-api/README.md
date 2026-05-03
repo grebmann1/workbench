@@ -34,3 +34,28 @@ Pure (thin re-exports of `shared/*` kept for prefix stability):
 
 - `host-api/logger` — re-exports `shared/logger`.
 - `host-api/analytics` — re-exports `shared/analytics`.
+
+## Cross-app command contracts
+
+Apps expose their capabilities to other apps (and to the agent / desktop CLI) via the `registerCommand` → `invokeCommand` registry. Contracts worth knowing:
+
+### API Explorer
+
+| Command              | Purpose                                                                                                                                                                                                         |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `api.executeRequest` | Execute a request and reflect state into a specific tab (creates a new tab if `isNewTab`). Used by the app UI and the existing electron launch intent.                                                          |
+| `api.sendStandalone` | Execute a request with **no UI side-effects**. Reads the active connector from the store, supports `{key}` variable substitution, returns `{status, headers, body, bodyRaw, contentType, size, durationMs}`. Preferred entry for agent tools, CLI verbs, and the chain runner. |
+| `api.open`           | Open the API Explorer app (no state change).                                                                                                                                                                    |
+| `api.new`            | Add a fresh blank request tab.                                                                                                                                                                                  |
+| `api.send`           | Re-execute the current request (emits `api:send` window event so the panel picks up live DOM state first).                                                                                                      |
+| `api.chain`          | Open the chain runner side panel (emits `api:openChainRunner`).                                                                                                                                                 |
+| `api.import`         | Trigger the OpenAPI / Postman schema importer (emits `api:openSchemaImport`).                                                                                                                                   |
+
+### SOQL Explorer
+
+| Command                      | Purpose                                                         |
+| ---------------------------- | --------------------------------------------------------------- |
+| `soql.open`                  | Open the SOQL Explorer app.                                     |
+| `soql.openOrSelectTab`       | Create a tab or switch to an existing one (by id).              |
+| `soql.executeQuery`          | Run a SOQL query against the active (or a named) org.           |
+| `soql.executeQueryIncognito` | Run a query without recording it in Recent or saving tab state. |

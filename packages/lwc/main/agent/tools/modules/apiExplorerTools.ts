@@ -17,15 +17,7 @@ import { z } from 'zod';
  */
 const MAX_BODY_BYTES = 50_000;
 
-const HTTP_METHOD = z.enum([
-    'GET',
-    'POST',
-    'PUT',
-    'PATCH',
-    'DELETE',
-    'HEAD',
-    'OPTIONS',
-]);
+const HTTP_METHOD = z.enum(['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS']);
 
 const truncate = (
     body: unknown,
@@ -67,9 +59,7 @@ export const apiExecuteRequestTool = {
         method: HTTP_METHOD,
         url: z
             .string()
-            .describe(
-                'Relative path (e.g. /services/data/v59.0/limits) or absolute URL.'
-            ),
+            .describe('Relative path (e.g. /services/data/v59.0/limits) or absolute URL.'),
         headers: z
             .record(z.string())
             .optional()
@@ -77,9 +67,7 @@ export const apiExecuteRequestTool = {
         body: z
             .string()
             .optional()
-            .describe(
-                'Raw request body (JSON-encoded string for JSON APIs, or raw XML/text).'
-            ),
+            .describe('Raw request body (JSON-encoded string for JSON APIs, or raw XML/text).'),
         variables: z
             .record(z.string())
             .optional()
@@ -96,8 +84,7 @@ export const apiExecuteRequestTool = {
     }) => {
         if (!hasCommand('api.sendStandalone')) {
             return {
-                error:
-                    'The API Explorer is not initialized yet. Navigate to the API app once to bootstrap it, or try again in a moment.',
+                error: 'The API Explorer is not initialized yet. Navigate to the API app once to bootstrap it, or try again in a moment.',
             };
         }
         try {

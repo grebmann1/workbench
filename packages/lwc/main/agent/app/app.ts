@@ -405,8 +405,7 @@ You have full access to the toolkit UI. All navigation and display tools work no
         const mcpServers = normalizeMcpServerConfigs(appSettings[CACHE_CONFIG.MCP_SERVERS.key]);
         // API Explorer tool is opt-in via settings; default on. Stored as
         // api_agent_tool_enabled in cacheManager.
-        const apiAgentToolEnabled =
-            appSettings[CACHE_CONFIG.API_AGENT_TOOL_ENABLED.key] !== false;
+        const apiAgentToolEnabled = appSettings[CACHE_CONFIG.API_AGENT_TOOL_ENABLED.key] !== false;
         const enabledApiExplorerTools = apiAgentToolEnabled ? apiExplorerTools : [];
 
         return {

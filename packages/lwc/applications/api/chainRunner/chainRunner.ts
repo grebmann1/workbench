@@ -1,11 +1,7 @@
 import { LightningElement, api, track } from 'lwc';
 import { invokeCommand } from 'host-api/commands';
 import Toast from 'lightning/toast';
-import {
-    API_CHAIN,
-    type ChainStep,
-    type ChainRunResult,
-} from 'shared/utils';
+import { API_CHAIN, type ChainStep, type ChainRunResult } from 'shared/utils';
 
 /**
  * Side panel for building + running an ordered sequence of API requests.
@@ -137,9 +133,7 @@ export default class ChainRunner extends LightningElement {
             statusBadgeClass?: string;
         }
     > {
-        const resultsById = new Map(
-            (this.lastRun?.steps || []).map(r => [r.stepId, r] as const)
-        );
+        const resultsById = new Map((this.lastRun?.steps || []).map(r => [r.stepId, r] as const));
         return this.steps.map(s => {
             const r = resultsById.get(s.id);
             if (!r) return s;

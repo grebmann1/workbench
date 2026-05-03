@@ -130,9 +130,7 @@ export default class ApiAppSettings extends AppSettingsElement {
     handleSnippetLanguageToggle = (e: CustomEvent) => {
         const target = e.currentTarget as any;
         const { key } = target.dataset;
-        const current: string[] = Array.isArray(
-            this.config?.api_snippet_enabled_languages
-        )
+        const current: string[] = Array.isArray(this.config?.api_snippet_enabled_languages)
             ? [...this.config.api_snippet_enabled_languages]
             : [];
         const checked = !!target.checked;

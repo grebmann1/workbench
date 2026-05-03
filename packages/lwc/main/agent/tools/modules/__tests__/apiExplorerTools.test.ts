@@ -2,10 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
 import { registerCommand, __resetCommandsForTests } from 'host-api/commands';
-import {
-    apiExecuteRequestTool,
-    apiOpenTabTool,
-} from '../apiExplorerTools';
+import { apiExecuteRequestTool, apiOpenTabTool } from '../apiExplorerTools';
 
 const resetCommands = () => __resetCommandsForTests();
 

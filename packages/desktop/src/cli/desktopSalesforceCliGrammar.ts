@@ -142,9 +142,7 @@ export function compileSalesforceCliCommand(
                 const fs = require('node:fs');
                 body = fs.readFileSync(body.slice(1), 'utf8');
             } catch (err) {
-                throw new Error(
-                    `Could not read --body file: ${(err as Error).message}`
-                );
+                throw new Error(`Could not read --body file: ${(err as Error).message}`);
             }
         }
 

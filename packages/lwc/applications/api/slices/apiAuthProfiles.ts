@@ -7,10 +7,7 @@
  * flag so UI can redact it in snippets / exports.
  */
 import { createSlice, createEntityAdapter } from '@reduxjs/toolkit';
-import {
-    loadExtensionConfigFromCache,
-    saveExtensionConfigToCache,
-} from 'shared/cacheManager';
+import { loadExtensionConfigFromCache, saveExtensionConfigToCache } from 'shared/cacheManager';
 
 const PROFILES_KEY = 'api_auth_profiles_v1';
 
@@ -77,9 +74,7 @@ export const resolveAuthHeaders = (
     connectorAccessToken: string | undefined
 ): Record<string, string> => {
     if (!profile || profile.kind === 'inherit') {
-        return connectorAccessToken
-            ? { Authorization: `Bearer ${connectorAccessToken}` }
-            : {};
+        return connectorAccessToken ? { Authorization: `Bearer ${connectorAccessToken}` } : {};
     }
     switch (profile.kind) {
         case 'bearer':

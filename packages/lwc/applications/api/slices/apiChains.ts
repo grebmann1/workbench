@@ -7,10 +7,7 @@
  * Persisted at user scope via cacheManager under `api_chains_v1`.
  */
 import { createSlice, createEntityAdapter } from '@reduxjs/toolkit';
-import {
-    loadExtensionConfigFromCache,
-    saveExtensionConfigToCache,
-} from 'shared/cacheManager';
+import { loadExtensionConfigFromCache, saveExtensionConfigToCache } from 'shared/cacheManager';
 import type { ChainStep, ChainRunResult } from 'shared/utils';
 
 const CHAINS_KEY = 'api_chains_v1';
@@ -82,10 +79,7 @@ const apiChainsSlice = createSlice({
         markRunning: (state, action: { payload: { id: string | null } }) => {
             state.runningChainId = action.payload.id;
         },
-        setLastRun: (
-            state,
-            action: { payload: { id: string; result: ChainRunResult } }
-        ) => {
+        setLastRun: (state, action: { payload: { id: string; result: ChainRunResult } }) => {
             state.lastRun[action.payload.id] = action.payload.result;
         },
     },

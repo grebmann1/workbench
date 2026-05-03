@@ -7,10 +7,7 @@
  * `api_header_presets_v1`.
  */
 import { createSlice, createEntityAdapter } from '@reduxjs/toolkit';
-import {
-    loadExtensionConfigFromCache,
-    saveExtensionConfigToCache,
-} from 'shared/cacheManager';
+import { loadExtensionConfigFromCache, saveExtensionConfigToCache } from 'shared/cacheManager';
 
 const PRESETS_KEY = 'api_header_presets_v1';
 
@@ -133,7 +130,9 @@ const apiHeaderPresetsSlice = createSlice({
             persist(headerPresetsAdapter.getSelectors().selectAll(state));
         },
         removePreset: (state, action: { payload: { id: string } }) => {
-            const existing = headerPresetsAdapter.getSelectors().selectById(state, action.payload.id);
+            const existing = headerPresetsAdapter
+                .getSelectors()
+                .selectById(state, action.payload.id);
             if (!existing || existing.builtIn) return; // Can't remove built-ins.
             headerPresetsAdapter.removeOne(state, action.payload.id);
             persist(headerPresetsAdapter.getSelectors().selectAll(state));
@@ -142,6 +141,5 @@ const apiHeaderPresetsSlice = createSlice({
 });
 
 export const reduxSlice = apiHeaderPresetsSlice;
-export const { initialize, addPreset, updatePreset, removePreset } =
-    apiHeaderPresetsSlice.actions;
+export const { initialize, addPreset, updatePreset, removePreset } = apiHeaderPresetsSlice.actions;
 export const selectors = headerPresetsAdapter.getSelectors();

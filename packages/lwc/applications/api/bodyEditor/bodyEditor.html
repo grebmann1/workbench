@@ -1,0 +1,123 @@
+<template>
+    <template lwc:if={isNone}>
+        <p class="slds-text-body_small slds-text-color_weak slds-p-around_small">
+            No body will be sent with this request.
+        </p>
+    </template>
+
+    <template lwc:if={isJson}>
+        <lightning-textarea
+            label="JSON body"
+            variant="label-hidden"
+            value={body}
+            onchange={handleRawBodyChange}
+            placeholder='{"Name":"Acme"}'></lightning-textarea>
+    </template>
+
+    <template lwc:if={isXml}>
+        <lightning-textarea
+            label="XML body"
+            variant="label-hidden"
+            value={body}
+            onchange={handleRawBodyChange}
+            placeholder="<root>…</root>"></lightning-textarea>
+    </template>
+
+    <template lwc:if={isText}>
+        <lightning-textarea
+            label="Body"
+            variant="label-hidden"
+            value={body}
+            onchange={handleRawBodyChange}></lightning-textarea>
+    </template>
+
+    <template lwc:if={isGraphql}>
+        <lightning-textarea
+            label="Query"
+            value={graphqlQuery}
+            onchange={handleGraphqlQueryChange}
+            placeholder="query { accounts { id name } }"></lightning-textarea>
+        <lightning-textarea
+            label="Variables (JSON)"
+            value={graphqlVariables}
+            onchange={handleGraphqlVariablesChange}
+            class="slds-m-top_small"></lightning-textarea>
+    </template>
+
+    <template lwc:if={isFormUrlEncoded}>
+        <template for:each={indexedFields} for:item="f">
+            <div key={f.idx} class="slds-grid slds-gutters_x-small slds-m-bottom_x-small">
+                <lightning-input
+                    class="slds-col"
+                    variant="label-hidden"
+                    label="Key"
+                    data-idx={f.idx}
+                    data-field="key"
+                    value={f.key}
+                    onchange={handleRowChange}></lightning-input>
+                <lightning-input
+                    class="slds-col"
+                    variant="label-hidden"
+                    label="Value"
+                    data-idx={f.idx}
+                    data-field="value"
+                    value={f.value}
+                    onchange={handleRowChange}></lightning-input>
+                <button
+                    class="slds-button slds-button_icon slds-m-left_x-small"
+                    title="Remove"
+                    data-idx={f.idx}
+                    onclick={handleRemoveRow}>
+                    <lightning-icon icon-name="utility:delete" size="x-small"></lightning-icon>
+                </button>
+            </div>
+        </template>
+        <button class="slds-button slds-button_neutral" onclick={handleAddRow}>
+            <lightning-icon icon-name="utility:add" size="x-small"></lightning-icon>
+            Add field
+        </button>
+    </template>
+
+    <template lwc:if={isFormData}>
+        <!-- Same structure as form-urlencoded. Files are a future enhancement;
+             for now the editor captures text values only. -->
+        <template for:each={indexedFields} for:item="f">
+            <div key={f.idx} class="slds-grid slds-gutters_x-small slds-m-bottom_x-small">
+                <lightning-input
+                    class="slds-col"
+                    variant="label-hidden"
+                    label="Key"
+                    data-idx={f.idx}
+                    data-field="key"
+                    value={f.key}
+                    onchange={handleRowChange}></lightning-input>
+                <lightning-input
+                    class="slds-col"
+                    variant="label-hidden"
+                    label="Value"
+                    data-idx={f.idx}
+                    data-field="value"
+                    value={f.value}
+                    onchange={handleRowChange}></lightning-input>
+                <button
+                    class="slds-button slds-button_icon slds-m-left_x-small"
+                    title="Remove"
+                    data-idx={f.idx}
+                    onclick={handleRemoveRow}>
+                    <lightning-icon icon-name="utility:delete" size="x-small"></lightning-icon>
+                </button>
+            </div>
+        </template>
+        <button class="slds-button slds-button_neutral" onclick={handleAddRow}>
+            <lightning-icon icon-name="utility:add" size="x-small"></lightning-icon>
+            Add field
+        </button>
+    </template>
+
+    <template lwc:if={isBinary}>
+        <p class="slds-text-body_small slds-text-color_weak slds-p-around_small">
+            Binary upload: the file will be attached at send time from the attached picker (coming
+            soon).
+        </p>
+    </template>
+</template>

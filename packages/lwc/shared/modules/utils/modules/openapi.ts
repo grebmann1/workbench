@@ -28,16 +28,7 @@ type TreeNodeBase = {
 
 type TreeNode = TreeNodeBase;
 
-const HTTP_METHODS = new Set([
-    'get',
-    'post',
-    'put',
-    'patch',
-    'delete',
-    'options',
-    'head',
-    'trace',
-]);
+const HTTP_METHODS = new Set(['get', 'post', 'put', 'patch', 'delete', 'options', 'head', 'trace']);
 
 /**
  * Build a hierarchical tree (root → folder → folder → method) from an
@@ -67,11 +58,7 @@ export const buildApiTreeItems = (openApi: OpenApiSpec | undefined | null): Tree
     return [root];
 };
 
-const insertPath = (
-    root: TreeNode,
-    path: string,
-    pathItem: Record<string, any>
-): void => {
+const insertPath = (root: TreeNode, path: string, pathItem: Record<string, any>): void => {
     const segments = path.split('/').filter(Boolean);
     let current = root;
     let fullPath = '';

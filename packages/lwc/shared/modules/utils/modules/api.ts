@@ -259,9 +259,7 @@ export const substituteVariables = (
 /**
  * Parse a variables JSON string defensively. Returns `{}` on parse failure.
  */
-export const parseVariables = (
-    raw: string | null | undefined
-): Record<string, unknown> => {
+export const parseVariables = (raw: string | null | undefined): Record<string, unknown> => {
     if (isUndefinedOrNull(raw)) return {};
     try {
         const parsed = JSON.parse(raw as string);
@@ -324,9 +322,7 @@ export const executeApiRequest = async ({
     }
     const executionStartDate = Date.now();
     const mergedHeaders: Record<string, string> = { ...(headers || {}) };
-    const hasAuth = Object.keys(mergedHeaders).some(
-        k => k.toLowerCase() === 'authorization'
-    );
+    const hasAuth = Object.keys(mergedHeaders).some(k => k.toLowerCase() === 'authorization');
     if (!hasAuth && accessToken) {
         mergedHeaders.Authorization = `Bearer ${accessToken}`;
     }

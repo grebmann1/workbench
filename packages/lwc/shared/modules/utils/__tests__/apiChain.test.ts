@@ -9,9 +9,12 @@ import {
 } from '../modules/apiChain.ts';
 
 const fakeExecutor = (
-    responses: Record<string, { status?: number; body: unknown; headers?: Array<{ key: string; value: string }> }>
+    responses: Record<
+        string,
+        { status?: number; body: unknown; headers?: Array<{ key: string; value: string }> }
+    >
 ): ChainExecutor => {
-    return async (input) => {
+    return async input => {
         const key = `${input.method} ${input.url}`;
         const spec = responses[key];
         if (!spec) throw new Error(`Unexpected call: ${key}`);
@@ -49,7 +52,7 @@ test('resolveJsonPath: negative array index', () => {
 });
 
 test('resolveJsonPath: quoted key with spaces', () => {
-    assert.equal(resolveJsonPath({ "a b": 5 }, "$['a b']"), 5);
+    assert.equal(resolveJsonPath({ 'a b': 5 }, "$['a b']"), 5);
 });
 
 test('resolveJsonPath: missing path returns undefined', () => {
