@@ -88,9 +88,64 @@ export function compileSalesforceCliCommand(
     }
 
     if (group === 'api' && action === 'request') {
-        const endpoint = readFlag(rest, '--url', '-u');
+        // Accept either `--url <endpoint>` (legacy style) or `<METHOD> <URL>`
+        // as the first two positional args (Postman/curl-like). Headers are
+        // specified via repeated `-H key:value` / `--header key:value`.
+        let method = readFlag(rest, '--method', '-X') || 'GET';
+        let endpoint = readFlag(rest, '--url', '-u');
         if (!endpoint) {
-            throw new Error('Missing API endpoint. Use --url "<endpoint>".');
+            // Positional parse: drop recognised flag pairs, keep the rest.
+            const knownFlags = new Set([
+                '--method',
+                '-X',
+                '--url',
+                '-u',
+                '--body',
+                '--header',
+                '-H',
+                '--target-org',
+                '--org',
+                '-o',
+                '-u',
+                '--json',
+                '--no-wait',
+            ]);
+            const positionals: string[] = [];
+            for (let i = 0; i < rest.length; i++) {
+                const token = rest[i];
+                if (token.startsWith('--') || /^-[A-Za-z]$/.test(token)) {
+                    // consume this flag + its value when it looks like a value-bearing flag
+                    if (knownFlags.has(token) && i + 1 < rest.length) i++;
+                    continue;
+                }
+                positionals.push(token);
+            }
+            if (positionals.length >= 2) {
+                method = positionals[0].toUpperCase();
+                endpoint = positionals[1];
+            } else if (positionals.length === 1) {
+                endpoint = positionals[0];
+            }
+        }
+        if (!endpoint) {
+            throw new Error(
+                'Missing API endpoint. Use --url "<endpoint>" or positional "<METHOD> <URL>".'
+            );
+        }
+
+        let body = readFlag(rest, '--body');
+        // Support `--body @file` — read the file content.
+        if (body && body.startsWith('@')) {
+            try {
+                // Lazy require to keep this module usable in Node with fs and in ts-only contexts.
+                // eslint-disable-next-line @typescript-eslint/no-require-imports
+                const fs = require('node:fs');
+                body = fs.readFileSync(body.slice(1), 'utf8');
+            } catch (err) {
+                throw new Error(
+                    `Could not read --body file: ${(err as Error).message}`
+                );
+            }
         }
 
         return {
@@ -99,7 +154,7 @@ export function compileSalesforceCliCommand(
             org,
             action: {
                 kind: 'apiRequest',
-                body: readFlag(rest, '--body') || undefined,
+                body: body || undefined,
                 endpoint,
                 headerText: rest
                     .map((part, index) =>
@@ -107,7 +162,7 @@ export function compileSalesforceCliCommand(
                     )
                     .filter((part): part is string => Boolean(part))
                     .join('\n'),
-                method: readFlag(rest, '--method', '-X') || 'GET',
+                method,
             },
             output: json ? 'json' : 'text',
         };

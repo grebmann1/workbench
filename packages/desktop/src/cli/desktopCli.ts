@@ -60,6 +60,9 @@ function printHelp(): void {
     process.stdout.write(
         `  workbench-desktop sf data query --target-org <alias> --query "<soql>"\n`
     );
+    process.stdout.write(
+        `  workbench-desktop api request <METHOD> <URL> --target-org <alias> [-H k:v ...] [--body @file|string] [--json]\n`
+    );
 }
 
 function readFlag(argv: string[], ...names: string[]): string | null {
@@ -227,6 +230,17 @@ export function parseCliArgs(argv: string[]): DesktopCliInvocation {
                     ...(state ? { state } : {}),
                 },
             },
+            options: getOptions(argv),
+        };
+    }
+
+    if (group === 'api' && action === 'request') {
+        // Route through the same grammar as `sf api request`.
+        return {
+            command: compileSalesforceCliCommand(['api', 'request', ...rest], {
+                json: hasFlag(argv, '--json'),
+                org: getAliasOrgSource(rest),
+            }),
             options: getOptions(argv),
         };
     }

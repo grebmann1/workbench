@@ -37,6 +37,98 @@ function bootstrapApiExtension() {
     if (_apiBootstrapped) return;
     _apiBootstrapped = true;
     injectReducer('api', API.reduxSlice.reducer);
+
+    /**
+     * Standalone request — no UI side-effects. Used by the agent tool and the
+     * desktop CLI. Reads the active connector from the store and delegates to
+     * the shared `API_UTILS.executeApiRequest` executor.
+     */
+    registerCommand('api.sendStandalone', async (payload: any) => {
+        const {
+            method = 'GET',
+            url,
+            endpoint,
+            headers,
+            body,
+            variables,
+            accessToken: explicitAccessToken,
+            connectorAlias,
+            signal,
+        } = payload || {};
+
+        const state: any = store.getState();
+        const connector = state?.application?.connector;
+        const accessToken =
+            explicitAccessToken ??
+            connector?.conn?.accessToken ??
+            undefined;
+        const instanceUrl = connector?.conn?.instanceUrl || '';
+
+        // Resolve URL: accept absolute, or `url` + instanceUrl, or `endpoint` + instanceUrl.
+        let targetUrl = url || endpoint || '';
+        if (targetUrl && !/^https?:\/\//i.test(targetUrl)) {
+            const path = targetUrl.startsWith('/') ? targetUrl : `/${targetUrl}`;
+            targetUrl = `${instanceUrl}${path}`;
+        }
+
+        // Optional variable substitution across url, headers, body.
+        const applyVars = (s: string | undefined) =>
+            s && variables
+                ? API_UTILS.substituteVariables(s, variables, accessToken)
+                : s;
+
+        const substitutedHeaders: Record<string, string> = {};
+        if (headers) {
+            for (const k of Object.keys(headers)) {
+                substitutedHeaders[k] = applyVars(String(headers[k])) || '';
+            }
+        }
+
+        try {
+            const response = await API_UTILS.executeApiRequest({
+                method,
+                url: applyVars(targetUrl) || '',
+                headers: substitutedHeaders,
+                body: applyVars(body),
+                accessToken,
+                signal,
+            });
+            // Record as Recent for user discoverability (best-effort).
+            try {
+                const alias = connectorAlias || connector?.conn?.alias;
+                if (alias) {
+                    store.dispatch(
+                        DOCUMENT.reduxSlices.RECENT.actions.saveApi({
+                            item: {
+                                method,
+                                endpoint: endpoint || targetUrl,
+                                header: headers,
+                                body,
+                            },
+                            alias,
+                        })
+                    );
+                }
+            } catch {
+                /* non-fatal */
+            }
+            return {
+                status: response.statusCode,
+                headers: response.contentHeaders,
+                body: response.content,
+                bodyRaw: response.contentRaw,
+                contentType: response.contentType,
+                size: response.contentLength,
+                durationMs: response.executionEndDate - response.executionStartDate,
+            };
+        } catch (err: any) {
+            return {
+                error: err?.message || String(err),
+                aborted: err?.name === 'AbortError',
+            };
+        }
+    });
+
     registerCommand('api.executeRequest', async (payload: any) => {
         const { connector, request, formattedRequest, tabId, isNewTab, tab, createdDate } =
             payload || {};

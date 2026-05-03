@@ -1,9 +1,18 @@
 ---
 name: sf-api-request
-description: Make authenticated Salesforce REST and GraphQL API calls using the sf CLI. Use when the user asks to query or mutate Salesforce data via sf api request rest or sf api request graphql, including composite API patterns, batch requests, sObject CRUD, and Postman-style JSON files.
+description: Make authenticated Salesforce REST and GraphQL API calls using the sf CLI. DEPRECATED — prefer the `api_execute_request` agent tool which runs through the API Explorer app's canonical execution path without shelling out. Use this skill only when you specifically need sf CLI features like binary file streaming via -S, Postman-style JSON file input via -f, or the composite batch reference syntax.
+deprecated: true
+replaced_by: api_execute_request
 ---
 
-# sf api request
+# sf api request (deprecated)
+
+> **Prefer `api_execute_request`** when it's available — it calls the API
+> Explorer app's `api.sendStandalone` command directly, inheriting the
+> currently-connected org's Bearer token without shelling out. Keep using
+> this skill only for sf CLI-specific features: binary streaming (`-S`),
+> Postman-style JSON file input (`-f`), or the `@{refId.field}` composite
+> batch reference syntax.
 
 Both subcommands are **beta**. Always include `-o <alias>` unless `target-org` is already configured.
 

@@ -4,6 +4,11 @@ export { askUserTool } from './modules/agentTools';
 export { resolveQuestion, rejectQuestion } from './modules/askUserBridge';
 export { workbenchContextTools } from './modules/workbenchContextTools';
 export {
+    apiExplorerTools,
+    apiExecuteRequestTool,
+    apiOpenTabTool,
+} from './modules/apiExplorerTools';
+export {
     createMcpToolset,
     discoverMcpServerTools,
     getPrefixedMcpToolName,
