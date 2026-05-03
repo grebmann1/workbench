@@ -12,6 +12,8 @@ export { calculateOverflow } from './sldsOverflowLibrary';
 export { LightningResizeObserver } from './sldsResizeObserver';
 export * as SETUP_LINKS from './links';
 export * as API from './modules/api';
+export * as SNIPPETS from './modules/snippets';
+export * as OPENAPI from './modules/openapi';
 export * as METADATA from './modules/metadata';
 export * as ASSISTANT from './modules/assistant';
 export * as PLATFORM_EVENT from './modules/platformEvent';

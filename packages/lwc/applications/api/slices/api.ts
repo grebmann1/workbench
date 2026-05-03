@@ -11,6 +11,7 @@ import {
 import LOGGER from 'shared/logger';
 import { lowerCaseKey, isNotUndefinedOrNull, safeParseJson, API } from 'shared/utils';
 import type { ConnectorLike } from 'host-api/connector';
+const { DEFAULT_API_VERSION } = API;
 const API_SETTINGS_KEY = 'API_SETTINGS_KEY';
 
 /** Methods */
@@ -80,19 +81,20 @@ function enrichTabs(tabs, state, selector) {
     return tabs.map(tab => enrichTab(tab, state, selector));
 }
 
+const norm = (v: unknown): string => (v == null ? '' : String(v));
+
 function enrichTab(tab, state, selector) {
     const file =
         tab.fileId && selector ? selector.selectById(state, lowerCaseKey(tab.fileId)) : null;
-    //const { header,body,method,endpoint } = file;
     const fileData = file?.extra || {};
+    const differs =
+        norm(fileData.body) !== norm(tab.body) ||
+        norm(fileData.header) !== norm(tab.header) ||
+        norm(fileData.method) !== norm(tab.method) ||
+        norm(fileData.endpoint) !== norm(tab.endpoint);
     return {
         ...tab,
-        isDraft:
-            (fileData.body != tab.body ||
-                fileData.header != tab.header ||
-                fileData.method != tab.method ||
-                fileData.endpoint != tab.endpoint) &&
-            isNotUndefinedOrNull(tab.fileId),
+        isDraft: differs && isNotUndefinedOrNull(tab.fileId),
     };
 }
 
@@ -127,63 +129,6 @@ function addAction({ state, tabId, request, response }) {
 }
 
 export const apiAdapter = createEntityAdapter();
-const _executeApiRequest = async (
-    connector: ConnectorLike,
-    request: Record<string, any>,
-    formattedRequest: Record<string, any>,
-    signal: AbortSignal
-) => {
-    const executionStartDate = Date.now();
-    const url = formattedRequest?.url;
-    if (!url) {
-        throw new Error('Missing request URL');
-    }
-
-    // Merge user headers + auth header (if not provided explicitly)
-    const headers = { ...(formattedRequest?.headers || {}) };
-    if (!headers.Authorization && connector?.conn?.accessToken) {
-        headers.Authorization = `Bearer ${connector.conn.accessToken}`;
-    }
-
-    const res = await fetch(url, {
-        method: formattedRequest?.method || request?.method || 'GET',
-        headers,
-        body: formattedRequest?.body,
-        signal,
-    });
-
-    const statusCode = res.status;
-    const contentHeaders = Array.from(res.headers.entries()).map(([key, value]) => ({
-        key,
-        value,
-    }));
-    const contentType = res.headers.get('content-type') || '';
-
-    let content;
-    const formattedType = API.formattedContentType(contentType);
-    if (formattedType === 'json') {
-        try {
-            content = await res.json();
-        } catch {
-            content = await res.text();
-        }
-    } else {
-        content = await res.text();
-    }
-
-    const contentLength = new TextEncoder().encode(JSON.stringify(content)).length;
-    const executionEndDate = Date.now();
-
-    return {
-        content,
-        statusCode,
-        contentHeaders,
-        contentType,
-        contentLength,
-        executionStartDate,
-        executionEndDate,
-    };
-};
 
 export const executeApiRequest = createAsyncThunk(
     'api/callRequest',
@@ -206,7 +151,14 @@ export const executeApiRequest = createAsyncThunk(
         //console.log('connector, body,tabId',connector, body,tabId);
         //const apiPath = isAllRows ? '/queryAll' : '/query';
         try {
-            const response = await _executeApiRequest(connector, request, formattedRequest, signal);
+            const response = await API.executeApiRequest({
+                method: formattedRequest?.method || request?.method || 'GET',
+                url: formattedRequest?.url,
+                headers: formattedRequest?.headers,
+                body: formattedRequest?.body,
+                accessToken: connector?.conn?.accessToken,
+                signal,
+            });
             // Add to Recent Panel :
             dispatch(
                 DOCUMENT.reduxSlices.RECENT.actions.saveApi({
@@ -239,7 +191,7 @@ const createInitialTabs = (apiVersion, defaultHeader) => {
     if (defaultHeader) {
         tab.header = defaultHeader;
     }
-    return [enrichTab(tab, null)];
+    return [enrichTab(tab, null, null)];
 };
 const DEFAULT_VARIABLES = `{
     "id": "123",
@@ -261,7 +213,7 @@ const apiSlice = createSlice({
         variables: DEFAULT_VARIABLES, // GLOBAL
         header: null,
         defaultHeader: API.DEFAULT.HEADER,
-        currentApiVersion: '59.0',
+        currentApiVersion: DEFAULT_API_VERSION,
         abortingMap: {},
         isInitialized: false,
     },
@@ -362,20 +314,25 @@ const apiSlice = createSlice({
             }
         },
         resetTab: (state, action) => {
-            const { tabId } = action.payload;
+            const { tabId, apiFiles } = action.payload;
             const tabIndex = state.tabs.findIndex(x => x.id === tabId);
             // Reset Tab
             if (tabIndex > -1) {
                 let enrichedTab;
                 // if we reset on a tab with a file, then we reload the file.
-                if (state.tabs[tabIndex].currentFileId) {
+                const existingFileId = state.tabs[tabIndex].fileId;
+                if (existingFileId) {
                     enrichedTab = enrichTab(
-                        formatTab({ ...state.tabs[tabIndex], fileId }),
+                        formatTab({ ...state.tabs[tabIndex], fileId: existingFileId }),
                         { apiFiles },
                         apiFilesSelectors
                     );
                 } else {
-                    enrichedTab = enrichTab(API.generateDefaultTab(state.currentApiVersion), null);
+                    enrichedTab = enrichTab(
+                        API.generateDefaultTab(state.currentApiVersion),
+                        null,
+                        null
+                    );
                 }
                 state.tabs[tabIndex] = enrichedTab;
                 state.currentTab = enrichedTab;
