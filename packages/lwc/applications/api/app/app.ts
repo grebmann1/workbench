@@ -28,6 +28,8 @@ import {
     prettifyXml,
     autoDetectAndFormat,
     API as API_UTILS,
+    OPENAPI,
+    SNIPPETS,
 } from 'shared/utils';
 
 const apiLocalSelectors = API.apiAdapter.getSelectors((state: any) => state.api.api);
@@ -220,80 +222,8 @@ function bootstrapApiExtension() {
 }
 bootstrapApiExtension();
 
-// Utility: Convert OpenAPI schema to apiTreeItems
-function openApiToApiTreeItems(openApi) {
-    if (!openApi.paths) return [];
-    // Helper to insert a path into the tree
-    function insertPath(tree, path, pathItem) {
-        const segments = path.split('/').filter(Boolean); // remove empty
-        let current = tree;
-        let fullPath = '';
-        for (let i = 0; i < segments.length; i++) {
-            const segment = segments[i];
-            fullPath += '/' + segment;
-            let node = current.children.find(
-                child => child.id === fullPath && child.type === 'folder'
-            );
-            if (!node) {
-                node = {
-                    id: fullPath,
-                    name: segment,
-                    title: fullPath,
-                    type: 'folder',
-                    children: [],
-                    extra: i === segments.length - 1 ? pathItem : undefined,
-                };
-                current.children.push(node);
-            }
-            current = node;
-        }
-        // Add method nodes as children of the last segment
-        Object.entries(pathItem).forEach(([method, operation]) => {
-            if (
-                ['get', 'post', 'put', 'patch', 'delete', 'options', 'head', 'trace'].includes(
-                    method
-                )
-            ) {
-                const keywords = [
-                    path,
-                    operation?.summary,
-                    operation?.operationId,
-                    ...(Array.isArray(operation?.tags) ? operation.tags : []),
-                ].filter(Boolean);
-                current.children.push({
-                    id: `${path}:${method}`,
-                    name: `${method.toUpperCase()} ${path}`,
-                    title: operation?.summary || `${method.toUpperCase()} ${path}`,
-                    icon: `api:${method}`,
-                    type: 'method',
-                    keywords,
-                    extra: {
-                        ...operation,
-                        path,
-                        method,
-                        pathItem,
-                    },
-                });
-            }
-        });
-    }
-    // Root node with API title and servers
-    const name = openApi?.info?.title;
-    const root = {
-        id: (name ? name : guid()).toLowerCase(), // Important to lowercase for Redux !!!!!!
-        name: name ? name : 'API',
-        type: 'root',
-        children: [],
-        extra: {
-            ...openApi.info,
-            servers: openApi.servers || [],
-        },
-    };
-    Object.entries(openApi.paths).forEach(([path, pathItem]) => {
-        insertPath(root, path, pathItem);
-    });
-    return [root];
-}
+// Thin wrapper over the pure, unit-tested helper in shared/utils.
+const openApiToApiTreeItems = (openApi: any) => OPENAPI.buildApiTreeItems(openApi);
 
 export default class App extends ToolkitElement {
     @wire(NavigationContext)
@@ -721,27 +651,21 @@ export default class App extends ToolkitElement {
         }
     };
 
-    replaceVariableValues = text => {
+    /**
+     * Substitute `{key}` tokens from the Variables editor (plus `{sessionId}`
+     * from the connector's access token). Delegates to the shared helper so
+     * `$`-sequences in variable values don't corrupt the output and keys
+     * containing regex metacharacters don't blow up the RegExp.
+     */
+    replaceVariableValues = (text: string) => {
         if (!text) return text;
-        let result = text;
-        let variablesObj = {};
-        try {
-            variablesObj = JSON.parse(this.variables || '{}');
-        } catch (e) {
-            // If variables is not valid JSON, skip replacement
-            variablesObj = {};
-        }
-        // Replace all {key} from variables
-        Object.keys(variablesObj).forEach(key => {
-            const value = variablesObj[key];
-            const regex = new RegExp(`\\{${key}\\}`, 'g');
-            result = result.replace(regex, value);
-        });
-        // Always replace {sessionId}
-        if (this.connector && this.connector.conn && this.connector.conn.accessToken) {
-            result = result.replace(/\{sessionId\}/g, this.connector.conn.accessToken);
-        }
-        return result;
+        const variablesObj = API_UTILS.parseVariables(this.variables);
+        const accessToken = this.connector?.conn?.accessToken;
+        return API_UTILS.substituteVariables(
+            text,
+            variablesObj as Record<string, string>,
+            accessToken
+        );
     };
 
     decreaseActionPointer = () => {
@@ -1179,133 +1103,37 @@ export default class App extends ToolkitElement {
         }
     };
 
-    toApexStringLiteral = value => {
-        const s = String(value ?? '');
-        return `'${s.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'`;
-    };
-
-    escapeBashSingleQuoted = value => {
-        // In bash: 'foo'"'"'bar'
-        return String(value ?? '').replace(/'/g, `'\"'\"'`);
-    };
-
-    sanitizeHeadersForSnippet = headers => {
-        const out = { ...(headers || {}) };
-        Object.keys(out).forEach(k => {
-            if (String(k).toLowerCase() === 'authorization') {
-                out[k] = 'Bearer {sessionId}';
-            }
-        });
-        return out;
-    };
+    /**
+     * Build a {@link SNIPPETS.SnippetRequest} from the current tab request,
+     * or `null` when the request can't be formatted. All snippet getters
+     * below delegate to the shared snippet generators — no duplicated
+     * escaping / redaction logic here.
+     */
+    _snippetRequest() {
+        const formatted = this.formatRequest();
+        if (isUndefinedOrNull(formatted)) return null;
+        return {
+            method: formatted.method || 'GET',
+            url: formatted.url || '',
+            endpoint: formatted.endpoint || '',
+            body: formatted.body,
+            headers: formatted.headers || {},
+        };
+    }
 
     get apexHttpRequestSnippet() {
-        const formatted = this.formatRequest();
-        if (isUndefinedOrNull(formatted)) {
-            return '/* Unable to format request */';
-        }
-
-        const lines = [];
-        lines.push('HttpRequest req = new HttpRequest();');
-        lines.push(`req.setMethod(${this.toApexStringLiteral(formatted.method || 'GET')});`);
-        lines.push(`req.setEndpoint(${this.toApexStringLiteral(formatted.url || '')});`);
-
-        const headers = this.sanitizeHeadersForSnippet(formatted.headers || {});
-        Object.keys(headers).forEach(key => {
-            const val = headers[key];
-            if (isUndefinedOrNull(val)) return;
-            lines.push(
-                `req.setHeader(${this.toApexStringLiteral(key)}, ${this.toApexStringLiteral(val)});`
-            );
-        });
-
-        if (formatted.body && String(formatted.body).length > 0) {
-            lines.push(`req.setBody(${this.toApexStringLiteral(formatted.body)});`);
-        }
-
-        lines.push('Http http = new Http();');
-        lines.push('HTTPResponse res = http.send(req);');
-        lines.push("System.debug('Status=' + res.getStatus());");
-        lines.push('System.debug(res.getBody());');
-        return lines.join('\n');
+        const req = this._snippetRequest();
+        return req ? SNIPPETS.apexSnippet(req) : '/* Unable to format request */';
     }
 
     get curlSnippet() {
-        const formatted = this.formatRequest();
-        if (isUndefinedOrNull(formatted)) {
-            return '# Unable to format request';
-        }
-        const method = formatted.method || 'GET';
-        const url = formatted.url || '';
-        const headers = this.sanitizeHeadersForSnippet(formatted.headers || {});
-
-        const parts = [];
-        parts.push(`curl -X ${method} '${this.escapeBashSingleQuoted(url)}'`);
-        Object.keys(headers).forEach(key => {
-            const val = headers[key];
-            if (isUndefinedOrNull(val) || isEmpty(String(key))) return;
-            parts.push(`  -H '${this.escapeBashSingleQuoted(`${key}: ${val}`)}'`);
-        });
-        if (formatted.body && String(formatted.body).length > 0) {
-            parts.push(`  --data-raw '${this.escapeBashSingleQuoted(formatted.body)}'`);
-        }
-        return parts.join(' \\\n');
+        const req = this._snippetRequest();
+        return req ? SNIPPETS.curlSnippet(req) : '# Unable to format request';
     }
 
     get jsforceSnippet() {
-        const formatted = this.formatRequest();
-        if (isUndefinedOrNull(formatted)) {
-            return '/* Unable to format request */';
-        }
-
-        let instanceUrl = '';
-        try {
-            instanceUrl = new URL(formatted.url || '').origin;
-        } catch {
-            instanceUrl = '';
-        }
-
-        const endpoint = formatted.endpoint || '';
-        const method = formatted.method || 'GET';
-        const headers = this.sanitizeHeadersForSnippet(formatted.headers || {});
-
-        let bodyLine = '';
-        if (formatted.body && String(formatted.body).length > 0) {
-            // Prefer object body when JSON, else string
-            try {
-                const obj = JSON.parse(formatted.body);
-                bodyLine = `  body: ${JSON.stringify(obj, null, 2).split('\n').join('\n  ')},\n`;
-            } catch {
-                bodyLine = `  body: ${JSON.stringify(String(formatted.body))},\n`;
-            }
-        }
-
-        const headerLines = Object.keys(headers)
-            .filter(k => !isEmpty(k) && !isUndefinedOrNull(headers[k]))
-            .map(k => `    ${JSON.stringify(k)}: ${JSON.stringify(String(headers[k]))}`)
-            .join(',\n');
-
-        return [
-            "const jsforce = require('jsforce');",
-            '',
-            'const conn = new jsforce.Connection({',
-            `  instanceUrl: ${JSON.stringify(instanceUrl || 'https://yourInstance.my.salesforce.com')},`,
-            "  accessToken: '{sessionId}',",
-            '});',
-            '',
-            'conn.request({',
-            `  method: ${JSON.stringify(method)},`,
-            `  url: ${JSON.stringify(endpoint || '/')},`,
-            headerLines ? `  headers: {\n${headerLines}\n  },\n` : '',
-            bodyLine,
-            '}).then((res) => {',
-            '  console.log(res);',
-            '}).catch((err) => {',
-            '  console.error(err);',
-            '});',
-        ]
-            .filter(Boolean)
-            .join('\n');
+        const req = this._snippetRequest();
+        return req ? SNIPPETS.jsforceSnippet(req) : '/* Unable to format request */';
     }
 
     copyApexHttpRequestSnippet = async () => {

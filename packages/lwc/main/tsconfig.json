@@ -62,6 +62,7 @@
             ],
             "api/slices/apiChains": ["../applications/api/slices/apiChains"],
             "api/chainRunner": ["../applications/api/chainRunner/chainRunner"],
+            "api/responsePanel": ["../applications/api/responsePanel/responsePanel"],
             "accessAnalyzer/*": ["../applications/accessAnalyzer/*"],
             "accessAnalyzer/app": ["../applications/accessAnalyzer/app/app"],
             "accessAnalyzer/modalProfileFilter": [

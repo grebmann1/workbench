@@ -1,0 +1,35 @@
+<template>
+    <div class="slds-grid slds-grid_align-spread slds-p-horizontal_small slds-p-top_x-small">
+        <div class="slds-grid slds-grid_vertical-align-center">
+            <template lwc:if={status}>
+                <span class={statusBadgeClass}>{status}</span>
+            </template>
+            <span class="slds-m-left_small slds-text-body_small">
+                <template lwc:if={durationMs}>{durationMs} ms</template>
+                <template lwc:if={formattedSize}>&nbsp;·&nbsp;{formattedSize}</template>
+                <template lwc:if={contentType}>&nbsp;·&nbsp;{contentType}</template>
+            </span>
+        </div>
+        <div class="slds-grid slds-gutters_x-small">
+            <lightning-combobox
+                variant="label-hidden"
+                value={viewer}
+                options={viewerOptions}
+                onchange={handleViewerChange}></lightning-combobox>
+            <button class="slds-button slds-button_icon" title="Copy" onclick={handleCopy}>
+                <lightning-icon icon-name="utility:copy" size="x-small"></lightning-icon>
+            </button>
+            <button class="slds-button slds-button_icon" title="Download" onclick={handleDownload}>
+                <lightning-icon icon-name="utility:download" size="x-small"></lightning-icon>
+            </button>
+        </div>
+    </div>
+    <div class="slds-p-around_small">
+        <slot></slot>
+        <template lwc:if={isLargeResponse}>
+            <p class="slds-text-body_small slds-text-color_weak slds-m-top_small">
+                Response exceeds the preview threshold. Use Download to save the full body.
+            </p>
+        </template>
+    </div>
+</template>

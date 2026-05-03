@@ -102,12 +102,6 @@
                         onclick={handleRecentToggle}></lightning-button-icon-stateful>
                 </div>
 
-                <template lwc:if={isMetaDisplayed}>
-                    <div slot="meta" class="slds-page-header__meta-text">
-                        <h2 class="slds-text-title_bold">In Alpha, basic support for now.</h2>
-                        <p>For advanced functionalities, it's recommended to use Postman</p>
-                    </div>
-                </template>
             </builder-header>
             <!-- Open API (OpenAPI Tree) -->
             <api-api-tree-panel
