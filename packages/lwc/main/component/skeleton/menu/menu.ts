@@ -336,10 +336,10 @@ export default class Menu extends ToolkitElement {
     get others() {
         return [
             {
-                name: 'extra_howTo',
-                url: 'https://www.sf-workbench.com/install',
+                name: 'extra_documentation',
+                url: 'https://doc.sf-workbench.com',
                 menuIcon: 'utility:knowledge_base',
-                menuLabel: 'How to',
+                menuLabel: 'Documentation',
             },
             {
                 name: 'extra_reportIssue',
