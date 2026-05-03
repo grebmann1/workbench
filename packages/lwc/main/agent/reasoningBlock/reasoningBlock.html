@@ -5,6 +5,7 @@
             class="reasoning-block-header"
             onclick={handleToggle}
             aria-expanded={expanded}
+            aria-controls={panelId}
             aria-label={ariaLabel}
             disabled={isBriefThought}>
             <span class={statusClass}>
@@ -24,7 +25,7 @@
             </span>
         </button>
         <template lwc:if={expanded}>
-            <div class="reasoning-block-body">
+            <div id={panelId} class="reasoning-block-body" role="region" aria-label={ariaLabel}>
                 <slds-markdown-viewer
                     class="reasoning-block-markdown"
                     value={content}

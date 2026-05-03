@@ -153,8 +153,11 @@
                 <!-- Detail sections -->
                 <div class="slds-m-top_small">
                     <!-- Available APIs -->
-                    <section class={availableApisSectionClass}>
-                        <h3 class="slds-section__title">
+                    <section
+                        class={availableApisSectionClass}
+                        role="region"
+                        aria-labelledby="sobject-available-apis-heading">
+                        <h3 class="slds-section__title" id="sobject-available-apis-heading">
                             <button
                                 class="slds-button slds-section__title-action"
                                 data-section="availableApis"
@@ -189,8 +192,11 @@
                     </section>
 
                     <!-- Relationships -->
-                    <section class={relationshipsSectionClass}>
-                        <h3 class="slds-section__title">
+                    <section
+                        class={relationshipsSectionClass}
+                        role="region"
+                        aria-labelledby="sobject-relationships-heading">
+                        <h3 class="slds-section__title" id="sobject-relationships-heading">
                             <button
                                 class="slds-button slds-section__title-action"
                                 data-section="relationships"
@@ -221,7 +227,7 @@
                                         <div class="slds-m-bottom_x-small slds-m-top_x-small">
                                             <lightning-input
                                                 type="search"
-                                                label=""
+                                                label="Search lookups"
                                                 placeholder="Search lookups..."
                                                 variant="label-hidden"
                                                 value={relationshipSearch}
@@ -326,7 +332,7 @@
                                         <div class="slds-m-bottom_x-small slds-m-top_x-small">
                                             <lightning-input
                                                 type="search"
-                                                label=""
+                                                label="Search children"
                                                 placeholder="Search children..."
                                                 variant="label-hidden"
                                                 value={relationshipSearch}
@@ -418,8 +424,11 @@
                     </section>
 
                     <!-- Fields -->
-                    <section class={fieldsSectionClass}>
-                        <h3 class="slds-section__title">
+                    <section
+                        class={fieldsSectionClass}
+                        role="region"
+                        aria-labelledby="sobject-fields-heading">
+                        <h3 class="slds-section__title" id="sobject-fields-heading">
                             <button
                                 class="slds-button slds-section__title-action"
                                 data-section="fields"
@@ -439,7 +448,7 @@
                                 <div class="slds-m-bottom_x-small">
                                     <lightning-input
                                         type="search"
-                                        label=""
+                                        label="Search fields"
                                         placeholder="Search fields..."
                                         variant="label-hidden"
                                         value={fieldSearch}
@@ -543,6 +552,7 @@
                                                                     class={field._expandBtnClass}
                                                                     data-key={field.name}
                                                                     onclick={handleToggleFieldExpand}
+                                                                    aria-label="Show field details"
                                                                     title="Show field details">
                                                                     <lightning-icon
                                                                         icon-name="utility:info"
@@ -582,6 +592,7 @@
                                                     type="button"
                                                     class="slds-button slds-button_icon slds-button_icon-bare"
                                                     onclick={handleCloseFieldDetail}
+                                                    aria-label="Close field detail"
                                                     title="Close">
                                                     <lightning-icon
                                                         icon-name="utility:close"
@@ -644,8 +655,11 @@
                     </section>
 
                     <!-- Diagram -->
-                    <section class="slds-section slds-is-open slds-m-top_small">
-                        <h3 class="slds-section__title">
+                    <section
+                        class="slds-section slds-is-open slds-m-top_small"
+                        role="region"
+                        aria-labelledby="sobject-diagram-heading">
+                        <h3 class="slds-section__title" id="sobject-diagram-heading">
                             <span class="slds-button slds-section__title-action slds-p-left_none">
                                 <span class="slds-truncate" title="Diagram">Diagram</span>
                             </span>

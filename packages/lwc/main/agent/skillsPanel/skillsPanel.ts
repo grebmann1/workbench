@@ -1,5 +1,8 @@
 import { discoverSkills, type DiscoveredSkill } from 'agent/utils';
+import { createFocusTrap, type FocusTrap } from 'slds/focusTrap';
 import { getIndexedDbFileSystem } from 'core/fs';
+import { announce } from 'host-api/announce';
+import { registerShortcut } from 'host-api/shortcuts';
 import Toast from 'lightning/toast';
 import { api, track, LightningElement } from 'lwc';
 import LOGGER from 'shared/logger';
@@ -21,6 +24,10 @@ export default class SkillsPanel extends LightningElement {
     @api initialQuery = '';
 
     _isOpen = false;
+    _focusTrap: FocusTrap | null = null;
+    _unregisterCloseShortcut: (() => void) | null = null;
+    _unregisterIndentShortcut: (() => void) | null = null;
+
     @api
     get isOpen() {
         return this._isOpen;
@@ -33,13 +40,55 @@ export default class SkillsPanel extends LightningElement {
             this.searchTerm = String(this.initialQuery || '');
             this.refresh();
             document.addEventListener('keydown', this._handleDocumentKeydown, true);
+            // Activate on next frame so the template has rendered and the
+            // focusable toolbar/inputs exist before we query for them.
+            // eslint-disable-next-line no-undef
+            requestAnimationFrame(() => {
+                if (!this._isOpen) return;
+                this._focusTrap = createFocusTrap(this.template);
+                this._focusTrap.activate();
+            });
+            announce('Skills panel opened');
         } else if (!next && wasOpen) {
             document.removeEventListener('keydown', this._handleDocumentKeydown, true);
+            if (this._focusTrap) {
+                this._focusTrap.deactivate();
+                this._focusTrap = null;
+            }
+            announce('Skills panel closed');
         }
+    }
+
+    connectedCallback() {
+        this._unregisterCloseShortcut = registerShortcut({
+            id: 'skills.close',
+            keys: 'Escape',
+            label: 'Close skills panel',
+            scope: 'Agent',
+        });
+        this._unregisterIndentShortcut = registerShortcut({
+            id: 'skills.indent',
+            keys: '(button)',
+            label: 'Insert indent in editor',
+            scope: 'Agent',
+            description: 'Button in the skill editor toolbar',
+        });
     }
 
     disconnectedCallback() {
         document.removeEventListener('keydown', this._handleDocumentKeydown, true);
+        if (this._focusTrap) {
+            this._focusTrap.deactivate();
+            this._focusTrap = null;
+        }
+        if (this._unregisterCloseShortcut) {
+            this._unregisterCloseShortcut();
+            this._unregisterCloseShortcut = null;
+        }
+        if (this._unregisterIndentShortcut) {
+            this._unregisterIndentShortcut();
+            this._unregisterIndentShortcut = null;
+        }
     }
 
     _handleDocumentKeydown = (event: KeyboardEvent) => {
@@ -262,10 +311,14 @@ export default class SkillsPanel extends LightningElement {
         const fs = getIndexedDbFileSystem();
         const result = await deleteSkillFromFs(fs, { name: skill.name });
         if (!result.ok) {
-            Toast.show({ message: result.error || 'Delete failed', variant: 'error' });
+            const msg = result.error || 'Delete failed';
+            Toast.show({ message: msg, variant: 'error' });
+            announce(msg, { assertive: true });
             return;
         }
-        Toast.show({ message: `Skill "${skill.name}" deleted`, variant: 'success' });
+        const ok = `Skill "${skill.name}" deleted`;
+        Toast.show({ message: ok, variant: 'success' });
+        announce(ok);
         await this.refresh();
     };
 
@@ -290,18 +343,25 @@ export default class SkillsPanel extends LightningElement {
         this._lastSyncedContent = value;
     };
 
-    handleContentKeydown = (event: KeyboardEvent) => {
-        if (event.key !== 'Tab') return;
-        event.preventDefault();
-        const target = event.target as HTMLTextAreaElement;
-        const start = target.selectionStart ?? 0;
-        const end = target.selectionEnd ?? 0;
+    // Tab is intentionally NOT intercepted on the textarea. Previously we
+    // hijacked Tab to insert 2 spaces, which trapped keyboard-only and
+    // screen-reader users inside the editor. Indentation is now available
+    // via the "Insert indent" toolbar button (handleInsertIndent) so Tab
+    // behaves as expected for focus navigation (a11y: WCAG 2.1 2.1.2).
+    handleInsertIndent = () => {
+        const target = this.template.querySelector(
+            '.skill-body-editor'
+        ) as HTMLTextAreaElement | null;
+        if (!target) return;
+        const start = target.selectionStart ?? target.value.length;
+        const end = target.selectionEnd ?? target.value.length;
         const value = target.value;
         const next = `${value.slice(0, start)}  ${value.slice(end)}`;
         target.value = next;
         target.selectionStart = target.selectionEnd = start + 2;
         this.editorContent = next;
         this._lastSyncedContent = next;
+        target.focus();
     };
 
     handleCancel = () => {
@@ -335,7 +395,9 @@ export default class SkillsPanel extends LightningElement {
                 this.editorError = result.error || 'Save failed.';
                 return;
             }
-            Toast.show({ message: `Skill "${name}" saved`, variant: 'success' });
+            const ok = `Skill "${name}" saved`;
+            Toast.show({ message: ok, variant: 'success' });
+            announce(ok);
             this.mode = 'list';
             await this.refresh();
         } catch (err) {

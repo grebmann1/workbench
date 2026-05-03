@@ -20,7 +20,11 @@
         class="file-explorer-container full-height slds-p-horizontal_small"
         style={treeStyle}
         onscroll={handleScroll}>
-        <ul lwc:if={isTreeVisible} class="slds-tree tree-container" role="tree">
+        <ul
+            lwc:if={isTreeVisible}
+            class="slds-tree tree-container"
+            role="tree"
+            aria-label={treeAriaLabel}>
             <template for:each={visibleTree} for:item="item">
                 <li key={item.id} role="none">
                     <slds-file-tree-item

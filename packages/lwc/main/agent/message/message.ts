@@ -1,4 +1,5 @@
 import ToolkitElement from 'core/toolkitElement';
+import { announce } from 'host-api/announce';
 import Toast from 'lightning/toast';
 import { api } from 'lwc';
 import LOGGER from 'shared/logger';
@@ -16,10 +17,14 @@ export default class Message extends ToolkitElement {
     handleDownload = async () => {
         const text = this.renderedTextForClipboard;
         navigator.clipboard.writeText(text);
+        const confirmation = 'Message exported to your clipboard';
         Toast.show({
-            label: 'Message exported to your clipboard',
+            label: confirmation,
             variant: 'success',
         });
+        // Visual toast is sighted-only; mirror into the live region so
+        // screen-reader users learn the copy succeeded (a11y: WCAG 4.1.3).
+        announce(confirmation);
     };
 
     handleRetry = () => {

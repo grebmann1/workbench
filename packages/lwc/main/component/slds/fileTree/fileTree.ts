@@ -44,6 +44,8 @@ export default class FileTree extends LightningElement {
     @api isFolderSelectable = false;
     @api enableToggleOnItemClick = false;
     @api nestedItemSpacing = '0.35rem';
+    /** Optional accessible name applied to the inner <ul role="tree">. */
+    @api treeAriaLabel = '';
 
     /** Event Handlers */
 

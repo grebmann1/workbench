@@ -1,3 +1,5 @@
+import { announce } from 'host-api/announce';
+import { registerShortcut } from 'host-api/shortcuts';
 import { LightningElement, track, api } from 'lwc';
 
 export default class installSteps extends LightningElement {
@@ -5,6 +7,9 @@ export default class installSteps extends LightningElement {
     @track currentStepIndex = 0;
     @track isMediaFullscreen = false;
     keydownHandler = null;
+    // Callbacks returned by host-api/shortcuts::registerShortcut — invoked
+    // in disconnectedCallback to keep the global registry clean.
+    _unregisterShortcuts = [];
     @track steps = [
         {
             id: 0,
@@ -111,6 +116,7 @@ export default class installSteps extends LightningElement {
             this.currentStepIndex++;
             this.isMediaFullscreen = false;
             this.updateStepIndicator();
+            this._announceCurrentStep();
         } else {
             this.closeTutorial();
         }
@@ -121,6 +127,7 @@ export default class installSteps extends LightningElement {
             this.currentStepIndex--;
             this.isMediaFullscreen = false;
             this.updateStepIndicator();
+            this._announceCurrentStep();
         }
     }
 
@@ -160,12 +167,53 @@ export default class installSteps extends LightningElement {
     connectedCallback() {
         this.keydownHandler = this.handleKeyDown.bind(this);
         document.addEventListener('keydown', this.keydownHandler);
+        // Register the wizard's keyboard shortcuts with the global registry
+        // so the shortcuts-help modal + aria-keyshortcuts tooling can see
+        // them. Registration is data-only — the actual listener is still
+        // `handleKeyDown` above; this call does not bind anything.
+        this._unregisterShortcuts = [
+            registerShortcut({
+                id: 'onboarding.prev',
+                keys: 'ArrowLeft',
+                label: 'Previous step',
+                scope: 'Onboarding',
+            }),
+            registerShortcut({
+                id: 'onboarding.next',
+                keys: 'ArrowRight',
+                label: 'Next step',
+                scope: 'Onboarding',
+            }),
+            registerShortcut({
+                id: 'onboarding.skip',
+                keys: 'Escape',
+                label: 'Skip onboarding',
+                scope: 'Onboarding',
+            }),
+        ];
     }
 
     disconnectedCallback() {
         if (this.keydownHandler) {
             document.removeEventListener('keydown', this.keydownHandler);
         }
+        this._unregisterShortcuts.forEach(fn => {
+            try {
+                fn?.();
+            } catch {
+                // Registry-side errors are isolated; swallow so one failed
+                // unregister doesn't block cleanup of the rest.
+            }
+        });
+        this._unregisterShortcuts = [];
+    }
+
+    _announceCurrentStep() {
+        const step = this.currentStep;
+        if (!step) return;
+        announce(
+            `Step ${this.currentStepIndex + 1} of ${this.steps.length} — ${step.title}`
+        );
     }
 
     handleKeyDown(event) {
@@ -191,6 +239,7 @@ export default class installSteps extends LightningElement {
             this.currentStepIndex = index;
             this.isMediaFullscreen = false;
             this.updateStepIndicator();
+            this._announceCurrentStep();
         }
     }
 

@@ -4,6 +4,7 @@ import {
     markAnnouncementDismissed,
     type RemoteAnnouncement,
 } from 'core/announcements';
+import { announce } from 'host-api/announce';
 import { LightningElement } from 'lwc';
 
 export default class AnnouncementBanner extends LightningElement {
@@ -20,6 +21,15 @@ export default class AnnouncementBanner extends LightningElement {
         }
 
         this.announcement = announcement;
+        // Make the banner perceivable to screen readers even though the
+        // visual treatment is polite — use assertive for error variants so
+        // they interrupt whatever the reader is speaking.
+        const severity = (announcement.variant || 'info').toLowerCase();
+        const parts = [announcement.title, announcement.message].filter(Boolean);
+        const spoken = parts.join(' — ');
+        if (spoken) {
+            announce(spoken, { assertive: severity === 'error' });
+        }
     }
 
     handleClose = () => {

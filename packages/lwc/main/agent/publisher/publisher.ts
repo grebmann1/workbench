@@ -6,6 +6,7 @@ import {
     REASONING_OPTIONS,
 } from 'agent/utils';
 import ToolkitElement from 'core/toolkitElement';
+import { announce } from 'host-api/announce';
 import { api, track } from 'lwc';
 import { normalizeModelSelection } from 'shared/llm';
 import LOGGER from 'shared/logger';
@@ -177,6 +178,7 @@ export default class App extends ToolkitElement {
         matchedPart: string;
         remainderPart: string;
         key: string;
+        optionId: string;
         isActive: boolean;
         activeClass: string;
     }> = [];
@@ -516,11 +518,13 @@ export default class App extends ToolkitElement {
             this._clearSlashSuggestions();
             return;
         }
+        const wasOpen = this.slashSuggestions.length > 0;
         this.slashActiveIndex = 0;
         const queryLen = query.length;
         this.slashSuggestions = matches.map((cmd, idx) => ({
             ...cmd,
             key: cmd.command,
+            optionId: `slash-opt-${idx}`,
             matchedPart: cmd.command.slice(0, queryLen),
             remainderPart: cmd.command.slice(queryLen),
             isActive: idx === 0,
@@ -529,6 +533,10 @@ export default class App extends ToolkitElement {
                     ? 'publisher-slash-item publisher-slash-item_active'
                     : 'publisher-slash-item',
         }));
+        if (!wasOpen) {
+            const count = this.slashSuggestions.length;
+            announce(`${count} command${count === 1 ? '' : 's'} available`);
+        }
     }
 
     _moveSlashActive(delta: number) {
@@ -547,6 +555,17 @@ export default class App extends ToolkitElement {
                     ? 'publisher-slash-item publisher-slash-item_active'
                     : 'publisher-slash-item',
         }));
+    }
+
+    get slashExpanded() {
+        // aria-expanded expects a string-serializable boolean.
+        return this.slashSuggestions.length > 0 ? 'true' : 'false';
+    }
+
+    get slashActiveDescendantId() {
+        if (this.slashSuggestions.length === 0) return null;
+        const active = this.slashSuggestions[this.slashActiveIndex];
+        return active ? active.optionId : null;
     }
 
     _applySlashSuggestion(index: number) {
@@ -612,6 +631,7 @@ export default class App extends ToolkitElement {
     _clearSlashSuggestions() {
         if (this.slashSuggestions.length > 0) {
             this.slashSuggestions = [];
+            announce('Commands menu closed');
         }
         this.slashActiveIndex = 0;
     }

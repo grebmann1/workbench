@@ -3,7 +3,7 @@ import { LightningElement, track } from 'lwc';
 import { listShortcuts, subscribeShortcuts } from 'host-api/shortcuts';
 import type { ShortcutDefinition } from 'host-api/shortcuts';
 
-import { createFocusTrap, type FocusTrap } from 'component/slds/focusTrap/focusTrap';
+import { createFocusTrap, type FocusTrap } from 'slds/focusTrap';
 
 /**
  * Keyboard shortcuts help modal. Lists every shortcut registered in the

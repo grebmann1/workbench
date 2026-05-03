@@ -1,5 +1,9 @@
 <template>
-    <div class="skills-panel slds-full-height slds-flex-column">
+    <div
+        class="skills-panel slds-full-height slds-flex-column"
+        role="region"
+        aria-label="Skills panel"
+        aria-keyshortcuts="Escape">
         <template lwc:if={isListMode}>
             <div class="skills-panel-header slds-p-around_small slds-border_bottom">
                 <div class="slds-grid slds-grid_vertical-align-center slds-grid_align-spread">
@@ -30,6 +34,7 @@
                         type="search"
                         class="slds-input skills-panel-search"
                         placeholder="Search skills..."
+                        aria-label="Search skills"
                         value={searchTerm}
                         oninput={handleSearchInput} />
                     <button
@@ -59,11 +64,13 @@
                     </div>
                 </template>
                 <template lwc:if={hasRows}>
-                    <ul class="skills-list">
+                    <ul class="skills-list" role="listbox" aria-label="Skills">
                         <template for:each={rows} for:item="row">
                             <li
                                 key={row.key}
-                                class="skills-row slds-border_bottom slds-p-vertical_x-small">
+                                class="skills-row slds-border_bottom slds-p-vertical_x-small"
+                                role="option"
+                                aria-selected="false">
                                 <div
                                     class="slds-grid slds-grid_align-spread slds-grid_vertical-align-center">
                                     <div class="skills-row-info">
@@ -163,14 +170,27 @@
                 </div>
                 <div class="slds-form-element slds-m-bottom_small">
                     <label class="slds-form-element__label" for="skill-body">Body (SKILL.md)</label>
+                    <div
+                        class="skill-body-toolbar slds-m-bottom_xx-small"
+                        role="toolbar"
+                        aria-label="Editor actions">
+                        <button
+                            type="button"
+                            class="slds-button slds-button_neutral slds-button_small skill-body-indent-button"
+                            aria-label="Insert indent (two spaces)"
+                            title="Insert indent (two spaces)"
+                            onclick={handleInsertIndent}>
+                            Insert indent
+                            <span class="slds-assistive-text">(two spaces at cursor)</span>
+                        </button>
+                    </div>
                     <div class="slds-form-element__control">
                         <textarea
                             id="skill-body"
                             class="slds-textarea skill-body-editor"
                             rows="20"
                             spellcheck="false"
-                            oninput={handleContentInput}
-                            onkeydown={handleContentKeydown}></textarea>
+                            oninput={handleContentInput}></textarea>
                     </div>
                 </div>
                 <template lwc:if={editorError}>

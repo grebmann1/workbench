@@ -4,6 +4,7 @@
             <lightning-input
                 variant="label-hidden"
                 label={fieldLabel}
+                aria-label={editorAriaLabel}
                 type="text"
                 value={_draft}
                 max-length={maxLengthAttr}
@@ -14,6 +15,7 @@
             <lightning-textarea
                 variant="label-hidden"
                 label={fieldLabel}
+                aria-label={editorAriaLabel}
                 value={_draft}
                 max-length={maxLengthAttr}
                 onchange={handleChange}
@@ -23,6 +25,7 @@
             <lightning-input
                 variant="label-hidden"
                 label={fieldLabel}
+                aria-label={editorAriaLabel}
                 type="number"
                 value={_draft}
                 step="any"
@@ -33,6 +36,7 @@
             <lightning-input
                 variant="label-hidden"
                 label={fieldLabel}
+                aria-label={editorAriaLabel}
                 type="date"
                 value={_draft}
                 onchange={handleChange}
@@ -42,6 +46,7 @@
             <lightning-input
                 variant="label-hidden"
                 label={fieldLabel}
+                aria-label={editorAriaLabel}
                 type="datetime"
                 value={_draft}
                 onchange={handleChange}
@@ -51,6 +56,7 @@
             <lightning-input
                 variant="label-hidden"
                 label={fieldLabel}
+                aria-label={editorAriaLabel}
                 type="checkbox"
                 checked={_draft}
                 onchange={handleChange}></lightning-input>
@@ -59,6 +65,7 @@
             <lightning-combobox
                 variant="label-hidden"
                 label={fieldLabel}
+                aria-label={editorAriaLabel}
                 value={_draft}
                 options={picklistValues}
                 onchange={handleChange}
@@ -68,6 +75,7 @@
             <lightning-dual-listbox
                 variant="label-hidden"
                 label={fieldLabel}
+                aria-label={editorAriaLabel}
                 source-label="Available"
                 selected-label="Selected"
                 value={_draft}

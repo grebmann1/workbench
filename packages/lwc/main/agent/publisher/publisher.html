@@ -121,6 +121,7 @@
                     </template>
                     <template lwc:if={hasSlashSuggestions}>
                         <div
+                            id="slash-picker-listbox"
                             class="publisher-slash-menu"
                             role="listbox"
                             aria-label="Slash commands">
@@ -136,6 +137,7 @@
                                 for:index="index">
                                 <button
                                     key={suggestion.key}
+                                    id={suggestion.optionId}
                                     type="button"
                                     class={suggestion.activeClass}
                                     role="option"
@@ -169,7 +171,12 @@
                         placeholder="Write a prompt…"
                         onkeydown={handleKeyDown}
                         oninput={handleInputChange}
-                        aria-label="Prompt input"></textarea>
+                        aria-label="Prompt input"
+                        role="combobox"
+                        aria-expanded={slashExpanded}
+                        aria-controls="slash-picker-listbox"
+                        aria-autocomplete="list"
+                        aria-activedescendant={slashActiveDescendantId}></textarea>
                     <div class="chat-input-actions-row">
                         <div class="chat-input-actions-left">
                             <template lwc:if={isAudioRecorderDisplayed}>

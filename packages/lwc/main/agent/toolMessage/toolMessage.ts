@@ -184,6 +184,12 @@ export default class ToolMessage extends LightningElement {
         return this.expanded ? 'Collapse tool details' : 'Expand tool details';
     }
 
+    get toolContainerAriaLabel() {
+        const call = this._effectiveToolCall;
+        const name = normalizeText(call?.name || call?.toolName) || 'tool';
+        return `Tool result: ${name}`;
+    }
+
     get commandLabel() {
         return Constants.TOOL_COMMAND_LABEL;
     }

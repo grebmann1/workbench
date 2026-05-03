@@ -1,5 +1,7 @@
 <template>
     <div class="l-container-vertical">
+        <!-- Screen-reader live region host (see host-api/announce + a11y/liveRegion). -->
+        <a11y-live-region></a11y-live-region>
         <template lwc:if={isAnnouncementBannerDisplayed}>
             <div class="l-cell-content-size">
                 <skeleton-announcement-banner></skeleton-announcement-banner>
@@ -65,7 +67,7 @@
                             <div class="l-container-vertical">
                                 <!-- Page - START -->
                                 <div class={dynamicAppContainerClass}>
-                                    <section class="slds-full-height section">
+                                    <section class="slds-full-height section" role="main">
                                         <div
                                             class="slds-full-height container"
                                             onopenapplication={handleApplicationSelection}>

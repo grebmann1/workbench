@@ -46,6 +46,16 @@ export default class AgentMessageList extends LightningElement {
         return typeof this.loadingStatus === 'string' && this.loadingStatus.trim().length > 0;
     }
 
+    /**
+     * Whether the currently-streaming message container should expose
+     * aria-busy="true". Flips to "false" once the streamingMessage is
+     * cleared (finish of stream), which is the signal a11y users get
+     * that the response is complete.
+     */
+    get streamingAriaBusy() {
+        return this._streamingMessage ? 'true' : 'false';
+    }
+
     _streamingMessage: any = null;
     @api isLoading = false;
 

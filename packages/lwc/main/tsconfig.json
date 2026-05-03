@@ -28,6 +28,8 @@
             "host-api/desktopBridge": ["host-api/desktopBridge"],
             "host-api/fs": ["host-api/fs"],
             "host-api/worker": ["host-api/worker"],
+            "host-api/announce": ["host-api/announce/announce"],
+            "host-api/shortcuts": ["host-api/shortcuts/shortcuts"],
             "skeleton/*": ["component/skeleton/*"],
             "slds/*": ["component/slds/*"],
             "illustration/*": ["component/illustration/*"],
@@ -170,6 +172,7 @@
                 "component/slds/MarkdownViewerEditorModal/MarkdownViewerEditorModal"
             ],
             "slds/codeBlock": ["component/slds/codeBlock/codeBlock"],
+            "slds/focusTrap": ["component/slds/focusTrap/focusTrap"],
             "slds/hashtagDropdown": ["component/slds/hashtagDropdown/hashtagDropdown"],
             "slds/modalUserSelector": ["component/slds/modalUserSelector/modalUserSelector"]
         },

@@ -1,4 +1,5 @@
 import { LightningElement, api } from 'lwc';
+import { announce } from 'host-api/announce';
 
 export default class CellEditor extends LightningElement {
     @api editorType: string = 'text';
@@ -85,6 +86,11 @@ export default class CellEditor extends LightningElement {
         return this.length && this.length > 0 ? this.length : undefined;
     }
 
+    get editorAriaLabel() {
+        const base = 'Edit cell — press Enter to commit, Escape to cancel';
+        return this.fieldLabel ? `${this.fieldLabel}. ${base}` : base;
+    }
+
     handleChange = (e: any) => {
         if (this.isBoolean) {
             this._draft = e?.target?.checked === true;
@@ -116,6 +122,7 @@ export default class CellEditor extends LightningElement {
     _commit() {
         if (this._committed) return;
         this._committed = true;
+        announce('Cell updated');
         this.dispatchEvent(
             new CustomEvent('commit', {
                 detail: { value: this._draft },
@@ -126,6 +133,7 @@ export default class CellEditor extends LightningElement {
     _cancel() {
         if (this._committed) return;
         this._committed = true;
+        announce('Edit cancelled');
         this.dispatchEvent(new CustomEvent('cancel'));
     }
 }

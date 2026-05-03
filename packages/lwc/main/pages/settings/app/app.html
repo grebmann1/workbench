@@ -135,6 +135,7 @@
                                     <div slot="title">
                                         <h1>Client Id</h1>
                                         <p
+                                            id="settings-client-id-desc"
                                             class="description slds-truncate"
                                             title="Set the client id for the session.">
                                             Set the client id for the session.
@@ -165,6 +166,7 @@
                                         message-toggle-inactive="Disabled"
                                         type="text"
                                         variant="label-hidden"
+                                        aria-describedby="settings-client-id-desc"
                                         value={sessionConfig.client_id}
                                         onchange={sessionInputfield_change}></lightning-input>
                                 </settings-card>
@@ -175,6 +177,7 @@
                                     <div slot="title">
                                         <h1>API Version</h1>
                                         <p
+                                            id="settings-api-version-desc"
                                             class="description slds-truncate"
                                             title="Set the API version for the session.">
                                             Set the API version for the session.
@@ -194,6 +197,7 @@
                                         message-toggle-inactive="Disabled"
                                         type="text"
                                         variant="label-hidden"
+                                        aria-describedby="settings-api-version-desc"
                                         value={sessionConfig.api_version}
                                         onchange={sessionInputfield_change}
                                         placeholder="e.g. 63.0"
@@ -210,6 +214,7 @@
                                     <div slot="title">
                                         <h1>Header Application Tabs</h1>
                                         <p
+                                            id="settings-header-app-tabs-desc"
                                             class="description slds-truncate"
                                             title="Display/Hide the application tab in the UI to have more space for the main content.">
                                             Toggle the visibility of header application tabs in the
@@ -223,6 +228,7 @@
                                         message-toggle-inactive="Hidden"
                                         type="toggle"
                                         variant="label-hidden"
+                                        aria-describedby="settings-header-app-tabs-desc"
                                         checked={config.ui_isApplicationTabVisible}
                                         onchange={inputfield_change}></lightning-input>
                                 </settings-card>

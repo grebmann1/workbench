@@ -1,5 +1,12 @@
 import { Constants } from 'agent/utils';
+import { announce } from 'host-api/announce';
 import { api, track, LightningElement } from 'lwc';
+
+let _reasoningPanelSeq = 0;
+function nextReasoningPanelId() {
+    _reasoningPanelSeq += 1;
+    return `reasoning-panel-${_reasoningPanelSeq}`;
+}
 
 const TICK_MS = 1000;
 const MAX_LIVE_SECONDS = 120;
@@ -13,6 +20,14 @@ export default class ReasoningBlock extends LightningElement {
 
     @track expanded = false;
     @track _liveElapsedSeconds = 0;
+
+    // Stable id for aria-controls — generated per-instance so nested
+    // reasoning blocks don't share ids.
+    _panelId = nextReasoningPanelId();
+
+    get panelId() {
+        return this._panelId;
+    }
 
     _tickIntervalId: ReturnType<typeof setInterval> | null = null;
     _internalStartedAt: number | null = null;
@@ -179,6 +194,7 @@ export default class ReasoningBlock extends LightningElement {
     handleToggle() {
         if (this.isBriefThought) return;
         this.expanded = !this.expanded;
+        announce(this.expanded ? 'Reasoning expanded' : 'Reasoning collapsed');
     }
 
     handleChange() {

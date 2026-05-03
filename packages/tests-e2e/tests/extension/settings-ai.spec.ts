@@ -1,3 +1,5 @@
+import AxeBuilder from '@axe-core/playwright';
+
 import { test, expect } from './fixtures';
 import type { BrowserContext, Worker } from '@playwright/test';
 
@@ -43,6 +45,40 @@ test.describe('@ext settings → AI internal hint', () => {
         await expect(link).toHaveAttribute('target', '_blank');
         await expect(link).toHaveAttribute('rel', /noopener/);
         await expect(link).toHaveAttribute('rel', /noreferrer/);
+    });
+
+    test('Settings AI tab has zero critical/serious axe violations', async ({ appPage }) => {
+        const page = await appPage('settings');
+        await page.getByRole('tab', { name: /AI/i }).first().click();
+        const results = await new AxeBuilder({ page })
+            .withTags(['wcag2a', 'wcag2aa'])
+            // Pre-existing SLDS base-components noise — lightning-vertical-navigation
+            // renders role=list with a <slot> and role=listitem in a sibling shadow
+            // root, which axe's structural ARIA rules cannot see across; and
+            // lightning-button-icon stamps aria-label via aria-labelledby in a
+            // separate shadow root that axe's button-name rule cannot trace.
+            // Documented in docs/a11y-follow-ups.md.
+            .disableRules([
+                'aria-required-children',
+                'aria-required-parent',
+                'button-name',
+            ])
+            .analyze();
+        const blocking = results.violations.filter(
+            v => v.impact === 'critical' || v.impact === 'serious'
+        );
+        if (blocking.length > 0) {
+            // eslint-disable-next-line no-console
+            console.log(
+                'Axe blocking violations on Settings AI:\n' +
+                    blocking
+                        .map(v => `[${v.impact}] ${v.id}: ${v.help} (${v.nodes.length} nodes)`)
+                        .join('\n')
+            );
+            // eslint-disable-next-line no-console
+            console.log(JSON.stringify(blocking, null, 2));
+        }
+        expect(blocking, 'critical/serious axe violations on Settings AI').toEqual([]);
     });
 
     test('Escape on hint link does not break focus', async ({ context, appPage }) => {

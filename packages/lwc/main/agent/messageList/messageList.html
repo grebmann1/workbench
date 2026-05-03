@@ -1,5 +1,9 @@
 <template>
-    <div class="message-list-container">
+    <div
+        class="message-list-container"
+        role="log"
+        aria-live="polite"
+        aria-label="Conversation history">
         <ul class="slds-chat-list" style="overflow-y: auto; overflow-anchor: auto">
             <template lwc:if={showStandaloneWelcome}>
                 <agent-message item={welcomeMessage}></agent-message>
@@ -12,7 +16,8 @@
                     class="chat-item is-current-message"
                     item={visibleStreamingMessage}
                     is-current-message
-                    is-reasoning-streaming></agent-message>
+                    is-reasoning-streaming
+                    aria-busy={streamingAriaBusy}></agent-message>
             </template>
             <template lwc:if={isLoading}>
                 <li class="slds-chat-listitem slds-chat-listitem_inbound">
