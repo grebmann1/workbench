@@ -54,6 +54,13 @@
             ],
             "api/slices": ["../applications/api/slices/slices"],
             "api/slices/api": ["../applications/api/slices/api"],
+            "api/slices/apiHeaderPresets": [
+                "../applications/api/slices/apiHeaderPresets"
+            ],
+            "api/slices/apiAuthProfiles": [
+                "../applications/api/slices/apiAuthProfiles"
+            ],
+            "api/slices/apiChains": ["../applications/api/slices/apiChains"],
             "accessAnalyzer/*": ["../applications/accessAnalyzer/*"],
             "accessAnalyzer/app": ["../applications/accessAnalyzer/app/app"],
             "accessAnalyzer/modalProfileFilter": [
