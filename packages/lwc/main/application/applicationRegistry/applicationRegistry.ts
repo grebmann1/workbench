@@ -306,6 +306,46 @@ const APPLICATION_APP_MAPPING = {
 
 const APPLICATION_SLASH_COMMANDS = [
     {
+        command: 'api',
+        description: 'Open the API Explorer',
+        iconName: 'standard:apex',
+        autoExecute: true,
+        commandId: 'api.open',
+        appId: 'api',
+    },
+    {
+        command: 'api-new',
+        description: 'Open a new blank API tab',
+        iconName: 'utility:add',
+        autoExecute: true,
+        commandId: 'api.new',
+        appId: 'api',
+    },
+    {
+        command: 'api-send',
+        description: 'Send the current API request',
+        iconName: 'utility:send',
+        autoExecute: true,
+        commandId: 'api.send',
+        appId: 'api',
+    },
+    {
+        command: 'api-chain',
+        description: 'Open the API chain runner',
+        iconName: 'utility:chevronright',
+        autoExecute: true,
+        commandId: 'api.chain',
+        appId: 'api',
+    },
+    {
+        command: 'api-import',
+        description: 'Import an OpenAPI / Postman schema',
+        iconName: 'utility:upload',
+        autoExecute: true,
+        commandId: 'api.import',
+        appId: 'api',
+    },
+    {
         command: 'soql',
         description: 'Open the SOQL Explorer',
         iconName: 'standard:data_model',

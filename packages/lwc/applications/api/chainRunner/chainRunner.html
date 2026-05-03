@@ -1,0 +1,141 @@
+<template>
+    <template lwc:if={isOpen}>
+        <section
+            class="slds-panel slds-panel_docked slds-panel_docked-right slds-is-open"
+            aria-hidden="false"
+        >
+            <div class="slds-panel__header">
+                <h2 class="slds-panel__header-title slds-truncate">API Chain Runner</h2>
+                <button
+                    class="slds-button slds-button_icon slds-panel__close"
+                    title="Close"
+                    onclick={handleClose}
+                >
+                    <lightning-icon icon-name="utility:close" size="x-small"></lightning-icon>
+                </button>
+            </div>
+
+            <div class="slds-panel__body slds-p-around_small">
+                <lightning-textarea
+                    label="Initial variables (JSON)"
+                    value={initialVariables}
+                    onchange={handleVariablesChange}
+                    placeholder='{"baseId":"001..."}'
+                ></lightning-textarea>
+
+                <div class="slds-m-top_small">
+                    <template lwc:if={hasSteps}>
+                        <template for:each={stepsWithResults} for:item="step">
+                            <div
+                                key={step.id}
+                                class="slds-box slds-box_small slds-m-bottom_small"
+                            >
+                                <div class="slds-grid slds-grid_vertical-align-center">
+                                    <template lwc:if={step.resultStatus}>
+                                        <span class={step.statusBadgeClass}>
+                                            {step.resultStatus}
+                                            <template lwc:if={step.resultStatusCode}>
+                                                ({step.resultStatusCode})
+                                            </template>
+                                        </span>
+                                    </template>
+                                    <lightning-input
+                                        class="slds-col slds-m-left_small"
+                                        variant="label-hidden"
+                                        value={step.name}
+                                        data-id={step.id}
+                                        data-field="name"
+                                        onchange={handleStepFieldChange}
+                                    ></lightning-input>
+                                    <button
+                                        class="slds-button slds-button_icon slds-m-left_x-small"
+                                        title="Remove step"
+                                        data-id={step.id}
+                                        onclick={handleRemoveStep}
+                                    >
+                                        <lightning-icon
+                                            icon-name="utility:delete"
+                                            size="x-small"
+                                        ></lightning-icon>
+                                    </button>
+                                </div>
+                                <div class="slds-grid slds-gutters_x-small slds-m-top_x-small">
+                                    <div class="slds-col slds-size_1-of-4">
+                                        <lightning-combobox
+                                            label="Method"
+                                            variant="label-hidden"
+                                            value={step.request.method}
+                                            options={methodOptions}
+                                            data-id={step.id}
+                                            data-field="method"
+                                            onchange={handleStepFieldChange}
+                                        ></lightning-combobox>
+                                    </div>
+                                    <div class="slds-col slds-size_3-of-4">
+                                        <lightning-input
+                                            label="URL"
+                                            variant="label-hidden"
+                                            placeholder="/services/data/v59.0/…"
+                                            value={step.request.url}
+                                            data-id={step.id}
+                                            data-field="url"
+                                            onchange={handleStepFieldChange}
+                                        ></lightning-input>
+                                    </div>
+                                </div>
+                                <template lwc:if={step.resultAssertions}>
+                                    <ul class="slds-list_vertical-space slds-m-top_x-small">
+                                        <template
+                                            for:each={step.resultAssertions}
+                                            for:item="assertion"
+                                        >
+                                            <li key={assertion.label} class="slds-text-body_small">
+                                                <template lwc:if={assertion.ok}>
+                                                    <lightning-icon
+                                                        icon-name="utility:success"
+                                                        size="xx-small"
+                                                        variant="success"
+                                                    ></lightning-icon>
+                                                </template>
+                                                <template lwc:else>
+                                                    <lightning-icon
+                                                        icon-name="utility:error"
+                                                        size="xx-small"
+                                                        variant="error"
+                                                    ></lightning-icon>
+                                                </template>
+                                                {assertion.label}
+                                                <template lwc:if={assertion.reason}>
+                                                    — <i>{assertion.reason}</i>
+                                                </template>
+                                            </li>
+                                        </template>
+                                    </ul>
+                                </template>
+                            </div>
+                        </template>
+                    </template>
+                    <template lwc:else>
+                        <p class="slds-text-body_small slds-text-align_center slds-m-around_medium">
+                            No steps yet. Add one to get started.
+                        </p>
+                    </template>
+                </div>
+
+                <div class="slds-grid slds-grid_align-spread slds-m-top_small">
+                    <button class="slds-button slds-button_neutral" onclick={handleAddStep}>
+                        <lightning-icon icon-name="utility:add" size="x-small"></lightning-icon>
+                        Add step
+                    </button>
+                    <button
+                        class="slds-button slds-button_brand"
+                        onclick={handleRun}
+                        disabled={isRunning}
+                    >
+                        {runButtonLabel}
+                    </button>
+                </div>
+            </div>
+        </section>
+    </template>
+</template>

@@ -1,0 +1,8 @@
+/* Scoped styling for the API chain runner side panel. */
+:host {
+    display: block;
+}
+
+.slds-panel_docked-right {
+    width: 520px;
+}

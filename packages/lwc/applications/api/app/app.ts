@@ -162,6 +162,61 @@ function bootstrapApiExtension() {
         }
         return res;
     });
+
+    // -------------------------------------------------------------------------
+    //  Slash commands — every entry declared in api.manifest.json must be
+    //  handled here or the slash-command menu breaks silently.
+    // -------------------------------------------------------------------------
+
+    /** `/api` — open the API Explorer app (no state change). */
+    registerCommand('api.open', async (_payload: any) => {
+        // Navigation is driven by the slash-command runner; nothing to do
+        // beyond acknowledging so the runner can proceed.
+        return { success: true };
+    });
+
+    /** `/api-new` — request that the app open a fresh blank tab on next mount. */
+    registerCommand('api.new', async (_payload: any) => {
+        try {
+            const tab = API_UTILS.generateDefaultTab(
+                (store.getState() as any)?.api?.currentApiVersion ||
+                    API_UTILS.DEFAULT_API_VERSION
+            );
+            store.dispatch(API.reduxSlice.actions.addTab({ tab }));
+            return { success: true, tabId: tab.id };
+        } catch (err: any) {
+            return { success: false, error: err?.message || String(err) };
+        }
+    });
+
+    /**
+     * `/api-send` — re-execute whichever request the user is currently on.
+     * The app's request panel listens to the `api:send` window event so it
+     * can grab the live DOM-resolved body (Monaco-backed) rather than
+     * whatever's stale in Redux.
+     */
+    registerCommand('api.send', async (_payload: any) => {
+        if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('api:send'));
+        }
+        return { success: true };
+    });
+
+    /** `/api-chain` — open the chain runner side panel. */
+    registerCommand('api.chain', async (_payload: any) => {
+        if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('api:openChainRunner'));
+        }
+        return { success: true };
+    });
+
+    /** `/api-import` — trigger the OpenAPI/Postman schema import modal. */
+    registerCommand('api.import', async (_payload: any) => {
+        if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('api:openSchemaImport'));
+        }
+        return { success: true };
+    });
 }
 bootstrapApiExtension();
 

@@ -61,6 +61,7 @@
                 "../applications/api/slices/apiAuthProfiles"
             ],
             "api/slices/apiChains": ["../applications/api/slices/apiChains"],
+            "api/chainRunner": ["../applications/api/chainRunner/chainRunner"],
             "accessAnalyzer/*": ["../applications/accessAnalyzer/*"],
             "accessAnalyzer/app": ["../applications/accessAnalyzer/app/app"],
             "accessAnalyzer/modalProfileFilter": [

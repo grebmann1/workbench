@@ -60,7 +60,44 @@
                 "isMenuVisible": true,
                 "isTabVisible": true
             },
-            "settingsComponent": "api/appSettings"
+            "settingsComponent": "api/appSettings",
+            "slashCommands": [
+                {
+                    "command": "api",
+                    "description": "Open the API Explorer",
+                    "iconName": "standard:apex",
+                    "autoExecute": true,
+                    "commandId": "api.open"
+                },
+                {
+                    "command": "api-new",
+                    "description": "Open a new blank API tab",
+                    "iconName": "utility:add",
+                    "autoExecute": true,
+                    "commandId": "api.new"
+                },
+                {
+                    "command": "api-send",
+                    "description": "Send the current API request",
+                    "iconName": "utility:send",
+                    "autoExecute": true,
+                    "commandId": "api.send"
+                },
+                {
+                    "command": "api-chain",
+                    "description": "Open the API chain runner",
+                    "iconName": "utility:chevronright",
+                    "autoExecute": true,
+                    "commandId": "api.chain"
+                },
+                {
+                    "command": "api-import",
+                    "description": "Import an OpenAPI / Postman schema",
+                    "iconName": "utility:upload",
+                    "autoExecute": true,
+                    "commandId": "api.import"
+                }
+            ]
         },
         {
             "id": "code",
