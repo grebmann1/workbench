@@ -15,8 +15,6 @@ import {
 
 import { buildApplicationRedirectUrl } from './navigation';
 
-import { buildApplicationRedirectUrl } from './navigation';
-
 const APPLICATIONS = {
     CONNECTION: 'connection',
     DOCUMENTATION: 'documentation',
