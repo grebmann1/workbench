@@ -383,7 +383,7 @@ const monacoWrapperInlineScriptExtractor = () => ({
 const assetCopyTargets = [
     { src: r('../../assets/extension/styles'), dest: r('../../dist/extension') },
     { src: r('../../assets/extension/libs'), dest: r('../../dist/extension') },
-    { src: r('../../assets/shared/libs/extensions'), dest: r('../../dist/extension/libs') },
+    // { src: r('../../assets/shared/libs/extensions'), dest: r('../../dist/extension/libs') },
     { src: r('../../assets/extension/images'), dest: r('../../dist/extension') },
     { src: r('../../node_modules/@salesforce-ux/design-system/assets'), dest: r('../../dist/extension') },
     // Default skills are fetched from /public/skills at runtime.
