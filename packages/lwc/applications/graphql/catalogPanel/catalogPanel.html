@@ -1,0 +1,15 @@
+<template>
+    <slds-vertical-panel
+        has-border
+        size={size}
+        title={title}
+        position="left"
+        is-open={isOpen}
+        onclose={handleClose}>
+        <slds-file-tree
+            tree={tree}
+            onselect={handleSelect}
+            min-search-length={minSearchLength}
+            search-fields={searchFields}></slds-file-tree>
+    </slds-vertical-panel>
+</template>

@@ -20,6 +20,10 @@
 !/.cursor/skills/**
 !/.cursor/rules/
 !/.cursor/rules/**
+**/.claude/*
+!/.claude/
+!/.claude/skills/
+!/.claude/skills/**
 node_modules
 __lwr_cache__
 site

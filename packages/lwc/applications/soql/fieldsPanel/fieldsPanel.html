@@ -5,15 +5,24 @@
     <template lwc:if={sobjectMeta}>
         <div class="slds-tree_container">
             <div class="slds-p-left_small">
-                <div class="slds-grid slds-grid--vertical-align-center">
+                <div class="slds-grid slds-grid_vertical-align-center slds-grid_align-spread">
+                    <div class="slds-grid slds-grid_vertical-align-center">
+                        <lightning-button-icon
+                            variant="bare"
+                            icon-name="utility:back"
+                            onclick={deselectSObject}
+                            label={i18n.FIELDS_PANEL_BACK}></lightning-button-icon>
+                        <h2 class="slds-tree__group-header slds-truncate">
+                            {sobjectMeta.name} / {sobjectMeta.label}
+                        </h2>
+                    </div>
                     <lightning-button-icon
+                        class="slds-m-right_x-small"
                         variant="bare"
-                        icon-name="utility:back"
-                        onclick={deselectSObject}
-                        label={i18n.FIELDS_PANEL_BACK}></lightning-button-icon>
-                    <h2 class="slds-tree__group-header slds-truncate">
-                        {sobjectMeta.name} / {sobjectMeta.label}
-                    </h2>
+                        icon-name="utility:close"
+                        alternative-text="Close panel"
+                        title="Close panel"
+                        onclick={handleClosePanel}></lightning-button-icon>
                 </div>
             </div>
             <div class="slds-form-element slds-p-horizontal_large">

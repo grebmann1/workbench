@@ -1,0 +1,55 @@
+:host {
+    height: 100%;
+}
+
+.graphql-editor {
+    position: relative;
+    flex: 1;
+    display: flex;
+    border-bottom: 1px solid #dddbda;
+    min-height: 120px;
+}
+
+.graphql-variables-section {
+    display: flex;
+    flex-direction: column;
+    flex: 0 0 auto;
+    border-top: 1px solid #dddbda;
+    background-color: #fafaf9;
+}
+
+.graphql-variables-section--expanded {
+    height: 160px;
+}
+
+.graphql-variables-toggle {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    padding: 6px 8px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    text-align: left;
+}
+
+.graphql-variables-toggle:hover {
+    background-color: #f3f2f2;
+}
+
+.graphql-variables-editor {
+    position: relative;
+    flex: 1;
+    display: flex;
+    min-height: 0;
+}
+
+.graphql-response-editor {
+    position: relative;
+    flex: 1;
+    display: flex;
+}
+
+article {
+    background-color: #fafaf9;
+}

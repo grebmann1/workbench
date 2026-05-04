@@ -1,0 +1,32 @@
+<template>
+    <lightning-modal-header label="Keyboard shortcuts"></lightning-modal-header>
+    <lightning-modal-body>
+        <table
+            role="grid"
+            class="slds-table slds-no-row-hover slds-table_cell-buffer slds-table_bordered">
+            <thead>
+                <tr class="slds-line-height_reset">
+                    <th scope="col" style="width: 45%">
+                        <div class="slds-truncate" title="Shortcut">Shortcut</div>
+                    </th>
+                    <th scope="col">
+                        <div class="slds-truncate" title="Action">Action</div>
+                    </th>
+                </tr>
+            </thead>
+            <tbody>
+                <template for:each={rows} for:item="row">
+                    <tr key={row.id} class={row.rowClass}>
+                        <td class="slds-cell-wrap">
+                            <kbd class="shortcut-key">{row.shortcut}</kbd>
+                        </td>
+                        <td class="slds-cell-wrap">{row.action}</td>
+                    </tr>
+                </template>
+            </tbody>
+        </table>
+    </lightning-modal-body>
+    <lightning-modal-footer>
+        <lightning-button label="Close" variant="brand" onclick={handleClose}></lightning-button>
+    </lightning-modal-footer>
+</template>

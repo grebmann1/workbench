@@ -1,0 +1,29 @@
+{
+    "id": "graphql",
+    "name": "graphql/app",
+    "label": "GraphQL Explorer",
+    "shortName": "GraphQL",
+    "description": "Build and execute GraphQL queries against the Salesforce GraphQL API.",
+    "path": "graphql",
+    "quickActionIcon": "standard:apex",
+    "type": "developer",
+    "menuGroup": "code",
+    "menuOrder": 15,
+    "flags": {
+        "isFullHeight": true,
+        "isDeletable": true,
+        "isElectronOnly": false,
+        "isOfflineAvailable": false,
+        "isMenuVisible": true,
+        "isTabVisible": true
+    },
+    "slashCommands": [
+        {
+            "command": "graphql",
+            "description": "Open the GraphQL Explorer",
+            "iconName": "standard:apex",
+            "autoExecute": true,
+            "commandId": "graphql.open"
+        }
+    ]
+}

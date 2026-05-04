@@ -33,6 +33,9 @@ const store = configureStore({
                     'metadata/fetchGlobalMetadata/pending',
                     'metadata/fetchGlobalMetadata/rejected',
                     'metadata/setAttributes',
+                    'package/menu/fetchGlobalMetadata/fulfilled',
+                    'package/menu/fetchGlobalMetadata/pending',
+                    'package/menu/fetchGlobalMetadata/rejected',
                 ],
                 // Ignore these field paths in all actions
                 ignoredActionPaths: ['meta.arg', 'payload.Connector', 'payload.connector'],
@@ -40,6 +43,7 @@ const store = configureStore({
                 ignoredPaths: [
                     'application.connector',
                     'package2.currentRetrieveJob.createdDate',
+                    'package2.menu_metadata_global',
                     'payload.connector',
                     'metadata.metadata_global',
                 ],

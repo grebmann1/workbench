@@ -578,6 +578,19 @@
                                             variant="brand"
                                             onclick={handleOpenOnboardAiProvider}></lightning-button>
                                     </div>
+                                    <template lwc:if={hasInternalProvider}>
+                                        <p
+                                            class="internal-provider-hint slds-text-body_small slds-text-color_weak slds-p-horizontal_medium slds-p-bottom_small">
+                                            Using the Salesforce internal gateway — a few model quirks
+                                            (OpenAI <code>/responses</code> text bursts, Gemini preview
+                                            thought parts, Opus&#8209;4&#8209;7 thinking gap) are
+                                            documented in the
+                                            <a
+                                                href={internalProviderDocsUrl}
+                                                target="_blank"
+                                                rel="noopener noreferrer">LLM Provider Runtime guide</a>.
+                                        </p>
+                                    </template>
                                     <slds-tabset variant="vertical">
                                         <slds-tab label="OpenAI" value="openai">
                                             <div class="slds-grid slds-wrap slds-p-around_small">

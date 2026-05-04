@@ -1,5 +1,6 @@
 import { guid } from '../ids';
 import { isUndefinedOrNull, isNotUndefinedOrNull } from '../validation';
+export const DEFAULT_API_VERSION = '59.0';
 export const VIEWERS = {
     PRETTY: 'Pretty',
     WORKBENCH: 'Workbench',
@@ -148,5 +149,115 @@ export const formatApiRequest = ({ endpoint, method, body, header, connector, re
         }
     }
     return { request, error }; // Return the formatted request object
+};
+/* -------------------------------------------------------------------------- */
+/*  Variable substitution                                                      */
+/* -------------------------------------------------------------------------- */
+/**
+ * Escape a replacement string so that `$&`, `$1`, `$'`, etc. are treated as
+ * literals by {@link String.prototype.replace}. Without this, variable values
+ * containing `$` sequences corrupt the output.
+ */
+const escapeReplacement = (value) => value.replace(/\$/g, '$$$$');
+/**
+ * Escape a substring for use inside a RegExp literal (keys may contain regex
+ * metacharacters).
+ */
+const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+/**
+ * Replace `{key}` tokens in `input` with values from `variables`. Safe against
+ * `$` sequences in replacement values and regex metacharacters in keys.
+ * `sessionToken`, when provided, also replaces `{sessionId}` (back-compat with
+ * the legacy API app behaviour).
+ */
+export const substituteVariables = (input, variables, sessionToken) => {
+    if (isUndefinedOrNull(input))
+        return input;
+    let result = String(input);
+    Object.keys(variables || {}).forEach(key => {
+        const raw = variables[key];
+        if (isUndefinedOrNull(raw))
+            return;
+        const regex = new RegExp(`\\{${escapeRegex(key)}\\}`, 'g');
+        result = result.replace(regex, escapeReplacement(String(raw)));
+    });
+    if (sessionToken) {
+        result = result.replace(/\{sessionId\}/g, escapeReplacement(sessionToken));
+    }
+    return result;
+};
+/**
+ * Parse a variables JSON string defensively. Returns `{}` on parse failure.
+ */
+export const parseVariables = (raw) => {
+    if (isUndefinedOrNull(raw))
+        return {};
+    try {
+        const parsed = JSON.parse(raw);
+        return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+            ? parsed
+            : {};
+    }
+    catch {
+        return {};
+    }
+};
+/**
+ * Canonical HTTP execution path. Consumed by:
+ *   - the API app's Redux thunk
+ *   - the `api.executeRequest` host-command
+ *   - the agent's `api_execute_request` tool
+ *   - the desktop CLI `api request ...` verb
+ *
+ * Pure: no Redux, no logger, no toast. Callers observe aborts via the standard
+ * `AbortController.abort()` / `signal.aborted` contract.
+ */
+export const executeApiRequest = async ({ method, url, headers, body, signal, accessToken, fetchImpl, }) => {
+    if (!url) {
+        throw new Error('Missing request URL');
+    }
+    const executionStartDate = Date.now();
+    const mergedHeaders = { ...(headers || {}) };
+    const hasAuth = Object.keys(mergedHeaders).some(k => k.toLowerCase() === 'authorization');
+    if (!hasAuth && accessToken) {
+        mergedHeaders.Authorization = `Bearer ${accessToken}`;
+    }
+    const doFetch = fetchImpl || fetch;
+    const res = await doFetch(url, {
+        method: method || 'GET',
+        headers: mergedHeaders,
+        body: body,
+        signal,
+    });
+    const statusCode = res.status;
+    const contentHeaders = [];
+    res.headers.forEach((value, key) => {
+        contentHeaders.push({ key, value });
+    });
+    const contentType = res.headers.get('content-type') || '';
+    // Always read the raw text first so we can preserve an un-parsed copy
+    // regardless of content-type (useful for downloads + snippet regeneration).
+    const contentRaw = await res.text();
+    let content = contentRaw;
+    if (formattedContentType(contentType) === 'json') {
+        try {
+            content = JSON.parse(contentRaw);
+        }
+        catch {
+            content = contentRaw;
+        }
+    }
+    const contentLength = new TextEncoder().encode(typeof content === 'string' ? content : JSON.stringify(content)).length;
+    const executionEndDate = Date.now();
+    return {
+        content,
+        contentRaw,
+        statusCode,
+        contentHeaders,
+        contentType,
+        contentLength,
+        executionStartDate,
+        executionEndDate,
+    };
 };
 //# sourceMappingURL=api.js.map

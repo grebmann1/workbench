@@ -51,6 +51,24 @@ export const INTERNAL_MODEL_OPTIONS = [
     { label: 'gpt-5.2-codex', value: 'gpt-5.2-codex', provider: 'openai', maxOutputTokens: 16000 },
     { label: 'gpt-5.3-codex', value: 'gpt-5.3-codex', provider: 'openai', maxOutputTokens: 16000 },
     {
+        label: 'opus-4.7',
+        value: 'us.anthropic.claude-opus-4-7',
+        provider: 'anthropic',
+        maxOutputTokens: 16000,
+    },
+    {
+        label: 'sonnet-4.6',
+        value: 'us.anthropic.claude-sonnet-4-6',
+        provider: 'anthropic',
+        maxOutputTokens: 16000,
+    },
+    {
+        label: 'haiku-4.5',
+        value: 'us.anthropic.claude-haiku-4-5-20251001-v1:0',
+        provider: 'anthropic',
+        maxOutputTokens: 8192,
+    },
+    {
         label: 'gemini-3-pro-preview',
         value: 'gemini-3-pro-preview',
         provider: 'gemini',

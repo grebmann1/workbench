@@ -7,6 +7,7 @@ import api_app_module from 'api/app';
 import code_app_module from 'code/app';
 import dataImport_app_module from 'dataImport/app';
 import files_app_module from 'files/app';
+import graphql_app_module from 'graphql/app';
 import metadata_app_module from 'metadata/app';
 import object_app_module from 'object/app';
 import org_app_module from 'org/app';
@@ -126,6 +127,23 @@ const APPLICATION_APP_MAPPING = {
         path: 'files',
         menuGroup: 'admin',
         menuOrder: 5,
+    },
+    'graphql/app': {
+        module: graphql_app_module,
+        isFullHeight: true,
+        isDeletable: true,
+        isElectronOnly: false,
+        isOfflineAvailable: false,
+        isMenuVisible: true,
+        isTabVisible: true,
+        label: 'GraphQL Explorer',
+        type: 'developer',
+        description: 'Build and execute GraphQL queries against the Salesforce GraphQL API.',
+        quickActionIcon: 'standard:apex',
+        shortName: 'GraphQL',
+        path: 'graphql',
+        menuGroup: 'code',
+        menuOrder: 15,
     },
     'metadata/app': {
         module: metadata_app_module,
@@ -305,6 +323,14 @@ const APPLICATION_APP_MAPPING = {
 };
 
 const APPLICATION_SLASH_COMMANDS = [
+    {
+        command: 'graphql',
+        description: 'Open the GraphQL Explorer',
+        iconName: 'standard:apex',
+        autoExecute: true,
+        commandId: 'graphql.open',
+        appId: 'graphql',
+    },
     {
         command: 'soql',
         description: 'Open the SOQL Explorer',

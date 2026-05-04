@@ -94,11 +94,16 @@ test('OPENAI_MODEL_OPTIONS + INTERNAL_MODEL_OPTIONS: values are unique within ea
     }
 });
 
-test('INTERNAL_MODEL_OPTIONS: excludes internal Anthropic models while disabled', () => {
-    assert.equal(
-        INTERNAL_MODEL_OPTIONS.some(model => model.provider === 'anthropic'),
-        false
-    );
+test('INTERNAL_MODEL_OPTIONS: includes internal Anthropic Bedrock models', () => {
+    const anthropicValues = INTERNAL_MODEL_OPTIONS.filter(
+        model => model.provider === 'anthropic'
+    ).map(model => model.value);
+
+    assert.deepEqual(anthropicValues, [
+        'us.anthropic.claude-opus-4-7',
+        'us.anthropic.claude-sonnet-4-6',
+        'us.anthropic.claude-haiku-4-5-20251001-v1:0',
+    ]);
 });
 
 test('INTERNAL_MODEL_OPTIONS: includes internal Gemini models', () => {

@@ -1,0 +1,216 @@
+<template>
+    <div class={pageClass}>
+        <builder-editor onexecuteaction={executeAction}>
+            <builder-header
+                slot="header"
+                title="Tools"
+                sub-title="GraphQL Explorer"
+                icon-name="standard:apex">
+                <div slot="actions" class="slds-builder-toolbar__actions">
+                    <lightning-button-icon
+                        class="slds-p-left_xx-small"
+                        icon-name="utility:left_align_text"
+                        alternative-text="Format query"
+                        title="Format query"
+                        variant="border-filled"
+                        size="large"
+                        onclick={handleFormatBody}></lightning-button-icon>
+                    <lightning-button-icon
+                        class="slds-p-left_xx-small"
+                        icon-name="utility:copy"
+                        alternative-text="Copy query"
+                        title="Copy query"
+                        variant="border-filled"
+                        size="large"
+                        onclick={handleCopyQuery}></lightning-button-icon>
+                    <template lwc:if={isRunButtonDisplayed}>
+                        <lightning-button
+                            class="slds-p-left_xx-small"
+                            variant="brand"
+                            label="Run"
+                            icon-name="utility:right"
+                            title={runButtonTitle}
+                            onclick={executeAction}
+                            disabled={isRunButtonDisabled}></lightning-button>
+                    </template>
+                    <template lwc:else>
+                        <lightning-button
+                            class="slds-p-left_xx-small"
+                            variant="destructive"
+                            label="Abort"
+                            icon-name="utility:clear"
+                            onclick={handleAbort}></lightning-button>
+                    </template>
+                </div>
+                <div slot="meta" class="slds-flex-row slds-align-flex-end">
+                    <lightning-button-icon-stateful
+                        selected={isCatalogToggled}
+                        variant="border-filled"
+                        icon-name="utility:knowledge_base"
+                        alternative-text="Salesforce GraphQL catalog"
+                        title="Salesforce GraphQL catalog"
+                        size="large"
+                        onclick={handleCatalogToggle}></lightning-button-icon-stateful>
+                </div>
+                <div slot="subactions" class="slds-builder-toolbar__actions">
+                    <lightning-button-icon
+                        class="slds-p-left_xx-small"
+                        icon-name="utility:copy_to_clipboard"
+                        alternative-text="Copy response"
+                        title="Copy response"
+                        variant="border-filled"
+                        size="large"
+                        disabled={isResponseActionsDisabled}
+                        onclick={handleCopyResponse}></lightning-button-icon>
+                    <lightning-button-icon
+                        class="slds-p-left_xx-small"
+                        icon-name="utility:download"
+                        alternative-text="Download response"
+                        title="Download response"
+                        variant="border-filled"
+                        size="large"
+                        disabled={isResponseActionsDisabled}
+                        onclick={handleDownloadResponse}></lightning-button-icon>
+                    <lightning-button-icon-stateful
+                        class="slds-p-left_xx-small"
+                        selected={isRecentToggled}
+                        variant="border-filled"
+                        icon-name="utility:budget_period"
+                        alternative-text="Recent queries"
+                        title="Recent queries"
+                        size="large"
+                        onclick={handleRecentToggle}></lightning-button-icon-stateful>
+                    <lightning-button-icon
+                        class="slds-p-left_xx-small"
+                        icon-name="utility:keyboard_dismiss"
+                        alternative-text="Keyboard shortcuts"
+                        title="Keyboard shortcuts"
+                        variant="border-filled"
+                        size="large"
+                        onclick={handleShortcutsClick}></lightning-button-icon>
+                </div>
+                <template lwc:if={isMetaDisplayed}>
+                    <p slot="meta" class="slds-page-header__meta-text">
+                        Executed {_createdDateFormatted} • finished in {tookFormatted}
+                        <template lwc:if={hasResponseStats}>• {responseBytesLabel}</template>
+                        <template lwc:if={hasFieldCount}>• {fieldCountLabel}</template>
+                    </p>
+                </template>
+            </builder-header>
+
+            <graphql-catalog-panel
+                is-open={isCatalogToggled}
+                onclose={handleCatalogClose}
+                onselect={handleCatalogSelect}></graphql-catalog-panel>
+
+            <article class="full-page-body slds-card">
+                <div
+                    class="slds-is-relative slds-full-width slds-full-height slds-flex-column"
+                    style="min-height: 200px">
+                    <!-- Tabs -->
+                    <slds-tabset
+                        lwc:ref="tabs"
+                        variant="scoped"
+                        class="slds-without-tab"
+                        active-tab-value={currentTab}
+                        onaddtab={handleAddTab}
+                        onclosetab={handleCloseTab}
+                        is-add-tab-enabled
+                        is-remove-tab-event-disabled>
+                        <template for:each={formattedTabs} for:item="item">
+                            <slds-tab
+                                key={item.id}
+                                data-tab-id={item.id}
+                                label={item.name}
+                                value={item.id}
+                                onactive={handleSelectTab}
+                                ondblclick={handleTabDblClick}
+                                is-closeable={item.isCloseable}></slds-tab>
+                        </template>
+                    </slds-tabset>
+
+                    <slds-split-view
+                        class="slds-fill-height"
+                        top-min-height="200"
+                        bottom-min-height="150"
+                        splitter-position="45">
+                        <!-- Editor pane -->
+                        <div class="slds-flex-column slds-full-height slds-full-width" slot="left">
+                            <div class="graphql-editor slds-fill-height">
+                                <editor-default
+                                    lwc:ref="editor"
+                                    model={currentModel}
+                                    onmonacoloaded={handleMonacoLoaded}
+                                    onchange={handleBodyChange}></editor-default>
+                            </div>
+                            <div class={variablesSectionClass}>
+                                <button
+                                    type="button"
+                                    class="graphql-variables-toggle"
+                                    onclick={handleVariablesToggle}>
+                                    <lightning-icon
+                                        icon-name={variablesToggleIcon}
+                                        size="xx-small"></lightning-icon>
+                                    <span class="slds-text-title slds-p-left_xx-small">
+                                        Variables (JSON)
+                                    </span>
+                                </button>
+                                <template lwc:if={isVariablesExpanded}>
+                                    <div class="graphql-variables-editor">
+                                        <editor-default
+                                            lwc:ref="variablesEditor"
+                                            model={variablesModel}
+                                            onmonacoloaded={handleVariablesMonacoLoaded}
+                                            onchange={handleVariablesChange}></editor-default>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+
+                        <!-- Response pane -->
+                        <div class={rightSlotClass} slot="right">
+                            <template lwc:if={isRunning}>
+                                <slds-spinner alternative-text="Running GraphQL"></slds-spinner>
+                            </template>
+                            <template lwc:if={isEmptyStateDisplayed}>
+                                <illustration-empty size="large" use-slot-format>
+                                    <div slot="title">
+                                        <p>
+                                            Click
+                                            <span
+                                                class="slds-text-heading_small slds-p-around_xx-small">
+                                                Run
+                                            </span>
+                                            or press
+                                            <span
+                                                class="slds-text-heading_small slds-p-around_xx-small">
+                                                {runShortcutLabel}
+                                            </span>
+                                            to execute
+                                        </p>
+                                    </div>
+                                </illustration-empty>
+                            </template>
+                            <div class={responseEditorClass}>
+                                <editor-default
+                                    lwc:ref="responseEditor"
+                                    model={responseModel}
+                                    onmonacoloaded={handleResponseMonacoLoaded}
+                                    is-read-only></editor-default>
+                            </div>
+                        </div>
+                    </slds-split-view>
+                </div>
+            </article>
+
+            <builder-storage-panel
+                title="GraphQL History"
+                is-open={isRecentToggled}
+                recent-title="Recent Queries"
+                recent-items={recentItems}
+                onclose={handleRecentToggle}
+                onselectitem={handleSelectItem}
+                is-saved-item-disabled></builder-storage-panel>
+        </builder-editor>
+    </div>
+</template>

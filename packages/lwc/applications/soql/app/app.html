@@ -49,6 +49,15 @@
                     </template>
                 </div>
 
+                <div slot="meta" class="slds-flex-row slds-align-flex-end">
+                    <lightning-button-icon-stateful
+                        selected={isLeftToggled}
+                        variant="border-filled"
+                        icon-name="utility:knowledge_base"
+                        size="large"
+                        onclick={handleLeftToggle}></lightning-button-icon-stateful>
+                </div>
+
                 <div slot="subactions" class="slds-builder-toolbar__actions">
                     <lightning-button-icon
                         icon-name="utility:delete"
@@ -95,13 +104,6 @@
                         size="large"
                         onclick={handlePerformanceCheckClick}
                         disabled={isLoading}></lightning-button-icon>
-                    <lightning-button-icon-stateful
-                        class="slds-p-left_xx-small"
-                        selected={isLeftToggled}
-                        variant="border-filled"
-                        icon-name="utility:knowledge_base"
-                        size="large"
-                        onclick={handleLeftToggle}></lightning-button-icon-stateful>
                     <lightning-button-icon-stateful
                         class="slds-p-left_xx-small"
                         selected={isRecentToggled}
