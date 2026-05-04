@@ -1,0 +1,108 @@
+:host {
+    display: block;
+    height: 100%;
+}
+
+.jobs-monitor {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.jobs-monitor__body {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.jobs-monitor__toolbar {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: var(--lwc-spacingSmall, 0.75rem);
+    padding: var(--lwc-spacingSmall, 0.75rem);
+    border-bottom: 1px solid var(--lwc-colorBorder, #dddbda);
+}
+
+.jobs-monitor__filters {
+    display: grid;
+    grid-template-columns: minmax(14rem, 22rem) minmax(10rem, 14rem);
+    gap: var(--lwc-spacingSmall, 0.75rem);
+}
+
+.jobs-monitor__summary {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: var(--lwc-spacingXSmall, 0.5rem);
+}
+
+.jobs-monitor__total,
+.jobs-status-pill {
+    border-radius: 999px;
+    padding: 0.125rem 0.5rem;
+    font-size: 0.75rem;
+    line-height: 1.25rem;
+}
+
+.jobs-monitor__total {
+    background: var(--lwc-colorBackgroundAlt, #f3f2f2);
+    color: var(--lwc-colorTextWeak, #706e6b);
+}
+
+.jobs-status-pill {
+    border: 1px solid var(--lwc-colorBorder, #dddbda);
+    background: var(--lwc-colorBackgroundAlt, #f3f2f2);
+}
+
+.jobs-status-pill_success {
+    background: var(--lwc-colorBackgroundToastSuccess, #2e844a);
+    border-color: var(--lwc-colorBackgroundToastSuccess, #2e844a);
+    color: #fff;
+}
+
+.jobs-status-pill_warning {
+    background: var(--lwc-colorBackgroundWarning, #fe9339);
+    border-color: var(--lwc-colorBackgroundWarning, #fe9339);
+    color: #181818;
+}
+
+.jobs-status-pill_error {
+    background: var(--lwc-colorBackgroundToastError, #ba0517);
+    border-color: var(--lwc-colorBackgroundToastError, #ba0517);
+    color: #fff;
+}
+
+.jobs-monitor__warnings {
+    display: grid;
+    gap: var(--lwc-spacingXSmall, 0.5rem);
+    padding: var(--lwc-spacingSmall, 0.75rem);
+}
+
+.jobs-detail-panel {
+    margin: var(--lwc-spacingSmall, 0.75rem);
+}
+
+.jobs-detail-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+    gap: var(--lwc-spacingSmall, 0.75rem);
+    margin: var(--lwc-spacingSmall, 0.75rem) 0 0;
+}
+
+.jobs-detail-list__item dt {
+    color: var(--lwc-colorTextWeak, #706e6b);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+}
+
+.jobs-detail-list__item dd {
+    margin: 0;
+    font-weight: 600;
+}
+
+.jobs-detail-panel__table,
+.jobs-failed-preview {
+    margin-top: var(--lwc-spacingSmall, 0.75rem);
+}

@@ -1,0 +1,437 @@
+<template>
+    <div class={pageClass}>
+        <builder-editor>
+            <builder-header
+                slot="header"
+                title="Monitoring"
+                sub-title="Jobs Monitor"
+                icon-name="standard:scheduling_workspace">
+                <div slot="actions" class="slds-builder-toolbar__actions">
+                    <template lwc:if={activeAge}>
+                        <span
+                            class="slds-text-body_small slds-text-color_weak slds-m-right_small slds-align-middle">
+                            Updated {activeAge}
+                        </span>
+                    </template>
+                    <template for:each={setupLinks} for:item="link">
+                        <lightning-button
+                            key={link.label}
+                            class="slds-p-left_xx-small"
+                            variant="neutral"
+                            label={link.label}
+                            data-url={link.url}
+                            onclick={handleSetupLinkClick}></lightning-button>
+                    </template>
+                    <lightning-combobox
+                        class="slds-m-right_x-small"
+                        variant="label-hidden"
+                        label="Auto-refresh"
+                        name="autoRefresh"
+                        value={autoRefreshValue}
+                        options={autoRefreshOptions}
+                        onchange={handleAutoRefreshChange}></lightning-combobox>
+                    <lightning-button
+                        class="slds-p-left_xx-small"
+                        variant="brand"
+                        label="Refresh"
+                        icon-name="utility:refresh"
+                        disabled={isRefreshDisabled}
+                        onclick={handleRefreshClick}></lightning-button>
+                </div>
+                <p slot="meta" class="slds-page-header__meta-text slds-text-color_weak">
+                    Monitor scheduled jobs, Async Apex, Apex Flex Queue, and Bulk API work from one
+                    admin view.
+                </p>
+            </builder-header>
+            <article class="full-page-body slds-card jobs-monitor">
+                <div
+                    class="slds-is-relative slds-full-width slds-full-height slds-flex-column jobs-monitor__body"
+                    style="min-height: 200px">
+                    <slds-tabset
+                        active-tab-value={activeTab}
+                        class="slds-full-height slds-flex-column">
+                        <slds-tab
+                            class="slds-fill-height slds-flex-column"
+                            label="Scheduled"
+                            value="scheduled"
+                            onactive={handleSelectTab}>
+                            <div class="jobs-monitor__toolbar">
+                                <div class="jobs-monitor__filters">
+                                    <lightning-input
+                                        type="search"
+                                        label="Search jobs"
+                                        value={activeSearchValue}
+                                        onchange={handleSearchChange}></lightning-input>
+                                    <lightning-combobox
+                                        label="Status"
+                                        value={activeStatusValue}
+                                        options={activeStatusOptions}
+                                        onchange={handleStatusFilterChange}></lightning-combobox>
+                                </div>
+                                <div class="jobs-monitor__summary" aria-live="polite">
+                                    <span class="jobs-monitor__total">{activeTotal} jobs</span>
+                                    <template lwc:if={hasStatusSummary}>
+                                        <template for:each={activeStatusSummary} for:item="item">
+                                            <span key={item.status} class={item.className}>
+                                                {item.status}: {item.count}
+                                            </span>
+                                        </template>
+                                    </template>
+                                </div>
+                            </div>
+                            <template lwc:if={activeError}>
+                                <div
+                                    class="slds-notify slds-notify_alert slds-theme_alert-texture slds-theme_error slds-m-around_small"
+                                    role="alert">
+                                    <span class="slds-assistive-text">Error</span>
+                                    <h2>{activeError}</h2>
+                                </div>
+                            </template>
+                            <template lwc:if={hasActiveWarnings}>
+                                <div class="jobs-monitor__warnings">
+                                    <template for:each={activeWarnings} for:item="warning">
+                                        <div
+                                            key={warning}
+                                            class="slds-notify slds-notify_alert slds-theme_alert-texture slds-theme_warning"
+                                            role="status">
+                                            <span class="slds-assistive-text">Warning</span>
+                                            <h2>{warning}</h2>
+                                        </div>
+                                    </template>
+                                </div>
+                            </template>
+                            <jobs-scheduled-table
+                                state={scheduledState}
+                                filter={activeFilter}
+                                onabort={handleAbortScheduled}></jobs-scheduled-table>
+                        </slds-tab>
+                        <slds-tab
+                            class="slds-fill-height slds-flex-column"
+                            label="Async Apex"
+                            value="asyncApex"
+                            onactive={handleSelectTab}>
+                            <div class="jobs-monitor__toolbar">
+                                <div class="jobs-monitor__filters">
+                                    <lightning-input
+                                        type="search"
+                                        label="Search jobs"
+                                        value={activeSearchValue}
+                                        onchange={handleSearchChange}></lightning-input>
+                                    <lightning-combobox
+                                        label="Status"
+                                        value={activeStatusValue}
+                                        options={activeStatusOptions}
+                                        onchange={handleStatusFilterChange}></lightning-combobox>
+                                </div>
+                                <div class="jobs-monitor__summary" aria-live="polite">
+                                    <span class="jobs-monitor__total">{activeTotal} jobs</span>
+                                    <template lwc:if={hasStatusSummary}>
+                                        <template for:each={activeStatusSummary} for:item="item">
+                                            <span key={item.status} class={item.className}>
+                                                {item.status}: {item.count}
+                                            </span>
+                                        </template>
+                                    </template>
+                                </div>
+                            </div>
+                            <template lwc:if={activeError}>
+                                <div
+                                    class="slds-notify slds-notify_alert slds-theme_alert-texture slds-theme_error slds-m-around_small"
+                                    role="alert">
+                                    <span class="slds-assistive-text">Error</span>
+                                    <h2>{activeError}</h2>
+                                </div>
+                            </template>
+                            <template lwc:if={hasActiveWarnings}>
+                                <div class="jobs-monitor__warnings">
+                                    <template for:each={activeWarnings} for:item="warning">
+                                        <div
+                                            key={warning}
+                                            class="slds-notify slds-notify_alert slds-theme_alert-texture slds-theme_warning"
+                                            role="status">
+                                            <span class="slds-assistive-text">Warning</span>
+                                            <h2>{warning}</h2>
+                                        </div>
+                                    </template>
+                                </div>
+                            </template>
+                            <jobs-async-apex-table
+                                state={asyncApexState}
+                                filter={activeFilter}
+                                onselect={handleSelectAsync}
+                                onloadmore={handleLoadMoreAsyncApex}></jobs-async-apex-table>
+                            <template lwc:if={hasApexTestSelection}>
+                                <section class="jobs-detail-panel slds-box slds-theme_default">
+                                    <div
+                                        class="slds-grid slds-grid_align-spread slds-grid_vertical-align-center">
+                                        <div>
+                                            <div class="slds-text-title_caps">
+                                                Apex Test Drilldown
+                                            </div>
+                                            <div class="slds-text-body_small slds-text-color_weak">
+                                                {selectedAsyncJobId}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <template lwc:if={apexTestDetails.isFetching}>
+                                        <div class="slds-p-vertical_small">
+                                            <lightning-spinner
+                                                alternative-text="Loading Apex test details"
+                                                size="small"></lightning-spinner>
+                                        </div>
+                                    </template>
+                                    <template lwc:elseif={apexTestDetails.error}>
+                                        <div class="slds-text-color_error slds-m-top_small">
+                                            {apexTestDetails.error}
+                                        </div>
+                                    </template>
+                                    <template lwc:else>
+                                        <p class="slds-m-top_small slds-text-body_small">
+                                            {apexTestSummaryText}
+                                        </p>
+                                        <template lwc:if={hasApexTestResults}>
+                                            <div class="jobs-detail-panel__table">
+                                                <lightning-datatable
+                                                    key-field="key"
+                                                    data={apexTestResultRows}
+                                                    columns={apexTestResultColumns}
+                                                    hide-checkbox-column></lightning-datatable>
+                                            </div>
+                                        </template>
+                                    </template>
+                                </section>
+                            </template>
+                        </slds-tab>
+                        <slds-tab
+                            class="slds-fill-height slds-flex-column"
+                            label="Flex Queue"
+                            value="flexQueue"
+                            onactive={handleSelectTab}>
+                            <div class="jobs-monitor__toolbar">
+                                <div class="jobs-monitor__filters">
+                                    <lightning-input
+                                        type="search"
+                                        label="Search jobs"
+                                        value={activeSearchValue}
+                                        onchange={handleSearchChange}></lightning-input>
+                                    <lightning-combobox
+                                        label="Status"
+                                        value={activeStatusValue}
+                                        options={activeStatusOptions}
+                                        onchange={handleStatusFilterChange}></lightning-combobox>
+                                </div>
+                                <div class="jobs-monitor__summary" aria-live="polite">
+                                    <span class="jobs-monitor__total">{activeTotal} jobs</span>
+                                    <template lwc:if={hasStatusSummary}>
+                                        <template for:each={activeStatusSummary} for:item="item">
+                                            <span key={item.status} class={item.className}>
+                                                {item.status}: {item.count}
+                                            </span>
+                                        </template>
+                                    </template>
+                                </div>
+                            </div>
+                            <template lwc:if={activeError}>
+                                <div
+                                    class="slds-notify slds-notify_alert slds-theme_alert-texture slds-theme_error slds-m-around_small"
+                                    role="alert">
+                                    <span class="slds-assistive-text">Error</span>
+                                    <h2>{activeError}</h2>
+                                </div>
+                            </template>
+                            <template lwc:if={hasActiveWarnings}>
+                                <div class="jobs-monitor__warnings">
+                                    <template for:each={activeWarnings} for:item="warning">
+                                        <div
+                                            key={warning}
+                                            class="slds-notify slds-notify_alert slds-theme_alert-texture slds-theme_warning"
+                                            role="status">
+                                            <span class="slds-assistive-text">Warning</span>
+                                            <h2>{warning}</h2>
+                                        </div>
+                                    </template>
+                                </div>
+                            </template>
+                            <jobs-flex-queue-table
+                                state={flexQueueState}
+                                filter={activeFilter}></jobs-flex-queue-table>
+                        </slds-tab>
+                        <slds-tab
+                            class="slds-fill-height slds-flex-column"
+                            label="Bulk"
+                            value="bulk"
+                            onactive={handleSelectTab}>
+                            <div class="jobs-monitor__toolbar">
+                                <div class="jobs-monitor__filters">
+                                    <lightning-input
+                                        type="search"
+                                        label="Search jobs"
+                                        value={activeSearchValue}
+                                        onchange={handleSearchChange}></lightning-input>
+                                    <lightning-combobox
+                                        label="Status"
+                                        value={activeStatusValue}
+                                        options={activeStatusOptions}
+                                        onchange={handleStatusFilterChange}></lightning-combobox>
+                                </div>
+                                <div class="jobs-monitor__summary" aria-live="polite">
+                                    <span class="jobs-monitor__total">{activeTotal} jobs</span>
+                                    <template lwc:if={hasStatusSummary}>
+                                        <template for:each={activeStatusSummary} for:item="item">
+                                            <span key={item.status} class={item.className}>
+                                                {item.status}: {item.count}
+                                            </span>
+                                        </template>
+                                    </template>
+                                </div>
+                            </div>
+                            <template lwc:if={activeError}>
+                                <div
+                                    class="slds-notify slds-notify_alert slds-theme_alert-texture slds-theme_error slds-m-around_small"
+                                    role="alert">
+                                    <span class="slds-assistive-text">Error</span>
+                                    <h2>{activeError}</h2>
+                                </div>
+                            </template>
+                            <template lwc:if={hasActiveWarnings}>
+                                <div class="jobs-monitor__warnings">
+                                    <template for:each={activeWarnings} for:item="warning">
+                                        <div
+                                            key={warning}
+                                            class="slds-notify slds-notify_alert slds-theme_alert-texture slds-theme_warning"
+                                            role="status">
+                                            <span class="slds-assistive-text">Warning</span>
+                                            <h2>{warning}</h2>
+                                        </div>
+                                    </template>
+                                </div>
+                            </template>
+                            <jobs-bulk-table
+                                state={bulkState}
+                                filter={activeFilter}
+                                onselect={handleSelectBulk}></jobs-bulk-table>
+                            <template lwc:if={hasBulkSelection}>
+                                <section class="jobs-detail-panel slds-box slds-theme_default">
+                                    <div
+                                        class="slds-grid slds-grid_align-spread slds-grid_vertical-align-center">
+                                        <div>
+                                            <div class="slds-text-title_caps">
+                                                Selected Bulk Job
+                                            </div>
+                                            <div
+                                                class="slds-text-body_small slds-text-color_weak slds-truncate"
+                                                title={selectedBulkJobId}>
+                                                {selectedBulkJobId}
+                                            </div>
+                                        </div>
+                                        <lightning-button-group>
+                                            <lightning-button
+                                                variant="neutral"
+                                                label="Refresh"
+                                                onclick={handleRefreshSelectedBulk}></lightning-button>
+                                            <lightning-button
+                                                variant="neutral"
+                                                label="Download Success"
+                                                disabled={isBulkResultsDisabled}
+                                                onclick={handleDownloadSuccess}></lightning-button>
+                                            <lightning-button
+                                                variant="neutral"
+                                                label="Preview Failed"
+                                                disabled={isBulkResultsDisabled}
+                                                onclick={handlePreviewFailed}></lightning-button>
+                                            <lightning-button
+                                                variant="neutral"
+                                                label="Download Failed"
+                                                disabled={isBulkResultsDisabled}
+                                                onclick={handleDownloadFailed}></lightning-button>
+                                            <lightning-button
+                                                variant="neutral"
+                                                label="Download Unprocessed"
+                                                disabled={isBulkResultsDisabled}
+                                                onclick={handleDownloadUnprocessed}></lightning-button>
+                                            <lightning-button
+                                                variant="destructive"
+                                                label="Abort"
+                                                disabled={isAbortSelectedBulkDisabled}
+                                                onclick={handleAbortSelectedBulk}></lightning-button>
+                                        </lightning-button-group>
+                                    </div>
+                                    <template lwc:if={bulkDetail.isFetching}>
+                                        <div class="slds-p-vertical_small">
+                                            <lightning-spinner
+                                                alternative-text="Loading Bulk job detail"
+                                                size="small"></lightning-spinner>
+                                        </div>
+                                    </template>
+                                    <template lwc:elseif={bulkDetail.error}>
+                                        <div class="slds-text-color_error slds-m-top_small">
+                                            {bulkDetail.error}
+                                        </div>
+                                    </template>
+                                    <template lwc:else>
+                                        <dl class="jobs-detail-list">
+                                            <template for:each={bulkDetailRows} for:item="item">
+                                                <div
+                                                    key={item.label}
+                                                    class="jobs-detail-list__item">
+                                                    <dt>{item.label}</dt>
+                                                    <dd>{item.value}</dd>
+                                                </div>
+                                            </template>
+                                        </dl>
+                                    </template>
+                                    <template lwc:if={failedPreviewOpen}>
+                                        <div class="jobs-failed-preview slds-box slds-theme_shade">
+                                            <div
+                                                class="slds-grid slds-grid_align-spread slds-grid_vertical-align-center">
+                                                <div class="slds-text-title_caps">
+                                                    Failed Results Preview
+                                                </div>
+                                                <lightning-button-icon
+                                                    icon-name="utility:close"
+                                                    alternative-text="Close"
+                                                    title="Close"
+                                                    onclick={handleCloseFailedPreview}></lightning-button-icon>
+                                            </div>
+                                            <template lwc:if={failedPreviewError}>
+                                                <div class="slds-text-color_error slds-m-top_small">
+                                                    {failedPreviewError}
+                                                </div>
+                                            </template>
+                                            <template lwc:elseif={failedPreviewLoading}>
+                                                <div class="slds-p-vertical_small">
+                                                    <lightning-spinner
+                                                        alternative-text="Loading failed results"
+                                                        size="small"></lightning-spinner>
+                                                </div>
+                                            </template>
+                                            <template lwc:elseif={hasFailedPreviewRows}>
+                                                <lightning-datatable
+                                                    key-field="key"
+                                                    data={failedPreviewRows}
+                                                    columns={failedPreviewColumns}
+                                                    hide-checkbox-column></lightning-datatable>
+                                                <template lwc:if={failedPreviewIsTruncated}>
+                                                    <p
+                                                        class="slds-text-body_small slds-text-color_weak">
+                                                        Showing the first 200 failed rows.
+                                                    </p>
+                                                </template>
+                                            </template>
+                                            <template lwc:else>
+                                                <p
+                                                    class="slds-text-body_small slds-text-color_weak">
+                                                    No failed rows returned for this job.
+                                                </p>
+                                            </template>
+                                        </div>
+                                    </template>
+                                </section>
+                            </template>
+                        </slds-tab>
+                    </slds-tabset>
+                </div>
+            </article>
+        </builder-editor>
+    </div>
+</template>

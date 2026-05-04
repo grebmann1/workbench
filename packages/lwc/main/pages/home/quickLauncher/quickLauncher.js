@@ -66,7 +66,7 @@ export default class QuickLauncher extends ToolkitElement {
     }
 
     get dataAndDeployTools() {
-        const names = ['dataImport/app', 'package/app'];
+        const names = ['dataImport/app', 'jobs/app', 'package/app'];
         return this.getAppsByName(names);
     }
 

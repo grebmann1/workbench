@@ -1,0 +1,37 @@
+:host {
+    display: block;
+    height: 100%;
+    overflow: auto;
+}
+
+.jobs-table-wrap {
+    overflow: auto;
+}
+
+.jobs-table-badge {
+    border-radius: 999px;
+    display: inline-block;
+    padding: 0.125rem 0.5rem;
+    font-size: 0.75rem;
+    line-height: 1.25rem;
+    border: 1px solid var(--lwc-colorBorder, #dddbda);
+    background: var(--lwc-colorBackgroundAlt, #f3f2f2);
+}
+
+.jobs-table-badge_success {
+    background: var(--lwc-colorBackgroundToastSuccess, #2e844a);
+    border-color: var(--lwc-colorBackgroundToastSuccess, #2e844a);
+    color: #fff;
+}
+
+.jobs-table-badge_warning {
+    background: var(--lwc-colorBackgroundWarning, #fe9339);
+    border-color: var(--lwc-colorBackgroundWarning, #fe9339);
+    color: #181818;
+}
+
+.jobs-table-badge_error {
+    background: var(--lwc-colorBackgroundToastError, #ba0517);
+    border-color: var(--lwc-colorBackgroundToastError, #ba0517);
+    color: #fff;
+}

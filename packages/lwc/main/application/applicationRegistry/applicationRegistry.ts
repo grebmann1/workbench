@@ -8,6 +8,7 @@ import code_app_module from 'code/app';
 import dataImport_app_module from 'dataImport/app';
 import files_app_module from 'files/app';
 import graphql_app_module from 'graphql/app';
+import jobs_app_module from 'jobs/app';
 import metadata_app_module from 'metadata/app';
 import object_app_module from 'object/app';
 import org_app_module from 'org/app';
@@ -144,6 +145,23 @@ const APPLICATION_APP_MAPPING = {
         path: 'graphql',
         menuGroup: 'code',
         menuOrder: 15,
+    },
+    'jobs/app': {
+        module: jobs_app_module,
+        isFullHeight: true,
+        isDeletable: true,
+        isElectronOnly: false,
+        isOfflineAvailable: false,
+        isMenuVisible: true,
+        isTabVisible: true,
+        label: 'Jobs Monitor',
+        type: 'admin',
+        description: 'Monitor scheduled, async Apex, and Bulk API jobs in the org.',
+        quickActionIcon: 'standard:scheduling_workspace',
+        shortName: 'Jobs',
+        path: 'jobs',
+        menuGroup: 'admin',
+        menuOrder: 55,
     },
     'metadata/app': {
         module: metadata_app_module,
@@ -330,6 +348,14 @@ const APPLICATION_SLASH_COMMANDS = [
         autoExecute: true,
         commandId: 'graphql.open',
         appId: 'graphql',
+    },
+    {
+        command: 'jobs',
+        description: 'Open the Jobs Monitor',
+        iconName: 'standard:scheduling_workspace',
+        autoExecute: true,
+        commandId: 'jobs.open',
+        appId: 'jobs',
     },
     {
         command: 'soql',

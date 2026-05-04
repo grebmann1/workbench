@@ -1,0 +1,71 @@
+<template>
+    <template lwc:if={isLoading}>
+        <div class="slds-p-around_large slds-align_absolute-center">
+            <lightning-spinner
+                alternative-text="Loading Flex Queue jobs"
+                size="small"></lightning-spinner>
+        </div>
+    </template>
+    <template lwc:elseif={isEmpty}>
+        <div class="slds-p-around_large slds-text-align_center slds-text-color_weak">
+            No Flex Queue jobs found.
+        </div>
+    </template>
+    <template lwc:else>
+        <div class="jobs-table-wrap">
+            <table
+                class="slds-table slds-table_cell-buffer slds-table_bordered slds-table_fixed-layout">
+                <thead>
+                    <tr class="slds-line-height_reset">
+                        <th scope="col">
+                            <div class="slds-truncate" title="Position">Position</div>
+                        </th>
+                        <th scope="col"><div class="slds-truncate" title="Status">Status</div></th>
+                        <th scope="col">
+                            <div class="slds-truncate" title="Job Type">Job Type</div>
+                        </th>
+                        <th scope="col">
+                            <div class="slds-truncate" title="Async Apex Job">Async Apex Job</div>
+                        </th>
+                        <th scope="col"><div class="slds-truncate" title="Id">Id</div></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <template for:each={renderedRows} for:item="row">
+                        <tr key={row.id} class="slds-hint-parent">
+                            <td>{row.jobPosition}</td>
+                            <td><span class={row.statusClass}>{row.status}</span></td>
+                            <td>
+                                <div class="slds-truncate" title={row.jobType}>{row.jobType}</div>
+                            </td>
+                            <td>
+                                <div class="slds-truncate" title={row.asyncApexJobId}>
+                                    {row.asyncApexJobId}
+                                </div>
+                            </td>
+                            <td><div class="slds-truncate" title={row.id}>{row.id}</div></td>
+                        </tr>
+                    </template>
+                    <template lwc:if={hasMoreRows}>
+                        <tr class="slds-hint-parent">
+                            <td colspan="5">
+                                <div
+                                    class="slds-p-around_x-small slds-align_absolute-center slds-gutters_x-small">
+                                    <span
+                                        class="slds-text-body_small slds-text-color_weak slds-m-right_small">
+                                        Showing {renderedRowCount} of {visibleRowCount} matching
+                                        jobs.
+                                    </span>
+                                    <lightning-button
+                                        variant="neutral"
+                                        label="Show more"
+                                        onclick={handleShowMore}></lightning-button>
+                                </div>
+                            </td>
+                        </tr>
+                    </template>
+                </tbody>
+            </table>
+        </div>
+    </template>
+</template>
