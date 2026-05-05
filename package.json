@@ -67,6 +67,7 @@
         "test:provider:internal:streaming": "node --experimental-strip-types --import=./tools/testing/register.mjs tools/llm-provider-harness/runStreaming.ts",
         "test:provider:internal:non-streaming": "node --experimental-strip-types --import=./tools/testing/register.mjs tools/llm-provider-harness/runNonStreaming.ts",
         "test:provider:internal": "npm-run-all test:provider:internal:streaming test:provider:internal:non-streaming",
+        "prepare": "husky",
         "docker:dev": "docker compose -f docker-compose.dev.yml up",
         "docker:dev:build": "docker compose -f docker-compose.dev.yml up --build",
         "docker:dev:down": "docker compose -f docker-compose.dev.yml down",
@@ -176,6 +177,8 @@
         "eslint-config-prettier": "^10.1.8",
         "eslint-plugin-import": "^2.32.0",
         "eslint-plugin-prettier": "^5.5.5",
+        "husky": "^9.1.7",
+        "lint-staged": "^16.4.0",
         "lucide-static": "^1.7.0",
         "lwc": "^9.1.1",
         "npm-run-all": "^4.1.5",
@@ -188,5 +191,12 @@
     "overrides": {
         "@lwc/compiler": "9.1.1",
         "@lwc/babel-plugin-component": "9.1.1"
+    },
+    "lint-staged": {
+        "{packages,tools}/**/*.{js,jsx,ts,tsx,mjs}": [
+            "eslint --fix",
+            "prettier --write"
+        ],
+        "{packages,tools}/**/*.{json,css,scss,html}": "prettier --write"
     }
 }
