@@ -74,6 +74,17 @@ export default class FieldsPanel extends ToolkitElement {
         store.dispatch(UI.reduxSlice.actions.deselectSObject());
     }
 
+    handleClosePanel() {
+        // Close the whole side panel (not only go back to the SObject list)
+        store.dispatch(UI.reduxSlice.actions.deselectSObject());
+        store.dispatch(
+            UI.reduxSlice.actions.updateLeftPanel({
+                value: false,
+                alias: this.alias,
+            })
+        );
+    }
+
     /** Events */
 
     selectTab(event) {

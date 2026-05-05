@@ -52,6 +52,11 @@ const sidebars: SidebarsConfig = {
         },
         {
             type: 'category',
+            label: 'AI Agent Internals',
+            items: ['ai-agent/llm-provider-runtime'],
+        },
+        {
+            type: 'category',
             label: 'VS Code Integration',
             items: ['vscode/overview', 'vscode/extension-parity'],
         },

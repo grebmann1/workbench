@@ -60,8 +60,17 @@ const desktopApi = {
             ipcRenderer.removeListener('desktop:launch-intent', wrappedListener);
         };
     },
-    checkCommands: (): Promise<{ sfdx: boolean; java: boolean }> =>
-        ipcRenderer.invoke('desktop:check-commands'),
+    checkCommands: (): Promise<{
+        sfdx: boolean;
+        java: boolean;
+        vscode: boolean;
+        pmd: boolean;
+        summary: {
+            missing: string[];
+            messages: string[];
+            ready: boolean;
+        };
+    }> => ipcRenderer.invoke('desktop:check-commands'),
     openInstance: (payload: Record<string, any>): Promise<{ success: true }> =>
         ipcRenderer.invoke('desktop:open-instance', payload),
     openOrgUrl: (payload: Record<string, any>): Promise<{ success: true }> =>

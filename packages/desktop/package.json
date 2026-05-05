@@ -1,8 +1,9 @@
 {
     "name": "@workbench/desktop",
-    "version": "0.1.0",
+    "version": "2.0.2",
     "private": true,
-    "description": "Electron desktop shell for workbench",
+    "description": "Electron desktop shell for Workbench",
+    "productName": "Workbench Desktop",
     "main": "dist/main/desktopMain.js",
     "bin": {
         "workbench-desktop": "dist/cli/desktopCli.js"
@@ -10,17 +11,22 @@
     "scripts": {
         "build": "tsc -p tsconfig.json",
         "build:icons": "node scripts/build-icons.mjs",
-        "build:renderer": "npm --prefix ../.. run build:extension",
+        "build:renderer": "npm --prefix ../.. run build:workers && npm --prefix ../.. run build:extension",
         "test": "npm run build && node --test dist/**/*.test.js",
         "start": "npm run build && electron .",
         "start:dev": "npm run build && wait-on file:../../dist/extension/views/app.html && electron .",
         "cli": "npm run build && node dist/cli/desktopCli.js",
         "package": "npm run build:icons && npm run build:renderer && npm run build && electron-forge package",
-        "make": "npm run build:icons && npm run build:renderer && npm run build && electron-forge make"
+        "make": "npm run build:icons && npm run build:renderer && npm run build && electron-forge make",
+        "make:ci": "npm run build:renderer && npm run build && electron-forge make",
+        "publish": "npm run make && electron-forge publish"
     },
     "devDependencies": {
         "@electron-forge/cli": "^7.11.1",
+        "@electron-forge/maker-deb": "^7.11.1",
         "@electron-forge/maker-dmg": "^7.11.1",
+        "@electron-forge/maker-rpm": "^7.11.1",
+        "@electron-forge/maker-squirrel": "^7.11.1",
         "@electron-forge/maker-zip": "^7.11.1",
         "@electron-forge/plugin-auto-unpack-natives": "^7.11.1",
         "@electron-forge/plugin-fuses": "^7.11.1",

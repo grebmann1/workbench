@@ -4,9 +4,12 @@
 import accessAnalyzer_app_module from 'accessAnalyzer/app';
 import anonymousApex_app_module from 'anonymousApex/app';
 import api_app_module from 'api/app';
+import auditTrail_app_module from 'auditTrail/app';
 import code_app_module from 'code/app';
 import dataImport_app_module from 'dataImport/app';
 import files_app_module from 'files/app';
+import graphql_app_module from 'graphql/app';
+import jobs_app_module from 'jobs/app';
 import metadata_app_module from 'metadata/app';
 import object_app_module from 'object/app';
 import org_app_module from 'org/app';
@@ -75,6 +78,23 @@ const APPLICATION_APP_MAPPING = {
         settingsComponent: api_appSettings_settings,
         settingsComponentName: 'api/appSettings',
     },
+    'auditTrail/app': {
+        module: auditTrail_app_module,
+        isFullHeight: true,
+        isDeletable: true,
+        isElectronOnly: false,
+        isOfflineAvailable: false,
+        isMenuVisible: true,
+        isTabVisible: true,
+        label: 'Audit Trail',
+        type: 'admin',
+        description: 'Browse the Setup Audit Trail with search, filters, and CSV export.',
+        quickActionIcon: 'standard:asset_audit',
+        shortName: 'Audit',
+        path: 'audit-trail',
+        menuGroup: 'admin',
+        menuOrder: 65,
+    },
     'code/app': {
         module: code_app_module,
         isFullHeight: true,
@@ -126,6 +146,40 @@ const APPLICATION_APP_MAPPING = {
         path: 'files',
         menuGroup: 'admin',
         menuOrder: 5,
+    },
+    'graphql/app': {
+        module: graphql_app_module,
+        isFullHeight: true,
+        isDeletable: true,
+        isElectronOnly: false,
+        isOfflineAvailable: false,
+        isMenuVisible: true,
+        isTabVisible: true,
+        label: 'GraphQL Explorer',
+        type: 'developer',
+        description: 'Build and execute GraphQL queries against the Salesforce GraphQL API.',
+        quickActionIcon: 'standard:apex',
+        shortName: 'GraphQL',
+        path: 'graphql',
+        menuGroup: 'code',
+        menuOrder: 15,
+    },
+    'jobs/app': {
+        module: jobs_app_module,
+        isFullHeight: true,
+        isDeletable: true,
+        isElectronOnly: false,
+        isOfflineAvailable: false,
+        isMenuVisible: true,
+        isTabVisible: true,
+        label: 'Jobs Monitor',
+        type: 'admin',
+        description: 'Monitor scheduled, async Apex, and Bulk API jobs in the org.',
+        quickActionIcon: 'standard:scheduling_workspace',
+        shortName: 'Jobs',
+        path: 'jobs',
+        menuGroup: 'admin',
+        menuOrder: 55,
     },
     'metadata/app': {
         module: metadata_app_module,
@@ -305,6 +359,30 @@ const APPLICATION_APP_MAPPING = {
 };
 
 const APPLICATION_SLASH_COMMANDS = [
+    {
+        command: 'audit',
+        description: 'Open the Setup Audit Trail viewer',
+        iconName: 'standard:asset_audit',
+        autoExecute: true,
+        commandId: 'auditTrail.open',
+        appId: 'auditTrail',
+    },
+    {
+        command: 'graphql',
+        description: 'Open the GraphQL Explorer',
+        iconName: 'standard:apex',
+        autoExecute: true,
+        commandId: 'graphql.open',
+        appId: 'graphql',
+    },
+    {
+        command: 'jobs',
+        description: 'Open the Jobs Monitor',
+        iconName: 'standard:scheduling_workspace',
+        autoExecute: true,
+        commandId: 'jobs.open',
+        appId: 'jobs',
+    },
     {
         command: 'soql',
         description: 'Open the SOQL Explorer',

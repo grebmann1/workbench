@@ -1,6 +1,8 @@
 import { guid } from '../ids';
 import { isUndefinedOrNull, isNotUndefinedOrNull } from '../validation';
 
+export const DEFAULT_API_VERSION = '59.0';
+
 export const VIEWERS = {
     PRETTY: 'Pretty',
     WORKBENCH: 'Workbench',
@@ -210,4 +212,161 @@ export const formatApiRequest = ({
     }
 
     return { request, error }; // Return the formatted request object
+};
+
+/* -------------------------------------------------------------------------- */
+/*  Variable substitution                                                      */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Escape a replacement string so that `$&`, `$1`, `$'`, etc. are treated as
+ * literals by {@link String.prototype.replace}. Without this, variable values
+ * containing `$` sequences corrupt the output.
+ */
+const escapeReplacement = (value: string): string => value.replace(/\$/g, '$$$$');
+
+/**
+ * Escape a substring for use inside a RegExp literal (keys may contain regex
+ * metacharacters).
+ */
+const escapeRegex = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+/**
+ * Replace `{key}` tokens in `input` with values from `variables`. Safe against
+ * `$` sequences in replacement values and regex metacharacters in keys.
+ * `sessionToken`, when provided, also replaces `{sessionId}` (back-compat with
+ * the legacy API app behaviour).
+ */
+export const substituteVariables = (
+    input: string,
+    variables: Record<string, string | number | boolean | null | undefined>,
+    sessionToken?: string | null
+): string => {
+    if (isUndefinedOrNull(input)) return input;
+    let result = String(input);
+    Object.keys(variables || {}).forEach(key => {
+        const raw = variables[key];
+        if (isUndefinedOrNull(raw)) return;
+        const regex = new RegExp(`\\{${escapeRegex(key)}\\}`, 'g');
+        result = result.replace(regex, escapeReplacement(String(raw)));
+    });
+    if (sessionToken) {
+        result = result.replace(/\{sessionId\}/g, escapeReplacement(sessionToken));
+    }
+    return result;
+};
+
+/**
+ * Parse a variables JSON string defensively. Returns `{}` on parse failure.
+ */
+export const parseVariables = (raw: string | null | undefined): Record<string, unknown> => {
+    if (isUndefinedOrNull(raw)) return {};
+    try {
+        const parsed = JSON.parse(raw as string);
+        return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+            ? (parsed as Record<string, unknown>)
+            : {};
+    } catch {
+        return {};
+    }
+};
+
+/* -------------------------------------------------------------------------- */
+/*  Execution                                                                  */
+/* -------------------------------------------------------------------------- */
+
+export type ExecuteApiInput = {
+    method: string;
+    url: string;
+    headers?: Record<string, string>;
+    body?: BodyInit | string | null;
+    signal?: AbortSignal;
+    /** Bearer access token to inject as `Authorization` when that header is absent. */
+    accessToken?: string;
+    /** Optional fetch override (useful for tests / sanitized wrappers). */
+    fetchImpl?: typeof fetch;
+};
+
+export type ExecuteApiResult = {
+    content: unknown;
+    contentRaw: string;
+    statusCode: number;
+    contentHeaders: Array<{ key: string; value: string }>;
+    contentType: string;
+    contentLength: number;
+    executionStartDate: number;
+    executionEndDate: number;
+};
+
+/**
+ * Canonical HTTP execution path. Consumed by:
+ *   - the API app's Redux thunk
+ *   - the `api.executeRequest` host-command
+ *   - the agent's `api_execute_request` tool
+ *   - the desktop CLI `api request ...` verb
+ *
+ * Pure: no Redux, no logger, no toast. Callers observe aborts via the standard
+ * `AbortController.abort()` / `signal.aborted` contract.
+ */
+export const executeApiRequest = async ({
+    method,
+    url,
+    headers,
+    body,
+    signal,
+    accessToken,
+    fetchImpl,
+}: ExecuteApiInput): Promise<ExecuteApiResult> => {
+    if (!url) {
+        throw new Error('Missing request URL');
+    }
+    const executionStartDate = Date.now();
+    const mergedHeaders: Record<string, string> = { ...(headers || {}) };
+    const hasAuth = Object.keys(mergedHeaders).some(k => k.toLowerCase() === 'authorization');
+    if (!hasAuth && accessToken) {
+        mergedHeaders.Authorization = `Bearer ${accessToken}`;
+    }
+
+    const doFetch = fetchImpl || fetch;
+    const res = await doFetch(url, {
+        method: method || 'GET',
+        headers: mergedHeaders,
+        body: body as BodyInit | null | undefined,
+        signal,
+    });
+
+    const statusCode = res.status;
+    const contentHeaders: Array<{ key: string; value: string }> = [];
+    res.headers.forEach((value, key) => {
+        contentHeaders.push({ key, value });
+    });
+    const contentType = res.headers.get('content-type') || '';
+
+    // Always read the raw text first so we can preserve an un-parsed copy
+    // regardless of content-type (useful for downloads + snippet regeneration).
+    const contentRaw = await res.text();
+    let content: unknown = contentRaw;
+    if (formattedContentType(contentType) === 'json') {
+        try {
+            content = JSON.parse(contentRaw);
+        } catch {
+            content = contentRaw;
+        }
+    }
+
+    const contentLength = new TextEncoder().encode(
+        typeof content === 'string' ? content : JSON.stringify(content)
+    ).length;
+    const executionEndDate = Date.now();
+
+    return {
+        content,
+        contentRaw,
+        statusCode,
+        contentHeaders,
+        contentType,
+        contentLength,
+        executionStartDate,
+        executionEndDate,
+    };
 };

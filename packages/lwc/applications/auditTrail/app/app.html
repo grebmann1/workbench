@@ -1,0 +1,123 @@
+<template>
+    <div class={pageClass}>
+        <builder-editor>
+            <builder-header
+                slot="header"
+                title="Monitoring"
+                sub-title="Audit Trail"
+                icon-name="standard:asset_audit">
+                <div slot="actions" class="slds-builder-toolbar__actions">
+                    <template lwc:if={ageLabel}>
+                        <span
+                            class="slds-text-body_small slds-text-color_weak slds-m-right_small slds-align-middle">
+                            Updated {ageLabel}
+                        </span>
+                    </template>
+                    <lightning-combobox
+                        class="slds-m-right_x-small"
+                        variant="label-hidden"
+                        label="Row limit"
+                        name="limit"
+                        value={limitValue}
+                        options={limitOptions}
+                        onchange={handleLimitChange}></lightning-combobox>
+                    <lightning-button
+                        class="slds-p-left_xx-small"
+                        variant="neutral"
+                        label="Export CSV"
+                        icon-name="utility:download"
+                        onclick={handleExportCsv}></lightning-button>
+                    <lightning-button
+                        class="slds-p-left_xx-small"
+                        variant="brand"
+                        label="Refresh"
+                        icon-name="utility:refresh"
+                        disabled={isFetching}
+                        onclick={handleRefresh}></lightning-button>
+                </div>
+                <p slot="meta" class="slds-page-header__meta-text slds-text-color_weak">
+                    SetupAuditTrail with category + profile/permset filters and a virtualized table.
+                </p>
+            </builder-header>
+            <article class="full-page-body slds-card audit-monitor">
+                <div
+                    class="audit-monitor__toolbar slds-p-around_small slds-grid slds-wrap slds-gutters_small">
+                    <div class="slds-col slds-size_1-of-4">
+                        <lightning-input
+                            type="search"
+                            label="Search"
+                            value={searchValue}
+                            onchange={handleSearchChange}></lightning-input>
+                    </div>
+                    <div class="slds-col slds-size_1-of-6">
+                        <lightning-combobox
+                            label="Category"
+                            value={categoryValue}
+                            options={categoryOptions}
+                            onchange={handleCategoryChange}></lightning-combobox>
+                    </div>
+                    <div class="slds-col slds-size_1-of-6">
+                        <lightning-combobox
+                            label="Entity"
+                            value={entityValue}
+                            options={entityOptions}
+                            disabled={isEntityDisabled}
+                            onchange={handleEntityChange}></lightning-combobox>
+                    </div>
+                    <div class="slds-col slds-size_1-of-6">
+                        <lightning-combobox
+                            label="Section"
+                            value={sectionValue}
+                            options={sectionOptions}
+                            onchange={handleSectionChange}></lightning-combobox>
+                    </div>
+                    <div class="slds-col slds-size_1-of-6">
+                        <lightning-combobox
+                            label="User"
+                            value={userValue}
+                            options={userOptions}
+                            onchange={handleUserChange}></lightning-combobox>
+                    </div>
+                    <div class="slds-col slds-size_1-of-6">
+                        <lightning-input
+                            type="date"
+                            label="Since"
+                            value={sinceValue}
+                            onchange={handleSinceChange}></lightning-input>
+                    </div>
+                    <div class="slds-col slds-size_1-of-6">
+                        <lightning-input
+                            type="date"
+                            label="Until"
+                            value={untilValue}
+                            onchange={handleUntilChange}></lightning-input>
+                    </div>
+                </div>
+
+                <template lwc:if={error}>
+                    <div
+                        class="slds-notify slds-notify_alert slds-theme_alert-texture slds-theme_error slds-m-around_small"
+                        role="alert">
+                        <span class="slds-assistive-text">Error</span>
+                        <h2>{error}</h2>
+                    </div>
+                </template>
+
+                <div
+                    class="audit-monitor__summary slds-p-horizontal_small slds-text-body_small slds-text-color_weak">
+                    {visibleCount} entries
+                </div>
+                <div class="audit-monitor__table-wrap">
+                    <template lwc:if={isFetching}>
+                        <div class="slds-p-around_large slds-align_absolute-center">
+                            <lightning-spinner
+                                alternative-text="Loading audit trail"
+                                size="small"></lightning-spinner>
+                        </div>
+                    </template>
+                    <div lwc:dom="manual" class="audit-tabulator"></div>
+                </div>
+            </article>
+        </builder-editor>
+    </div>
+</template>

@@ -18,8 +18,10 @@ const {
     normalizeConfiguration,
     extractConfigurationValuesFromConnection,
     buildConnectionFromConnector,
+    normalizeConnection,
 } = base as any;
 const { OAUTH_TYPES } = await import('../credentialStrategies/oauthTypes.ts');
+const { PLATFORM } = await import('../platform.ts');
 
 test('extractName: splits company-prefixed alias; fallback when no "-"', () => {
     assert.deepEqual(extractName('acme-prod'), { company: 'acme', name: 'prod' });
@@ -180,4 +182,44 @@ test('buildConnectionFromConnector: returns null when conn is missing; hasConnec
     assert.equal(conn.hasConnection, true);
     assert.equal(conn.apiVersion, '59.0');
     assert.equal(conn.authType, 'oauth');
+});
+
+test('normalizeConnection: Electron uses the same-origin desktop proxy', () => {
+    (globalThis as any).window = {
+        location: {
+            origin: 'http://127.0.0.1:47321',
+        },
+        jsforceSettings: {
+            proxyUrl: 'https://www.sf-workbench.com/proxy/',
+        },
+    };
+
+    const electronParams = normalizeConnection(
+        OAUTH_TYPES.SESSION,
+        { instanceUrl: 'https://acme.my.salesforce.com' },
+        PLATFORM.ELECTRON
+    );
+    assert.equal(electronParams.proxyUrl, 'http://127.0.0.1:47321/proxy');
+
+    const chromeParams = normalizeConnection(
+        OAUTH_TYPES.SESSION,
+        { instanceUrl: 'https://acme.my.salesforce.com' },
+        PLATFORM.CHROME
+    );
+    assert.equal(chromeParams.proxyUrl, null);
+
+    const webParams = normalizeConnection(
+        OAUTH_TYPES.SESSION,
+        { instanceUrl: 'https://acme.my.salesforce.com' },
+        PLATFORM.WEB
+    );
+    assert.equal(webParams.proxyUrl, 'https://www.sf-workbench.com/proxy/');
+
+    const disabledParams = normalizeConnection(
+        OAUTH_TYPES.SESSION,
+        { instanceUrl: 'https://acme.my.salesforce.com' },
+        PLATFORM.ELECTRON,
+        { isProxyDisabled: true }
+    );
+    assert.equal(disabledParams.proxyUrl, null);
 });

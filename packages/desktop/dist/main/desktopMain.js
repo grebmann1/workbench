@@ -7,6 +7,7 @@ const node_fs_1 = __importDefault(require("node:fs"));
 const node_path_1 = __importDefault(require("node:path"));
 const electron_1 = require("electron");
 const desktopAutomationServer_1 = require("./desktopAutomationServer");
+const desktopAutomationSecurity_1 = require("./desktopAutomationSecurity");
 const desktopLegacyBus_1 = require("./desktopLegacyBus");
 const desktopLogger_1 = require("./desktopLogger");
 const desktopMenu_1 = require("./desktopMenu");
@@ -181,15 +182,17 @@ electron_1.app.whenReady().then(async () => {
     rendererUrl = `${baseUrl}/views/app.html`;
     windowManager.setRendererUrl(rendererUrl);
     registerWebContentsGuards(rendererUrl);
-    automationServer = new desktopAutomationServer_1.DesktopAutomationServer({
-        host: process.env.API_HOST?.replace(/^https?:\/\//, '') || '127.0.0.1',
-        legacyBus,
-        openInstance,
-        port: Number(process.env.API_PORT || '12346'),
-        windowManager,
-    });
     let automationBaseUrl = null;
     try {
+        const automationToken = await (0, desktopAutomationSecurity_1.ensureAutomationToken)(electron_1.app.getPath('userData'));
+        automationServer = new desktopAutomationServer_1.DesktopAutomationServer({
+            host: (0, desktopAutomationSecurity_1.normalizeAutomationHost)(process.env.API_HOST),
+            legacyBus,
+            openInstance,
+            port: Number(process.env.API_PORT || '12346'),
+            token: automationToken,
+            windowManager,
+        });
         automationBaseUrl = await automationServer.start();
     }
     catch (error) {

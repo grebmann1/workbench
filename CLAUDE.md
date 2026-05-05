@@ -46,6 +46,12 @@ npm run site:build
 npm run start:test:mcp             # http://localhost:3999/mcp
 npm run test:mcp                   # automated smoke test
 
+# Live LLM provider harness (internal gateway — requires WORKBENCH_GATEWAY_KEY)
+# Dumps JSONL chunks under tools/llm-provider-harness/out/ for review.
+WORKBENCH_GATEWAY_KEY=sk-... npm run test:provider:internal:streaming
+WORKBENCH_GATEWAY_KEY=sk-... npm run test:provider:internal:non-streaming
+WORKBENCH_GATEWAY_KEY=sk-... npm run test:provider:internal  # both, in sequence
+
 # Quality
 npm run lint                       # eslint + prettier --check
 npm run format                     # prettier --write
@@ -78,6 +84,7 @@ vendor-bundles/just-bash      Pre-built vendor browser bundles
 tools/build                   Rollup configs (extension, workers)
 tools/scripts                 Generators + LWR HMR patch + asset sync scripts
 tools/mcp                     Local MCP test server + sample config
+tools/llm-provider-harness    Live LLM provider harness (internal gateway) — streaming + non-streaming
 assets                        Design-system assets, skills manifest, screenshots
 ```
 
@@ -96,13 +103,13 @@ The repo is mid-refactor from monolith into a **core host + pluggable apps** mod
 
 ### Adding a new application
 
-See `packages/lwc/main/application/readme.md`. Summary:
+New apps live under `packages/lwc/applications/<id>/` and are discovered from a declarative `<id>.manifest.json` by `tools/scripts/generate_application_manifest.js`. The host reads only the generated registry — no manual registry edits.
 
-1. Create `packages/lwc/main/application/<appFolder>/app/{app.js,app.html}` (or add a package under `packages/lwc/applications/<name>/` for the newer app-package layout).
-2. Register in `packages/lwc/main/component/skeleton/registry/registry.ts` by importing the module and adding an `APPLICATION_ENTRIES` entry with `name`, `module`, `path`, `label`, behavior flags (`isFullHeight`, `isDeletable`, `isOfflineAvailable`, `isTabVisible`, `isChromeOnly`/`isElectronOnly`), and menu metadata (`menuGroup`, `menuOrder`).
-3. `menuGroup` must be one of those in `APPLICATION_MENU_GROUPS` (`data`, `code`, `explorers`, `deploy`) — add a new group there if needed.
-4. `name` must match the shell's module loader key (e.g. `metadata/app`); `path` is the route key (unique).
-5. Rebuild with `npm run build:extension:main`.
+- **Canonical walkthrough:** `apps/docs/docs/developer/new-application.md`.
+- **Scaffolding skill:** `.claude/skills/new-workbench-app/SKILL.md` — invoke when asked to create/scaffold a new app; it collects the required manifest fields, wires tsconfig, and runs the generator.
+- Starting template: copy `packages/lwc/applications/urlencoder/` (minimal reference). Use `packages/lwc/applications/soql/` for richer patterns (Redux slices, slash commands).
+- Validator enums: `type` ∈ `developer|admin|data|utility`; `menuGroup` ∈ `data|code|admin|deploy|utilities`. Typos silently drop the app from the menu — the validator is the source of truth (`tools/scripts/generate_application_manifest.js`).
+- Rebuild with `npm run build:extension:main` after the generator succeeds.
 
 ### Runtime targets
 

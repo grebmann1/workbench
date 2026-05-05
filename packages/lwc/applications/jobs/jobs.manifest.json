@@ -1,0 +1,29 @@
+{
+    "id": "jobs",
+    "name": "jobs/app",
+    "label": "Jobs Monitor",
+    "shortName": "Jobs",
+    "description": "Monitor scheduled, async Apex, and Bulk API jobs in the org.",
+    "path": "jobs",
+    "quickActionIcon": "standard:scheduling_workspace",
+    "type": "admin",
+    "menuGroup": "admin",
+    "menuOrder": 55,
+    "flags": {
+        "isFullHeight": true,
+        "isDeletable": true,
+        "isElectronOnly": false,
+        "isOfflineAvailable": false,
+        "isMenuVisible": true,
+        "isTabVisible": true
+    },
+    "slashCommands": [
+        {
+            "command": "jobs",
+            "description": "Open the Jobs Monitor",
+            "iconName": "standard:scheduling_workspace",
+            "autoExecute": true,
+            "commandId": "jobs.open"
+        }
+    ]
+}

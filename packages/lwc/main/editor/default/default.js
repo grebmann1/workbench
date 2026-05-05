@@ -1,6 +1,6 @@
 import ToolkitElement from 'core/toolkitElement';
 import { MonacoLwcWidget } from 'editor/editorCompleteWidget';
-import { SOQL, APEX, VF, LOG } from 'editor/languages';
+import { SOQL, APEX, VF, LOG, GRAPHQL } from 'editor/languages';
 import { registerAIWidgets, setupMonaco } from 'editor/utils';
 import Toast from 'lightning/toast';
 import { api } from 'lwc';
@@ -151,6 +151,7 @@ export default class Default extends ToolkitElement {
         SOQL.configureSoqlLanguage(this.monaco);
         VF.configureVisualforceLanguage(this.monaco);
         LOG.configureApexLogLanguage(this.monaco);
+        GRAPHQL.configureGraphqlLanguage(this.monaco);
         APEX.configureApexCompletions(this.monaco);
         this.dispatchEvent(new CustomEvent('monacoloaded', { bubbles: true }));
         this.hasLoaded = true;

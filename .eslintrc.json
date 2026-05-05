@@ -54,6 +54,7 @@
         "packages/server/**/*.ts",
         "packages/tests-e2e/**/*.ts",
         "tools/testing/**/*.ts",
+        "tools/llm-provider-harness/**/*.ts",
         "tools/scripts/files/**/*.js"
       ],
       "parser": "@typescript-eslint/parser",

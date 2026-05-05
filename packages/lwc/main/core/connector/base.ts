@@ -253,14 +253,25 @@ export function normalizeOrganizationType({
 }
 
 export const normalizeConnection = (credentialType, rawData, platform, extra = {}) => {
+    const getProxyUrl = () => {
+        if (extra.isProxyDisabled || platform === PLATFORM.CHROME) {
+            return null;
+        }
+
+        if (platform === PLATFORM.ELECTRON) {
+            return typeof window !== 'undefined' && window.location?.origin
+                ? `${window.location.origin}/proxy`
+                : null;
+        }
+
+        return window.jsforceSettings?.proxyUrl;
+    };
+
     const params = {
         instanceUrl: rawData.instanceUrl,
         accessToken: rawData.accessToken,
         sessionId: rawData.sessionId,
-        proxyUrl:
-            extra.isProxyDisabled || platform === PLATFORM.CHROME || platform === PLATFORM.ELECTRON
-                ? null
-                : window.jsforceSettings?.proxyUrl, // For chrome extension, we run without proxy
+        proxyUrl: getProxyUrl(),
         version: rawData.version || constant.apiVersion, // This might need to be refactored
         //logLevel:'DEBUG',
         logLevel: rawData.logLevel || null, //'DEBUG',

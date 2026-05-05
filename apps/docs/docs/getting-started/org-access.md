@@ -20,7 +20,7 @@ The standard and recommended method for most users.
 4. You are redirected to Salesforce to authorize — sign in and approve access.
 5. Workbench stores the connection and redirects you back.
 
-OAuth credentials are kept in encrypted Chrome extension storage and never leave your browser.
+OAuth credentials are kept in local app storage. In the Chrome extension, this is Chrome extension storage. In Workbench Desktop, imported refresh-token material is encrypted with OS-backed Electron safe storage before being written to the desktop user-data directory.
 
 ---
 
@@ -63,6 +63,18 @@ For sandboxes or developer orgs where OAuth is not configured:
 When opening Workbench from the embedded VS Code editor, the connection is bootstrapped automatically via URL parameters. No manual steps are needed — the editor passes `sessionId`, `serverUrl`, or an org alias directly.
 
 See [VS Code Integration](../vscode/overview) for details.
+
+---
+
+### Salesforce CLI alias (Desktop)
+
+Workbench Desktop can reuse orgs that are already authenticated through the Salesforce CLI.
+
+1. Authenticate with `sf org login web --alias my-org` or an equivalent `sfdx` command.
+2. Open Workbench Desktop.
+3. Run `workbench-desktop open org --target-org my-org`, or choose the org from the desktop connection list.
+
+The desktop app asks the Salesforce CLI for verbose org details and reuses OAuth-backed org metadata. If the CLI does not expose OAuth credentials for the alias, re-authenticate with the Salesforce CLI.
 
 ---
 

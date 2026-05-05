@@ -1,0 +1,22 @@
+.shortcut-key {
+    display: inline-block;
+    min-width: 2.5rem;
+    padding: 0.125rem 0.5rem;
+    font-family: 'SF Mono', Menlo, Consolas, 'Courier New', monospace;
+    font-size: 0.8125rem;
+    text-align: center;
+    color: #16325c;
+    background: #f3f3f3;
+    border: 1px solid #dddbda;
+    border-bottom-width: 2px;
+    border-radius: 0.25rem;
+}
+
+.shortcut-row_disabled {
+    color: #b6b6b6;
+}
+
+.shortcut-row_disabled .shortcut-key {
+    color: #b6b6b6;
+    background: #f9f9f9;
+}

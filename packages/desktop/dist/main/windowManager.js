@@ -4,12 +4,6 @@ exports.WindowManager = void 0;
 const electron_1 = require("electron");
 const desktopLogger_1 = require("./desktopLogger");
 const desktopPaths_1 = require("./desktopPaths");
-function redactRendererMessage(message) {
-    return message
-        .replace(/force:\/\/[^@\s]+@[^\s]+/g, 'force://<redacted>@<redacted>')
-        .replace(/Bearer\s+[A-Za-z0-9._~+/=-]+/gi, 'Bearer <redacted>')
-        .replace(/(accessToken|refreshToken|sessionId)["':=\s]+[A-Za-z0-9._~!+/=-]+/gi, '$1=<redacted>');
-}
 class WindowManager {
     preloadPath;
     rendererUrl;
@@ -65,7 +59,7 @@ class WindowManager {
                 sandbox: true,
                 nodeIntegration: false,
                 spellcheck: false,
-                webSecurity: false,
+                webSecurity: true,
             },
         };
         this.mainWindow = new electron_1.BrowserWindow(browserWindowOptions);
@@ -106,7 +100,7 @@ class WindowManager {
                 sandbox: true,
                 nodeIntegration: false,
                 spellcheck: false,
-                webSecurity: false,
+                webSecurity: true,
             },
         };
         const instanceWindow = new electron_1.BrowserWindow(browserWindowOptions);
@@ -247,7 +241,7 @@ class WindowManager {
             desktopLogger_1.desktopLog.info('Renderer console message', {
                 level,
                 line,
-                message: redactRendererMessage(message),
+                message: (0, desktopLogger_1.redactSecrets)(message),
                 sourceId,
                 windowKey,
             });

@@ -2,7 +2,7 @@
 
 > The modern replacement for **Salesforce Workbench** and **Benchpress**
 
-Latest release: **v2.0.1**
+Latest release: **v2.0.2**
 
 Workbench is a Salesforce administration toolkit that embeds directly into your browser — bringing an overlay panel, a VS Code editor, a full metadata explorer, a SOQL editor, and an AI agent capable of controlling your browser, all from a single Chrome extension.
 
@@ -75,17 +75,17 @@ Workbench is a Salesforce administration toolkit that embeds directly into your 
 
 <div align="center">
   <img src="./assets/images/electron.png" alt="Desktop App" width="80%"/>
-  <br/><sub><em>Desktop App (in development)</em></sub>
+  <br/><sub><em>Desktop App</em></sub>
 </div>
 
 ---
 
 ## Available Platforms
 
-| Platform                      | Status         | Link                                                                                                                |
-| ----------------------------- | -------------- | ------------------------------------------------------------------------------------------------------------------- |
-| **Web Extension**             | Recommended    | [Add to Chrome](https://chromewebstore.google.com/detail/salesforce-toolkit/konbmllgicfccombdckckakhnmejjoei?hl=en) |
-| **Desktop** (macOS / Windows) | In development | Coming soon                                                                                                         |
+| Platform                              | Status            | Link                                                                                                                |
+| ------------------------------------- | ----------------- | ------------------------------------------------------------------------------------------------------------------- |
+| **Web Extension**                     | Recommended       | [Add to Chrome](https://chromewebstore.google.com/detail/salesforce-toolkit/konbmllgicfccombdckckakhnmejjoei?hl=en) |
+| **Desktop** (macOS / Windows / Linux) | Release artifacts | GitHub Releases                                                                                                     |
 
 ---
 
@@ -282,13 +282,13 @@ npm run start:dev:web
 
 ## Where To Add Code
 
-| Area                                     | Location                                                    |
-| ---------------------------------------- | ----------------------------------------------------------- |
+| Area                                     | Location                                                      |
+| ---------------------------------------- | ------------------------------------------------------------- |
 | New app-level pages / features           | `packages/lwc/main/pages` and `packages/lwc/main/application` |
-| Shared LWC UI shell elements             | `packages/lwc/main/component`                                |
-| Extension-only components                | `packages/lwc/extension`                                |
-| Cross-target reusable modules            | `packages/lwc/shared/modules`                                   |
-| Server hooks / routes / content / layout | `packages/server`                                           |
+| Shared LWC UI shell elements             | `packages/lwc/main/component`                                 |
+| Extension-only components                | `packages/lwc/extension`                                      |
+| Cross-target reusable modules            | `packages/lwc/shared/modules`                                 |
+| Server hooks / routes / content / layout | `packages/server`                                             |
 
 ---
 
@@ -298,7 +298,7 @@ npm run start:dev:web
 - Expand data/object assignment analysis
 - Improve extension localhost and debugging workflows
 - Incrementally improve shared module boundaries and package ergonomics
-- Release Desktop app for macOS and Windows
+- Continue hardening desktop distribution for macOS, Windows, and Linux
 
 ---
 

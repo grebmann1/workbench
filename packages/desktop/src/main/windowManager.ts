@@ -1,6 +1,6 @@
 import { BrowserWindow, type BrowserWindowConstructorOptions } from 'electron';
 
-import { desktopLog } from './desktopLogger';
+import { desktopLog, redactSecrets } from './desktopLogger';
 import { getDesktopIconPath } from './desktopPaths';
 import type { DesktopLaunchIntent } from './launchIntent';
 
@@ -8,16 +8,6 @@ type WindowManagerOptions = {
     preloadPath: string;
     rendererUrl: string;
 };
-
-function redactRendererMessage(message: string): string {
-    return message
-        .replace(/force:\/\/[^@\s]+@[^\s]+/g, 'force://<redacted>@<redacted>')
-        .replace(/Bearer\s+[A-Za-z0-9._~+/=-]+/gi, 'Bearer <redacted>')
-        .replace(
-            /(accessToken|refreshToken|sessionId)["':=\s]+[A-Za-z0-9._~!+/=-]+/gi,
-            '$1=<redacted>'
-        );
-}
 
 export class WindowManager {
     private readonly preloadPath: string;
@@ -87,7 +77,7 @@ export class WindowManager {
                 sandbox: true,
                 nodeIntegration: false,
                 spellcheck: false,
-                webSecurity: false,
+                webSecurity: true,
             },
         };
 
@@ -136,7 +126,7 @@ export class WindowManager {
                 sandbox: true,
                 nodeIntegration: false,
                 spellcheck: false,
-                webSecurity: false,
+                webSecurity: true,
             },
         };
 
@@ -308,7 +298,7 @@ export class WindowManager {
             desktopLog.info('Renderer console message', {
                 level,
                 line,
-                message: redactRendererMessage(message),
+                message: redactSecrets(message),
                 sourceId,
                 windowKey,
             });

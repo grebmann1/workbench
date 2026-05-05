@@ -12,13 +12,13 @@ Workbench ships with a set of built-in applications covering the most common Sal
 
 Tools for browsing and understanding org data and metadata.
 
-| Application | Description |
-| --- | --- |
-| [Org Overview](./org-overview) | Users, company info, license utilization, and code health summary |
-| [Metadata Explorer](./metadata-explorer) | Browse, inspect, and modify org metadata components |
-| [SObject Explorer](./sobject-explorer) | Explore SObject schemas — fields, relationships, picklist values |
-| [Access Analyzer](./access-analyzer) | Compare permission sets and profiles side by side |
-| [Record Viewer](./record-viewer) | Inspect individual Salesforce records by ID |
+| Application                              | Description                                                       |
+| ---------------------------------------- | ----------------------------------------------------------------- |
+| [Org Overview](./org-overview)           | Users, company info, license utilization, and code health summary |
+| [Metadata Explorer](./metadata-explorer) | Browse, inspect, and modify org metadata components               |
+| [SObject Explorer](./sobject-explorer)   | Explore SObject schemas — fields, relationships, picklist values  |
+| [Access Analyzer](./access-analyzer)     | Compare permission sets and profiles side by side                 |
+| [Record Viewer](./record-viewer)         | Inspect individual Salesforce records by ID                       |
 
 ---
 
@@ -26,10 +26,10 @@ Tools for browsing and understanding org data and metadata.
 
 Tools for querying and importing data.
 
-| Application | Description |
-| --- | --- |
-| [SOQL Explorer](./soql-explorer) | Build and run SOQL queries with field suggestions; export results |
-| [Data Import](./data-import) | Insert, update, or upsert records from a CSV file via REST or Bulk API |
+| Application                      | Description                                                            |
+| -------------------------------- | ---------------------------------------------------------------------- |
+| [SOQL Explorer](./soql-explorer) | Build and run SOQL queries with field suggestions; export results      |
+| [Data Import](./data-import)     | Insert, update, or upsert records from a CSV file via REST or Bulk API |
 
 ---
 
@@ -37,20 +37,28 @@ Tools for querying and importing data.
 
 Tools for executing and testing code against your org.
 
-| Application | Description |
-| --- | --- |
-| [API Explorer](./api-explorer) | Explore and call Salesforce REST and SOAP APIs directly |
-| [Anonymous Apex](./anonymous-apex) | Write and execute Apex scripts on the fly |
-| [Event Explorer](./event-explorer) | Subscribe to platform events and visualize payloads in real time |
-| [Code Toolkit](./org-overview) | Retrieve source code, run static analysis, preview Visualforce pages *(Desktop only)* |
+| Application                        | Description                                                                           |
+| ---------------------------------- | ------------------------------------------------------------------------------------- |
+| [API Explorer](./api-explorer)     | Explore and call Salesforce REST and SOAP APIs directly                               |
+| [Anonymous Apex](./anonymous-apex) | Write and execute Apex scripts on the fly                                             |
+| [Event Explorer](./event-explorer) | Subscribe to platform events and visualize payloads in real time                      |
+| [Code Toolkit](./org-overview)     | Retrieve source code, run static analysis, preview Visualforce pages _(Desktop only)_ |
 
 ---
 
 ## Deploy
 
-| Application | Description |
-| --- | --- |
+| Application                            | Description                                                 |
+| -------------------------------------- | ----------------------------------------------------------- |
 | [Deploy & Retrieve](./deploy-retrieve) | Deploy or retrieve metadata packages using the Metadata API |
+
+---
+
+## Admin
+
+| Application                    | Description                                                  |
+| ------------------------------ | ------------------------------------------------------------ |
+| [Jobs Monitor](./jobs-monitor) | Monitor Scheduled, Async Apex, Flex Queue, and Bulk API jobs |
 
 ---
 
@@ -58,12 +66,12 @@ Tools for executing and testing code against your org.
 
 Lighter tools accessible from the menu without a dedicated route.
 
-| Tool | Description |
-| --- | --- |
-| Text Compare | Side-by-side diff of any two text inputs |
-| Smart Input | AI-powered input field for contextual Salesforce suggestions *(Chrome extension, beta)* |
-| SARIF Viewer | Visualize static analysis results in SARIF format |
-| Documentation Search | Search the official Salesforce documentation without leaving Workbench |
+| Tool                 | Description                                                                             |
+| -------------------- | --------------------------------------------------------------------------------------- |
+| Text Compare         | Side-by-side diff of any two text inputs                                                |
+| Smart Input          | AI-powered input field for contextual Salesforce suggestions _(Chrome extension, beta)_ |
+| SARIF Viewer         | Visualize static analysis results in SARIF format                                       |
+| Documentation Search | Search the official Salesforce documentation without leaving Workbench                  |
 
 ---
 

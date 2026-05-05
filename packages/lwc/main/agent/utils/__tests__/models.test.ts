@@ -21,10 +21,11 @@ test('models: MODELS / INTERNAL_MODELS have {label,value} entries', () => {
     assert.ok(Array.isArray(INTERNAL_MODELS));
 });
 
-test('models: INTERNAL_MODELS omits disabled internal Anthropic models', () => {
+test('models: INTERNAL_MODELS includes internal Anthropic Bedrock models', () => {
     const anthropicModel = INTERNAL_MODELS.find(model => model.provider === 'anthropic');
 
-    assert.equal(anthropicModel, undefined);
+    assert.ok(anthropicModel);
+    assert.ok(anthropicModel.value.startsWith('us.anthropic.'));
 });
 
 test('models: DEFAULT_MODEL is non-empty string', () => {
@@ -44,8 +45,11 @@ test('getDefaultModelForAgentProvider: internal flag routes to INTERNAL_MODELS',
     assert.equal(v, INTERNAL_MODELS[0].value);
 });
 
-test('getDefaultModelForAgentProvider: disabled internal Anthropic falls back to default model', () => {
-    assert.equal(getDefaultModelForAgentProvider('anthropic', true), DEFAULT_MODEL);
+test('getDefaultModelForAgentProvider: internal Anthropic picks the first Bedrock model', () => {
+    assert.equal(
+        getDefaultModelForAgentProvider('anthropic', true),
+        'us.anthropic.claude-opus-4-7'
+    );
 });
 
 test('getSummaryModelForAgentProvider: explicit lightweight selectedModel wins when supported', () => {
@@ -73,14 +77,17 @@ test('getSummaryModelForAgentProvider: no selectedModel falls back to preferred 
     assert.ok(v.length > 0);
 });
 
-test('getSummaryModelForAgentProvider: disabled internal Anthropic falls back to default model', () => {
-    assert.equal(getSummaryModelForAgentProvider('anthropic', undefined, true), DEFAULT_MODEL);
+test('getSummaryModelForAgentProvider: internal Anthropic prefers the Bedrock Haiku id', () => {
+    assert.equal(
+        getSummaryModelForAgentProvider('anthropic', undefined, true),
+        'us.anthropic.claude-haiku-4-5-20251001-v1:0'
+    );
 });
 
-test('getSummaryModelForAgentProvider: disabled internal Anthropic ignores stale public Haiku id', () => {
+test('getSummaryModelForAgentProvider: internal Anthropic ignores stale public Haiku id and picks Bedrock one', () => {
     assert.equal(
         getSummaryModelForAgentProvider('anthropic', 'claude-haiku-4-5-20251001', true),
-        DEFAULT_MODEL
+        'us.anthropic.claude-haiku-4-5-20251001-v1:0'
     );
 });
 

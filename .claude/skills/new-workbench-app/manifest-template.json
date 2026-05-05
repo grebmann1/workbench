@@ -1,0 +1,20 @@
+{
+    "id": "<<id>>",
+    "name": "<<id>>/app",
+    "label": "<<Display Name>>",
+    "shortName": "<<Short>>",
+    "description": "<<One-sentence description shown in Quick Actions and tooltips.>>",
+    "path": "<<url-path>>",
+    "quickActionIcon": "<<namespace>>:<<icon_name>>",
+    "type": "<<developer|admin|data|utility>>",
+    "menuGroup": "<<data|code|admin|deploy|utilities>>",
+    "menuOrder": 50,
+    "flags": {
+        "isFullHeight": true,
+        "isDeletable": true,
+        "isElectronOnly": false,
+        "isOfflineAvailable": false,
+        "isMenuVisible": true,
+        "isTabVisible": true
+    }
+}

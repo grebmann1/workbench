@@ -1,6 +1,6 @@
 {
     "name": "workbench",
-    "version": "2.0.1",
+    "version": "2.0.2",
     "scripts": {
         "start:dev:extension": "rm -rf dist/extension; npm-run-all --parallel watch:extension serve:extension",
         "start:dev:server": "npm run build:server && NODE_ENV=development DOTENV_CONFIG_PATH=.env.dev node -r dotenv/config packages/server/dist/server-dev.js",
@@ -64,6 +64,9 @@
         "sync:soql-extension-assets": "node tools/scripts/sync_soql_extension_assets.mjs",
         "start:test:mcp": "node tools/mcp/basic-mcp-server.mjs",
         "test:mcp": "node tools/mcp/verify-basic-mcp.mjs",
+        "test:provider:internal:streaming": "node --experimental-strip-types --import=./tools/testing/register.mjs tools/llm-provider-harness/runStreaming.ts",
+        "test:provider:internal:non-streaming": "node --experimental-strip-types --import=./tools/testing/register.mjs tools/llm-provider-harness/runNonStreaming.ts",
+        "test:provider:internal": "npm-run-all test:provider:internal:streaming test:provider:internal:non-streaming",
         "docker:dev": "docker compose -f docker-compose.dev.yml up",
         "docker:dev:build": "docker compose -f docker-compose.dev.yml up --build",
         "docker:dev:down": "docker compose -f docker-compose.dev.yml down",

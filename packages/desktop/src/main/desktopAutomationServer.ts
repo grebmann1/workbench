@@ -6,6 +6,11 @@ import {
     type DesktopCommand,
     type DesktopRoute,
 } from './desktopCommand';
+import {
+    assertAuthorizedAutomationRequest,
+    DEFAULT_AUTOMATION_BODY_LIMIT_BYTES,
+    readBoundedJsonBody,
+} from './desktopAutomationSecurity';
 import type { DesktopLegacyBus } from './desktopLegacyBus';
 import { desktopLog } from './desktopLogger';
 import { getAllOrgs, getStoredOrg, seeOrgDetails } from './desktopServices';
@@ -16,6 +21,7 @@ type DesktopAutomationServerOptions = {
     legacyBus: DesktopLegacyBus;
     openInstance: (payload: Record<string, any>) => Promise<void>;
     port?: number;
+    token: string;
     windowManager: WindowManager;
 };
 
@@ -29,14 +35,17 @@ export class DesktopAutomationServer {
     private readonly legacyBus: DesktopLegacyBus;
     private readonly openInstance: (payload: Record<string, any>) => Promise<void>;
     private readonly port: number;
+    private baseUrl: string | null = null;
     private server: http.Server | null = null;
+    private readonly token: string;
     private readonly windowManager: WindowManager;
 
     constructor(options: DesktopAutomationServerOptions) {
         this.host = options.host || DEFAULT_HOST;
         this.legacyBus = options.legacyBus;
         this.openInstance = options.openInstance;
-        this.port = options.port || DEFAULT_PORT;
+        this.port = options.port ?? DEFAULT_PORT;
+        this.token = options.token;
         this.windowManager = options.windowManager;
     }
 
@@ -63,12 +72,18 @@ export class DesktopAutomationServer {
             });
         });
 
+        const address = this.server.address();
+        if (address && typeof address !== 'string') {
+            this.baseUrl = `http://${this.host}:${String(address.port)}`;
+        }
+
         return this.getBaseUrl();
     }
 
     async stop(): Promise<void> {
         const server = this.server;
         this.server = null;
+        this.baseUrl = null;
 
         if (!server) {
             return;
@@ -87,7 +102,7 @@ export class DesktopAutomationServer {
     }
 
     getBaseUrl(): string {
-        return `http://${this.host}:${String(this.port)}`;
+        return this.baseUrl || `http://${this.host}:${String(this.port)}`;
     }
 
     private async handleRequest(request: IncomingMessage, response: ServerResponse): Promise<void> {
@@ -114,7 +129,8 @@ export class DesktopAutomationServer {
                 return;
             }
 
-            const body = await this.readJsonBody(request);
+            assertAuthorizedAutomationRequest(request.headers, this.token);
+            const body = await readBoundedJsonBody(request, DEFAULT_AUTOMATION_BODY_LIMIT_BYTES);
 
             switch (requestUrl.pathname) {
                 case '/electron/open-instance':
@@ -228,6 +244,16 @@ export class DesktopAutomationServer {
                     this.writeJson(response, 404, { status: 'error', message: 'Not Found' });
             }
         } catch (error) {
+            const message =
+                error instanceof Error ? error.message : 'Desktop automation request failed.';
+            if (message === 'Unauthorized desktop automation request.') {
+                this.writeJson(response, 401, {
+                    status: 'error',
+                    message,
+                });
+                return;
+            }
+
             desktopLog.error('Desktop automation request failed', {
                 error,
                 method,
@@ -235,8 +261,7 @@ export class DesktopAutomationServer {
             });
             this.writeJson(response, 500, {
                 status: 'error',
-                message:
-                    error instanceof Error ? error.message : 'Desktop automation request failed.',
+                message,
             });
         }
     }
@@ -337,19 +362,6 @@ export class DesktopAutomationServer {
         }
 
         return this.legacyBus.send(channel, payload, targetWindow.webContents);
-    }
-
-    private async readJsonBody(request: IncomingMessage): Promise<JsonBody> {
-        const chunks: Buffer[] = [];
-        for await (const chunk of request) {
-            chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
-        }
-
-        if (chunks.length === 0) {
-            return {};
-        }
-
-        return JSON.parse(Buffer.concat(chunks).toString('utf8'));
     }
 
     private writeJson(response: ServerResponse, statusCode: number, payload: unknown): void {

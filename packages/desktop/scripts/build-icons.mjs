@@ -10,6 +10,15 @@ const sourcePng = path.join(iconsRoot, 'icon.png');
 const iconsetPath = path.join(iconsRoot, 'icon.iconset');
 const icnsPath = path.join(iconsRoot, 'icon.icns');
 
+if (process.platform !== 'darwin') {
+    if (!fs.existsSync(sourcePng)) {
+        throw new Error(`Missing source icon: ${sourcePng}`);
+    }
+
+    console.log('Skipping macOS .icns generation on non-macOS host.');
+    process.exit(0);
+}
+
 const iconSizes = [
     [16, 'icon_16x16.png'],
     [32, 'icon_16x16@2x.png'],

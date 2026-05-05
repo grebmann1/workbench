@@ -29,6 +29,16 @@
     gap: 0.25rem;
 }
 
+.internal-provider-hint {
+    margin: 0;
+    line-height: 1.35;
+}
+
+.internal-provider-hint code {
+    font-size: 0.75rem;
+    padding: 0 0.15rem;
+}
+
 /* Pushes the toggle button down to align with the input field
    when the sibling lightning-input uses variant="label-stacked" */
 .provider-key-btn {

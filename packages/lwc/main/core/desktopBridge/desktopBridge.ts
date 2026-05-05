@@ -62,21 +62,43 @@ export function onDesktopLaunchIntent(listener: LaunchIntentListener): () => voi
     return () => {};
 }
 
-export async function checkDesktopCommands(): Promise<{ sfdx: boolean; java: boolean }> {
+export async function checkDesktopCommands(): Promise<{
+    sfdx: boolean;
+    java: boolean;
+    vscode: boolean;
+    pmd: boolean;
+    summary: {
+        missing: string[];
+        messages: string[];
+        ready: boolean;
+    };
+}> {
     const desktopApi = getDesktopApi();
     if (desktopApi?.checkCommands) {
         return desktopApi.checkCommands();
     }
 
     const response = (await getLegacyElectronApi()?.invoke?.('util-checkCommands')) as
-        | { error?: unknown; result?: { sfdx: boolean; java: boolean } }
+        | { error?: unknown; result?: Awaited<ReturnType<typeof checkDesktopCommands>> }
         | undefined;
 
     if (response?.error) {
         throw response.error;
     }
 
-    return response?.result || { sfdx: false, java: false };
+    return (
+        response?.result || {
+            sfdx: false,
+            java: false,
+            vscode: false,
+            pmd: false,
+            summary: {
+                missing: ['sfdx', 'java', 'vscode', 'pmd'],
+                messages: [],
+                ready: false,
+            },
+        }
+    );
 }
 
 export async function openDesktopInstance(payload: Record<string, unknown>): Promise<void> {

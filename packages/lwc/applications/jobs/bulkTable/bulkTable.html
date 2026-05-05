@@ -1,0 +1,90 @@
+<template>
+    <template lwc:if={isLoading}>
+        <div class="slds-p-around_large slds-align_absolute-center">
+            <lightning-spinner
+                alternative-text="Loading bulk jobs"
+                size="small"></lightning-spinner>
+        </div>
+    </template>
+    <template lwc:elseif={isEmpty}>
+        <div class="slds-p-around_large slds-text-align_center slds-text-color_weak">
+            No bulk jobs found.
+        </div>
+    </template>
+    <template lwc:else>
+        <div class="jobs-table-wrap">
+            <table
+                class="slds-table slds-table_cell-buffer slds-table_bordered slds-table_fixed-layout">
+                <thead>
+                    <tr class="slds-line-height_reset">
+                        <th scope="col"><div class="slds-truncate" title="Id">Id</div></th>
+                        <th scope="col"><div class="slds-truncate" title="Kind">Kind</div></th>
+                        <th scope="col">
+                            <div class="slds-truncate" title="Operation">Operation</div>
+                        </th>
+                        <th scope="col"><div class="slds-truncate" title="Object">Object</div></th>
+                        <th scope="col"><div class="slds-truncate" title="State">State</div></th>
+                        <th scope="col">
+                            <div class="slds-truncate" title="Processed">Processed</div>
+                        </th>
+                        <th scope="col"><div class="slds-truncate" title="Failed">Failed</div></th>
+                        <th scope="col">
+                            <div class="slds-truncate" title="Created">Created</div>
+                        </th>
+                        <th scope="col"><span class="slds-assistive-text">Actions</span></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <template for:each={renderedRows} for:item="row">
+                        <tr key={row.id} class="slds-hint-parent">
+                            <td><div class="slds-truncate" title={row.id}>{row.id}</div></td>
+                            <td>{row.kind}</td>
+                            <td>
+                                <div class="slds-truncate" title={row.operation}>
+                                    {row.operation}
+                                </div>
+                            </td>
+                            <td>
+                                <div class="slds-truncate" title={row.object}>{row.object}</div>
+                            </td>
+                            <td><span class={row.stateClass}>{row.state}</span></td>
+                            <td>{row.numberRecordsProcessed}</td>
+                            <td>{row.numberRecordsFailed}</td>
+                            <td>
+                                <div class="slds-truncate" title={row.createdDate}>
+                                    {row.createdDate}
+                                </div>
+                            </td>
+                            <td>
+                                <lightning-button
+                                    variant="neutral"
+                                    label="Details"
+                                    data-id={row.id}
+                                    disabled={row.isSelectDisabled}
+                                    onclick={handleSelect}></lightning-button>
+                            </td>
+                        </tr>
+                    </template>
+                    <template lwc:if={hasMoreRows}>
+                        <tr class="slds-hint-parent">
+                            <td colspan="9">
+                                <div
+                                    class="slds-p-around_x-small slds-align_absolute-center slds-gutters_x-small">
+                                    <span
+                                        class="slds-text-body_small slds-text-color_weak slds-m-right_small">
+                                        Showing {renderedRowCount} of {visibleRowCount} matching
+                                        jobs.
+                                    </span>
+                                    <lightning-button
+                                        variant="neutral"
+                                        label="Show more"
+                                        onclick={handleShowMore}></lightning-button>
+                                </div>
+                            </td>
+                        </tr>
+                    </template>
+                </tbody>
+            </table>
+        </div>
+    </template>
+</template>

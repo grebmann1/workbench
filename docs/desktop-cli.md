@@ -4,6 +4,8 @@
 
 The CLI starts Electron when needed, waits for the local automation API, then sends a typed desktop command to the running app. If the app is already running, the command is delivered to the existing instance.
 
+Automation requests are sent to the loopback-only desktop API and include a per-install bearer token read from the desktop user-data directory. Set `WORKBENCH_DESKTOP_API_TOKEN` only for advanced custom automation against a separately managed desktop instance.
+
 ## Commands
 
 Open the app:
@@ -50,6 +52,12 @@ workbench-desktop sf navigate --target-org default-toolkit --app soql
 - `--api-url <url>`: override the automation API URL. Default: `http://127.0.0.1:12346`.
 - `--timeout <ms>`: maximum wait for Electron/automation readiness. Default: `30000`.
 - `--no-wait`: launch Electron and return without waiting for command completion.
+
+## Troubleshooting
+
+- If the CLI cannot reach the desktop app, open Workbench Desktop once so it can create its automation token and local API.
+- If an org alias fails to open, re-authenticate with `sf org login web --alias <alias>` so verbose CLI org details include reusable OAuth credentials.
+- If command output is needed for support, open **Help → Open Logs Folder** in the desktop app and inspect `main.log` before sharing it.
 
 ## Architecture
 

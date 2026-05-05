@@ -22,8 +22,11 @@ import {
     resolveLlmProviderConfigMap,
     saveSingleExtensionConfigToCache,
 } from 'shared/cacheManager';
+import { isInternalProviderBaseUrl } from 'shared/llm';
 import LOGGER from 'shared/logger';
 import { isChromeExtension, isElectronApp, METADATA as METADATA_UTILS } from 'shared/utils';
+
+const INTERNAL_PROVIDER_DOCS_URL = 'https://doc.sf-workbench.com/ai-agent/llm-provider-runtime';
 
 function buildEditableProviderConfigs(config) {
     const currentProviderConfigs = resolveLlmProviderConfigMap(config);
@@ -921,6 +924,23 @@ export default class App extends ToolkitElement {
 
     get isQaModeEnabled() {
         return this.sessionConfig?.client_id === 'SfdcInternalQA/';
+    }
+
+    // True when at least one configured provider endpoint points at the
+    // internal eng-ai-model-gateway. Drives a quiet hint in the AI tab that
+    // links to the internal-gateway quirks doc (OpenAI /responses burst,
+    // Gemini preview thought parts, Opus-4-7 thinking gap).
+    get hasInternalProvider() {
+        const config = this.config || {};
+        return (
+            isInternalProviderBaseUrl(config.openai_url) ||
+            isInternalProviderBaseUrl(config.anthropic_url) ||
+            isInternalProviderBaseUrl(config.gemini_url)
+        );
+    }
+
+    get internalProviderDocsUrl() {
+        return INTERNAL_PROVIDER_DOCS_URL;
     }
 
     get qaModeButtonVariant() {
