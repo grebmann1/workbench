@@ -4,6 +4,9 @@ import path from 'node:path';
 
 import { test as base, chromium, expect, type BrowserContext, type Page } from '@playwright/test';
 
+import { seedSession } from './helpers/seedSession';
+import { waitForConnector } from './helpers/waitForConnector';
+
 /**
  * Absolute path to the built Chrome extension.
  *
@@ -38,6 +41,12 @@ type Fixtures = {
     context: BrowserContext;
     extensionId: string;
     appPage: (applicationName: string) => Promise<Page>;
+    /**
+     * Same shape as `appPage` but seeds a pre-captured sandbox session
+     * into chrome.storage.local before opening the page, then waits for
+     * the connector to be live. Use only in `tests/extension/live/`.
+     */
+    liveAppPage: (applicationName: string) => Promise<Page>;
 };
 
 /**
@@ -117,6 +126,21 @@ export const test = base.extend<Fixtures>({
             // render a heading. LWC shadow DOM is pierced natively by
             // Playwright's ARIA-role locators.
             await expect(page.getByRole('heading').first()).toBeVisible({ timeout: 15_000 });
+            return page;
+        };
+        await use(open);
+    },
+    liveAppPage: async ({ context, extensionId }, use) => {
+        let seeded = false;
+        const open = async (applicationName: string) => {
+            if (!seeded) {
+                await seedSession(context);
+                seeded = true;
+            }
+            const page = await context.newPage();
+            const url = `chrome-extension://${extensionId}/views/app.html?applicationName=${applicationName}`;
+            await page.goto(url);
+            await waitForConnector(page);
             return page;
         };
         await use(open);

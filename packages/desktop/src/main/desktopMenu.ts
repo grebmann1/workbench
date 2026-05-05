@@ -2,9 +2,11 @@ import { app, clipboard, Menu, shell } from 'electron';
 
 type DesktopMenuOptions = {
     apiBaseUrl: string | null;
+    checkForUpdates?: () => void;
     createHomeWindow: () => Promise<unknown>;
     mcpConfigPath?: string | null;
     reportIssueUrl?: string;
+    updateMode?: 'auto' | 'disabled' | 'script-managed';
 };
 
 export function registerDesktopMenu(options: DesktopMenuOptions): void {
@@ -118,6 +120,16 @@ export function registerDesktopMenu(options: DesktopMenuOptions): void {
                     label: 'Open Logs Folder',
                     click: () => {
                         void shell.openPath(app.getPath('logs'));
+                    },
+                },
+                {
+                    label:
+                        options.updateMode === 'script-managed'
+                            ? 'Open Installer Update'
+                            : 'Check for Updates',
+                    enabled: Boolean(options.checkForUpdates) && options.updateMode !== 'disabled',
+                    click: () => {
+                        options.checkForUpdates?.();
                     },
                 },
                 {

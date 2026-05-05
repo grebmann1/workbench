@@ -86,6 +86,7 @@ export default class InputField extends LightningElement {
      * @default standard
      */
     @api variant;
+    @api suppressNoneOption = false;
 
     /**
      * Specifies whether the input fields are read-only. This value defaults to false.

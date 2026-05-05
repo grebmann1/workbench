@@ -33,7 +33,7 @@ const publishers = process.env.GITHUB_TOKEN
               prerelease: process.env.GITHUB_PRERELEASE === 'true',
               repository: {
                   name: process.env.GITHUB_REPOSITORY_NAME || 'workbench',
-                  owner: process.env.GITHUB_REPOSITORY_OWNER || 'grebmann',
+                  owner: process.env.GITHUB_REPOSITORY_OWNER || 'grebmann1',
               },
           }),
       ]

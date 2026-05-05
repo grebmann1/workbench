@@ -17,7 +17,11 @@
                         <span class="slds-scrollable_x" lwc:dom="manual" lwc:ref="value"></span>
                     </template>
                     <template lwc:else>
-                        <slds-input-field field-name={name} lwc:ref="inputfield"></slds-input-field>
+                        <slds-input-field
+                            field-name={name}
+                            variant="label-hidden"
+                            suppress-none-option={suppressNoneOption}
+                            lwc:ref="inputfield"></slds-input-field>
                     </template>
                 </template>
                 <!-- Actions -->

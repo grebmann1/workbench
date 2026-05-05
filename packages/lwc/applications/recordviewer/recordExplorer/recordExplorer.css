@@ -7,7 +7,7 @@
 .tableFixHead table {
     border-collapse: inherit;
     width: 100%;
-    overflow: clip;
+    height: 100%;
 }
 
 .field-column {

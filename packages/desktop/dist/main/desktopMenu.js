@@ -116,6 +116,15 @@ function registerDesktopMenu(options) {
                     },
                 },
                 {
+                    label: options.updateMode === 'script-managed'
+                        ? 'Open Installer Update'
+                        : 'Check for Updates',
+                    enabled: Boolean(options.checkForUpdates) && options.updateMode !== 'disabled',
+                    click: () => {
+                        options.checkForUpdates?.();
+                    },
+                },
+                {
                     label: 'Report Issue',
                     click: () => {
                         void electron_1.shell.openExternal(reportIssueUrl);

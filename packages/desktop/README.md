@@ -83,6 +83,9 @@ See [../../docs/desktop-cli.md](../../docs/desktop-cli.md) for the full command 
 - GitHub publishing and macOS signing/notarization are env-driven through Forge config.
 - Linux makers require `fakeroot` and `rpm` on CI/build hosts.
 - Windows signing is expected to be added through the release workflow secrets before broad distribution.
+- Packaged macOS and Windows builds use `update-electron-app` against `grebmann1/workbench` GitHub Releases by default. Override with `WORKBENCH_DESKTOP_UPDATE_REPO`, `WORKBENCH_DESKTOP_UPDATE_BASE_URL`, or `WORKBENCH_DESKTOP_UPDATE_INTERVAL`.
+- Linux builds are installer-managed. Set `WORKBENCH_DESKTOP_LINUX_INSTALLER_URL` or `WORKBENCH_DESKTOP_INSTALLER_URL` to make **Help → Open Installer Update** launch the internal update script or landing page.
+- Auto-update releases must use semver Git tags such as `v2.0.2`; the public update service ignores draft, prerelease, and non-semver release tags.
 - `start:dev:desktop:all` is the easiest local workflow when the extension bundle is not already being watched.
 - Use `npm run desktop:open -- --org my-alias` to open an authenticated CLI org directly. The desktop host loads `/views/direct.html?alias=my-alias`, the renderer asks the main process for `sf org display --verbose`, and the Electron OAuth strategy reuses the CLI refresh token.
 - Use `npm run desktop:open -- open soql --target-org my-alias --query "SELECT Id FROM User LIMIT 1"` to open SOQL Explorer directly from the CLI.
@@ -93,3 +96,16 @@ See [../../docs/desktop-cli.md](../../docs/desktop-cli.md) for the full command 
 - Desktop automation binds to loopback only and POST requests require the per-install bearer token created in Electron user data.
 - Imported SFDX auth URLs are split before persistence: public org metadata stays in `desktop-store.json`, while token material is encrypted with Electron safe storage.
 - PMD installation uses a pinned GitHub release tag by default. Override with `WORKBENCH_PMD_RELEASE_TAG`; set `WORKBENCH_PMD_SHA256` to enforce an archive checksum.
+- Auto-update is enabled only for packaged macOS and Windows builds unless `WORKBENCH_DESKTOP_ENABLE_AUTO_UPDATE=true` is set during development.
+
+## Auto-Update Verification
+
+Before sharing an auto-updating build broadly:
+
+1. Publish a tagged release for version `N` with the desktop release workflow.
+2. Install the packaged macOS DMG or Windows setup artifact for version `N`.
+3. Publish version `N+1` with a semver tag such as `v2.0.3`.
+4. Confirm the release includes macOS ZIP artifacts and Windows Squirrel artifacts (`.exe`, `.nupkg`, `RELEASES`).
+5. Launch version `N`, wait for the update check, and confirm the update downloads silently.
+6. Confirm the restart prompt appears after download and relaunches into version `N+1`.
+7. Use **Help → Check for Updates** to verify manual checks log either update availability or no update.

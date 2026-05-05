@@ -1,7 +1,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { app, dialog, nativeImage, shell, session, type WebContents } from 'electron';
+import { app, autoUpdater, dialog, nativeImage, shell, session, type WebContents } from 'electron';
+import { updateElectronApp } from 'update-electron-app';
+import startedBySquirrel from 'electron-squirrel-startup';
 
 import { DesktopAutomationServer } from './desktopAutomationServer';
 import { ensureAutomationToken, normalizeAutomationHost } from './desktopAutomationSecurity';
@@ -11,6 +13,7 @@ import { registerDesktopMenu } from './desktopMenu';
 import { getDesktopIconPath, getPackagedWebRoot } from './desktopPaths';
 import { DesktopRendererServer } from './desktopRendererServer';
 import { saveSfdxAuthUrlOrg } from './desktopServices';
+import { createDesktopUpdater, resolveDesktopUpdateConfig } from './desktopUpdater';
 import { registerDesktopIpcRouter } from './ipcRouter';
 import {
     createDefaultLaunchIntent,
@@ -20,6 +23,10 @@ import {
     type DesktopLaunchIntent,
 } from './launchIntent';
 import { WindowManager } from './windowManager';
+
+if (startedBySquirrel) {
+    app.quit();
+}
 
 const preloadPath = path.join(__dirname, '../preload/desktopPreload.js');
 const legacyBus = new DesktopLegacyBus();
@@ -217,6 +224,20 @@ app.whenReady().then(async () => {
     windowManager.setRendererUrl(rendererUrl);
     registerWebContentsGuards(rendererUrl);
 
+    const desktopUpdater = createDesktopUpdater({
+        autoUpdater,
+        config: resolveDesktopUpdateConfig({
+            env: process.env,
+            isPackaged: app.isPackaged,
+            platform: process.platform,
+        }),
+        log: (...parts) => desktopLog.info(...parts),
+        openExternal: url => {
+            void shell.openExternal(url);
+        },
+        updateElectronApp,
+    });
+
     let automationBaseUrl: string | null = null;
     try {
         const automationToken = await ensureAutomationToken(app.getPath('userData'));
@@ -236,8 +257,10 @@ app.whenReady().then(async () => {
 
     registerDesktopMenu({
         apiBaseUrl: automationBaseUrl,
+        checkForUpdates: desktopUpdater.checkForUpdates,
         createHomeWindow: () => windowManager.ensureMainWindow(createDefaultLaunchIntent()),
         mcpConfigPath: getBundledMcpPath(),
+        updateMode: desktopUpdater.status.mode,
     });
     await windowManager.ensureMainWindow(createDefaultLaunchIntent());
 

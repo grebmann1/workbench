@@ -6,6 +6,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const node_fs_1 = __importDefault(require("node:fs"));
 const node_path_1 = __importDefault(require("node:path"));
 const electron_1 = require("electron");
+const update_electron_app_1 = require("update-electron-app");
+const electron_squirrel_startup_1 = __importDefault(require("electron-squirrel-startup"));
 const desktopAutomationServer_1 = require("./desktopAutomationServer");
 const desktopAutomationSecurity_1 = require("./desktopAutomationSecurity");
 const desktopLegacyBus_1 = require("./desktopLegacyBus");
@@ -14,9 +16,13 @@ const desktopMenu_1 = require("./desktopMenu");
 const desktopPaths_1 = require("./desktopPaths");
 const desktopRendererServer_1 = require("./desktopRendererServer");
 const desktopServices_1 = require("./desktopServices");
+const desktopUpdater_1 = require("./desktopUpdater");
 const ipcRouter_1 = require("./ipcRouter");
 const launchIntent_1 = require("./launchIntent");
 const windowManager_1 = require("./windowManager");
+if (electron_squirrel_startup_1.default) {
+    electron_1.app.quit();
+}
 const preloadPath = node_path_1.default.join(__dirname, '../preload/desktopPreload.js');
 const legacyBus = new desktopLegacyBus_1.DesktopLegacyBus();
 let lastLaunchIntent = (0, launchIntent_1.parseLaunchIntent)(process.argv);
@@ -182,6 +188,19 @@ electron_1.app.whenReady().then(async () => {
     rendererUrl = `${baseUrl}/views/app.html`;
     windowManager.setRendererUrl(rendererUrl);
     registerWebContentsGuards(rendererUrl);
+    const desktopUpdater = (0, desktopUpdater_1.createDesktopUpdater)({
+        autoUpdater: electron_1.autoUpdater,
+        config: (0, desktopUpdater_1.resolveDesktopUpdateConfig)({
+            env: process.env,
+            isPackaged: electron_1.app.isPackaged,
+            platform: process.platform,
+        }),
+        log: (...parts) => desktopLogger_1.desktopLog.info(...parts),
+        openExternal: url => {
+            void electron_1.shell.openExternal(url);
+        },
+        updateElectronApp: update_electron_app_1.updateElectronApp,
+    });
     let automationBaseUrl = null;
     try {
         const automationToken = await (0, desktopAutomationSecurity_1.ensureAutomationToken)(electron_1.app.getPath('userData'));
@@ -201,8 +220,10 @@ electron_1.app.whenReady().then(async () => {
     }
     (0, desktopMenu_1.registerDesktopMenu)({
         apiBaseUrl: automationBaseUrl,
+        checkForUpdates: desktopUpdater.checkForUpdates,
         createHomeWindow: () => windowManager.ensureMainWindow((0, launchIntent_1.createDefaultLaunchIntent)()),
         mcpConfigPath: getBundledMcpPath(),
+        updateMode: desktopUpdater.status.mode,
     });
     await windowManager.ensureMainWindow((0, launchIntent_1.createDefaultLaunchIntent)());
     await handleLaunchIntent(lastLaunchIntent);

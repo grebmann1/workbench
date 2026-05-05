@@ -9,6 +9,13 @@ import {
     isSalesforceId,
 } from 'shared/utils';
 
+import {
+    buildRecordTypePicklistValues,
+    getRecordTypeEditorField,
+    isRecordTypeField,
+    RECORD_TYPE_FIELD_NAME,
+} from './recordTypeOptions';
+
 export default class RecordExplorerRow extends ToolkitElement {
     @api item: Record<string, any> | null = null;
     @api isLoading = false;
@@ -176,6 +183,10 @@ export default class RecordExplorerRow extends ToolkitElement {
         );
     }
 
+    get suppressNoneOption() {
+        return isRecordTypeField(this.name);
+    }
+
     get formattedFieldName() {
         const _name = this.isLabelDisplayed ? this.label : this.name;
 
@@ -321,14 +332,25 @@ export default class RecordExplorerRow extends ToolkitElement {
         this.isEditMode = true;
         setTimeout(() => {
             const uiField = this.metadata.fields.find(x => x.name === this.name);
+            const recordTypePicklistValues =
+                this.name === RECORD_TYPE_FIELD_NAME
+                    ? buildRecordTypePicklistValues(
+                          this.metadata.recordTypeInfos,
+                          this.record?.RecordTypeId
+                      )
+                    : null;
+            const hasRecordTypeOptions =
+                recordTypePicklistValues?.[RECORD_TYPE_FIELD_NAME]?.length > 0;
             this.refs.inputfield.wireRecordAndMetadata({
                 record: this.record,
                 objectInfo: this.metadata,
-                uiField,
+                uiField: hasRecordTypeOptions ? getRecordTypeEditorField(uiField) : uiField,
             });
             //console.log('uiField',uiField);
             // Passing all picklists
-            if (this.isPicklist) {
+            if (hasRecordTypeOptions) {
+                this.refs.inputfield.wirePicklistValues(recordTypePicklistValues);
+            } else if (this.isPicklist) {
                 const picklistValues = this.metadata.fields
                     .filter(x => x.type == 'picklist' || x.type == 'multipicklist')
                     .reduce(

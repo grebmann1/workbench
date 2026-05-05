@@ -127,7 +127,11 @@ Use the desktop app when you want Workbench outside Chrome, want to reuse Salesf
 
 ### Updates
 
-Until automatic update checks are enabled, install new desktop versions from the latest release artifact. The app version is exposed from the local renderer `/version` endpoint and in the desktop app metadata.
+Packaged macOS and Windows builds check for updates from GitHub Releases at startup and then periodically in the background. When an update has downloaded, Workbench prompts you to restart now or later. You can also choose **Help → Check for Updates**.
+
+Linux builds are installer-managed. If your internal installer script exposes an update URL, set `WORKBENCH_DESKTOP_LINUX_INSTALLER_URL` or `WORKBENCH_DESKTOP_INSTALLER_URL`; **Help → Open Installer Update** will open that script or landing page.
+
+Auto-update releases must be published from semver tags such as `v2.0.2`, and the release must include macOS ZIP and Windows Squirrel artifacts. DMG files are useful for first install, but the updater uses the update feed assets.
 
 ### Desktop org access
 
