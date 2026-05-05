@@ -130,6 +130,27 @@ export async function setDesktopStoredOrg(payload: Record<string, unknown>): Pro
     return getLegacyElectronApi()?.invoke?.('org-setStoredOrg', payload);
 }
 
+export async function startDesktopOAuth(payload: {
+    alias: string;
+    loginUrl: string;
+}): Promise<unknown> {
+    const desktopApi = getDesktopApi();
+    if (desktopApi?.startOAuth) {
+        return desktopApi.startOAuth(payload);
+    }
+
+    const response = (await getLegacyElectronApi()?.invoke?.('org-createNewOrgAlias', {
+        alias: payload.alias,
+        instanceurl: payload.loginUrl,
+    })) as { error?: unknown; result?: unknown; res?: unknown } | undefined;
+
+    if (response?.error) {
+        throw response.error;
+    }
+
+    return response?.result || response?.res;
+}
+
 export async function getDesktopStoredOrg(alias: string): Promise<any> {
     const desktopApi = getDesktopApi();
     if (desktopApi?.getStoredOrg) {

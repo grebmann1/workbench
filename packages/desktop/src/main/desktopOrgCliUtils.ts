@@ -14,6 +14,10 @@ export function buildSfdxOrgDisplayArgs(alias: string): string[] {
     return ['force:org:display', '--targetusername', alias, '--json', '--verbose'];
 }
 
+export function buildSfOrgLoginWebArgs(alias: string, loginUrl: string): string[] {
+    return ['org', 'login', 'web', '--alias', alias, '--instance-url', loginUrl];
+}
+
 export function assertCliOrgHasOAuthCredentials<T extends Record<string, unknown>>(
     alias: string,
     orgDetails: T

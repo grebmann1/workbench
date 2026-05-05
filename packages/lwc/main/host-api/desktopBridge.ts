@@ -11,6 +11,7 @@ export {
     openDesktopInstance,
     openDesktopOrgUrl,
     setDesktopStoredOrg,
+    startDesktopOAuth,
     getDesktopStoredOrg,
     getDesktopOrgs,
     getDesktopCodeInitialConfig,

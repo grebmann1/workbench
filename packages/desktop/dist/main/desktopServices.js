@@ -16,6 +16,7 @@ exports.runShellCommand = runShellCommand;
 exports.runSfdxAnalyzerCommand = runSfdxAnalyzerCommand;
 exports.saveStoredOrg = saveStoredOrg;
 exports.saveSfdxAuthUrlOrg = saveSfdxAuthUrlOrg;
+exports.startOAuthLogin = startOAuthLogin;
 exports.installLatestPmd = installLatestPmd;
 exports.getStoredOrg = getStoredOrg;
 exports.getAllStoredOrgs = getAllStoredOrgs;
@@ -41,9 +42,13 @@ const DEFAULT_STORE = {
     configs: {},
 };
 const DEFAULT_SOURCE_API_VERSION = '66.0';
+const OAUTH_LOCAL_PORT = 1717;
 const PMD_RELEASE_TAG = process.env.WORKBENCH_PMD_RELEASE_TAG || 'pmd_releases/7.18.0';
 const PMD_RELEASES_API_URL = `https://api.github.com/repos/pmd/pmd/releases/tags/${PMD_RELEASE_TAG}`;
 const PMD_EXPECTED_SHA256 = process.env.WORKBENCH_PMD_SHA256 || null;
+let activeOAuthLoginPromise = null;
+let activeOAuthLoginProcess = null;
+let activeOAuthLoginRunId = 0;
 function getStorePath() {
     return node_path_1.default.join(electron_1.app.getPath('userData'), 'desktop-store.json');
 }
@@ -331,6 +336,70 @@ function runCliCommand(command, args, cwd) {
             `Command failed: ${command} ${args.join(' ')}`);
     }
 }
+function shellQuote(value) {
+    return `'${value.replace(/'/g, `'\\''`)}'`;
+}
+function runInteractiveShellCommand(command, onProcess) {
+    return new Promise((resolve, reject) => {
+        const child = (0, node_child_process_1.exec)(command, (error, stdout, stderr) => {
+            if (error) {
+                if (error.killed) {
+                    reject(new Error('Salesforce CLI OAuth login was cancelled.'));
+                    return;
+                }
+                reject(new Error(cleanCliErrorMessage(stderr || stdout || error.message)));
+                return;
+            }
+            resolve(stdout);
+        });
+        onProcess?.(child);
+    });
+}
+function cleanCliErrorMessage(message) {
+    const stripped = String(message || '').replace(/\u001b\[[0-9;]*m/g, '');
+    if (/Killed:\s*9/.test(stripped)) {
+        return 'Salesforce CLI OAuth process was interrupted while resetting the local callback server. Please retry.';
+    }
+    const lines = stripped
+        .split(/\r?\n/)
+        .map(line => line.trim())
+        .filter(line => {
+        if (!line) {
+            return false;
+        }
+        return (!line.includes('@salesforce/cli update available') &&
+            !line.includes('flag has been deprecated'));
+    });
+    return lines.join('\n') || stripped.trim() || 'Salesforce CLI OAuth login failed.';
+}
+function killProcessOnPort(port) {
+    return new Promise(resolve => {
+        (0, node_child_process_1.exec)(`lsof -ti:${String(port)} | xargs kill -9`, () => {
+            resolve();
+        });
+    });
+}
+function cancelActiveOAuthLogin() {
+    if (activeOAuthLoginProcess && !activeOAuthLoginProcess.killed) {
+        activeOAuthLoginProcess.kill('SIGKILL');
+    }
+    activeOAuthLoginProcess = null;
+    activeOAuthLoginPromise = null;
+}
+function normalizeOAuthLoginUrl(loginUrl) {
+    const value = String(loginUrl || '').trim();
+    if (!value) {
+        return 'https://login.salesforce.com';
+    }
+    return value.startsWith('http://') || value.startsWith('https://') ? value : `https://${value}`;
+}
+function getOAuthLoginCommand(alias, loginUrl) {
+    const command = getCommandPath('sf');
+    if (!command) {
+        throw new Error('Salesforce CLI sf is required for desktop OAuth login.');
+    }
+    return [shellQuote(command), ...(0, desktopOrgCliUtils_1.buildSfOrgLoginWebArgs)(alias, loginUrl).map(shellQuote)].join(' ');
+}
 async function renameCliOrgAlias(oldAlias, newAlias) {
     const command = getPreferredSfCommand();
     if (!command) {
@@ -572,6 +641,32 @@ async function saveSfdxAuthUrlOrg(alias, sfdxAuthUrl) {
         refreshToken,
         sfdxAuthUrl,
     });
+}
+async function startOAuthLogin(payload) {
+    if (activeOAuthLoginPromise) {
+        cancelActiveOAuthLogin();
+    }
+    const alias = String(payload.alias || '').trim();
+    if (!alias) {
+        throw new Error('Alias is required for desktop OAuth login.');
+    }
+    const loginUrl = normalizeOAuthLoginUrl(payload.loginUrl);
+    const command = getOAuthLoginCommand(alias, loginUrl);
+    const runId = ++activeOAuthLoginRunId;
+    await killProcessOnPort(OAUTH_LOCAL_PORT);
+    activeOAuthLoginPromise = runInteractiveShellCommand(command, child => {
+        if (activeOAuthLoginRunId === runId) {
+            activeOAuthLoginProcess = child;
+        }
+    })
+        .then(res => ({ res }))
+        .finally(() => {
+        if (activeOAuthLoginRunId === runId) {
+            activeOAuthLoginPromise = null;
+            activeOAuthLoginProcess = null;
+        }
+    });
+    return activeOAuthLoginPromise;
 }
 async function installLatestPmd(projectPath) {
     if (!projectPath) {

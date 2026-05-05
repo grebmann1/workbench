@@ -19,6 +19,7 @@ import {
     selectCodeProject,
     setConfigValue,
     seeOrgDetails,
+    startOAuthLogin,
 } from './desktopServices';
 import type { DesktopLaunchIntent } from './launchIntent';
 
@@ -130,6 +131,12 @@ export function registerDesktopIpcRouter({
         'desktop:set-stored-org',
         trustedHandler(async (_event, payload: Record<string, any>) => {
             return saveStoredOrg(payload.alias, payload.configuration);
+        })
+    );
+    ipcMain.handle(
+        'desktop:start-oauth',
+        trustedHandler(async (_event, payload: { alias: string; loginUrl: string }) => {
+            return startOAuthLogin(payload);
         })
     );
     ipcMain.handle(
@@ -267,6 +274,14 @@ export function registerDesktopIpcRouter({
                     return {
                         error: null,
                         result: await saveStoredOrg(args.alias, args.configuration),
+                    };
+                case 'org-createNewOrgAlias':
+                    return {
+                        error: null,
+                        result: await startOAuthLogin({
+                            alias: args.alias,
+                            loginUrl: args.instanceurl || args.loginUrl,
+                        }),
                     };
                 case 'org-seeDetails':
                     return { error: null, res: await seeOrgDetails(args.alias) };

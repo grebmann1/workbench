@@ -11,7 +11,7 @@ import {
 } from 'core/connector';
 const { showToast, handleError } = notificationService;
 import type { ConnectorLike } from 'core/connector';
-import { setDesktopStoredOrg } from 'core/desktopBridge';
+import { setDesktopStoredOrg, startDesktopOAuth } from 'core/desktopBridge';
 import LOGGER from 'shared/logger';
 import { isEmpty, isNotUndefinedOrNull, isElectronApp, checkIfPresent } from 'shared/utils';
 
@@ -315,16 +315,9 @@ export default class ConnectionNewModal extends LightningModal {
 
     electron_oauth = async () => {
         try {
-            const connector: ConnectorLike = await credentialStrategies.OAUTH.connect(
-                {
-                    alias: this.alias,
-                    loginUrl: this.loginUrl,
-                },
-                { saveFullConfiguration: false, persist: false }
-            );
-            const result = await setDesktopStoredOrg({
-                alias: this.alias,
-                configuration: connector.configuration,
+            const result = await startDesktopOAuth({
+                alias: this.alias || '',
+                loginUrl: this.loginUrl,
             });
             showToast({ label: 'Connected successfully!', variant: 'success' });
             this.close(result);

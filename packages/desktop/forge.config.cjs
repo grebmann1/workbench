@@ -69,7 +69,7 @@ module.exports = {
     },
     rebuildConfig: {},
     makers: [
-        new MakerDMG({ name: artifactName }, ['darwin']),
+        new MakerDMG({ name: 'Workbench' }, ['darwin']),
         new MakerZIP({ name: artifactName }, ['darwin']),
         new MakerSquirrel(
             {

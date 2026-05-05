@@ -1,0 +1,15 @@
+id: workbench
+name: Workbench
+summary: Chrome extension for Salesforce administration, SOQL, metadata, API, org access, and AI-assisted workflows.
+homepage: https://github.com/grebmann1/workbench
+category: salesforce
+owner: grebmann
+surfaces:
+  chromeExtension:
+    primary: true
+    install: ./scripts/install-chrome-extension.sh
+    webStoreUrl: https://chromewebstore.google.com/detail/salesforce-toolkit/konbmllgicfccombdckckakhnmejjoei?hl=en
+notes:
+  - Initial DevBar submission includes only the Chrome extension path.
+  - The script opens the Chrome Web Store listing; enterprise policy install can be added after DevBar maintainers confirm addon privileges.
+  - Workbench Desktop macOS installation is deferred until the packaging/release asset flow is ready for DevBar.

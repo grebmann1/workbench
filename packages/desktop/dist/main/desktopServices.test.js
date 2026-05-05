@@ -49,6 +49,17 @@ const desktopServiceUtils_1 = require("./desktopServiceUtils");
         '--verbose',
     ]);
 });
+(0, node_test_1.default)('Salesforce CLI OAuth login command uses sf with alias and instance URL', () => {
+    strict_1.default.deepEqual((0, desktopOrgCliUtils_1.buildSfOrgLoginWebArgs)('dev-org', 'https://test.salesforce.com'), [
+        'org',
+        'login',
+        'web',
+        '--alias',
+        'dev-org',
+        '--instance-url',
+        'https://test.salesforce.com',
+    ]);
+});
 (0, node_test_1.default)('assertCliOrgHasOAuthCredentials returns CLI orgs with usable OAuth credentials', () => {
     const org = {
         alias: 'dev-org',

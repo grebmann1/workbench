@@ -77,6 +77,8 @@ const desktopApi = {
         ipcRenderer.invoke('desktop:open-org-url', payload),
     setStoredOrg: (payload: Record<string, any>): Promise<any> =>
         ipcRenderer.invoke('desktop:set-stored-org', payload),
+    startOAuth: (payload: { alias: string; loginUrl: string }): Promise<any> =>
+        ipcRenderer.invoke('desktop:start-oauth', payload),
     getStoredOrg: (alias: string): Promise<any> =>
         ipcRenderer.invoke('desktop:get-stored-org', alias),
     getAllOrgs: (): Promise<any> => ipcRenderer.invoke('desktop:get-all-orgs'),

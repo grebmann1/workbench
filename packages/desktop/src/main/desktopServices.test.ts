@@ -4,6 +4,7 @@ import test from 'node:test';
 import {
     assertCliOrgHasOAuthCredentials,
     buildSfOrgDisplayArgs,
+    buildSfOrgLoginWebArgs,
     buildSfOrgListArgs,
     buildSfdxOrgDisplayArgs,
     buildSfdxOrgListArgs,
@@ -65,6 +66,18 @@ test('Salesforce CLI org display commands request verbose auth details for the a
         'dev-org',
         '--json',
         '--verbose',
+    ]);
+});
+
+test('Salesforce CLI OAuth login command uses sf with alias and instance URL', () => {
+    assert.deepEqual(buildSfOrgLoginWebArgs('dev-org', 'https://test.salesforce.com'), [
+        'org',
+        'login',
+        'web',
+        '--alias',
+        'dev-org',
+        '--instance-url',
+        'https://test.salesforce.com',
     ]);
 });
 

@@ -59,6 +59,9 @@ function registerDesktopIpcRouter({ getLaunchIntent, getRendererUrl, handleLegac
     electron_1.ipcMain.handle('desktop:set-stored-org', trustedHandler(async (_event, payload) => {
         return (0, desktopServices_1.saveStoredOrg)(payload.alias, payload.configuration);
     }));
+    electron_1.ipcMain.handle('desktop:start-oauth', trustedHandler(async (_event, payload) => {
+        return (0, desktopServices_1.startOAuthLogin)(payload);
+    }));
     electron_1.ipcMain.handle('desktop:get-stored-org', trustedHandler(async (_event, alias) => {
         return (0, desktopServices_1.seeOrgDetails)(alias);
     }));
@@ -137,6 +140,14 @@ function registerDesktopIpcRouter({ getLaunchIntent, getRendererUrl, handleLegac
                 return {
                     error: null,
                     result: await (0, desktopServices_1.saveStoredOrg)(args.alias, args.configuration),
+                };
+            case 'org-createNewOrgAlias':
+                return {
+                    error: null,
+                    result: await (0, desktopServices_1.startOAuthLogin)({
+                        alias: args.alias,
+                        loginUrl: args.instanceurl || args.loginUrl,
+                    }),
                 };
             case 'org-seeDetails':
                 return { error: null, res: await (0, desktopServices_1.seeOrgDetails)(args.alias) };

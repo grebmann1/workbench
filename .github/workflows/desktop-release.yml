@@ -49,9 +49,28 @@ jobs:
             - name: Make desktop artifacts
               run: npm --prefix packages/desktop run make
 
+            - name: Normalize macOS DevBar ZIP asset
+              if: runner.os == 'macOS'
+              shell: bash
+              run: |
+                  set -euo pipefail
+                  mkdir -p packages/desktop/out/make/devbar
+                  app_path="$(ls -d packages/desktop/out/*-darwin-*/Workbench\ Desktop.app | head -n 1)"
+                  if [ -z "$app_path" ]; then
+                    echo "No packaged Workbench Desktop.app found under packages/desktop/out"
+                    exit 1
+                  fi
+                  ditto -c -k --sequesterRsrc --keepParent "$app_path" "packages/desktop/out/make/devbar/workbench-desktop-darwin-${{ runner.arch == 'ARM64' && 'arm64' || 'amd64' }}-latest.zip"
+
             - name: Publish desktop artifacts
               if: startsWith(github.ref, 'refs/tags/v')
               run: npm --prefix packages/desktop exec -- electron-forge publish
+
+            - name: Publish macOS DevBar ZIP alias
+              if: startsWith(github.ref, 'refs/tags/v') && runner.os == 'macOS'
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              run: gh release upload "${GITHUB_REF_NAME}" packages/desktop/out/make/devbar/*.zip --clobber
 
             - name: Upload desktop artifacts
               uses: actions/upload-artifact@v4

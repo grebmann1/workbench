@@ -18,6 +18,7 @@ const desktopApi = {
     openInstance: (payload) => electron_1.ipcRenderer.invoke('desktop:open-instance', payload),
     openOrgUrl: (payload) => electron_1.ipcRenderer.invoke('desktop:open-org-url', payload),
     setStoredOrg: (payload) => electron_1.ipcRenderer.invoke('desktop:set-stored-org', payload),
+    startOAuth: (payload) => electron_1.ipcRenderer.invoke('desktop:start-oauth', payload),
     getStoredOrg: (alias) => electron_1.ipcRenderer.invoke('desktop:get-stored-org', alias),
     getAllOrgs: () => electron_1.ipcRenderer.invoke('desktop:get-all-orgs'),
     openExternal: (url) => electron_1.ipcRenderer.invoke('desktop:open-external', url),

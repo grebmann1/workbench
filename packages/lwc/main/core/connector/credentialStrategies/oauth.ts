@@ -11,6 +11,8 @@ import { saveConfiguration } from '../web';
 import { OAUTH_TYPES } from './oauthTypes';
 
 const FULL_SCOPE = 'id api web openid sfap_api einstein_gpt_api refresh_token';
+const OAUTH_CONFIGURATION_REQUIRED_MESSAGE =
+    'OAuth connection requires a saved configuration with an instance URL and refresh token.';
 
 function clearOAuthError(config) {
     if (config) {
@@ -19,7 +21,17 @@ function clearOAuthError(config) {
     }
 }
 
+function assertOAuthConfiguration(
+    configuration: Record<string, any> | null | undefined
+): asserts configuration is Record<string, any> {
+    if (!configuration?.instanceUrl || !configuration?.refreshToken) {
+        throw new Error(OAUTH_CONFIGURATION_REQUIRED_MESSAGE);
+    }
+}
+
 export async function directConnect(configuration: Record<string, any>): Promise<ConnectorLike> {
+    assertOAuthConfiguration(configuration);
+
     const platform = getCurrentPlatform();
     const connectionParams = normalizeConnection(OAUTH_TYPES.OAUTH, configuration, platform);
     LOGGER.log('connectionParams', connectionParams);
@@ -275,11 +287,10 @@ export async function connect(
     } else if (platform === PLATFORM.ELECTRON) {
         LOGGER.log('Electron OAuth');
         // Electron OAuth
-        return new Promise(async (resolve, reject) => {
-            const connector = await directConnect(configuration);
-            console.log('connect -> connector', connector);
-            resolve(connector);
-        });
+        assertOAuthConfiguration(configuration);
+        const connector = await directConnect(configuration);
+        console.log('connect -> connector', connector);
+        return connector;
     } else {
         throw new Error('OAuth connect is not implemented for this platform');
     }

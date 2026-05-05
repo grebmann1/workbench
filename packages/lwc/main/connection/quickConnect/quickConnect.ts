@@ -3,6 +3,10 @@ import type { ConnectorLike } from 'core/connector';
 import { store, APPLICATION } from 'core/store';
 import Toast from 'lightning/toast';
 import LOGGER from 'shared/logger';
+import { isElectronApp } from 'shared/utils';
+
+const DESKTOP_QUICK_CONNECT_UNSUPPORTED_MESSAGE =
+    'Quick Connect is not available in Workbench Desktop. Open a saved Salesforce CLI org or use Manual Session from Connections.';
 
 type QuickConnectOptions = {
     setLoading?: (message: string) => void;
@@ -11,6 +15,12 @@ type QuickConnectOptions = {
     onError?: (error: Error) => void;
     loginUrl?: string;
     isSandbox?: boolean;
+};
+
+type JsforceSettingsWindow = Window & {
+    jsforceSettings?: {
+        loginUrl?: string;
+    };
 };
 
 export async function runQuickConnect({
@@ -26,9 +36,14 @@ export async function runQuickConnect({
     }
 
     try {
+        if (isElectronApp()) {
+            throw new Error(DESKTOP_QUICK_CONNECT_UNSUPPORTED_MESSAGE);
+        }
+
+        const jsforceWindow = window as JsforceSettingsWindow;
         const defaultLoginUrl = isSandbox
             ? 'https://test.salesforce.com'
-            : window?.jsforceSettings?.loginUrl || 'https://login.salesforce.com';
+            : jsforceWindow.jsforceSettings?.loginUrl || 'https://login.salesforce.com';
         const loginUrl = loginUrlOverride || defaultLoginUrl;
         const alias = `direct-session-${Date.now()}`;
         const connector: ConnectorLike = await credentialStrategies[OAUTH_TYPES.OAUTH].connect(
@@ -37,7 +52,11 @@ export async function runQuickConnect({
         );
 
         if (connector?.hasError) {
-            throw new Error(connector.errorMessage || 'Unable to establish direct connection');
+            const message =
+                typeof connector.errorMessage === 'string'
+                    ? connector.errorMessage
+                    : 'Unable to establish direct connection';
+            throw new Error(message);
         }
 
         store.dispatch(APPLICATION.reduxSlice.actions.login({ connector }));
@@ -55,17 +74,18 @@ export async function runQuickConnect({
 
         return connector;
     } catch (e) {
-        LOGGER.error('runQuickConnect error', e);
+        const error = e instanceof Error ? e : new Error(String(e));
+        LOGGER.error('runQuickConnect error', error);
         if (typeof onError === 'function') {
-            onError(e);
+            onError(error);
         }
         Toast.show({
             label: 'Direct connection failed',
-            message: e?.message || String(e),
+            message: error.message,
             variant: 'error',
             mode: 'dismissible',
         });
-        throw e;
+        return null;
     } finally {
         if (typeof resetLoading === 'function') {
             resetLoading();

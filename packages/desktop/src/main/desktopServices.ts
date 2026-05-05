@@ -1,4 +1,4 @@
-import { spawn, spawnSync } from 'node:child_process';
+import { exec, spawn, spawnSync, type ChildProcess } from 'node:child_process';
 import crypto from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -16,6 +16,7 @@ import { desktopLog } from './desktopLogger';
 import {
     assertCliOrgHasOAuthCredentials,
     buildSfOrgDisplayArgs,
+    buildSfOrgLoginWebArgs,
     buildSfOrgListArgs,
     buildSfdxOrgDisplayArgs,
     buildSfdxOrgListArgs,
@@ -41,11 +42,16 @@ const DEFAULT_STORE: DesktopStore = {
     configs: {},
 };
 const DEFAULT_SOURCE_API_VERSION = '66.0';
+const OAUTH_LOCAL_PORT = 1717;
 const PMD_RELEASE_TAG = process.env.WORKBENCH_PMD_RELEASE_TAG || 'pmd_releases/7.18.0';
 const PMD_RELEASES_API_URL = `https://api.github.com/repos/pmd/pmd/releases/tags/${PMD_RELEASE_TAG}`;
 const PMD_EXPECTED_SHA256 = process.env.WORKBENCH_PMD_SHA256 || null;
 
 type StreamEventSender = (payload: Record<string, unknown>) => void;
+
+let activeOAuthLoginPromise: Promise<any> | null = null;
+let activeOAuthLoginProcess: ChildProcess | null = null;
+let activeOAuthLoginRunId = 0;
 
 function getStorePath(): string {
     return path.join(app.getPath('userData'), 'desktop-store.json');
@@ -432,6 +438,84 @@ function runCliCommand(command: string, args: string[], cwd?: string): void {
     }
 }
 
+function shellQuote(value: string): string {
+    return `'${value.replace(/'/g, `'\\''`)}'`;
+}
+
+function runInteractiveShellCommand(
+    command: string,
+    onProcess?: (process: ChildProcess) => void
+): Promise<string> {
+    return new Promise((resolve, reject) => {
+        const child = exec(command, (error, stdout, stderr) => {
+            if (error) {
+                if (error.killed) {
+                    reject(new Error('Salesforce CLI OAuth login was cancelled.'));
+                    return;
+                }
+                reject(new Error(cleanCliErrorMessage(stderr || stdout || error.message)));
+                return;
+            }
+            resolve(stdout);
+        });
+        onProcess?.(child);
+    });
+}
+
+function cleanCliErrorMessage(message: string): string {
+    const stripped = String(message || '').replace(/\u001b\[[0-9;]*m/g, '');
+    if (/Killed:\s*9/.test(stripped)) {
+        return 'Salesforce CLI OAuth process was interrupted while resetting the local callback server. Please retry.';
+    }
+    const lines = stripped
+        .split(/\r?\n/)
+        .map(line => line.trim())
+        .filter(line => {
+            if (!line) {
+                return false;
+            }
+            return (
+                !line.includes('@salesforce/cli update available') &&
+                !line.includes('flag has been deprecated')
+            );
+        });
+    return lines.join('\n') || stripped.trim() || 'Salesforce CLI OAuth login failed.';
+}
+
+function killProcessOnPort(port: number): Promise<void> {
+    return new Promise(resolve => {
+        exec(`lsof -ti:${String(port)} | xargs kill -9`, () => {
+            resolve();
+        });
+    });
+}
+
+function cancelActiveOAuthLogin() {
+    if (activeOAuthLoginProcess && !activeOAuthLoginProcess.killed) {
+        activeOAuthLoginProcess.kill('SIGKILL');
+    }
+    activeOAuthLoginProcess = null;
+    activeOAuthLoginPromise = null;
+}
+
+function normalizeOAuthLoginUrl(loginUrl: string): string {
+    const value = String(loginUrl || '').trim();
+    if (!value) {
+        return 'https://login.salesforce.com';
+    }
+    return value.startsWith('http://') || value.startsWith('https://') ? value : `https://${value}`;
+}
+
+function getOAuthLoginCommand(alias: string, loginUrl: string): string {
+    const command = getCommandPath('sf');
+    if (!command) {
+        throw new Error('Salesforce CLI sf is required for desktop OAuth login.');
+    }
+    return [shellQuote(command), ...buildSfOrgLoginWebArgs(alias, loginUrl).map(shellQuote)].join(
+        ' '
+    );
+}
+
 async function renameCliOrgAlias(oldAlias: string, newAlias: string): Promise<void> {
     const command = getPreferredSfCommand();
     if (!command) {
@@ -769,6 +853,36 @@ export async function saveSfdxAuthUrlOrg(alias: string, sfdxAuthUrl: string): Pr
         refreshToken,
         sfdxAuthUrl,
     });
+}
+
+export async function startOAuthLogin(payload: { alias: string; loginUrl: string }): Promise<any> {
+    if (activeOAuthLoginPromise) {
+        cancelActiveOAuthLogin();
+    }
+
+    const alias = String(payload.alias || '').trim();
+    if (!alias) {
+        throw new Error('Alias is required for desktop OAuth login.');
+    }
+
+    const loginUrl = normalizeOAuthLoginUrl(payload.loginUrl);
+    const command = getOAuthLoginCommand(alias, loginUrl);
+    const runId = ++activeOAuthLoginRunId;
+
+    await killProcessOnPort(OAUTH_LOCAL_PORT);
+    activeOAuthLoginPromise = runInteractiveShellCommand(command, child => {
+        if (activeOAuthLoginRunId === runId) {
+            activeOAuthLoginProcess = child;
+        }
+    })
+        .then(res => ({ res }))
+        .finally(() => {
+            if (activeOAuthLoginRunId === runId) {
+                activeOAuthLoginPromise = null;
+                activeOAuthLoginProcess = null;
+            }
+        });
+    return activeOAuthLoginPromise;
 }
 
 export async function installLatestPmd(projectPath: string | null | undefined): Promise<{
