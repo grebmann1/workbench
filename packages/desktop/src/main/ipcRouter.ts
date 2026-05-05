@@ -39,6 +39,18 @@ function isSafeExternalUrl(url: string): boolean {
     }
 }
 
+function assertTrustedSender(
+    event: Electron.IpcMainInvokeEvent | Electron.IpcMainEvent,
+    rendererUrl: string
+): void {
+    const senderUrl = event.senderFrame?.url || event.sender.getURL();
+    const expectedOrigin = new URL(rendererUrl).origin;
+    const senderOrigin = new URL(senderUrl).origin;
+    if (senderOrigin !== expectedOrigin) {
+        throw new Error('Rejected desktop IPC from an untrusted origin.');
+    }
+}
+
 export function registerDesktopIpcRouter({
     getLaunchIntent,
     getRendererUrl,
@@ -54,126 +66,192 @@ export function registerDesktopIpcRouter({
         event.sender.send(`desktop:legacy:${channel}`, payload);
     };
 
-    ipcMain.handle('desktop:get-app-info', () => ({
-        appName: app.getName(),
-        appVersion: app.getVersion(),
-        isPackaged: app.isPackaged,
-        platform: process.platform,
-        rendererUrl: getRendererUrl(),
-    }));
+    const trustedHandler =
+        <T extends unknown[], R>(
+            handler: (event: Electron.IpcMainInvokeEvent, ...args: T) => R | Promise<R>
+        ) =>
+        async (event: Electron.IpcMainInvokeEvent, ...args: T): Promise<R> => {
+            assertTrustedSender(event, getRendererUrl());
+            return handler(event, ...args);
+        };
 
-    ipcMain.handle('desktop:get-launch-intent', () => getLaunchIntent());
-    ipcMain.handle('desktop:check-commands', async () => getCommandAvailability());
-    ipcMain.handle('desktop:open-external', async (_event, url: string) => {
-        if (!isSafeExternalUrl(url)) {
-            throw new Error('Only https: and mailto: URLs can be opened externally.');
-        }
+    ipcMain.handle(
+        'desktop:get-app-info',
+        trustedHandler(() => ({
+            appName: app.getName(),
+            appVersion: app.getVersion(),
+            isPackaged: app.isPackaged,
+            platform: process.platform,
+            rendererUrl: getRendererUrl(),
+        }))
+    );
 
-        await shell.openExternal(url);
-        return { success: true };
-    });
-    ipcMain.handle('desktop:open-logs-folder', async () => {
-        await shell.openPath(app.getPath('logs'));
-        return { success: true };
-    });
-    ipcMain.handle('desktop:open-instance', async (_event, payload: Record<string, any>) => {
-        await openInstance(payload);
-        return { success: true };
-    });
-    ipcMain.handle('desktop:open-org-url', async (_event, payload: Record<string, any>) => {
-        await openOrgUrl(payload);
-        return { success: true };
-    });
-    ipcMain.handle('desktop:set-stored-org', async (_event, payload: Record<string, any>) => {
-        return saveStoredOrg(payload.alias, payload.configuration);
-    });
-    ipcMain.handle('desktop:get-stored-org', async (_event, alias: string) => {
-        return seeOrgDetails(alias);
-    });
-    ipcMain.handle('desktop:get-all-orgs', async () => getAllOrgs());
-    ipcMain.handle('desktop:get-code-initial-config', async (_event, alias: string) => {
-        return getCodeInitialConfig(alias);
-    });
+    ipcMain.handle(
+        'desktop:get-launch-intent',
+        trustedHandler(() => getLaunchIntent())
+    );
+    ipcMain.handle(
+        'desktop:check-commands',
+        trustedHandler(async () => getCommandAvailability())
+    );
+    ipcMain.handle(
+        'desktop:open-external',
+        trustedHandler(async (_event, url: string) => {
+            if (!isSafeExternalUrl(url)) {
+                throw new Error('Only https: and mailto: URLs can be opened externally.');
+            }
+
+            await shell.openExternal(url);
+            return { success: true };
+        })
+    );
+    ipcMain.handle(
+        'desktop:open-logs-folder',
+        trustedHandler(async () => {
+            await shell.openPath(app.getPath('logs'));
+            return { success: true };
+        })
+    );
+    ipcMain.handle(
+        'desktop:open-instance',
+        trustedHandler(async (_event, payload: Record<string, any>) => {
+            await openInstance(payload);
+            return { success: true };
+        })
+    );
+    ipcMain.handle(
+        'desktop:open-org-url',
+        trustedHandler(async (_event, payload: Record<string, any>) => {
+            await openOrgUrl(payload);
+            return { success: true };
+        })
+    );
+    ipcMain.handle(
+        'desktop:set-stored-org',
+        trustedHandler(async (_event, payload: Record<string, any>) => {
+            return saveStoredOrg(payload.alias, payload.configuration);
+        })
+    );
+    ipcMain.handle(
+        'desktop:get-stored-org',
+        trustedHandler(async (_event, alias: string) => {
+            return seeOrgDetails(alias);
+        })
+    );
+    ipcMain.handle(
+        'desktop:get-all-orgs',
+        trustedHandler(async () => getAllOrgs())
+    );
+    ipcMain.handle(
+        'desktop:get-code-initial-config',
+        trustedHandler(async (_event, alias: string) => {
+            return getCodeInitialConfig(alias);
+        })
+    );
     ipcMain.handle(
         'desktop:select-code-project',
-        async (_event, payload: { alias: string; defaultPath?: string | null }) => {
+        trustedHandler(async (_event, payload: { alias: string; defaultPath?: string | null }) => {
             return selectCodeProject(payload);
-        }
+        })
     );
-    ipcMain.handle('desktop:open-vscode-project', async (_event, projectPath: string | null) => {
-        await openVSCodeProject(projectPath);
-        return { success: true };
-    });
-    ipcMain.handle('desktop:get-pmd-installation', async (_event, projectPath: string | null) => {
-        return getPmdInstallation(projectPath);
-    });
-    ipcMain.handle('desktop:install-latest-pmd', async (_event, projectPath: string | null) => {
-        return installLatestPmd(projectPath);
-    });
-    ipcMain.handle('desktop:retrieve-code', async (_event, payload: Record<string, any>) => {
-        return {
-            runInWorker: false,
-            res: await retrieveCodeWorkspace({
-                alias: payload.alias,
-                targetPath: payload.targetPath,
-                refresh: payload.refresh,
-            }),
-        };
-    });
-    ipcMain.handle('desktop:export-metadata', async (_event, payload: Record<string, any>) => {
-        void exportCodeWorkspace(
-            {
-                alias: payload.alias,
-                targetPath: payload.targetPath,
-            },
-            eventPayload => sendLegacyEvent(_event, 'metadata', eventPayload)
-        );
-        return { success: true };
-    });
-    ipcMain.handle('desktop:run-shell', async (_event, payload: Record<string, any>) => {
-        void runShellCommand(
-            {
-                targetPath: payload.targetPath,
-                command: payload.command,
-            },
-            eventPayload =>
-                sendLegacyEvent(_event, String(payload.listenerName || ''), eventPayload)
-        );
-        return { success: true };
-    });
-    ipcMain.handle('desktop:run-sfdx-analyzer', async (_event, payload: Record<string, any>) => {
-        void runSfdxAnalyzerCommand(
-            {
-                alias: payload.alias,
-                command: payload.command,
-            },
-            eventPayload =>
-                sendLegacyEvent(_event, String(payload.listenerName || ''), eventPayload)
-        );
-        return { success: true };
-    });
+    ipcMain.handle(
+        'desktop:open-vscode-project',
+        trustedHandler(async (_event, projectPath: string | null) => {
+            await openVSCodeProject(projectPath);
+            return { success: true };
+        })
+    );
+    ipcMain.handle(
+        'desktop:get-pmd-installation',
+        trustedHandler(async (_event, projectPath: string | null) => {
+            return getPmdInstallation(projectPath);
+        })
+    );
+    ipcMain.handle(
+        'desktop:install-latest-pmd',
+        trustedHandler(async (_event, projectPath: string | null) => {
+            return installLatestPmd(projectPath);
+        })
+    );
+    ipcMain.handle(
+        'desktop:retrieve-code',
+        trustedHandler(async (_event, payload: Record<string, any>) => {
+            return {
+                runInWorker: false,
+                res: await retrieveCodeWorkspace({
+                    alias: payload.alias,
+                    targetPath: payload.targetPath,
+                    refresh: payload.refresh,
+                }),
+            };
+        })
+    );
+    ipcMain.handle(
+        'desktop:export-metadata',
+        trustedHandler(async (_event, payload: Record<string, any>) => {
+            void exportCodeWorkspace(
+                {
+                    alias: payload.alias,
+                    targetPath: payload.targetPath,
+                },
+                eventPayload => sendLegacyEvent(_event, 'metadata', eventPayload)
+            );
+            return { success: true };
+        })
+    );
+    ipcMain.handle(
+        'desktop:run-shell',
+        trustedHandler(async (_event, payload: Record<string, any>) => {
+            void runShellCommand(
+                {
+                    targetPath: payload.targetPath,
+                    command: payload.command,
+                },
+                eventPayload =>
+                    sendLegacyEvent(_event, String(payload.listenerName || ''), eventPayload)
+            );
+            return { success: true };
+        })
+    );
+    ipcMain.handle(
+        'desktop:run-sfdx-analyzer',
+        trustedHandler(async (_event, payload: Record<string, any>) => {
+            void runSfdxAnalyzerCommand(
+                {
+                    alias: payload.alias,
+                    command: payload.command,
+                },
+                eventPayload =>
+                    sendLegacyEvent(_event, String(payload.listenerName || ''), eventPayload)
+            );
+            return { success: true };
+        })
+    );
     ipcMain.handle(
         'desktop:rename-stored-org',
-        async (_event, payload: { oldAlias: string; newAlias: string }) => {
+        trustedHandler(async (_event, payload: { oldAlias: string; newAlias: string }) => {
             await renameStoredOrg(payload.oldAlias, payload.newAlias);
             return { success: true };
-        }
+        })
     );
-    ipcMain.handle('desktop:remove-stored-org', async (_event, alias: string) => {
-        await removeStoredOrg(alias);
-        return { success: true };
-    });
+    ipcMain.handle(
+        'desktop:remove-stored-org',
+        trustedHandler(async (_event, alias: string) => {
+            await removeStoredOrg(alias);
+            return { success: true };
+        })
+    );
     ipcMain.handle(
         'desktop:notify-limited-mode-status',
-        async (event, payload: Record<string, any>) => {
+        trustedHandler(async (event, payload: Record<string, any>) => {
             updateLimitedModeStatus(event.sender, payload);
             return { success: true };
-        }
+        })
     );
 
     ipcMain.handle(
         'desktop:invoke-legacy',
-        async (_event, payload: { channel: string; args?: Record<string, any> }) => {
+        trustedHandler(async (_event, payload: { channel: string; args?: Record<string, any> }) => {
             const args = payload.args || {};
 
             switch (payload.channel) {
@@ -284,10 +362,11 @@ export function registerDesktopIpcRouter({
                         },
                     };
             }
-        }
+        })
     );
 
     ipcMain.on('desktop:send-legacy', (_event, payload: { channel?: string; args?: unknown }) => {
+        assertTrustedSender(_event, getRendererUrl());
         handleLegacyMessage(payload);
     });
 }

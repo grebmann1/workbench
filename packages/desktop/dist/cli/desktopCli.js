@@ -12,6 +12,7 @@ const node_fs_1 = __importDefault(require("node:fs"));
 const node_http_1 = __importDefault(require("node:http"));
 const node_https_1 = __importDefault(require("node:https"));
 const node_path_1 = __importDefault(require("node:path"));
+const desktopAutomationSecurity_1 = require("../main/desktopAutomationSecurity");
 const launchIntent_1 = require("../main/launchIntent");
 const desktopSalesforceCliGrammar_1 = require("./desktopSalesforceCliGrammar");
 const DEFAULT_API_URL = 'http://127.0.0.1:12346';
@@ -51,10 +52,14 @@ function getOptions(argv) {
     };
 }
 function isFileBackedOrgSource(org) {
-    return Boolean(org) && typeof org === 'object' && org.kind === 'sfdxAuthUrlFile';
+    return (Boolean(org) &&
+        typeof org === 'object' &&
+        org.kind === 'sfdxAuthUrlFile');
 }
 function isStdinBackedOrgSource(org) {
-    return Boolean(org) && typeof org === 'object' && org.kind === 'sfdxAuthUrlStdin';
+    return (Boolean(org) &&
+        typeof org === 'object' &&
+        org.kind === 'sfdxAuthUrlStdin');
 }
 function resolveCliOrgSource(org) {
     if (isFileBackedOrgSource(org)) {
@@ -189,14 +194,24 @@ function resolveElectronBinary(appPath) {
     }
     return electronBinary;
 }
-async function postJson(apiUrl, route, payload, timeoutMs = DEFAULT_TIMEOUT_MS) {
+async function postJson(apiUrl, route, payload, timeoutMs = DEFAULT_TIMEOUT_MS, apiToken) {
     const url = new URL(route, apiUrl);
     const body = payload ? JSON.stringify(payload) : undefined;
     const transport = url.protocol === 'https:' ? node_https_1.default : node_http_1.default;
     return new Promise((resolve, reject) => {
         const request = transport.request(url, {
             headers: {
-                ...(body ? { 'Content-Length': Buffer.byteLength(body), 'Content-Type': 'application/json' } : {}),
+                ...(apiToken
+                    ? {
+                        Authorization: `Bearer ${apiToken}`,
+                    }
+                    : {}),
+                ...(body
+                    ? {
+                        'Content-Length': Buffer.byteLength(body),
+                        'Content-Type': 'application/json',
+                    }
+                    : {}),
             },
             method: body ? 'POST' : 'GET',
             timeout: timeoutMs,
@@ -282,7 +297,7 @@ async function main() {
     }
     if (!invocation.options.wait) {
         if (await isAutomationAvailable(invocation.options.apiUrl, 1_000)) {
-            await postJson(invocation.options.apiUrl, '/command/execute', command, invocation.options.timeoutMs);
+            await postJson(invocation.options.apiUrl, '/command/execute', command, invocation.options.timeoutMs, await (0, desktopAutomationSecurity_1.readAutomationTokenForCli)());
         }
         return;
     }
@@ -290,7 +305,7 @@ async function main() {
     if (!isReady) {
         throw new Error('Workbench Desktop did not become ready before the timeout.');
     }
-    const result = await postJson(invocation.options.apiUrl, '/command/execute', command, invocation.options.timeoutMs);
+    const result = await postJson(invocation.options.apiUrl, '/command/execute', command, invocation.options.timeoutMs, await (0, desktopAutomationSecurity_1.readAutomationTokenForCli)());
     printCommandResult(result, invocation.options.json);
 }
 if (require.main === module) {

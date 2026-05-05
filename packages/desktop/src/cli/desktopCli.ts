@@ -6,6 +6,7 @@ import http from 'node:http';
 import https from 'node:https';
 import path from 'node:path';
 
+import { readAutomationTokenForCli } from '../main/desktopAutomationSecurity';
 import type { DesktopOrgSource } from '../main/desktopCommand';
 import { serializeLaunchIntent, type DesktopCommand } from '../main/launchIntent';
 
@@ -275,7 +276,8 @@ async function postJson(
     apiUrl: string,
     route: string,
     payload?: unknown,
-    timeoutMs = DEFAULT_TIMEOUT_MS
+    timeoutMs = DEFAULT_TIMEOUT_MS,
+    apiToken?: string | null
 ): Promise<unknown> {
     const url = new URL(route, apiUrl);
     const body = payload ? JSON.stringify(payload) : undefined;
@@ -286,6 +288,11 @@ async function postJson(
             url,
             {
                 headers: {
+                    ...(apiToken
+                        ? {
+                              Authorization: `Bearer ${apiToken}`,
+                          }
+                        : {}),
                     ...(body
                         ? {
                               'Content-Length': Buffer.byteLength(body),
@@ -399,7 +406,8 @@ export async function main(): Promise<void> {
                 invocation.options.apiUrl,
                 '/command/execute',
                 command,
-                invocation.options.timeoutMs
+                invocation.options.timeoutMs,
+                await readAutomationTokenForCli()
             );
         }
         return;
@@ -417,7 +425,8 @@ export async function main(): Promise<void> {
         invocation.options.apiUrl,
         '/command/execute',
         command,
-        invocation.options.timeoutMs
+        invocation.options.timeoutMs,
+        await readAutomationTokenForCli()
     );
     printCommandResult(result, invocation.options.json);
 }

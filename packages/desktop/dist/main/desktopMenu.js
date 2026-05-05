@@ -75,11 +75,7 @@ function registerDesktopMenu(options) {
         },
         {
             label: 'Window',
-            submenu: [
-                { role: 'minimize' },
-                { role: 'zoom' },
-                ...windowPlatformItems,
-            ],
+            submenu: [{ role: 'minimize' }, { role: 'zoom' }, ...windowPlatformItems],
         },
         {
             label: 'Automation',

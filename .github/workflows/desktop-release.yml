@@ -1,0 +1,62 @@
+name: desktop-release
+
+on:
+    workflow_dispatch:
+    push:
+        tags:
+            - 'desktop-v*'
+
+permissions:
+    contents: write
+
+jobs:
+    make:
+        name: make desktop (${{ matrix.os }})
+        runs-on: ${{ matrix.os }}
+        timeout-minutes: 45
+        strategy:
+            fail-fast: false
+            matrix:
+                os: [macos-latest, windows-latest, ubuntu-latest]
+
+        env:
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            APPLE_ID: ${{ secrets.APPLE_ID }}
+            APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
+            APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+            APPLE_SIGN_IDENTITY: ${{ secrets.APPLE_SIGN_IDENTITY }}
+            DESKTOP_WINDOWS_ICON: ${{ secrets.DESKTOP_WINDOWS_ICON }}
+            DESKTOP_LINUX_ICON: ${{ secrets.DESKTOP_LINUX_ICON }}
+
+        steps:
+            - uses: actions/checkout@v4
+
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: '22.14'
+                  cache: 'npm'
+
+            - name: Install Linux maker prerequisites
+              if: runner.os == 'Linux'
+              run: sudo apt-get update && sudo apt-get install -y fakeroot rpm
+
+            - name: Install root dependencies
+              run: npm ci --no-audit --no-fund
+
+            - name: Install desktop dependencies
+              run: npm --prefix packages/desktop ci --no-audit --no-fund
+
+            - name: Make desktop artifacts
+              run: npm --prefix packages/desktop run make
+
+            - name: Publish desktop artifacts
+              if: startsWith(github.ref, 'refs/tags/desktop-v')
+              run: npm --prefix packages/desktop exec -- electron-forge publish
+
+            - name: Upload desktop artifacts
+              uses: actions/upload-artifact@v4
+              with:
+                  name: desktop-${{ runner.os }}-${{ runner.arch }}
+                  path: packages/desktop/out/make/**
+                  if-no-files-found: error
+                  retention-days: 14

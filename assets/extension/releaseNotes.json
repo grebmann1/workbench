@@ -1,1404 +1,1458 @@
 [
-  {
-    "version": "2.0.1",
-    "date": "April 28th, 2026",
-    "sections": [
-      {
-        "title": "Enhancements",
-        "categories": [
-          {
-            "category": "Navigation & App Shell",
-            "items": [
-              "Streamlined URL generation and connection-aware navigation so Workbench opens the right target more consistently across extension, web, desktop, and VS Code surfaces.",
-              "Added an explicit Open action to recent session cards on the home page, making it clearer when a saved session will launch Workbench.",
-              "Added dismissible remote announcement banners so important release messages can be shown in Workbench without shipping a new extension build.",
-              "Added a polished side-panel startup experience while styles, storage libraries, and Workbench modules load.",
-              "Added URL Encoder as a minimal starter application template for faster future app development."
-            ]
-          },
-          {
-            "category": "Agent & Skills",
-            "items": [
-              "Added slash-command suggestions in the Agent composer, including keyboard navigation and built-in commands such as /skill, /clear, and /stop.",
-              "Added a Skills panel so users can browse, search, edit, duplicate, create, and delete custom Agent skills directly from Workbench.",
-              "Added app-registered slash commands, including /soql for quickly opening SOQL Explorer from the Agent prompt."
-            ]
-          },
-          {
-            "category": "Settings & Storage",
-            "items": [
-              "Added a new About tab in Settings with the current Workbench version, runtime surface, release metadata, and a shortcut to the full release notes.",
-              "Reworked Settings > Applications so apps can provide their own settings panel from their manifest.",
-              "Moved API Explorer, Metadata storage, Smart Input, and Quick Pick configuration into app-owned settings.",
-              "Added a Side Panel Behavior setting so Chrome users can choose whether opening Workbench in a tab closes the side panel or keeps the Agent visible.",
-              "Improved settings export and import to include both localStorage and chrome.storage.local, helping recover saved queries, Apex snippets, API requests, and cache-backed settings after upgrades.",
-              "Added storage diagnostic tooling to detect saved query data restored into the wrong browser storage backend and surface alias-hidden query files."
-            ]
-          },
-          {
-            "category": "Application Platform",
-            "items": [
-              "Migrated built-in tools into the packages/applications layout and simplified app package structure for cleaner extension registration.",
-              "Added host-api/slashCommands so applications can register their own Agent slash commands.",
-              "Improved the application manifest workflow and validator coverage for packaged apps."
-            ]
-          }
-        ]
-      },
-      {
-        "title": "Bug Fixes",
-        "categories": [
-          {
-            "category": "Links & Routing",
-            "items": [
-              "Fixed cross-app links in development and production so packaged applications resolve reliably from every host.",
-              "Tightened VS Code iframe communication and localhost connection handling for smoother embedded-editor workflows.",
-              "Improved Chrome side-panel tab tracking so side-panel messages target the correct tab and the panel no longer lingers on tabs where Workbench was not explicitly opened."
-            ]
-          },
-          {
-            "category": "Developer Tools",
-            "items": [
-              "Fixed saved API requests so reopening a saved request restores the method, endpoint, headers, and body even when the tab already exists.",
-              "Fixed saved API and Anonymous Apex file selectors to read from the correct document state slices.",
-              "Improved browser automation debugger handling so Workbench requests debugger access when needed and degrades more safely when the API is unavailable."
-            ]
-          },
-          {
-            "category": "Embedded VS Code",
-            "items": [
-              "Improved VS Code bootstrap so session-derived aliases use the active session path instead of prompting OAuth against the wrong org.",
-              "Scoped embedded VS Code workspaces by org before rendering the iframe, preventing editor state from leaking through the default workspace.",
-              "Added safer workspace defaults for sandbox and scratch orgs, plus retry support when initialization can reuse the current Workbench session.",
-              "Expanded the embedded VS Code walkthrough with guided steps for metadata sync, logs, Org Browser, SOQL, Anonymous Apex, and deploy/validate workflows.",
-              "Focused the Salesforce panel on startup and aligned the iframe origin with the configured VS Code host."
-            ]
-          }
-        ]
-      },
-      {
-        "title": "Quality & Automation",
-        "categories": [
-          {
-            "category": "Tests & CI",
-            "items": [
-              "Expanded unit coverage across shared utilities, LWC applications, extension helpers, Agent modules, VS Code bridge code, and server modules.",
-              "Added pull-request smoke automation for the dev server and Playwright-based extension checks.",
-              "Added /config and /version endpoint smokes so server configuration regressions fail earlier."
-            ]
-          },
-          {
-            "category": "Build Pipeline",
-            "items": [
-              "Added a dedicated build job for application dependencies and updated build wiring for slash-command host APIs."
-            ]
-          }
-        ]
-      },
-      {
-        "title": "Documentation",
-        "categories": [
-          {
-            "category": "Developer Docs",
-            "items": [
-              "Refreshed the architecture overview and new-application guide to match the current application registry and manifest model.",
-              "Added a project guidance document covering repo structure, common commands, and architecture notes for contributors.",
-              "Added roadmap guidance for parking deferred plans under auto-roadmap, plus a side-panel Always On implementation plan for future work.",
-              "Updated release metadata for Workbench 2.0.1."
-            ]
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "version": "2.0.0",
-    "date": "April 17th, 2026",
-    "sections": [
-      {
-        "title": "Say Hello to Workbench 2.0",
-        "categories": [
-          {
-            "category": "A New Era for the Toolkit",
-            "items": [
-              "SF Toolkit is now Workbench 2.0 \u2014 a brand-new identity for the Salesforce workbench you already love, now bigger, bolder, and built for what\u2019s next.",
-              "A fresh look from top to bottom: refreshed branding, icons, and copy across the app, docs, and Chrome extension.",
-              "Rebuilt from the inside out with a restructured project and cleaner foundations to unlock faster shipping of the features you\u2019ve been asking for."
-            ]
-          }
-        ]
-      },
-      {
-        "title": "The Agent, Reimagined",
-        "categories": [
-          {
-            "category": "Smarter, Safer, More Capable",
-            "items": [
-              "Meet the new \u201cAsk User\u201d tool \u2014 the Agent can now pause, ask the right question with a dedicated prompt UI, and keep moving without guessing.",
-              "Sandboxed tool execution keeps your org safe while giving the Agent more room to do the heavy lifting for you.",
-              "Native OpenAI tool support unlocks a powerful new toolbox out of the box \u2014 no glue code, no workarounds.",
-              "New Debug Mode lets you step through every move the Agent makes, so you can see exactly how it thinks and acts."
-            ]
-          },
-          {
-            "category": "A Clearer Conversation",
-            "items": [
-              "Live reasoning state management surfaces the Agent\u2019s thought process as it works \u2014 no more \u201cblack box\u201d.",
-              "Redesigned message and reasoning rendering for a cleaner, more readable chat that\u2019s a joy to scan.",
-              "Smarter automatic conversation titles so your history is easy to browse at a glance."
-            ]
-          },
-          {
-            "category": "Skills That Grow With You",
-            "items": [
-              "Introducing the Agent Skills system \u2014 a first-class way to extend what the Agent can do, with documentation to help you author your own.",
-              "New built-in skills and upgrades to existing ones expand the Agent\u2019s reach across Workbench.",
-              "Revamped agent settings and model resolution, plus updated OpenAI dependencies for faster, sharper responses."
-            ]
-          }
-        ]
-      },
-      {
-        "title": "Workbench, Everywhere You Work",
-        "categories": [
-          {
-            "category": "Desktop App",
-            "items": [
-              "A brand-new dedicated Desktop package brings Workbench 2.0 to your OS with its own build pipeline and tuned configuration.",
-              "A cleaner, rebuilt desktop bridge makes the integration layer simpler, faster, and ready for future capabilities."
-            ]
-          },
-          {
-            "category": "VS Code Extension",
-            "items": [
-              "Workbench now feels right at home inside VS Code, with a smoother development workflow and tighter iframe communication.",
-              "An all-new iframe IndexedDB + JSforce bridge delivers a rock-solid localhost experience.",
-              "Refreshed VS Code integration and documentation make getting started effortless."
-            ]
-          },
-          {
-            "category": "Docker & Self-Hosting",
-            "items": [
-              "First-class Docker support arrives in 2.0 \u2014 spin up your own Workbench in minutes with updated, developer-friendly docs."
-            ]
-          },
-          {
-            "category": "Salesforce Project Sync",
-            "items": [
-              "A new Metadata API command lets you sync a Salesforce project straight from Workbench \u2014 no context switching, no CLI detours."
-            ]
-          }
-        ]
-      },
-      {
-        "title": "Data Tools That Keep Up",
-        "categories": [
-          {
-            "category": "SOQL Explorer",
-            "items": [
-              "Reworked SOQL tooling with sleeker tree structures and search that actually finds what you need \u2014 fast."
-            ]
-          },
-          {
-            "category": "File Tree",
-            "items": [
-              "A rebuilt File Tree component brings stronger accessibility and lightning-quick search to every explorer that uses it."
-            ]
-          }
-        ]
-      },
-      {
-        "title": "A Fresh, Focused UI",
-        "categories": [
-          {
-            "category": "Redesigned From the Ground Up",
-            "items": [
-              "Every pixel polished: reworked layout and styling deliver a calmer, more consistent experience across the app.",
-              "Fine-tuned header spacing, navigation widths, explorer contrast, search inputs, and menu icons for a look that just feels right.",
-              "Dozens of UI component and style refinements add up to a noticeably cleaner, faster feeling."
-            ]
-          },
-          {
-            "category": "Navigation That Stays Out of Your Way",
-            "items": [
-              "A sleek new vertical navigation with smart tooltips puts your favorite apps one click away \u2014 and frees up space for what matters.",
-              "New Shortcut Selector and integrated shortcut settings let keyboard pros fly through Workbench at their own pace."
-            ]
-          }
-        ]
-      },
-      {
-        "title": "Built to Trust",
-        "categories": [
-          {
-            "category": "Reliability You Can Feel",
-            "items": [
-              "New centralized error reporting brings consistent, actionable diagnostics across the entire app \u2014 fewer surprises, faster fixes."
-            ]
-          },
-          {
-            "category": "Connections",
-            "items": [
-              "Hardened OAuth flow now always persists the full connector configuration (refresh + access tokens), so reconnecting is seamless \u2014 even days later."
-            ]
-          },
-          {
-            "category": "Under the Hood",
-            "items": [
-              "Big lint cleanup, modernized build configurations, and project-wide hygiene improvements \u2014 the invisible work that makes everything else feel better."
-            ]
-          }
-        ]
-      },
-      {
-        "title": "Thank You",
-        "categories": [
-          {
-            "category": "To Our Community",
-            "items": [
-              "2.0 is a love letter to every admin, developer, and architect who pushed this toolkit further. This release is for you \u2014 and it\u2019s only the beginning."
-            ]
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "version": "1.5.2",
-    "date": "March 3rd, 2026",
-    "sections": [
-      {
-        "title": "Bug Fixes",
-        "categories": [
-          {
-            "category": "UI",
-            "items": [
-              "Various UI fixes and polish across the application."
-            ]
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "version": "1.5.1",
-    "date": "February 25th, 2026",
-    "sections": [
-      {
-        "title": "Enhancements",
-        "categories": [
-          {
-            "category": "Connections",
-            "items": [
-              "Added a Share action on connection cards and in connection details to copy a connection share message to the clipboard.",
-              "Centralized connection share message generation for consistent links and formatting."
-            ]
-          },
-          {
-            "category": "User Explorer",
-            "items": [
-              "Added a Share button to the Current User (Me) explorer to copy an \u201copen in Workbench 2.0\u201d message to the clipboard."
-            ]
-          },
-          {
-            "category": "Chrome Extension",
-            "items": [
-              "Added a Share action in the injected overlay to copy a session-based \u201copen in Workbench 2.0\u201d link to the clipboard.",
-              "Improved tab grouping reliability when opening the toolkit from the Agent (safer Chrome API calls and auto-expanding the group).",
-              "Note: share messages can include sensitive information (session IDs or credentials). Only share with trusted recipients."
-            ]
-          }
-        ]
-      },
-      {
-        "title": "Bug Fixes",
-        "categories": [
-          {
-            "category": "SOQL Explorer",
-            "items": [
-              "Improved results table refresh stability by cloning the response payload before rendering."
-            ]
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "version": "1.5.0",
-    "date": "February 17th, 2026",
-    "sections": [
-      {
-        "title": "Enhancements",
-        "categories": [
-          {
-            "category": "Data Import",
-            "items": [
-              "Added a failed-results preview to quickly inspect rejected rows and errors.",
-              "Improved the import UI and CSV processing for smoother workflows."
-            ]
-          },
-          {
-            "category": "Text Compare",
-            "items": [
-              "Refreshed Text Compare with clearer diff highlighting and synced scrolling.",
-              "Ignore whitespace now focuses the diff on meaningful content changes."
-            ]
-          },
-          {
-            "category": "Connections",
-            "items": [
-              "Improved the connection import OAuth flow with clearer feedback and better error handling.",
-              "Updated connection cards styling and interactions for faster navigation."
-            ]
-          },
-          {
-            "category": "UI & Styling",
-            "items": [
-              "Introduced SLDS Plus styles and applied UI polish across menus, layouts, and panels."
-            ]
-          }
-        ]
-      },
-      {
-        "title": "Bug Fixes",
-        "categories": [
-          {
-            "category": "Text Compare",
-            "items": [
-              "Removed the non-functional \"Ignore case\" toggle to avoid misleading diffs."
-            ]
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "version": "1.4.3",
-    "date": "October 28th, 2025",
-    "sections": [
-      {
-        "title": "Enhancements",
-        "categories": [
-          {
-            "category": "Record Viewer",
-            "items": [
-              "Pressing Enter in the search input now triggers search to streamline navigation."
-            ]
-          },
-          {
-            "category": "Links & Navigation",
-            "items": [
-              "Improved record reference link generation using frontDoorUrl and URL encoding for reliability."
-            ]
-          },
-          {
-            "category": "Deployment Tools",
-            "items": [
-              "Added 'RunRelevantTests' option to TESTLEVEL in Deploy and Retrieve for improved testing flexibility."
-            ]
-          }
-        ]
-      },
-      {
-        "title": "Bug Fixes",
-        "categories": [
-          {
-            "category": "SOQL Explorer",
-            "items": [
-              "Addressed updates from ticket #35; minor improvements and fixes to the SOQL Explorer."
-            ]
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "version": "1.4.2",
-    "date": "October 22nd, 2025",
-    "sections": [
-      {
-        "title": "Bug Fixes",
-        "categories": [
-          {
-            "category": "General",
-            "items": [
-              "Small fix to improve stability and address minor edge cases."
-            ]
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "version": "1.4.1",
-    "date": "October 10th, 2025",
-    "sections": [
-      {
-        "title": "Maintenance & Polish",
-        "categories": [
-          {
-            "category": "General",
-            "items": [
-              "Consolidated all pending changes since 1.4.0 across apps and the Chrome extension.",
-              "Stability, UI polish, and small fixes for Agent, Platform Events, Smart Input, Editor, and File Tree.",
-              "Added shared Platform Event utilities and minor refactors in core store and shared utils."
-            ]
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "version": "1.4.00",
-    "date": "October 3rd, 2025",
-    "sections": [
-      {
-        "title": "Enhancements & New Features",
-        "categories": [
-          {
-            "category": "AI Assistant & Agent App",
-            "items": [
-              "Added an input quick pick component to speed up composing agent prompts.",
-              "Introduced a message list component and a typing animation for clearer conversation flow.",
-              "Refactored shared instructions and behavior for more consistent agent interactions.",
-              "Replaced the Assistant with the new Agent, which can control the app and the Chrome extension (Beta; behavior and APIs may change)."
-            ]
-          },
-          {
-            "category": "Chrome Extension & APIs",
-            "items": [
-              "Updated the Chrome extension configuration and standardized argument naming across Chrome API functions.",
-              "Improved message handling and UI polish in the extension."
-            ]
-          },
-          {
-            "category": "Shared Utilities & Context",
-            "items": [
-              "Added new utility functions and refactored shared utilities to improve context management across apps."
-            ]
-          },
-          {
-            "category": "Code Quality & Maintenance",
-            "items": [
-              "Cleaned up unused components and styles for better maintainability."
-            ]
-          }
-        ]
-      },
-      {
-        "title": "Sharing & Collaboration",
-        "categories": [
-          {
-            "category": "Deep Links & Sharing",
-            "items": [
-              "Introduced shareable deep links to open specific toolkit states (e.g., Settings, Queries, API scripts), enabling quick collaboration and reproducibility. For now, links are manually controlled and will be fully released at a later stage."
-            ]
-          }
-        ]
-      },
-      {
-        "title": "Bug Fixes",
-        "categories": [
-          {
-            "category": "AI Assistant & Agent App",
-            "items": [
-              "Reset error state before executing the agent to avoid stale errors."
-            ]
-          },
-          {
-            "category": "API Tools",
-            "items": [
-              "Improved error handling and aligned application state retrieval with the central store for reliability."
-            ]
-          },
-          {
-            "category": "SOQL Explorer",
-            "items": [
-              "Fixed selection/deselection scoping: selections are now per tab (granular) instead of global, preventing cross-tab deletions in the SOQL editor."
-            ]
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "version": "1.3.49",
-    "date": "September 4th, 2025",
-    "sections": [
-      {
-        "title": "Enhancements & New Features",
-        "categories": [
-          {
-            "category": "API Integration & OpenAPI Support",
-            "items": [
-              "Enhanced API integration by adding OpenAPI parser library and updating related configurations.",
-              "Refactored existing tools to utilize the OpenAPI parser for improved functionality and streamlined API schema handling.",
-              "API Editor now includes the possibility to use GlobalVariables."
-            ]
-          },
-          {
-            "category": "AI Assistant",
-            "items": [
-              "Agentic AI is now available with the ability to use your own OpenAI key."
-            ]
-          },
-          {
-            "category": "User Experience & UI",
-            "items": [
-              "General UI improvements for better usability and clarity.",
-              "Fixed minor UI bugs and alignment issues across the application."
-            ]
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "version": "1.3.48",
-    "date": "August 19th, 2025",
-    "sections": [
-      {
-        "title": "Enhancements & Bug Fixes",
-        "categories": [
-          {
-            "category": "AI Assistant",
-            "items": [
-              "Refactored LWC components for the AI assistant, introducing new agents and tools for enhanced functionality.",
-              "Updated configuration files and dependencies, including integration of OpenAI libraries.",
-              "Implemented audio recording features and improved message handling for a more robust assistant experience."
-            ]
-          },
-          {
-            "category": "User Experience & Accessibility",
-            "items": [
-              "Streamlined UI elements for improved user experience and accessibility.",
-              "General bug fixes and performance improvements."
-            ]
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "version": "1.3.47",
-    "date": "July 11th, 2025",
-    "sections": [
-      {
-        "title": "New Features & Enhancements",
-        "categories": [
-          {
-            "category": "AI Assistant",
-            "items": [
-              "Added support for OpenAI as an alternative provider to Salesforce Einstein for the AI Assistant.",
-              "Integrated Mistral as an option for AI-powered autocompletion.",
-              "Enhanced AI assistant settings with provider options and model selection."
-            ]
-          },
-          {
-            "category": "OpenAI Integration",
-            "items": [
-              "Added OpenAI bundler with new configuration files.",
-              "Integrated OpenAI agent libraries for advanced AI features."
-            ]
-          },
-          {
-            "category": "User Experience & UI",
-            "items": [
-              "Refactored components for improved user experience.",
-              "Updated UI elements for better accessibility and functionality."
-            ]
-          },
-          {
-            "category": "Connection Management",
-            "items": [
-              "Streamlined connection management for easier org integration and switching."
-            ]
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "version": "1.3.46",
-    "date": "July 10th, 2025",
-    "sections": [
-      {
-        "title": "Enhancements",
-        "categories": [
-          {
-            "category": "SOQL Explorer",
-            "items": [
-              "Added search functionality in SOQL Explorer for easier query and result navigation."
-            ]
-          },
-          {
-            "category": "SObject Explorer",
-            "items": [
-              "Optimized SObject Explorer to support multiple open tabs, allowing users to view and switch between several SObjects simultaneously."
-            ]
-          },
-          {
-            "category": "UI",
-            "items": [
-              "Removed tooltips from the UI for a cleaner experience."
-            ]
-          },
-          {
-            "category": "Bug Fixes",
-            "items": [
-              "Fixed a minor bug in the UI for viewing orgs."
-            ]
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "version": "1.3.45",
-    "date": "July 10th, 2025",
-    "sections": [
-      {
-        "title": "Rollback",
-        "categories": [
-          {
-            "category": "General",
-            "items": [
-              "Rolled back to version 1.3.42 due to issues in later releases."
-            ]
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "version": "1.3.44",
-    "date": "July 9th, 2025",
-    "sections": [
-      {
-        "title": "Bug Fixes",
-        "categories": [
-          {
-            "category": "UI",
-            "items": [
-              "Fixed a minor bug in the UI for viewing orgs."
-            ]
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "version": "1.3.43",
-    "date": "July 2nd, 2025",
-    "sections": [
-      {
-        "title": "Bug Fixes",
-        "categories": [
-          {
-            "category": "General",
-            "items": [
-              "Quick bug fix related to Url Redirection."
-            ]
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "version": "1.3.42",
-    "date": "July 1st, 2025",
-    "sections": [
-      {
-        "title": "Enhancements",
-        "categories": [
-          {
-            "category": "Error Handling & Debugging",
-            "items": [
-              "Enhanced error handling across various components by integrating a global error store.",
-              "Implemented error dispatching in metadata loading, cache settings, and API request execution.",
-              "Introduced a footer error panel for displaying and filtering error messages, improving user experience and debugging capabilities."
-            ]
-          },
-          {
-            "category": "Saved Scripts & Queries",
-            "items": [
-              "Redesigned the UI for saved scripts, queries, and related items using a file tree structure, allowing for better organization and easier navigation between global and org-specific resources."
-            ]
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "version": "1.3.41",
-    "date": "June 27th, 2025",
-    "sections": [
-      {
-        "title": "Bug Fixes & Enhancements",
-        "categories": [
-          {
-            "category": "Platform Event",
-            "items": [
-              "Fixed an issue where not all platform events were covered.",
-              "Enhanced platform event support to include all objects.",
-              "Added the ability to manually enter any event for greater flexibility."
-            ]
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "version": "1.3.40",
-    "date": "June 20th, 2025",
-    "sections": [
-      {
-        "title": "Enhancements",
-        "categories": [
-          {
-            "category": "SObject Explorer",
-            "items": [
-              "Added support for 'Formula' fields, allowing users to view and interact with formula fields directly in the SObject explorer."
-            ]
-          },
-          {
-            "category": "API Explorer",
-            "items": [
-              "Enhanced the header for improved usability and navigation in the API Explorer."
-            ]
-          },
-          {
-            "category": "Performance & Optimization",
-            "items": [
-              "Upgraded to the latest version of JSforce for improved Salesforce API compatibility and performance.",
-              "Minified the entire code base to ensure faster loading times and a smoother user experience."
-            ]
-          },
-          {
-            "category": "MCP (Model Context Protocol)",
-            "items": [
-              "MCP is now available in beta phase. Note: MCP features require installation of the DESKTOP app."
-            ]
-          }
-        ]
-      },
-      {
-        "title": "Bug Fixes",
-        "categories": [
-          {
-            "category": "SOAP API",
-            "items": [
-              "Resolved several issues related to SOAP API integration, improving reliability and error handling."
-            ]
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "version": "1.3.39",
-    "date": "June 10th, 2025",
-    "sections": [
-      {
-        "title": "Enhancement",
-        "categories": [
-          {
-            "category": "Installation Guide",
-            "items": [
-              "Add more 'How To' in the installation guide.",
-              "Enhance installation guide with additional 'How To' sections."
-            ]
-          },
-          {
-            "category": "Shortcuts & Navigation",
-            "items": [
-              "Implement new shortcut settings for various applications, improving user navigation experience."
-            ]
-          },
-          {
-            "category": "Electron Integration",
-            "items": [
-              "Refactor API request handling and error management in the Electron integration for better performance and reliability.",
-              "Handle MCP (Model Context Protocol) for the Desktop Version."
-            ]
-          },
-          {
-            "category": "General Refactoring",
-            "items": [
-              "Remove outdated release notes file.",
-              "Update version to 1.3.39."
-            ]
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "version": "1.3.38",
-    "date": "May 26th, 2025",
-    "sections": [
-      {
-        "title": "Enhancement",
-        "categories": [
-          {
-            "category": "User Login",
-            "items": [
-              "Refactored user login flow for smoother experience and to support future enhancements.",
-              "Added option to modify the ClientId during login.",
-              "Introduced ability to select the apiVersion id during login.",
-              "Added 'Manual Login' option allowing users to directly enter sessionId or username/password combo.",
-              "Added classic 'username/password' authentication support (not recommended for security reasons)."
-            ]
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "version": "1.3.37",
-    "date": "May 14th, 2025",
-    "sections": [
-      {
-        "title": "Enhancement",
-        "categories": [
-          {
-            "category": "General",
-            "items": [
-              "Improve release experience/guide",
-              "Add option to enable/disable the overlay from the extension menu and from the settings"
-            ]
-          }
-        ]
-      },
-      {
-        "title": "Bug Fix",
-        "categories": [
-          {
-            "category": "Toolkit Access",
-            "items": [
-              "Fix issues related to the previous version preventing user from opening the toolkit"
-            ]
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "version": "1.3.36",
-    "date": "May 8th, 2025",
-    "sections": [
-      {
-        "title": "Enhancement",
-        "categories": [
-          {
-            "category": "General",
-            "items": [
-              "Add more \"How To\" in the installation guide."
-            ]
-          },
-          {
-            "category": "Administration",
-            "items": [
-              "Provide granular control over the URL/Domains where the toolkit is injected, allowing users to directly add URLs."
-            ]
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "version": "1.3.35",
-    "date": "May 6th, 2025",
-    "sections": [
-      {
-        "title": "Enhancement",
-        "categories": [
-          {
-            "category": "General",
-            "items": [
-              "Enhance Documentation",
-              "Add more Support for Salesforce Software Engineers (Add Core Support)",
-              "Enhance install/uninstall experience"
-            ]
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "version": "1.3.34",
-    "date": "April 28th, 2025",
-    "sections": [
-      {
-        "title": "Enhancement",
-        "categories": [
-          {
-            "category": "General",
-            "items": [
-              "Add prettier",
-              "Add Install page (with quick tips)",
-              "Add Uninstall page (With Google Form)"
-            ]
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "version": "1.3.33",
-    "date": "April 10th, 2025",
-    "sections": [
-      {
-        "title": "Enhancement",
-        "categories": [
-          {
-            "category": "Salesforce Engineer",
-            "items": [
-              "Add localhost Support for Salesforce Engineers"
-            ]
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "version": "1.3.32",
-    "date": "March 27th, 2025",
-    "sections": [
-      {
-        "title": "Bug Fix",
-        "categories": [
-          {
-            "category": "Connector initialization",
-            "items": [
-              "Fix Alias name not being setup when open the chrome extension in a new org."
-            ]
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "version": "1.3.31",
-    "date": "March 26th, 2025",
-    "sections": [
-      {
-        "title": "Bug Fix",
-        "categories": [
-          {
-            "category": "Miscellaneous",
-            "items": [
-              "UI wasn't rendering properly",
-              "Store were broken in few places"
-            ]
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "version": "1.3.30",
-    "date": "March 18th, 2025",
-    "sections": [
-      {
-        "title": "Enhancements",
-        "categories": [
-          {
-            "category": "Shortcut injection",
-            "items": [
-              "Open a few application using shortcuts :",
-              "SOQL Explorer",
-              "APEX Explorer",
-              "Org Overview (Home)",
-              "Toolkit Panel (right side of chrome)"
-            ]
-          },
-          {
-            "category": "Enhanced Caching System",
-            "items": [
-              "Implemented sophisticated caching architecture to optimize data storage and retrieval",
-              "Improved performance in SOQL, Metadata and SObject explorers through background metadata caching and asynchronous updates"
-            ]
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "version": "1.3.29",
-    "date": "March 17th, 2025",
-    "sections": [
-      {
-        "title": "Bug Fixes",
-        "categories": [
-          {
-            "category": "Overlay",
-            "items": [
-              "Removed unused fields."
-            ]
-          }
-        ]
-      },
-      {
-        "title": "Enhancements",
-        "categories": [
-          {
-            "category": "Caching",
-            "items": [
-              "Add Caching manager to improve caching mechanism in the long run.",
-              "Add back the Header UI tab (settings -> Show Header Application Tabs)."
-            ]
-          },
-          {
-            "category": "Settings",
-            "items": [
-              "Hide sensitives settings in case user is sharing his screen."
-            ]
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "version": "1.3.28",
-    "date": "February 12th, 2025",
-    "sections": [
-      {
-        "title": "Bug Fixes",
-        "categories": [
-          {
-            "category": "Overlay",
-            "items": [
-              "Missing icons in the injected overlay."
-            ]
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "version": "1.3.26",
-    "date": "February 9th, 2025",
-    "sections": [
-      {
-        "title": "Enhancements",
-        "categories": [
-          {
-            "category": "Copilot",
-            "items": [
-              "All editors now have a copilot button to help you write your queries, code, etc. To activate it, you need to have an OpenAI key configured in the settings.",
-              "The shortcut to activate the copilot is `CTRL/CMD + K` while the editor is focused.",
-              "This feature is available in all editors in Beta phase"
-            ]
-          }
-        ]
-      },
-      {
-        "title": "Bug Fixes",
-        "categories": [
-          {
-            "category": "Shortcut Setting",
-            "items": [
-              "Resolved an issue preventing user from using Shortcuts and configuring them in the settings. (Another issue)",
-              "Fixed an issue where the shortcut was not being saved in the settings and preventing the extension from injecting the shortcuts in the Salesforce Page."
-            ]
-          },
-          {
-            "category": "Picklist suggestion in SOQL Editor",
-            "items": [
-              "It's now possible to use the picklist suggestion in the SOQL Editor."
-            ]
-          },
-          {
-            "category": "Metadata Explorer",
-            "items": [
-              "Fixed an issue where the Metadata Explorer was not displaying the correct data.",
-              "Fixed an issue that prevented to display Metadata originated from the Metadata API (Such as CanvasMetadata, etc...)"
-            ]
-          },
-          {
-            "category": "Package Manager",
-            "items": [
-              "Fixed an issue where the Package Manager was not displaying the metadata selector."
-            ]
-          }
-        ]
-      },
-      {
-        "title": "Known Issues",
-        "categories": [
-          {
-            "category": "Package Manager",
-            "items": [
-              "Selecting a metadata type in the menu shares the view with the Metadata Explorer, resulting in the last selection being reflected in both the Metadata Explorer and the Package Manager due to their shared Redux state."
-            ]
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "version": "1.3.25",
-    "date": "January 20th, 2025",
-    "sections": [
-      {
-        "title": "Bug Fixes",
-        "categories": [
-          {
-            "category": "Shortcut Setting",
-            "items": [
-              "Resolved an issue preventing user from using Shortcuts and configuring them in the settings."
-            ]
-          },
-          {
-            "category": "Instance Url",
-            "items": [
-              "Instance Url was missing from the Org -> Company information component."
-            ]
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "version": "1.3.24",
-    "date": "January 15th, 2025",
-    "sections": [
-      {
-        "title": "Enhancements",
-        "categories": [
-          {
-            "category": "SOQL (Data Explorer)",
-            "items": [
-              "Introduced the ability to open the Data Explorer directly from the Record Viewer (right panel) with a prepopulated query. This streamlines the workflow and saves time."
-            ]
-          }
-        ]
-      },
-      {
-        "title": "Bug Fixes",
-        "categories": [
-          {
-            "category": "Data Explorer",
-            "items": [
-              "Resolved an issue where the UI would break if the `Id` field was not selected."
-            ]
-          },
-          {
-            "category": "Redirection issue",
-            "items": [
-              "Fixed an issue where certain redirection links were not functioning as expected."
-            ]
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "version": "1.3.23",
-    "date": "January 10th, 2025",
-    "sections": [
-      {
-        "title": "New Features",
-        "categories": [
-          {
-            "category": "Record Viewer",
-            "items": [
-              "Introduced a user-friendly interface for visualizing records, akin to the \"Chrome Panel\" experience.",
-              "Enabled direct editing of records within the Record Viewer app, streamlining workflows."
-            ]
-          }
-        ]
-      },
-      {
-        "title": "Enhancements",
-        "categories": [
-          {
-            "category": "SOQL (Data Explorer)",
-            "items": [
-              "Added support for record deletion directly from the SOQL interface.",
-              "Implemented query formatting to enhance readability and usability."
-            ]
-          }
-        ]
-      },
-      {
-        "title": "Bug Fixes",
-        "categories": [
-          {
-            "category": "OAuth Error",
-            "items": [
-              "Improved error handling for OAuth session management. If the registered org is not found or the session has expired, a popup message will now notify the user."
-            ]
-          },
-          {
-            "category": "Metadata Issues",
-            "items": [
-              "Resolved various metadata-related issues to improve reliability and performance."
-            ]
-          }
-        ]
-      },
-      {
-        "title": "Other Changes",
-        "categories": [
-          {
-            "category": "Removal of Application Tab",
-            "items": [
-              "The Application Tab has been removed to simplify navigation and improve user experience."
-            ]
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "version": "1.3.22",
-    "date": "January 7th, 2025",
-    "sections": [
-      {
-        "title": "Enhancements",
-        "categories": [
-          {
-            "category": "Metadata Explorer",
-            "items": [
-              "Improved performance for faster data retrieval and processing.",
-              "Added multi-tab support to enhance user experience and facilitate simultaneous metadata exploration."
-            ]
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "version": "1.3.21",
-    "date": "December 24th, 2024",
-    "sections": [
-      {
-        "title": "New Features",
-        "categories": [
-          {
-            "category": "All Editors",
-            "items": [
-              "Enabled shortcuts for Save & Run operations:",
-              "`CTRL/CMD + S` to Save",
-              "`CTRL/CMD + Enter` to Run"
-            ]
-          },
-          {
-            "category": "Data Explorer",
-            "items": [
-              "Introduced commenting functionality using `//` to exclude parts of a query for better query management."
-            ]
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "version": "1.3.20",
-    "date": "November 20th, 2024",
-    "sections": [
-      {
-        "title": "Bug Fixes",
-        "categories": [
-          {
-            "category": "Connection Module",
-            "items": [
-              "Fixed the issue with the loading spinner during authorization and redirection to an organization."
-            ]
-          },
-          {
-            "category": "User Explorer",
-            "items": [
-              "Adjusted font size for improved readability."
-            ]
-          },
-          {
-            "category": "API Explorer",
-            "items": [
-              "Enhanced UI for handling large files by integrating Monaco and Workbench visualizers."
-            ]
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "version": "1.3.19",
-    "date": "November 11th, 2024",
-    "sections": [
-      {
-        "title": "New Features",
-        "categories": [
-          {
-            "category": "UI Overhaul",
-            "items": [
-              "Completely redesigned user interface for a modern look and improved usability.",
-              "Introduced a \"Multi-Tab\" feature for streamlined navigation across applications."
-            ]
-          },
-          {
-            "category": "Deploy/Retrieve Module",
-            "items": [
-              "Added functionality to deploy packages to Salesforce or retrieve them from Salesforce efficiently."
-            ]
-          },
-          {
-            "category": "Injected Overlay Module",
-            "items": [
-              "Integrated an overlay into Salesforce pages to enable quick search and navigation.",
-              "Laid the groundwork for a future \"bridge\" between the app and the Chrome extension."
-            ]
-          }
-        ]
-      },
-      {
-        "title": "Enhancements",
-        "categories": [
-          {
-            "category": "Localhost Extension",
-            "items": [
-              "Transformed the cloud-based application into a fully functional browser-based app, eliminating the need for a proxy server."
-            ]
-          },
-          {
-            "category": "Performance Improvements",
-            "items": [
-              "Optimized load times and overall application responsiveness for a smoother user experience."
-            ]
-          },
-          {
-            "category": "Extended Salesforce API Support",
-            "items": [
-              "Expanded support for additional Salesforce APIs, enhancing the toolkit\u2019s capabilities."
-            ]
-          },
-          {
-            "category": "Access Analyzer with Web Worker",
-            "items": [
-              "Improved performance by executing Access Analyzer computations using web workers."
-            ]
-          }
-        ]
-      },
-      {
-        "title": "Bug Fixes",
-        "categories": [
-          {
-            "category": "Login Issue",
-            "items": [
-              "Fixed an intermittent bug preventing some users from logging in to their Salesforce accounts."
-            ]
-          },
-          {
-            "category": "Data Sync Error",
-            "items": [
-              "Resolved occasional data synchronization failures between the toolkit and Salesforce."
-            ]
-          }
-        ]
-      }
-    ]
-  }
+    {
+        "version": "2.0.2",
+        "date": "May 5th, 2026",
+        "sections": [
+            {
+                "title": "New Applications",
+                "categories": [
+                    {
+                        "category": "Audit Trail",
+                        "items": [
+                            "Added a dedicated Audit Trail application for browsing SetupAuditTrail records from Workbench.",
+                            "Added search, category, entity, section, user, date-range, and row-limit filters so admins can narrow audit events quickly.",
+                            "Added parsed categories for profiles, permission sets, users, packages, metadata, and other audit activity, plus CSV export for filtered rows.",
+                            "Registered the new /audit Agent slash command so the Audit Trail viewer can be opened directly from the Agent prompt."
+                        ]
+                    }
+                ]
+            },
+            {
+                "title": "Desktop App",
+                "categories": [
+                    {
+                        "category": "Security & Local Automation",
+                        "items": [
+                            "Secured the desktop automation API with a loopback-only host and per-install bearer token shared with the CLI.",
+                            "Added origin checks around desktop IPC handlers and restored Electron web security for desktop windows.",
+                            "Added security headers to the desktop renderer server and a same-origin Salesforce proxy for desktop API calls.",
+                            "Redacted Salesforce tokens, SFDX auth URLs, and session material from desktop logs and renderer console output."
+                        ]
+                    },
+                    {
+                        "category": "Org Credentials & Tooling",
+                        "items": [
+                            "Moved imported desktop org refresh tokens and auth URLs into OS-backed encrypted storage while keeping public org metadata in the desktop store.",
+                            "Added desktop prerequisite detection for Salesforce CLI, Java, PMD, and VS Code with clearer remediation messages.",
+                            "Pinned PMD installation to a release tag by default and added optional SHA-256 validation for downloaded PMD archives.",
+                            "Improved CLI troubleshooting and desktop docs around automation tokens, logs, PMD, packaging, and publishing."
+                        ]
+                    },
+                    {
+                        "category": "Packaging & Release Automation",
+                        "items": [
+                            "Added a desktop release workflow that builds macOS, Windows, and Linux Forge artifacts from desktop-v* tags.",
+                            "Expanded CI so desktop dependencies, desktop tests, and the desktop build run alongside the existing unit, build, and e2e checks.",
+                            "Updated desktop Forge configuration, icon generation, and renderer build wiring for cross-platform release artifacts."
+                        ]
+                    }
+                ]
+            },
+            {
+                "title": "Bug Fixes & Polish",
+                "categories": [
+                    {
+                        "category": "Desktop & Extension Runtime",
+                        "items": [
+                            "Routed Electron connections through the local desktop proxy while keeping Chrome extension sessions proxy-free.",
+                            "Updated generated worker assets after the latest shared build changes.",
+                            "Improved Audit Trail table layout so Tabulator owns horizontal scrolling without an extra page-level bottom scrollbar."
+                        ]
+                    },
+                    {
+                        "category": "Docs",
+                        "items": [
+                            "Refreshed installation, org access, privacy, and desktop CLI documentation for the desktop app and local data model.",
+                            "Updated project release metadata for Workbench 2.0.2."
+                        ]
+                    }
+                ]
+            },
+            {
+                "title": "Quality",
+                "categories": [
+                    {
+                        "category": "Tests",
+                        "items": [
+                            "Added coverage for Audit Trail parsing, filtering, SOQL generation, and reducer behavior.",
+                            "Added desktop coverage for automation authorization, renderer security headers, Salesforce proxy routing, encrypted credential handling, prerequisite summaries, log redaction, and desktop server behavior."
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "version": "2.0.1",
+        "date": "April 28th, 2026",
+        "sections": [
+            {
+                "title": "Enhancements",
+                "categories": [
+                    {
+                        "category": "Navigation & App Shell",
+                        "items": [
+                            "Streamlined URL generation and connection-aware navigation so Workbench opens the right target more consistently across extension, web, desktop, and VS Code surfaces.",
+                            "Added an explicit Open action to recent session cards on the home page, making it clearer when a saved session will launch Workbench.",
+                            "Added dismissible remote announcement banners so important release messages can be shown in Workbench without shipping a new extension build.",
+                            "Added a polished side-panel startup experience while styles, storage libraries, and Workbench modules load.",
+                            "Added URL Encoder as a minimal starter application template for faster future app development."
+                        ]
+                    },
+                    {
+                        "category": "Agent & Skills",
+                        "items": [
+                            "Added slash-command suggestions in the Agent composer, including keyboard navigation and built-in commands such as /skill, /clear, and /stop.",
+                            "Added a Skills panel so users can browse, search, edit, duplicate, create, and delete custom Agent skills directly from Workbench.",
+                            "Added app-registered slash commands, including /soql for quickly opening SOQL Explorer from the Agent prompt."
+                        ]
+                    },
+                    {
+                        "category": "Settings & Storage",
+                        "items": [
+                            "Added a new About tab in Settings with the current Workbench version, runtime surface, release metadata, and a shortcut to the full release notes.",
+                            "Reworked Settings > Applications so apps can provide their own settings panel from their manifest.",
+                            "Moved API Explorer, Metadata storage, Smart Input, and Quick Pick configuration into app-owned settings.",
+                            "Added a Side Panel Behavior setting so Chrome users can choose whether opening Workbench in a tab closes the side panel or keeps the Agent visible.",
+                            "Improved settings export and import to include both localStorage and chrome.storage.local, helping recover saved queries, Apex snippets, API requests, and cache-backed settings after upgrades.",
+                            "Added storage diagnostic tooling to detect saved query data restored into the wrong browser storage backend and surface alias-hidden query files."
+                        ]
+                    },
+                    {
+                        "category": "Application Platform",
+                        "items": [
+                            "Migrated built-in tools into the packages/applications layout and simplified app package structure for cleaner extension registration.",
+                            "Added host-api/slashCommands so applications can register their own Agent slash commands.",
+                            "Improved the application manifest workflow and validator coverage for packaged apps."
+                        ]
+                    }
+                ]
+            },
+            {
+                "title": "Bug Fixes",
+                "categories": [
+                    {
+                        "category": "Links & Routing",
+                        "items": [
+                            "Fixed cross-app links in development and production so packaged applications resolve reliably from every host.",
+                            "Tightened VS Code iframe communication and localhost connection handling for smoother embedded-editor workflows.",
+                            "Improved Chrome side-panel tab tracking so side-panel messages target the correct tab and the panel no longer lingers on tabs where Workbench was not explicitly opened."
+                        ]
+                    },
+                    {
+                        "category": "Developer Tools",
+                        "items": [
+                            "Fixed saved API requests so reopening a saved request restores the method, endpoint, headers, and body even when the tab already exists.",
+                            "Fixed saved API and Anonymous Apex file selectors to read from the correct document state slices.",
+                            "Improved browser automation debugger handling so Workbench requests debugger access when needed and degrades more safely when the API is unavailable."
+                        ]
+                    },
+                    {
+                        "category": "Embedded VS Code",
+                        "items": [
+                            "Improved VS Code bootstrap so session-derived aliases use the active session path instead of prompting OAuth against the wrong org.",
+                            "Scoped embedded VS Code workspaces by org before rendering the iframe, preventing editor state from leaking through the default workspace.",
+                            "Added safer workspace defaults for sandbox and scratch orgs, plus retry support when initialization can reuse the current Workbench session.",
+                            "Expanded the embedded VS Code walkthrough with guided steps for metadata sync, logs, Org Browser, SOQL, Anonymous Apex, and deploy/validate workflows.",
+                            "Focused the Salesforce panel on startup and aligned the iframe origin with the configured VS Code host."
+                        ]
+                    }
+                ]
+            },
+            {
+                "title": "Quality & Automation",
+                "categories": [
+                    {
+                        "category": "Tests & CI",
+                        "items": [
+                            "Expanded unit coverage across shared utilities, LWC applications, extension helpers, Agent modules, VS Code bridge code, and server modules.",
+                            "Added pull-request smoke automation for the dev server and Playwright-based extension checks.",
+                            "Added /config and /version endpoint smokes so server configuration regressions fail earlier."
+                        ]
+                    },
+                    {
+                        "category": "Build Pipeline",
+                        "items": [
+                            "Added a dedicated build job for application dependencies and updated build wiring for slash-command host APIs."
+                        ]
+                    }
+                ]
+            },
+            {
+                "title": "Documentation",
+                "categories": [
+                    {
+                        "category": "Developer Docs",
+                        "items": [
+                            "Refreshed the architecture overview and new-application guide to match the current application registry and manifest model.",
+                            "Added a project guidance document covering repo structure, common commands, and architecture notes for contributors.",
+                            "Added roadmap guidance for parking deferred plans under auto-roadmap, plus a side-panel Always On implementation plan for future work.",
+                            "Updated release metadata for Workbench 2.0.1."
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "version": "2.0.0",
+        "date": "April 17th, 2026",
+        "sections": [
+            {
+                "title": "Say Hello to Workbench 2.0",
+                "categories": [
+                    {
+                        "category": "A New Era for the Toolkit",
+                        "items": [
+                            "SF Toolkit is now Workbench 2.0 \u2014 a brand-new identity for the Salesforce workbench you already love, now bigger, bolder, and built for what\u2019s next.",
+                            "A fresh look from top to bottom: refreshed branding, icons, and copy across the app, docs, and Chrome extension.",
+                            "Rebuilt from the inside out with a restructured project and cleaner foundations to unlock faster shipping of the features you\u2019ve been asking for."
+                        ]
+                    }
+                ]
+            },
+            {
+                "title": "The Agent, Reimagined",
+                "categories": [
+                    {
+                        "category": "Smarter, Safer, More Capable",
+                        "items": [
+                            "Meet the new \u201cAsk User\u201d tool \u2014 the Agent can now pause, ask the right question with a dedicated prompt UI, and keep moving without guessing.",
+                            "Sandboxed tool execution keeps your org safe while giving the Agent more room to do the heavy lifting for you.",
+                            "Native OpenAI tool support unlocks a powerful new toolbox out of the box \u2014 no glue code, no workarounds.",
+                            "New Debug Mode lets you step through every move the Agent makes, so you can see exactly how it thinks and acts."
+                        ]
+                    },
+                    {
+                        "category": "A Clearer Conversation",
+                        "items": [
+                            "Live reasoning state management surfaces the Agent\u2019s thought process as it works \u2014 no more \u201cblack box\u201d.",
+                            "Redesigned message and reasoning rendering for a cleaner, more readable chat that\u2019s a joy to scan.",
+                            "Smarter automatic conversation titles so your history is easy to browse at a glance."
+                        ]
+                    },
+                    {
+                        "category": "Skills That Grow With You",
+                        "items": [
+                            "Introducing the Agent Skills system \u2014 a first-class way to extend what the Agent can do, with documentation to help you author your own.",
+                            "New built-in skills and upgrades to existing ones expand the Agent\u2019s reach across Workbench.",
+                            "Revamped agent settings and model resolution, plus updated OpenAI dependencies for faster, sharper responses."
+                        ]
+                    }
+                ]
+            },
+            {
+                "title": "Workbench, Everywhere You Work",
+                "categories": [
+                    {
+                        "category": "Desktop App",
+                        "items": [
+                            "A brand-new dedicated Desktop package brings Workbench 2.0 to your OS with its own build pipeline and tuned configuration.",
+                            "A cleaner, rebuilt desktop bridge makes the integration layer simpler, faster, and ready for future capabilities."
+                        ]
+                    },
+                    {
+                        "category": "VS Code Extension",
+                        "items": [
+                            "Workbench now feels right at home inside VS Code, with a smoother development workflow and tighter iframe communication.",
+                            "An all-new iframe IndexedDB + JSforce bridge delivers a rock-solid localhost experience.",
+                            "Refreshed VS Code integration and documentation make getting started effortless."
+                        ]
+                    },
+                    {
+                        "category": "Docker & Self-Hosting",
+                        "items": [
+                            "First-class Docker support arrives in 2.0 \u2014 spin up your own Workbench in minutes with updated, developer-friendly docs."
+                        ]
+                    },
+                    {
+                        "category": "Salesforce Project Sync",
+                        "items": [
+                            "A new Metadata API command lets you sync a Salesforce project straight from Workbench \u2014 no context switching, no CLI detours."
+                        ]
+                    }
+                ]
+            },
+            {
+                "title": "Data Tools That Keep Up",
+                "categories": [
+                    {
+                        "category": "SOQL Explorer",
+                        "items": [
+                            "Reworked SOQL tooling with sleeker tree structures and search that actually finds what you need \u2014 fast."
+                        ]
+                    },
+                    {
+                        "category": "File Tree",
+                        "items": [
+                            "A rebuilt File Tree component brings stronger accessibility and lightning-quick search to every explorer that uses it."
+                        ]
+                    }
+                ]
+            },
+            {
+                "title": "A Fresh, Focused UI",
+                "categories": [
+                    {
+                        "category": "Redesigned From the Ground Up",
+                        "items": [
+                            "Every pixel polished: reworked layout and styling deliver a calmer, more consistent experience across the app.",
+                            "Fine-tuned header spacing, navigation widths, explorer contrast, search inputs, and menu icons for a look that just feels right.",
+                            "Dozens of UI component and style refinements add up to a noticeably cleaner, faster feeling."
+                        ]
+                    },
+                    {
+                        "category": "Navigation That Stays Out of Your Way",
+                        "items": [
+                            "A sleek new vertical navigation with smart tooltips puts your favorite apps one click away \u2014 and frees up space for what matters.",
+                            "New Shortcut Selector and integrated shortcut settings let keyboard pros fly through Workbench at their own pace."
+                        ]
+                    }
+                ]
+            },
+            {
+                "title": "Built to Trust",
+                "categories": [
+                    {
+                        "category": "Reliability You Can Feel",
+                        "items": [
+                            "New centralized error reporting brings consistent, actionable diagnostics across the entire app \u2014 fewer surprises, faster fixes."
+                        ]
+                    },
+                    {
+                        "category": "Connections",
+                        "items": [
+                            "Hardened OAuth flow now always persists the full connector configuration (refresh + access tokens), so reconnecting is seamless \u2014 even days later."
+                        ]
+                    },
+                    {
+                        "category": "Under the Hood",
+                        "items": [
+                            "Big lint cleanup, modernized build configurations, and project-wide hygiene improvements \u2014 the invisible work that makes everything else feel better."
+                        ]
+                    }
+                ]
+            },
+            {
+                "title": "Thank You",
+                "categories": [
+                    {
+                        "category": "To Our Community",
+                        "items": [
+                            "2.0 is a love letter to every admin, developer, and architect who pushed this toolkit further. This release is for you \u2014 and it\u2019s only the beginning."
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "version": "1.5.2",
+        "date": "March 3rd, 2026",
+        "sections": [
+            {
+                "title": "Bug Fixes",
+                "categories": [
+                    {
+                        "category": "UI",
+                        "items": ["Various UI fixes and polish across the application."]
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "version": "1.5.1",
+        "date": "February 25th, 2026",
+        "sections": [
+            {
+                "title": "Enhancements",
+                "categories": [
+                    {
+                        "category": "Connections",
+                        "items": [
+                            "Added a Share action on connection cards and in connection details to copy a connection share message to the clipboard.",
+                            "Centralized connection share message generation for consistent links and formatting."
+                        ]
+                    },
+                    {
+                        "category": "User Explorer",
+                        "items": [
+                            "Added a Share button to the Current User (Me) explorer to copy an \u201copen in Workbench 2.0\u201d message to the clipboard."
+                        ]
+                    },
+                    {
+                        "category": "Chrome Extension",
+                        "items": [
+                            "Added a Share action in the injected overlay to copy a session-based \u201copen in Workbench 2.0\u201d link to the clipboard.",
+                            "Improved tab grouping reliability when opening the toolkit from the Agent (safer Chrome API calls and auto-expanding the group).",
+                            "Note: share messages can include sensitive information (session IDs or credentials). Only share with trusted recipients."
+                        ]
+                    }
+                ]
+            },
+            {
+                "title": "Bug Fixes",
+                "categories": [
+                    {
+                        "category": "SOQL Explorer",
+                        "items": [
+                            "Improved results table refresh stability by cloning the response payload before rendering."
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "version": "1.5.0",
+        "date": "February 17th, 2026",
+        "sections": [
+            {
+                "title": "Enhancements",
+                "categories": [
+                    {
+                        "category": "Data Import",
+                        "items": [
+                            "Added a failed-results preview to quickly inspect rejected rows and errors.",
+                            "Improved the import UI and CSV processing for smoother workflows."
+                        ]
+                    },
+                    {
+                        "category": "Text Compare",
+                        "items": [
+                            "Refreshed Text Compare with clearer diff highlighting and synced scrolling.",
+                            "Ignore whitespace now focuses the diff on meaningful content changes."
+                        ]
+                    },
+                    {
+                        "category": "Connections",
+                        "items": [
+                            "Improved the connection import OAuth flow with clearer feedback and better error handling.",
+                            "Updated connection cards styling and interactions for faster navigation."
+                        ]
+                    },
+                    {
+                        "category": "UI & Styling",
+                        "items": [
+                            "Introduced SLDS Plus styles and applied UI polish across menus, layouts, and panels."
+                        ]
+                    }
+                ]
+            },
+            {
+                "title": "Bug Fixes",
+                "categories": [
+                    {
+                        "category": "Text Compare",
+                        "items": [
+                            "Removed the non-functional \"Ignore case\" toggle to avoid misleading diffs."
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "version": "1.4.3",
+        "date": "October 28th, 2025",
+        "sections": [
+            {
+                "title": "Enhancements",
+                "categories": [
+                    {
+                        "category": "Record Viewer",
+                        "items": [
+                            "Pressing Enter in the search input now triggers search to streamline navigation."
+                        ]
+                    },
+                    {
+                        "category": "Links & Navigation",
+                        "items": [
+                            "Improved record reference link generation using frontDoorUrl and URL encoding for reliability."
+                        ]
+                    },
+                    {
+                        "category": "Deployment Tools",
+                        "items": [
+                            "Added 'RunRelevantTests' option to TESTLEVEL in Deploy and Retrieve for improved testing flexibility."
+                        ]
+                    }
+                ]
+            },
+            {
+                "title": "Bug Fixes",
+                "categories": [
+                    {
+                        "category": "SOQL Explorer",
+                        "items": [
+                            "Addressed updates from ticket #35; minor improvements and fixes to the SOQL Explorer."
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "version": "1.4.2",
+        "date": "October 22nd, 2025",
+        "sections": [
+            {
+                "title": "Bug Fixes",
+                "categories": [
+                    {
+                        "category": "General",
+                        "items": ["Small fix to improve stability and address minor edge cases."]
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "version": "1.4.1",
+        "date": "October 10th, 2025",
+        "sections": [
+            {
+                "title": "Maintenance & Polish",
+                "categories": [
+                    {
+                        "category": "General",
+                        "items": [
+                            "Consolidated all pending changes since 1.4.0 across apps and the Chrome extension.",
+                            "Stability, UI polish, and small fixes for Agent, Platform Events, Smart Input, Editor, and File Tree.",
+                            "Added shared Platform Event utilities and minor refactors in core store and shared utils."
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "version": "1.4.00",
+        "date": "October 3rd, 2025",
+        "sections": [
+            {
+                "title": "Enhancements & New Features",
+                "categories": [
+                    {
+                        "category": "AI Assistant & Agent App",
+                        "items": [
+                            "Added an input quick pick component to speed up composing agent prompts.",
+                            "Introduced a message list component and a typing animation for clearer conversation flow.",
+                            "Refactored shared instructions and behavior for more consistent agent interactions.",
+                            "Replaced the Assistant with the new Agent, which can control the app and the Chrome extension (Beta; behavior and APIs may change)."
+                        ]
+                    },
+                    {
+                        "category": "Chrome Extension & APIs",
+                        "items": [
+                            "Updated the Chrome extension configuration and standardized argument naming across Chrome API functions.",
+                            "Improved message handling and UI polish in the extension."
+                        ]
+                    },
+                    {
+                        "category": "Shared Utilities & Context",
+                        "items": [
+                            "Added new utility functions and refactored shared utilities to improve context management across apps."
+                        ]
+                    },
+                    {
+                        "category": "Code Quality & Maintenance",
+                        "items": [
+                            "Cleaned up unused components and styles for better maintainability."
+                        ]
+                    }
+                ]
+            },
+            {
+                "title": "Sharing & Collaboration",
+                "categories": [
+                    {
+                        "category": "Deep Links & Sharing",
+                        "items": [
+                            "Introduced shareable deep links to open specific toolkit states (e.g., Settings, Queries, API scripts), enabling quick collaboration and reproducibility. For now, links are manually controlled and will be fully released at a later stage."
+                        ]
+                    }
+                ]
+            },
+            {
+                "title": "Bug Fixes",
+                "categories": [
+                    {
+                        "category": "AI Assistant & Agent App",
+                        "items": [
+                            "Reset error state before executing the agent to avoid stale errors."
+                        ]
+                    },
+                    {
+                        "category": "API Tools",
+                        "items": [
+                            "Improved error handling and aligned application state retrieval with the central store for reliability."
+                        ]
+                    },
+                    {
+                        "category": "SOQL Explorer",
+                        "items": [
+                            "Fixed selection/deselection scoping: selections are now per tab (granular) instead of global, preventing cross-tab deletions in the SOQL editor."
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "version": "1.3.49",
+        "date": "September 4th, 2025",
+        "sections": [
+            {
+                "title": "Enhancements & New Features",
+                "categories": [
+                    {
+                        "category": "API Integration & OpenAPI Support",
+                        "items": [
+                            "Enhanced API integration by adding OpenAPI parser library and updating related configurations.",
+                            "Refactored existing tools to utilize the OpenAPI parser for improved functionality and streamlined API schema handling.",
+                            "API Editor now includes the possibility to use GlobalVariables."
+                        ]
+                    },
+                    {
+                        "category": "AI Assistant",
+                        "items": [
+                            "Agentic AI is now available with the ability to use your own OpenAI key."
+                        ]
+                    },
+                    {
+                        "category": "User Experience & UI",
+                        "items": [
+                            "General UI improvements for better usability and clarity.",
+                            "Fixed minor UI bugs and alignment issues across the application."
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "version": "1.3.48",
+        "date": "August 19th, 2025",
+        "sections": [
+            {
+                "title": "Enhancements & Bug Fixes",
+                "categories": [
+                    {
+                        "category": "AI Assistant",
+                        "items": [
+                            "Refactored LWC components for the AI assistant, introducing new agents and tools for enhanced functionality.",
+                            "Updated configuration files and dependencies, including integration of OpenAI libraries.",
+                            "Implemented audio recording features and improved message handling for a more robust assistant experience."
+                        ]
+                    },
+                    {
+                        "category": "User Experience & Accessibility",
+                        "items": [
+                            "Streamlined UI elements for improved user experience and accessibility.",
+                            "General bug fixes and performance improvements."
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "version": "1.3.47",
+        "date": "July 11th, 2025",
+        "sections": [
+            {
+                "title": "New Features & Enhancements",
+                "categories": [
+                    {
+                        "category": "AI Assistant",
+                        "items": [
+                            "Added support for OpenAI as an alternative provider to Salesforce Einstein for the AI Assistant.",
+                            "Integrated Mistral as an option for AI-powered autocompletion.",
+                            "Enhanced AI assistant settings with provider options and model selection."
+                        ]
+                    },
+                    {
+                        "category": "OpenAI Integration",
+                        "items": [
+                            "Added OpenAI bundler with new configuration files.",
+                            "Integrated OpenAI agent libraries for advanced AI features."
+                        ]
+                    },
+                    {
+                        "category": "User Experience & UI",
+                        "items": [
+                            "Refactored components for improved user experience.",
+                            "Updated UI elements for better accessibility and functionality."
+                        ]
+                    },
+                    {
+                        "category": "Connection Management",
+                        "items": [
+                            "Streamlined connection management for easier org integration and switching."
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "version": "1.3.46",
+        "date": "July 10th, 2025",
+        "sections": [
+            {
+                "title": "Enhancements",
+                "categories": [
+                    {
+                        "category": "SOQL Explorer",
+                        "items": [
+                            "Added search functionality in SOQL Explorer for easier query and result navigation."
+                        ]
+                    },
+                    {
+                        "category": "SObject Explorer",
+                        "items": [
+                            "Optimized SObject Explorer to support multiple open tabs, allowing users to view and switch between several SObjects simultaneously."
+                        ]
+                    },
+                    {
+                        "category": "UI",
+                        "items": ["Removed tooltips from the UI for a cleaner experience."]
+                    },
+                    {
+                        "category": "Bug Fixes",
+                        "items": ["Fixed a minor bug in the UI for viewing orgs."]
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "version": "1.3.45",
+        "date": "July 10th, 2025",
+        "sections": [
+            {
+                "title": "Rollback",
+                "categories": [
+                    {
+                        "category": "General",
+                        "items": ["Rolled back to version 1.3.42 due to issues in later releases."]
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "version": "1.3.44",
+        "date": "July 9th, 2025",
+        "sections": [
+            {
+                "title": "Bug Fixes",
+                "categories": [
+                    {
+                        "category": "UI",
+                        "items": ["Fixed a minor bug in the UI for viewing orgs."]
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "version": "1.3.43",
+        "date": "July 2nd, 2025",
+        "sections": [
+            {
+                "title": "Bug Fixes",
+                "categories": [
+                    {
+                        "category": "General",
+                        "items": ["Quick bug fix related to Url Redirection."]
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "version": "1.3.42",
+        "date": "July 1st, 2025",
+        "sections": [
+            {
+                "title": "Enhancements",
+                "categories": [
+                    {
+                        "category": "Error Handling & Debugging",
+                        "items": [
+                            "Enhanced error handling across various components by integrating a global error store.",
+                            "Implemented error dispatching in metadata loading, cache settings, and API request execution.",
+                            "Introduced a footer error panel for displaying and filtering error messages, improving user experience and debugging capabilities."
+                        ]
+                    },
+                    {
+                        "category": "Saved Scripts & Queries",
+                        "items": [
+                            "Redesigned the UI for saved scripts, queries, and related items using a file tree structure, allowing for better organization and easier navigation between global and org-specific resources."
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "version": "1.3.41",
+        "date": "June 27th, 2025",
+        "sections": [
+            {
+                "title": "Bug Fixes & Enhancements",
+                "categories": [
+                    {
+                        "category": "Platform Event",
+                        "items": [
+                            "Fixed an issue where not all platform events were covered.",
+                            "Enhanced platform event support to include all objects.",
+                            "Added the ability to manually enter any event for greater flexibility."
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "version": "1.3.40",
+        "date": "June 20th, 2025",
+        "sections": [
+            {
+                "title": "Enhancements",
+                "categories": [
+                    {
+                        "category": "SObject Explorer",
+                        "items": [
+                            "Added support for 'Formula' fields, allowing users to view and interact with formula fields directly in the SObject explorer."
+                        ]
+                    },
+                    {
+                        "category": "API Explorer",
+                        "items": [
+                            "Enhanced the header for improved usability and navigation in the API Explorer."
+                        ]
+                    },
+                    {
+                        "category": "Performance & Optimization",
+                        "items": [
+                            "Upgraded to the latest version of JSforce for improved Salesforce API compatibility and performance.",
+                            "Minified the entire code base to ensure faster loading times and a smoother user experience."
+                        ]
+                    },
+                    {
+                        "category": "MCP (Model Context Protocol)",
+                        "items": [
+                            "MCP is now available in beta phase. Note: MCP features require installation of the DESKTOP app."
+                        ]
+                    }
+                ]
+            },
+            {
+                "title": "Bug Fixes",
+                "categories": [
+                    {
+                        "category": "SOAP API",
+                        "items": [
+                            "Resolved several issues related to SOAP API integration, improving reliability and error handling."
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "version": "1.3.39",
+        "date": "June 10th, 2025",
+        "sections": [
+            {
+                "title": "Enhancement",
+                "categories": [
+                    {
+                        "category": "Installation Guide",
+                        "items": [
+                            "Add more 'How To' in the installation guide.",
+                            "Enhance installation guide with additional 'How To' sections."
+                        ]
+                    },
+                    {
+                        "category": "Shortcuts & Navigation",
+                        "items": [
+                            "Implement new shortcut settings for various applications, improving user navigation experience."
+                        ]
+                    },
+                    {
+                        "category": "Electron Integration",
+                        "items": [
+                            "Refactor API request handling and error management in the Electron integration for better performance and reliability.",
+                            "Handle MCP (Model Context Protocol) for the Desktop Version."
+                        ]
+                    },
+                    {
+                        "category": "General Refactoring",
+                        "items": [
+                            "Remove outdated release notes file.",
+                            "Update version to 1.3.39."
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "version": "1.3.38",
+        "date": "May 26th, 2025",
+        "sections": [
+            {
+                "title": "Enhancement",
+                "categories": [
+                    {
+                        "category": "User Login",
+                        "items": [
+                            "Refactored user login flow for smoother experience and to support future enhancements.",
+                            "Added option to modify the ClientId during login.",
+                            "Introduced ability to select the apiVersion id during login.",
+                            "Added 'Manual Login' option allowing users to directly enter sessionId or username/password combo.",
+                            "Added classic 'username/password' authentication support (not recommended for security reasons)."
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "version": "1.3.37",
+        "date": "May 14th, 2025",
+        "sections": [
+            {
+                "title": "Enhancement",
+                "categories": [
+                    {
+                        "category": "General",
+                        "items": [
+                            "Improve release experience/guide",
+                            "Add option to enable/disable the overlay from the extension menu and from the settings"
+                        ]
+                    }
+                ]
+            },
+            {
+                "title": "Bug Fix",
+                "categories": [
+                    {
+                        "category": "Toolkit Access",
+                        "items": [
+                            "Fix issues related to the previous version preventing user from opening the toolkit"
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "version": "1.3.36",
+        "date": "May 8th, 2025",
+        "sections": [
+            {
+                "title": "Enhancement",
+                "categories": [
+                    {
+                        "category": "General",
+                        "items": ["Add more \"How To\" in the installation guide."]
+                    },
+                    {
+                        "category": "Administration",
+                        "items": [
+                            "Provide granular control over the URL/Domains where the toolkit is injected, allowing users to directly add URLs."
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "version": "1.3.35",
+        "date": "May 6th, 2025",
+        "sections": [
+            {
+                "title": "Enhancement",
+                "categories": [
+                    {
+                        "category": "General",
+                        "items": [
+                            "Enhance Documentation",
+                            "Add more Support for Salesforce Software Engineers (Add Core Support)",
+                            "Enhance install/uninstall experience"
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "version": "1.3.34",
+        "date": "April 28th, 2025",
+        "sections": [
+            {
+                "title": "Enhancement",
+                "categories": [
+                    {
+                        "category": "General",
+                        "items": [
+                            "Add prettier",
+                            "Add Install page (with quick tips)",
+                            "Add Uninstall page (With Google Form)"
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "version": "1.3.33",
+        "date": "April 10th, 2025",
+        "sections": [
+            {
+                "title": "Enhancement",
+                "categories": [
+                    {
+                        "category": "Salesforce Engineer",
+                        "items": ["Add localhost Support for Salesforce Engineers"]
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "version": "1.3.32",
+        "date": "March 27th, 2025",
+        "sections": [
+            {
+                "title": "Bug Fix",
+                "categories": [
+                    {
+                        "category": "Connector initialization",
+                        "items": [
+                            "Fix Alias name not being setup when open the chrome extension in a new org."
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "version": "1.3.31",
+        "date": "March 26th, 2025",
+        "sections": [
+            {
+                "title": "Bug Fix",
+                "categories": [
+                    {
+                        "category": "Miscellaneous",
+                        "items": ["UI wasn't rendering properly", "Store were broken in few places"]
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "version": "1.3.30",
+        "date": "March 18th, 2025",
+        "sections": [
+            {
+                "title": "Enhancements",
+                "categories": [
+                    {
+                        "category": "Shortcut injection",
+                        "items": [
+                            "Open a few application using shortcuts :",
+                            "SOQL Explorer",
+                            "APEX Explorer",
+                            "Org Overview (Home)",
+                            "Toolkit Panel (right side of chrome)"
+                        ]
+                    },
+                    {
+                        "category": "Enhanced Caching System",
+                        "items": [
+                            "Implemented sophisticated caching architecture to optimize data storage and retrieval",
+                            "Improved performance in SOQL, Metadata and SObject explorers through background metadata caching and asynchronous updates"
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "version": "1.3.29",
+        "date": "March 17th, 2025",
+        "sections": [
+            {
+                "title": "Bug Fixes",
+                "categories": [
+                    {
+                        "category": "Overlay",
+                        "items": ["Removed unused fields."]
+                    }
+                ]
+            },
+            {
+                "title": "Enhancements",
+                "categories": [
+                    {
+                        "category": "Caching",
+                        "items": [
+                            "Add Caching manager to improve caching mechanism in the long run.",
+                            "Add back the Header UI tab (settings -> Show Header Application Tabs)."
+                        ]
+                    },
+                    {
+                        "category": "Settings",
+                        "items": ["Hide sensitives settings in case user is sharing his screen."]
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "version": "1.3.28",
+        "date": "February 12th, 2025",
+        "sections": [
+            {
+                "title": "Bug Fixes",
+                "categories": [
+                    {
+                        "category": "Overlay",
+                        "items": ["Missing icons in the injected overlay."]
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "version": "1.3.26",
+        "date": "February 9th, 2025",
+        "sections": [
+            {
+                "title": "Enhancements",
+                "categories": [
+                    {
+                        "category": "Copilot",
+                        "items": [
+                            "All editors now have a copilot button to help you write your queries, code, etc. To activate it, you need to have an OpenAI key configured in the settings.",
+                            "The shortcut to activate the copilot is `CTRL/CMD + K` while the editor is focused.",
+                            "This feature is available in all editors in Beta phase"
+                        ]
+                    }
+                ]
+            },
+            {
+                "title": "Bug Fixes",
+                "categories": [
+                    {
+                        "category": "Shortcut Setting",
+                        "items": [
+                            "Resolved an issue preventing user from using Shortcuts and configuring them in the settings. (Another issue)",
+                            "Fixed an issue where the shortcut was not being saved in the settings and preventing the extension from injecting the shortcuts in the Salesforce Page."
+                        ]
+                    },
+                    {
+                        "category": "Picklist suggestion in SOQL Editor",
+                        "items": [
+                            "It's now possible to use the picklist suggestion in the SOQL Editor."
+                        ]
+                    },
+                    {
+                        "category": "Metadata Explorer",
+                        "items": [
+                            "Fixed an issue where the Metadata Explorer was not displaying the correct data.",
+                            "Fixed an issue that prevented to display Metadata originated from the Metadata API (Such as CanvasMetadata, etc...)"
+                        ]
+                    },
+                    {
+                        "category": "Package Manager",
+                        "items": [
+                            "Fixed an issue where the Package Manager was not displaying the metadata selector."
+                        ]
+                    }
+                ]
+            },
+            {
+                "title": "Known Issues",
+                "categories": [
+                    {
+                        "category": "Package Manager",
+                        "items": [
+                            "Selecting a metadata type in the menu shares the view with the Metadata Explorer, resulting in the last selection being reflected in both the Metadata Explorer and the Package Manager due to their shared Redux state."
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "version": "1.3.25",
+        "date": "January 20th, 2025",
+        "sections": [
+            {
+                "title": "Bug Fixes",
+                "categories": [
+                    {
+                        "category": "Shortcut Setting",
+                        "items": [
+                            "Resolved an issue preventing user from using Shortcuts and configuring them in the settings."
+                        ]
+                    },
+                    {
+                        "category": "Instance Url",
+                        "items": [
+                            "Instance Url was missing from the Org -> Company information component."
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "version": "1.3.24",
+        "date": "January 15th, 2025",
+        "sections": [
+            {
+                "title": "Enhancements",
+                "categories": [
+                    {
+                        "category": "SOQL (Data Explorer)",
+                        "items": [
+                            "Introduced the ability to open the Data Explorer directly from the Record Viewer (right panel) with a prepopulated query. This streamlines the workflow and saves time."
+                        ]
+                    }
+                ]
+            },
+            {
+                "title": "Bug Fixes",
+                "categories": [
+                    {
+                        "category": "Data Explorer",
+                        "items": [
+                            "Resolved an issue where the UI would break if the `Id` field was not selected."
+                        ]
+                    },
+                    {
+                        "category": "Redirection issue",
+                        "items": [
+                            "Fixed an issue where certain redirection links were not functioning as expected."
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "version": "1.3.23",
+        "date": "January 10th, 2025",
+        "sections": [
+            {
+                "title": "New Features",
+                "categories": [
+                    {
+                        "category": "Record Viewer",
+                        "items": [
+                            "Introduced a user-friendly interface for visualizing records, akin to the \"Chrome Panel\" experience.",
+                            "Enabled direct editing of records within the Record Viewer app, streamlining workflows."
+                        ]
+                    }
+                ]
+            },
+            {
+                "title": "Enhancements",
+                "categories": [
+                    {
+                        "category": "SOQL (Data Explorer)",
+                        "items": [
+                            "Added support for record deletion directly from the SOQL interface.",
+                            "Implemented query formatting to enhance readability and usability."
+                        ]
+                    }
+                ]
+            },
+            {
+                "title": "Bug Fixes",
+                "categories": [
+                    {
+                        "category": "OAuth Error",
+                        "items": [
+                            "Improved error handling for OAuth session management. If the registered org is not found or the session has expired, a popup message will now notify the user."
+                        ]
+                    },
+                    {
+                        "category": "Metadata Issues",
+                        "items": [
+                            "Resolved various metadata-related issues to improve reliability and performance."
+                        ]
+                    }
+                ]
+            },
+            {
+                "title": "Other Changes",
+                "categories": [
+                    {
+                        "category": "Removal of Application Tab",
+                        "items": [
+                            "The Application Tab has been removed to simplify navigation and improve user experience."
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "version": "1.3.22",
+        "date": "January 7th, 2025",
+        "sections": [
+            {
+                "title": "Enhancements",
+                "categories": [
+                    {
+                        "category": "Metadata Explorer",
+                        "items": [
+                            "Improved performance for faster data retrieval and processing.",
+                            "Added multi-tab support to enhance user experience and facilitate simultaneous metadata exploration."
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "version": "1.3.21",
+        "date": "December 24th, 2024",
+        "sections": [
+            {
+                "title": "New Features",
+                "categories": [
+                    {
+                        "category": "All Editors",
+                        "items": [
+                            "Enabled shortcuts for Save & Run operations:",
+                            "`CTRL/CMD + S` to Save",
+                            "`CTRL/CMD + Enter` to Run"
+                        ]
+                    },
+                    {
+                        "category": "Data Explorer",
+                        "items": [
+                            "Introduced commenting functionality using `//` to exclude parts of a query for better query management."
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "version": "1.3.20",
+        "date": "November 20th, 2024",
+        "sections": [
+            {
+                "title": "Bug Fixes",
+                "categories": [
+                    {
+                        "category": "Connection Module",
+                        "items": [
+                            "Fixed the issue with the loading spinner during authorization and redirection to an organization."
+                        ]
+                    },
+                    {
+                        "category": "User Explorer",
+                        "items": ["Adjusted font size for improved readability."]
+                    },
+                    {
+                        "category": "API Explorer",
+                        "items": [
+                            "Enhanced UI for handling large files by integrating Monaco and Workbench visualizers."
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "version": "1.3.19",
+        "date": "November 11th, 2024",
+        "sections": [
+            {
+                "title": "New Features",
+                "categories": [
+                    {
+                        "category": "UI Overhaul",
+                        "items": [
+                            "Completely redesigned user interface for a modern look and improved usability.",
+                            "Introduced a \"Multi-Tab\" feature for streamlined navigation across applications."
+                        ]
+                    },
+                    {
+                        "category": "Deploy/Retrieve Module",
+                        "items": [
+                            "Added functionality to deploy packages to Salesforce or retrieve them from Salesforce efficiently."
+                        ]
+                    },
+                    {
+                        "category": "Injected Overlay Module",
+                        "items": [
+                            "Integrated an overlay into Salesforce pages to enable quick search and navigation.",
+                            "Laid the groundwork for a future \"bridge\" between the app and the Chrome extension."
+                        ]
+                    }
+                ]
+            },
+            {
+                "title": "Enhancements",
+                "categories": [
+                    {
+                        "category": "Localhost Extension",
+                        "items": [
+                            "Transformed the cloud-based application into a fully functional browser-based app, eliminating the need for a proxy server."
+                        ]
+                    },
+                    {
+                        "category": "Performance Improvements",
+                        "items": [
+                            "Optimized load times and overall application responsiveness for a smoother user experience."
+                        ]
+                    },
+                    {
+                        "category": "Extended Salesforce API Support",
+                        "items": [
+                            "Expanded support for additional Salesforce APIs, enhancing the toolkit\u2019s capabilities."
+                        ]
+                    },
+                    {
+                        "category": "Access Analyzer with Web Worker",
+                        "items": [
+                            "Improved performance by executing Access Analyzer computations using web workers."
+                        ]
+                    }
+                ]
+            },
+            {
+                "title": "Bug Fixes",
+                "categories": [
+                    {
+                        "category": "Login Issue",
+                        "items": [
+                            "Fixed an intermittent bug preventing some users from logging in to their Salesforce accounts."
+                        ]
+                    },
+                    {
+                        "category": "Data Sync Error",
+                        "items": [
+                            "Resolved occasional data synchronization failures between the toolkit and Salesforce."
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
 ]

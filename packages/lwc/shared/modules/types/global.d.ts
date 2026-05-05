@@ -104,7 +104,17 @@ interface Window {
                       }
             ) => void
         ) => () => void;
-        checkCommands: () => Promise<{ sfdx: boolean; java: boolean }>;
+        checkCommands: () => Promise<{
+            sfdx: boolean;
+            java: boolean;
+            vscode: boolean;
+            pmd: boolean;
+            summary: {
+                missing: string[];
+                messages: string[];
+                ready: boolean;
+            };
+        }>;
         openInstance: (payload: Record<string, unknown>) => Promise<{ success: true }>;
         openOrgUrl: (payload: Record<string, unknown>) => Promise<{ success: true }>;
         setStoredOrg: (payload: Record<string, unknown>) => Promise<unknown>;

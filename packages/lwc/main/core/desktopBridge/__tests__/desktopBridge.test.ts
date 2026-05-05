@@ -125,7 +125,17 @@ test('getDesktopOrgs: returns undefined when no bridge available', async () => {
 
 test('checkDesktopCommands: default when neither bridge responds', async () => {
     setWindow({});
-    assert.deepEqual(await checkDesktopCommands(), { sfdx: false, java: false });
+    assert.deepEqual(await checkDesktopCommands(), {
+        sfdx: false,
+        java: false,
+        vscode: false,
+        pmd: false,
+        summary: {
+            missing: ['sfdx', 'java', 'vscode', 'pmd'],
+            messages: [],
+            ready: false,
+        },
+    });
 });
 
 test('runDesktopShell: delegates to desktop.runShell when present', async () => {

@@ -4,6 +4,7 @@ import path from 'node:path';
 import { app, dialog, nativeImage, shell, session, type WebContents } from 'electron';
 
 import { DesktopAutomationServer } from './desktopAutomationServer';
+import { ensureAutomationToken, normalizeAutomationHost } from './desktopAutomationSecurity';
 import { DesktopLegacyBus } from './desktopLegacyBus';
 import { desktopLog, registerDesktopLoggerProcessHandlers } from './desktopLogger';
 import { registerDesktopMenu } from './desktopMenu';
@@ -216,16 +217,17 @@ app.whenReady().then(async () => {
     windowManager.setRendererUrl(rendererUrl);
     registerWebContentsGuards(rendererUrl);
 
-    automationServer = new DesktopAutomationServer({
-        host: process.env.API_HOST?.replace(/^https?:\/\//, '') || '127.0.0.1',
-        legacyBus,
-        openInstance,
-        port: Number(process.env.API_PORT || '12346'),
-        windowManager,
-    });
-
     let automationBaseUrl: string | null = null;
     try {
+        const automationToken = await ensureAutomationToken(app.getPath('userData'));
+        automationServer = new DesktopAutomationServer({
+            host: normalizeAutomationHost(process.env.API_HOST),
+            legacyBus,
+            openInstance,
+            port: Number(process.env.API_PORT || '12346'),
+            token: automationToken,
+            windowManager,
+        });
         automationBaseUrl = await automationServer.start();
     } catch (error) {
         desktopLog.error('Failed to start desktop automation server', error);

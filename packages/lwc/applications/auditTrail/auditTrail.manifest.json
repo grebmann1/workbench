@@ -1,0 +1,29 @@
+{
+    "id": "auditTrail",
+    "name": "auditTrail/app",
+    "label": "Audit Trail",
+    "shortName": "Audit",
+    "description": "Browse the Setup Audit Trail with search, filters, and CSV export.",
+    "path": "audit-trail",
+    "quickActionIcon": "standard:asset_audit",
+    "type": "admin",
+    "menuGroup": "admin",
+    "menuOrder": 65,
+    "flags": {
+        "isFullHeight": true,
+        "isDeletable": true,
+        "isElectronOnly": false,
+        "isOfflineAvailable": false,
+        "isMenuVisible": true,
+        "isTabVisible": true
+    },
+    "slashCommands": [
+        {
+            "command": "audit",
+            "description": "Open the Setup Audit Trail viewer",
+            "iconName": "standard:asset_audit",
+            "autoExecute": true,
+            "commandId": "auditTrail.open"
+        }
+    ]
+}

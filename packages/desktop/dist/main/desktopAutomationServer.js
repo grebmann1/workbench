@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.DesktopAutomationServer = void 0;
 const node_http_1 = __importDefault(require("node:http"));
 const desktopCommand_1 = require("./desktopCommand");
+const desktopAutomationSecurity_1 = require("./desktopAutomationSecurity");
 const desktopLogger_1 = require("./desktopLogger");
 const desktopServices_1 = require("./desktopServices");
 const DEFAULT_HOST = '127.0.0.1';
@@ -15,13 +16,16 @@ class DesktopAutomationServer {
     legacyBus;
     openInstance;
     port;
+    baseUrl = null;
     server = null;
+    token;
     windowManager;
     constructor(options) {
         this.host = options.host || DEFAULT_HOST;
         this.legacyBus = options.legacyBus;
         this.openInstance = options.openInstance;
-        this.port = options.port || DEFAULT_PORT;
+        this.port = options.port ?? DEFAULT_PORT;
+        this.token = options.token;
         this.windowManager = options.windowManager;
     }
     async start() {
@@ -43,11 +47,16 @@ class DesktopAutomationServer {
                 resolve();
             });
         });
+        const address = this.server.address();
+        if (address && typeof address !== 'string') {
+            this.baseUrl = `http://${this.host}:${String(address.port)}`;
+        }
         return this.getBaseUrl();
     }
     async stop() {
         const server = this.server;
         this.server = null;
+        this.baseUrl = null;
         if (!server) {
             return;
         }
@@ -62,7 +71,7 @@ class DesktopAutomationServer {
         });
     }
     getBaseUrl() {
-        return `http://${this.host}:${String(this.port)}`;
+        return this.baseUrl || `http://${this.host}:${String(this.port)}`;
     }
     async handleRequest(request, response) {
         const method = String(request.method || 'GET').toUpperCase();
@@ -84,7 +93,8 @@ class DesktopAutomationServer {
                 });
                 return;
             }
-            const body = await this.readJsonBody(request);
+            (0, desktopAutomationSecurity_1.assertAuthorizedAutomationRequest)(request.headers, this.token);
+            const body = await (0, desktopAutomationSecurity_1.readBoundedJsonBody)(request, desktopAutomationSecurity_1.DEFAULT_AUTOMATION_BODY_LIMIT_BYTES);
             switch (requestUrl.pathname) {
                 case '/electron/open-instance':
                     await this.openInstance(body);
@@ -169,6 +179,14 @@ class DesktopAutomationServer {
             }
         }
         catch (error) {
+            const message = error instanceof Error ? error.message : 'Desktop automation request failed.';
+            if (message === 'Unauthorized desktop automation request.') {
+                this.writeJson(response, 401, {
+                    status: 'error',
+                    message,
+                });
+                return;
+            }
             desktopLogger_1.desktopLog.error('Desktop automation request failed', {
                 error,
                 method,
@@ -176,7 +194,7 @@ class DesktopAutomationServer {
             });
             this.writeJson(response, 500, {
                 status: 'error',
-                message: error instanceof Error ? error.message : 'Desktop automation request failed.',
+                message,
             });
         }
     }
@@ -251,16 +269,6 @@ class DesktopAutomationServer {
             throw new Error(`No window found for alias: ${normalizedAlias || '<missing>'}. Open the org in the desktop app first.`);
         }
         return this.legacyBus.send(channel, payload, targetWindow.webContents);
-    }
-    async readJsonBody(request) {
-        const chunks = [];
-        for await (const chunk of request) {
-            chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
-        }
-        if (chunks.length === 0) {
-            return {};
-        }
-        return JSON.parse(Buffer.concat(chunks).toString('utf8'));
     }
     writeJson(response, statusCode, payload) {
         response.writeHead(statusCode, { 'Content-Type': 'application/json; charset=utf-8' });

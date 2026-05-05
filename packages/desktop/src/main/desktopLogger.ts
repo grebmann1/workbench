@@ -8,16 +8,26 @@ type LogLevel = 'error' | 'info' | 'warn';
 
 let processHandlersRegistered = false;
 
+export function redactSecrets(value: string): string {
+    return value
+        .replace(/force:\/\/[^@\s]+@[^\s]+/g, 'force://<redacted>@<redacted>')
+        .replace(/Bearer\s+[A-Za-z0-9._~+/=-]+/gi, 'Bearer <redacted>')
+        .replace(
+            /(accessToken|refreshToken|sessionId|sfdxAuthUrl)["':=\s]+[A-Za-z0-9._~!+/=-]+/gi,
+            '$1=<redacted>'
+        );
+}
+
 function serializeLogPart(part: unknown): string {
     if (part instanceof Error) {
-        return part.stack || part.message;
+        return redactSecrets(part.stack || part.message);
     }
 
     if (typeof part === 'string') {
-        return part;
+        return redactSecrets(part);
     }
 
-    return util.inspect(part, { breakLength: 120, depth: 6 });
+    return redactSecrets(util.inspect(part, { breakLength: 120, depth: 6 }));
 }
 
 async function appendLog(level: LogLevel, parts: unknown[]): Promise<void> {

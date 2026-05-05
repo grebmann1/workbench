@@ -7,6 +7,7 @@ exports.DesktopRendererServer = void 0;
 const promises_1 = __importDefault(require("node:fs/promises"));
 const node_http_1 = __importDefault(require("node:http"));
 const node_path_1 = __importDefault(require("node:path"));
+const desktopSalesforceProxy_1 = require("./desktopSalesforceProxy");
 const CONTENT_TYPES = {
     '.css': 'text/css; charset=utf-8',
     '.gif': 'image/gif',
@@ -29,6 +30,20 @@ const CONTENT_TYPES = {
 const NO_STORE_HEADERS = {
     'Cache-Control': 'no-store, max-age=0',
     Pragma: 'no-cache',
+};
+const SECURITY_HEADERS = {
+    'Content-Security-Policy': [
+        "default-src 'self' data: blob:",
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval' blob:",
+        "style-src 'self' 'unsafe-inline'",
+        "connect-src 'self' https: http://127.0.0.1:* ws://127.0.0.1:*",
+        "img-src 'self' data: blob: https:",
+        "font-src 'self' data:",
+        "frame-src 'self' https:",
+        "worker-src 'self' blob:",
+    ].join('; '),
+    'Cross-Origin-Resource-Policy': 'same-origin',
+    'X-Content-Type-Options': 'nosniff',
 };
 class DesktopRendererServer {
     appVersion;
@@ -86,17 +101,23 @@ class DesktopRendererServer {
     }
     async handleRequest(request, response) {
         const method = String(request.method || 'GET').toUpperCase();
+        const requestUrl = new URL(request.url || '/', 'http://127.0.0.1');
+        if (requestUrl.pathname === '/proxy' || requestUrl.pathname.startsWith('/proxy/')) {
+            (0, desktopSalesforceProxy_1.handleSalesforceProxyRequest)(request, response, String(request.headers.origin || this.baseUrl || '*'));
+            return;
+        }
         if (!['GET', 'HEAD'].includes(method)) {
             response.writeHead(405, {
+                ...SECURITY_HEADERS,
                 ...NO_STORE_HEADERS,
                 'Content-Type': 'text/plain; charset=utf-8',
             });
             response.end('Method Not Allowed');
             return;
         }
-        const requestUrl = new URL(request.url || '/', 'http://127.0.0.1');
         if (requestUrl.pathname === '/version') {
             response.writeHead(200, {
+                ...SECURITY_HEADERS,
                 ...NO_STORE_HEADERS,
                 'Content-Type': 'application/json; charset=utf-8',
             });
@@ -108,6 +129,7 @@ class DesktopRendererServer {
         const filePath = await this.resolveRequestPath(requestUrl.pathname);
         if (!filePath) {
             response.writeHead(404, {
+                ...SECURITY_HEADERS,
                 ...NO_STORE_HEADERS,
                 'Content-Type': 'text/plain; charset=utf-8',
             });
@@ -117,7 +139,11 @@ class DesktopRendererServer {
         const contentType = CONTENT_TYPES[node_path_1.default.extname(filePath).toLowerCase()] || 'application/octet-stream';
         try {
             const content = await promises_1.default.readFile(filePath);
-            response.writeHead(200, { ...NO_STORE_HEADERS, 'Content-Type': contentType });
+            response.writeHead(200, {
+                ...SECURITY_HEADERS,
+                ...NO_STORE_HEADERS,
+                'Content-Type': contentType,
+            });
             if (method === 'HEAD') {
                 response.end();
                 return;
@@ -126,6 +152,7 @@ class DesktopRendererServer {
         }
         catch (error) {
             response.writeHead(500, {
+                ...SECURITY_HEADERS,
                 ...NO_STORE_HEADERS,
                 'Content-Type': 'text/plain; charset=utf-8',
             });

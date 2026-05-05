@@ -16,6 +16,8 @@ The desktop package now provides:
 - desktop-backed org storage, code workspace flows, and PMD installation
 - a localhost automation API on port `12346` by default for external tooling
 - branded desktop icons, a native application menu, and file-backed main-process logs
+- cross-platform Forge makers for macOS, Windows, and Linux release artifacts
+- OS-backed encrypted storage for imported desktop org refresh tokens
 
 ## Parity Decisions
 
@@ -64,6 +66,7 @@ npm run test
 npm run start:dev
 npm run package
 npm run make
+npm run publish
 node dist/cli/desktopCli.js --org my-alias
 ```
 
@@ -75,9 +78,18 @@ See [../../docs/desktop-cli.md](../../docs/desktop-cli.md) for the full command 
 - `DesktopRendererServer` serves `dist/extension` from `http://127.0.0.1:47321` by default. Override with `DESKTOP_RENDERER_PORT` when needed.
 - A root-level `npm install` now bootstraps `packages/desktop` as part of the repo postinstall flow.
 - `package` and `make` regenerate icons, build the production extension bundle, then package the desktop app.
+- `build:renderer` builds worker bundles before building the renderer so packaged desktop apps do not ship stale worker assets.
 - Packaged desktop builds include `dist/extension` and `packages/desktop/resources` as Forge extra resources.
 - GitHub publishing and macOS signing/notarization are env-driven through Forge config.
+- Linux makers require `fakeroot` and `rpm` on CI/build hosts.
+- Windows signing is expected to be added through the release workflow secrets before broad distribution.
 - `start:dev:desktop:all` is the easiest local workflow when the extension bundle is not already being watched.
 - Use `npm run desktop:open -- --org my-alias` to open an authenticated CLI org directly. The desktop host loads `/views/direct.html?alias=my-alias`, the renderer asks the main process for `sf org display --verbose`, and the Electron OAuth strategy reuses the CLI refresh token.
 - Use `npm run desktop:open -- open soql --target-org my-alias --query "SELECT Id FROM User LIMIT 1"` to open SOQL Explorer directly from the CLI.
 - Main-process diagnostics are written to Electron's logs directory as `main.log`. Use **Help → Open Logs Folder** in the desktop menu.
+
+## Release Notes
+
+- Desktop automation binds to loopback only and POST requests require the per-install bearer token created in Electron user data.
+- Imported SFDX auth URLs are split before persistence: public org metadata stays in `desktop-store.json`, while token material is encrypted with Electron safe storage.
+- PMD installation uses a pinned GitHub release tag by default. Override with `WORKBENCH_PMD_RELEASE_TAG`; set `WORKBENCH_PMD_SHA256` to enforce an archive checksum.

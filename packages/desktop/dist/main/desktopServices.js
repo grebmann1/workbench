@@ -25,34 +25,53 @@ exports.getAllOrgs = getAllOrgs;
 exports.seeOrgDetails = seeOrgDetails;
 exports.openOrgUrl = openOrgUrl;
 const node_child_process_1 = require("node:child_process");
+const node_crypto_1 = __importDefault(require("node:crypto"));
 const promises_1 = __importDefault(require("node:fs/promises"));
 const node_path_1 = __importDefault(require("node:path"));
 const electron_1 = require("electron");
+const desktopCredentialStore_1 = require("./desktopCredentialStore");
 const desktopLogger_1 = require("./desktopLogger");
-const desktopPaths_1 = require("./desktopPaths");
 const desktopOrgCliUtils_1 = require("./desktopOrgCliUtils");
+const desktopPaths_1 = require("./desktopPaths");
 const desktopServiceUtils_1 = require("./desktopServiceUtils");
+const desktopPrerequisites_1 = require("./desktopPrerequisites");
 const DEFAULT_STORE = {
     storedOrgs: {},
+    orgSecrets: {},
     configs: {},
 };
 const DEFAULT_SOURCE_API_VERSION = '66.0';
-const PMD_RELEASES_API_URL = 'https://api.github.com/repos/pmd/pmd/releases/latest';
+const PMD_RELEASE_TAG = process.env.WORKBENCH_PMD_RELEASE_TAG || 'pmd_releases/7.18.0';
+const PMD_RELEASES_API_URL = `https://api.github.com/repos/pmd/pmd/releases/tags/${PMD_RELEASE_TAG}`;
+const PMD_EXPECTED_SHA256 = process.env.WORKBENCH_PMD_SHA256 || null;
 function getStorePath() {
     return node_path_1.default.join(electron_1.app.getPath('userData'), 'desktop-store.json');
 }
 async function readDesktopStore() {
+    let parsed;
     try {
         const raw = await promises_1.default.readFile(getStorePath(), 'utf8');
-        const parsed = JSON.parse(raw);
-        return {
-            storedOrgs: parsed.storedOrgs || {},
-            configs: parsed.configs || {},
-        };
+        parsed = JSON.parse(raw);
     }
     catch {
         return DEFAULT_STORE;
     }
+    const store = {
+        storedOrgs: parsed.storedOrgs || {},
+        orgSecrets: parsed.orgSecrets || {},
+        configs: parsed.configs || {},
+    };
+    const migrated = (0, desktopCredentialStore_1.migrateStoredOrgSecrets)(store.storedOrgs, store.orgSecrets, electron_1.safeStorage);
+    if (migrated.changed) {
+        const migratedStore = {
+            storedOrgs: migrated.storedOrgs,
+            orgSecrets: migrated.orgSecrets,
+            configs: store.configs,
+        };
+        await writeDesktopStore(migratedStore);
+        return migratedStore;
+    }
+    return store;
 }
 async function writeDesktopStore(nextStore) {
     const storePath = getStorePath();
@@ -124,9 +143,15 @@ function getCliOrgList() {
     };
 }
 async function getCommandAvailability() {
-    return {
+    const availability = {
         sfdx: commandExists('sf') || commandExists('sfdx'),
         java: commandExists('java'),
+        vscode: commandExists('code'),
+        pmd: commandExists('pmd'),
+    };
+    return {
+        ...availability,
+        summary: (0, desktopPrerequisites_1.summarizeCommandAvailability)(availability),
     };
 }
 async function pathExists(targetPath) {
@@ -524,14 +549,18 @@ async function saveStoredOrg(alias, configuration) {
     if (!normalizedAlias) {
         throw new Error('Alias is required');
     }
+    const { publicConfiguration, secrets } = (0, desktopCredentialStore_1.splitOrgSecrets)(configuration || {});
     store.storedOrgs[normalizedAlias] = {
-        ...(configuration || {}),
+        ...publicConfiguration,
         alias: normalizedAlias,
         id: normalizedAlias,
         status: configuration?.status || 'Connected',
     };
+    if (Object.keys(secrets).length > 0) {
+        store.orgSecrets[normalizedAlias] = (0, desktopCredentialStore_1.encryptOrgSecrets)(secrets, electron_1.safeStorage);
+    }
     await writeDesktopStore(store);
-    return store.storedOrgs[normalizedAlias];
+    return (0, desktopCredentialStore_1.mergeOrgSecrets)(store.storedOrgs[normalizedAlias], store.orgSecrets[normalizedAlias], electron_1.safeStorage);
 }
 async function saveSfdxAuthUrlOrg(alias, sfdxAuthUrl) {
     const { instanceUrl, refreshToken } = (0, desktopOrgCliUtils_1.parseSfdxAuthUrl)(sfdxAuthUrl);
@@ -563,9 +592,10 @@ async function installLatestPmd(projectPath) {
         throw new Error(`Failed to fetch PMD release metadata: ${releaseResponse.status}`);
     }
     const release = (await releaseResponse.json());
-    const downloadUrl = release.assets?.find(asset => {
+    const selectedAsset = release.assets?.find(asset => {
         return typeof asset.name === 'string' && /^pmd-dist-.*-bin\.zip$/.test(asset.name);
-    })?.browser_download_url;
+    });
+    const downloadUrl = selectedAsset?.browser_download_url;
     if (!downloadUrl) {
         throw new Error('Failed to find a PMD binary distribution asset.');
     }
@@ -581,8 +611,15 @@ async function installLatestPmd(projectPath) {
     const tempRoot = node_path_1.default.join(electron_1.app.getPath('temp'), `workbench-pmd-${Date.now()}`);
     const archivePath = node_path_1.default.join(tempRoot, 'pmd.zip');
     const extractRoot = node_path_1.default.join(tempRoot, 'extract');
+    const archiveBuffer = Buffer.from(await zipResponse.arrayBuffer());
+    if (PMD_EXPECTED_SHA256) {
+        const actualHash = node_crypto_1.default.createHash('sha256').update(archiveBuffer).digest('hex');
+        if (actualHash !== PMD_EXPECTED_SHA256) {
+            throw new Error(`Downloaded PMD archive checksum mismatch for ${selectedAsset?.name || 'asset'}.`);
+        }
+    }
     await promises_1.default.mkdir(extractRoot, { recursive: true });
-    await promises_1.default.writeFile(archivePath, Buffer.from(await zipResponse.arrayBuffer()));
+    await promises_1.default.writeFile(archivePath, archiveBuffer);
     const unzipResult = (0, node_child_process_1.spawnSync)('/usr/bin/unzip', ['-oq', archivePath, '-d', extractRoot], {
         encoding: 'utf8',
     });
@@ -611,7 +648,8 @@ async function getStoredOrg(alias) {
         return null;
     }
     const store = await readDesktopStore();
-    return store.storedOrgs[alias] || null;
+    const storedOrg = store.storedOrgs[alias] || null;
+    return storedOrg ? (0, desktopCredentialStore_1.mergeOrgSecrets)(storedOrg, store.orgSecrets[alias], electron_1.safeStorage) : null;
 }
 async function getAllStoredOrgs() {
     const store = await readDesktopStore();
@@ -630,7 +668,11 @@ async function renameStoredOrg(oldAlias, newAlias) {
             alias: newAlias,
             id: newAlias,
         };
+        if (store.orgSecrets[oldAlias]) {
+            store.orgSecrets[newAlias] = store.orgSecrets[oldAlias];
+        }
         delete store.storedOrgs[oldAlias];
+        delete store.orgSecrets[oldAlias];
     }
     else {
         await renameCliOrgAlias(oldAlias, newAlias);
@@ -645,6 +687,7 @@ async function removeStoredOrg(alias) {
     const store = await readDesktopStore();
     if (store.storedOrgs[alias]) {
         delete store.storedOrgs[alias];
+        delete store.orgSecrets[alias];
     }
     else {
         logoutCliOrg(alias);
@@ -663,13 +706,11 @@ async function seeOrgDetails(alias) {
     if (storedOrg) {
         return storedOrg;
     }
-    const sfDisplay = commandExists('sf') &&
-        runJsonCommand('sf', (0, desktopOrgCliUtils_1.buildSfOrgDisplayArgs)(alias));
+    const sfDisplay = commandExists('sf') && runJsonCommand('sf', (0, desktopOrgCliUtils_1.buildSfOrgDisplayArgs)(alias));
     if (sfDisplay?.result) {
         return (0, desktopOrgCliUtils_1.assertCliOrgHasOAuthCredentials)(alias, sfDisplay.result);
     }
-    const sfdxDisplay = commandExists('sfdx') &&
-        runJsonCommand('sfdx', (0, desktopOrgCliUtils_1.buildSfdxOrgDisplayArgs)(alias));
+    const sfdxDisplay = commandExists('sfdx') && runJsonCommand('sfdx', (0, desktopOrgCliUtils_1.buildSfdxOrgDisplayArgs)(alias));
     if (sfdxDisplay?.result) {
         return (0, desktopOrgCliUtils_1.assertCliOrgHasOAuthCredentials)(alias, sfdxDisplay.result);
     }

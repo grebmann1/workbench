@@ -1,9 +1,17 @@
 import { spawn, spawnSync } from 'node:child_process';
+import crypto from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
-import { app, dialog, shell } from 'electron';
+import { app, dialog, safeStorage, shell } from 'electron';
 
+import {
+    encryptOrgSecrets,
+    mergeOrgSecrets,
+    migrateStoredOrgSecrets,
+    splitOrgSecrets,
+    type EncryptedOrgSecrets,
+} from './desktopCredentialStore';
 import { desktopLog } from './desktopLogger';
 import {
     assertCliOrgHasOAuthCredentials,
@@ -15,18 +23,27 @@ import {
 } from './desktopOrgCliUtils';
 import { getDesktopTemplatePath } from './desktopPaths';
 import { buildOrgOpenUrl } from './desktopServiceUtils';
+import {
+    summarizeCommandAvailability,
+    type DesktopCommandAvailability,
+    type DesktopPrerequisiteSummary,
+} from './desktopPrerequisites';
 
 type DesktopStore = {
     storedOrgs: Record<string, any>;
+    orgSecrets: Record<string, EncryptedOrgSecrets>;
     configs: Record<string, Record<string, unknown>>;
 };
 
 const DEFAULT_STORE: DesktopStore = {
     storedOrgs: {},
+    orgSecrets: {},
     configs: {},
 };
 const DEFAULT_SOURCE_API_VERSION = '66.0';
-const PMD_RELEASES_API_URL = 'https://api.github.com/repos/pmd/pmd/releases/latest';
+const PMD_RELEASE_TAG = process.env.WORKBENCH_PMD_RELEASE_TAG || 'pmd_releases/7.18.0';
+const PMD_RELEASES_API_URL = `https://api.github.com/repos/pmd/pmd/releases/tags/${PMD_RELEASE_TAG}`;
+const PMD_EXPECTED_SHA256 = process.env.WORKBENCH_PMD_SHA256 || null;
 
 type StreamEventSender = (payload: Record<string, unknown>) => void;
 
@@ -35,16 +52,31 @@ function getStorePath(): string {
 }
 
 async function readDesktopStore(): Promise<DesktopStore> {
+    let parsed: Partial<DesktopStore>;
     try {
         const raw = await fs.readFile(getStorePath(), 'utf8');
-        const parsed = JSON.parse(raw) as Partial<DesktopStore>;
-        return {
-            storedOrgs: parsed.storedOrgs || {},
-            configs: parsed.configs || {},
-        };
+        parsed = JSON.parse(raw) as Partial<DesktopStore>;
     } catch {
         return DEFAULT_STORE;
     }
+
+    const store = {
+        storedOrgs: parsed.storedOrgs || {},
+        orgSecrets: parsed.orgSecrets || {},
+        configs: parsed.configs || {},
+    };
+    const migrated = migrateStoredOrgSecrets(store.storedOrgs, store.orgSecrets, safeStorage);
+    if (migrated.changed) {
+        const migratedStore = {
+            storedOrgs: migrated.storedOrgs,
+            orgSecrets: migrated.orgSecrets,
+            configs: store.configs,
+        };
+        await writeDesktopStore(migratedStore);
+        return migratedStore;
+    }
+
+    return store;
 }
 
 async function writeDesktopStore(nextStore: DesktopStore): Promise<void> {
@@ -126,10 +158,18 @@ function getCliOrgList(): { result: { nonScratchOrgs: any[]; scratchOrgs: any[] 
     };
 }
 
-export async function getCommandAvailability(): Promise<{ sfdx: boolean; java: boolean }> {
-    return {
+export async function getCommandAvailability(): Promise<
+    DesktopCommandAvailability & { summary: DesktopPrerequisiteSummary }
+> {
+    const availability: DesktopCommandAvailability = {
         sfdx: commandExists('sf') || commandExists('sfdx'),
         java: commandExists('java'),
+        vscode: commandExists('code'),
+        pmd: commandExists('pmd'),
+    };
+    return {
+        ...availability,
+        summary: summarizeCommandAvailability(availability),
     };
 }
 
@@ -700,15 +740,23 @@ export async function saveStoredOrg(alias: string, configuration: any): Promise<
         throw new Error('Alias is required');
     }
 
+    const { publicConfiguration, secrets } = splitOrgSecrets(configuration || {});
     store.storedOrgs[normalizedAlias] = {
-        ...(configuration || {}),
+        ...publicConfiguration,
         alias: normalizedAlias,
         id: normalizedAlias,
         status: configuration?.status || 'Connected',
     };
+    if (Object.keys(secrets).length > 0) {
+        store.orgSecrets[normalizedAlias] = encryptOrgSecrets(secrets, safeStorage);
+    }
     await writeDesktopStore(store);
 
-    return store.storedOrgs[normalizedAlias];
+    return mergeOrgSecrets(
+        store.storedOrgs[normalizedAlias],
+        store.orgSecrets[normalizedAlias],
+        safeStorage
+    );
 }
 
 export async function saveSfdxAuthUrlOrg(alias: string, sfdxAuthUrl: string): Promise<any> {
@@ -752,9 +800,10 @@ export async function installLatestPmd(projectPath: string | null | undefined): 
     const release = (await releaseResponse.json()) as {
         assets?: Array<{ browser_download_url?: string; name?: string }>;
     };
-    const downloadUrl = release.assets?.find(asset => {
+    const selectedAsset = release.assets?.find(asset => {
         return typeof asset.name === 'string' && /^pmd-dist-.*-bin\.zip$/.test(asset.name);
-    })?.browser_download_url;
+    });
+    const downloadUrl = selectedAsset?.browser_download_url;
 
     if (!downloadUrl) {
         throw new Error('Failed to find a PMD binary distribution asset.');
@@ -775,8 +824,18 @@ export async function installLatestPmd(projectPath: string | null | undefined): 
     const archivePath = path.join(tempRoot, 'pmd.zip');
     const extractRoot = path.join(tempRoot, 'extract');
 
+    const archiveBuffer = Buffer.from(await zipResponse.arrayBuffer());
+    if (PMD_EXPECTED_SHA256) {
+        const actualHash = crypto.createHash('sha256').update(archiveBuffer).digest('hex');
+        if (actualHash !== PMD_EXPECTED_SHA256) {
+            throw new Error(
+                `Downloaded PMD archive checksum mismatch for ${selectedAsset?.name || 'asset'}.`
+            );
+        }
+    }
+
     await fs.mkdir(extractRoot, { recursive: true });
-    await fs.writeFile(archivePath, Buffer.from(await zipResponse.arrayBuffer()));
+    await fs.writeFile(archivePath, archiveBuffer);
 
     const unzipResult = spawnSync('/usr/bin/unzip', ['-oq', archivePath, '-d', extractRoot], {
         encoding: 'utf8',
@@ -814,7 +873,8 @@ export async function getStoredOrg(alias: string): Promise<any | null> {
     }
 
     const store = await readDesktopStore();
-    return store.storedOrgs[alias] || null;
+    const storedOrg = store.storedOrgs[alias] || null;
+    return storedOrg ? mergeOrgSecrets(storedOrg, store.orgSecrets[alias], safeStorage) : null;
 }
 
 export async function getAllStoredOrgs(): Promise<any[]> {
@@ -839,7 +899,11 @@ export async function renameStoredOrg(oldAlias: string, newAlias: string): Promi
             alias: newAlias,
             id: newAlias,
         };
+        if (store.orgSecrets[oldAlias]) {
+            store.orgSecrets[newAlias] = store.orgSecrets[oldAlias];
+        }
         delete store.storedOrgs[oldAlias];
+        delete store.orgSecrets[oldAlias];
     } else {
         await renameCliOrgAlias(oldAlias, newAlias);
     }
@@ -855,6 +919,7 @@ export async function removeStoredOrg(alias: string): Promise<void> {
     const store = await readDesktopStore();
     if (store.storedOrgs[alias]) {
         delete store.storedOrgs[alias];
+        delete store.orgSecrets[alias];
     } else {
         logoutCliOrg(alias);
     }

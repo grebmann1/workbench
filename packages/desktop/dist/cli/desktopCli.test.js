@@ -3,8 +3,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const node_fs_1 = __importDefault(require("node:fs"));
 const strict_1 = __importDefault(require("node:assert/strict"));
+const node_fs_1 = __importDefault(require("node:fs"));
 const node_test_1 = __importDefault(require("node:test"));
 const desktopCli_1 = require("./desktopCli");
 (0, node_test_1.default)('parseCliArgs returns the app intent by default', () => {
@@ -134,7 +134,8 @@ const desktopCli_1 = require("./desktopCli");
     });
 });
 (0, node_test_1.default)('parseCliArgs supports sfdx auth URLs from files', () => {
-    strict_1.default.deepEqual((0, desktopCli_1.parseCliArgs)(['open', 'org', '--alias', 'demo-org', '--sfdx-url-file', '/tmp/org-url']).command, {
+    strict_1.default.deepEqual((0, desktopCli_1.parseCliArgs)(['open', 'org', '--alias', 'demo-org', '--sfdx-url-file', '/tmp/org-url'])
+        .command, {
         v: 2,
         type: 'openOrg',
         org: {

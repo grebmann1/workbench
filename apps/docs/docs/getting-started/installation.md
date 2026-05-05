@@ -4,7 +4,7 @@ title: Installation
 
 # Installation
 
-Workbench is available as a **Chrome extension** (recommended) and a **desktop app** (in development). For most users, the Chrome extension is the fastest path.
+Workbench is available as a **Chrome extension** (recommended for browser-first use) and a **desktop app** for users who want local CLI/org reuse, code workspace flows, and desktop automation.
 
 ---
 
@@ -51,13 +51,13 @@ CLIENT_ID='YOUR_CLIENT_ID'
 PORT=3000
 ```
 
-| Variable | Required | Purpose |
-| --- | --- | --- |
-| `CLIENT_ID` | Yes | Salesforce connected app consumer key. |
-| `CLIENT_SECRET` | Yes | Salesforce connected app consumer secret. |
-| `PORT` | No | Server port. Defaults to `3000`. |
-| `REDIRECT_URI` | No | Overrides the OAuth callback URL. |
-| `PROXY_URL` | No | Routes requests through a proxy endpoint. |
+| Variable        | Required | Purpose                                   |
+| --------------- | -------- | ----------------------------------------- |
+| `CLIENT_ID`     | Yes      | Salesforce connected app consumer key.    |
+| `CLIENT_SECRET` | Yes      | Salesforce connected app consumer secret. |
+| `PORT`          | No       | Server port. Defaults to `3000`.          |
+| `REDIRECT_URI`  | No       | Overrides the OAuth callback URL.         |
+| `PROXY_URL`     | No       | Routes requests through a proxy endpoint. |
 
 ### Start local services
 
@@ -81,12 +81,12 @@ npm run site:dev
 
 ### Local dev endpoints
 
-| Surface | Dev URL | Notes |
-| --- | --- | --- |
-| Welcome / landing page | `http://localhost:27100` | Vite dev server |
-| Main app | `http://localhost:27100/app` | Proxied from Vite → server |
-| Server directly | `http://localhost:3000` | Express server |
-| Docs | `http://localhost:3001` | Docusaurus dev server |
+| Surface                | Dev URL                      | Notes                      |
+| ---------------------- | ---------------------------- | -------------------------- |
+| Welcome / landing page | `http://localhost:27100`     | Vite dev server            |
+| Main app               | `http://localhost:27100/app` | Proxied from Vite → server |
+| Server directly        | `http://localhost:3000`      | Express server             |
+| Docs                   | `http://localhost:3001`      | Docusaurus dev server      |
 
 ### Production-like run
 
@@ -98,13 +98,55 @@ npm run start:prod:web
 
 In production mode, everything is served from a single origin:
 
-| Surface | URL |
-| --- | --- |
+| Surface | URL                             |
+| ------- | ------------------------------- |
 | Welcome | `http://localhost:3000/welcome` |
-| App | `http://localhost:3000/app` |
-| Docs | `http://localhost:3000/docs` |
+| App     | `http://localhost:3000/app`     |
+| Docs    | `http://localhost:3000/docs`    |
 
 ---
+
+## Option 3 — Desktop App
+
+Use the desktop app when you want Workbench outside Chrome, want to reuse Salesforce CLI-authenticated orgs, or need desktop-only code workspace features.
+
+### Desktop prerequisites
+
+- Salesforce CLI (`sf` preferred, `sfdx` supported) for CLI-backed org login.
+- Java for PMD-based Apex analysis.
+- Visual Studio Code or the `code` command for opening retrieved workspaces.
+- Network access to Salesforce APIs and GitHub release assets when installing PMD from the desktop flow.
+
+### Install from a release artifact
+
+1. Download the desktop artifact for your OS from the project release page.
+2. macOS: open the DMG or ZIP, move **Workbench Desktop** to Applications, then open it.
+3. Windows: run the setup executable.
+4. Linux: install the DEB/RPM package, or use the ZIP artifact if you prefer a portable build.
+5. Open **Help → Open Logs Folder** if startup fails and include `main.log` when reporting issues.
+
+### Updates
+
+Until automatic update checks are enabled, install new desktop versions from the latest release artifact. The app version is exposed from the local renderer `/version` endpoint and in the desktop app metadata.
+
+### Desktop org access
+
+The desktop app can open Salesforce CLI aliases directly:
+
+```bash
+workbench-desktop open org --target-org my-alias
+```
+
+It can also import an SFDX auth URL from a file or stdin. Do not paste `sfdxAuthUrl` values directly into shell history.
+
+```bash
+workbench-desktop open org --alias imported-org --sfdx-url-file ./org.sfdx-url
+printf '%s' "$SFDX_AUTH_URL" | workbench-desktop open org --alias imported-org --sfdx-url-stdin
+```
+
+### Desktop local security
+
+Workbench Desktop serves its renderer and automation API on loopback only. CLI automation calls require a per-install bearer token stored in the desktop user-data directory. Imported refresh-token material is encrypted with Electron safe storage before being written to local app storage.
 
 ## After installation
 

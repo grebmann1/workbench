@@ -1,13 +1,13 @@
 {
     "announcement": {
-        "id": "2026-04-28-release-notes",
+        "id": "2026-05-05-2-0-2-coming",
         "active": true,
         "variant": "brand",
-        "title": "Workbench 2.0.1 is available",
-        "message": "Workbench 2.0.1 includes Agent slash commands, the new Skills panel, Settings About, release announcements, app-owned settings, side-panel startup polish, embedded VS Code walkthrough updates, and fixes for saved API/Apex files.",
+        "title": "Workbench 2.0.2 is coming",
+        "message": "Workbench 2.0.2 adds the new Audit Trail app with filtering and CSV export, strengthens Desktop with secured local automation, encrypted org token storage, a same-origin Salesforce proxy, prerequisite checks, release packaging, and refreshed desktop docs.",
         "linkLabel": "View release notes",
         "linkUrl": "https://www.sf-workbench.com/app?applicationName=release",
-        "startsAt": "2026-04-28T00:00:00Z",
+        "startsAt": "2026-05-05T00:00:00Z",
         "endsAt": "2026-12-31T23:59:59Z"
     }
 }

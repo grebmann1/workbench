@@ -4,6 +4,7 @@
 import accessAnalyzer_app_module from 'accessAnalyzer/app';
 import anonymousApex_app_module from 'anonymousApex/app';
 import api_app_module from 'api/app';
+import auditTrail_app_module from 'auditTrail/app';
 import code_app_module from 'code/app';
 import dataImport_app_module from 'dataImport/app';
 import files_app_module from 'files/app';
@@ -76,6 +77,23 @@ const APPLICATION_APP_MAPPING = {
         menuOrder: 10,
         settingsComponent: api_appSettings_settings,
         settingsComponentName: 'api/appSettings',
+    },
+    'auditTrail/app': {
+        module: auditTrail_app_module,
+        isFullHeight: true,
+        isDeletable: true,
+        isElectronOnly: false,
+        isOfflineAvailable: false,
+        isMenuVisible: true,
+        isTabVisible: true,
+        label: 'Audit Trail',
+        type: 'admin',
+        description: 'Browse the Setup Audit Trail with search, filters, and CSV export.',
+        quickActionIcon: 'standard:asset_audit',
+        shortName: 'Audit',
+        path: 'audit-trail',
+        menuGroup: 'admin',
+        menuOrder: 65,
     },
     'code/app': {
         module: code_app_module,
@@ -341,6 +359,14 @@ const APPLICATION_APP_MAPPING = {
 };
 
 const APPLICATION_SLASH_COMMANDS = [
+    {
+        command: 'audit',
+        description: 'Open the Setup Audit Trail viewer',
+        iconName: 'standard:asset_audit',
+        autoExecute: true,
+        commandId: 'auditTrail.open',
+        appId: 'auditTrail',
+    },
     {
         command: 'graphql',
         description: 'Open the GraphQL Explorer',
