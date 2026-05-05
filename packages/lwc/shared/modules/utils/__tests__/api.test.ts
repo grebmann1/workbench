@@ -137,10 +137,7 @@ test('substituteVariables: replaces {key} tokens with variable values', () => {
 });
 
 test('substituteVariables: replaces {sessionId} when a session token is provided', () => {
-    assert.equal(
-        substituteVariables('Bearer {sessionId}', {}, 'TOKEN123'),
-        'Bearer TOKEN123'
-    );
+    assert.equal(substituteVariables('Bearer {sessionId}', {}, 'TOKEN123'), 'Bearer TOKEN123');
 });
 
 test('substituteVariables: is safe against $-sequences in values', () => {

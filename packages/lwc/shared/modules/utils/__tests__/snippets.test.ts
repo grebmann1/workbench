@@ -32,10 +32,9 @@ test('sanitizeHeadersForSnippet: redacts Authorization → Bearer {sessionId}', 
 });
 
 test('sanitizeHeadersForSnippet: custom redact list replaces with {redacted}', () => {
-    const out = sanitizeHeadersForSnippet(
-        { 'X-Custom': 'abc', Authorization: 'Bearer x' },
-        ['x-custom']
-    );
+    const out = sanitizeHeadersForSnippet({ 'X-Custom': 'abc', Authorization: 'Bearer x' }, [
+        'x-custom',
+    ]);
     assert.equal(out['X-Custom'], '{redacted}');
     // Authorization not in the custom redact list → left as-is.
     assert.equal(out.Authorization, 'Bearer x');
