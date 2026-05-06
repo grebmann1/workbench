@@ -11,7 +11,7 @@ import {
 } from 'core/connector';
 const { showToast, handleError } = notificationService;
 import type { ConnectorLike } from 'core/connector';
-import { setDesktopStoredOrg, startDesktopOAuth } from 'core/desktopBridge';
+import { onDesktopOAuth, setDesktopStoredOrg, startDesktopOAuth } from 'core/desktopBridge';
 import LOGGER from 'shared/logger';
 import { isEmpty, isNotUndefinedOrNull, isElectronApp, checkIfPresent } from 'shared/utils';
 
@@ -84,6 +84,8 @@ export default class ConnectionNewModal extends LightningModal {
     newCategory: string | undefined;
     orgType = ORG_TYPES.PRODUCTION;
     orgFarmGeneratedId: string | undefined;
+    _unsubscribeDesktopOAuth: (() => void) | null = null;
+    _desktopOAuthSettled = false;
 
     _isNewCategoryDisplayed: boolean;
     set isNewCategoryDisplayed(value: boolean) {
@@ -107,6 +109,10 @@ export default class ConnectionNewModal extends LightningModal {
         this.isNewCategoryDisplayed = false;
         // Apply OrgFarm defaults for prefilled values (if any).
         window.setTimeout(() => this.applyOrgFarmDefaultsIfNeeded(), 1);
+    }
+
+    disconnectedCallback() {
+        this.cleanupDesktopOAuthListener();
     }
 
     /** Methods **/
@@ -261,7 +267,7 @@ export default class ConnectionNewModal extends LightningModal {
                 { saveFullConfiguration: true }
             );
             LOGGER.log('standard_usernamePassword', result);
-            showToast({ label: 'Connected successfully!', variant: 'success' });
+            showToast({ label: 'Connected successfully!', message: '', variant: 'success' });
             this.close(result);
         } catch (e) {
             LOGGER.error('standard_usernamePassword error', e);
@@ -272,21 +278,18 @@ export default class ConnectionNewModal extends LightningModal {
 
     electron_usernamePassword = async () => {
         try {
-            const connector: ConnectorLike = await credentialStrategies.USERNAME.directConnect(
-                {
-                    username: this.username,
-                    password: this.password,
-                    loginUrl: this.loginUrl,
-                    alias: this.alias,
-                },
-                { saveFullConfiguration: false }
-            );
+            const connector: ConnectorLike = await credentialStrategies.USERNAME.directConnect({
+                username: this.username,
+                password: this.password,
+                loginUrl: this.loginUrl,
+                alias: this.alias,
+            });
             const result = await setDesktopStoredOrg({
                 alias: this.alias,
                 configuration: connector.configuration,
             });
             LOGGER.log('electron_usernamePassword', result);
-            showToast({ label: 'Connected successfully!', variant: 'success' });
+            showToast({ label: 'Connected successfully!', message: '', variant: 'success' });
             this.close(result);
         } catch (e) {
             LOGGER.error('electron_usernamePassword error', e);
@@ -313,16 +316,63 @@ export default class ConnectionNewModal extends LightningModal {
         );
     };
 
+    cleanupDesktopOAuthListener() {
+        if (this._unsubscribeDesktopOAuth) {
+            this._unsubscribeDesktopOAuth();
+            this._unsubscribeDesktopOAuth = null;
+        }
+    }
+
+    handleDesktopOAuthEvent = async event => {
+        if (event?.type !== 'oauth') {
+            return;
+        }
+
+        if (event.action === 'done') {
+            if (this._desktopOAuthSettled) {
+                return;
+            }
+            this._desktopOAuthSettled = true;
+            this.isLoading = false;
+            this.cleanupDesktopOAuthListener();
+            showToast({ label: 'Connected successfully!', message: '', variant: 'success' });
+            this.close(event.data || { res: 'success' });
+            return;
+        }
+
+        if (event.action === 'error') {
+            if (this._desktopOAuthSettled) {
+                return;
+            }
+            this._desktopOAuthSettled = true;
+            this.isLoading = false;
+            this.cleanupDesktopOAuthListener();
+            await LightningAlert.open({
+                message: event.error?.message || 'Desktop OAuth failed',
+                theme: 'error',
+                label: 'Error!',
+            });
+            this.close(null);
+            return;
+        }
+
+        // The legacy desktop flow sends exit after done/error or after cancellation.
+        // Completion state is handled by the explicit done/error events above.
+    };
+
     electron_oauth = async () => {
         try {
-            const result = await startDesktopOAuth({
+            this.cleanupDesktopOAuthListener();
+            this._desktopOAuthSettled = false;
+            this._unsubscribeDesktopOAuth = onDesktopOAuth(this.handleDesktopOAuthEvent);
+            await startDesktopOAuth({
                 alias: this.alias || '',
                 loginUrl: this.loginUrl,
             });
-            showToast({ label: 'Connected successfully!', variant: 'success' });
-            this.close(result);
+            showToast({ label: 'OAuth login started', message: '', variant: 'info' });
         } catch (e) {
-            this.close();
+            this.isLoading = false;
+            this.cleanupDesktopOAuthListener();
             await LightningAlert.open({
                 message: e.message,
                 theme: 'error', // a red theme intended for error states

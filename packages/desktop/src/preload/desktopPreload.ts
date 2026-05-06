@@ -38,6 +38,13 @@ type DesktopAppInfo = {
 };
 
 type LaunchIntentListener = (intent: DesktopLaunchIntent) => void;
+type DesktopOAuthEvent = {
+    action: 'done' | 'error' | 'exit';
+    data?: unknown;
+    error?: { message?: string };
+    type: 'oauth';
+};
+type DesktopOAuthListener = (payload: DesktopOAuthEvent) => void;
 type LegacyListener = (...args: any[]) => void;
 
 let legacyChannel: string | null = null;
@@ -79,6 +86,17 @@ const desktopApi = {
         ipcRenderer.invoke('desktop:set-stored-org', payload),
     startOAuth: (payload: { alias: string; loginUrl: string }): Promise<any> =>
         ipcRenderer.invoke('desktop:start-oauth', payload),
+    onOAuth: (listener: DesktopOAuthListener): (() => void) => {
+        const wrappedListener = (_event: Electron.IpcRendererEvent, payload: DesktopOAuthEvent) => {
+            listener(payload);
+        };
+
+        ipcRenderer.on('desktop:oauth', wrappedListener);
+
+        return () => {
+            ipcRenderer.removeListener('desktop:oauth', wrappedListener);
+        };
+    },
     getStoredOrg: (alias: string): Promise<any> =>
         ipcRenderer.invoke('desktop:get-stored-org', alias),
     getAllOrgs: (): Promise<any> => ipcRenderer.invoke('desktop:get-all-orgs'),

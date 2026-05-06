@@ -48,9 +48,14 @@ const PMD_RELEASES_API_URL = `https://api.github.com/repos/pmd/pmd/releases/tags
 const PMD_EXPECTED_SHA256 = process.env.WORKBENCH_PMD_SHA256 || null;
 
 type StreamEventSender = (payload: Record<string, unknown>) => void;
+type DesktopOAuthEventSender = (payload: Record<string, unknown>) => void;
+type ActiveOAuthJob = {
+    id: number;
+    process: ChildProcess;
+    sendEvent: DesktopOAuthEventSender;
+};
 
-let activeOAuthLoginPromise: Promise<any> | null = null;
-let activeOAuthLoginProcess: ChildProcess | null = null;
+let activeOAuthJob: ActiveOAuthJob | null = null;
 let activeOAuthLoginRunId = 0;
 
 function getStorePath(): string {
@@ -442,26 +447,6 @@ function shellQuote(value: string): string {
     return `'${value.replace(/'/g, `'\\''`)}'`;
 }
 
-function runInteractiveShellCommand(
-    command: string,
-    onProcess?: (process: ChildProcess) => void
-): Promise<string> {
-    return new Promise((resolve, reject) => {
-        const child = exec(command, (error, stdout, stderr) => {
-            if (error) {
-                if (error.killed) {
-                    reject(new Error('Salesforce CLI OAuth login was cancelled.'));
-                    return;
-                }
-                reject(new Error(cleanCliErrorMessage(stderr || stdout || error.message)));
-                return;
-            }
-            resolve(stdout);
-        });
-        onProcess?.(child);
-    });
-}
-
 function cleanCliErrorMessage(message: string): string {
     const stripped = String(message || '').replace(/\u001b\[[0-9;]*m/g, '');
     if (/Killed:\s*9/.test(stripped)) {
@@ -490,12 +475,30 @@ function killProcessOnPort(port: number): Promise<void> {
     });
 }
 
-function cancelActiveOAuthLogin() {
-    if (activeOAuthLoginProcess && !activeOAuthLoginProcess.killed) {
-        activeOAuthLoginProcess.kill('SIGKILL');
+async function finishOAuthJob(id: number, payload: Record<string, unknown>): Promise<void> {
+    const job = activeOAuthJob;
+    if (!job || job.id !== id) {
+        return;
     }
-    activeOAuthLoginProcess = null;
-    activeOAuthLoginPromise = null;
+    job.sendEvent(payload);
+    await killProcessOnPort(OAUTH_LOCAL_PORT);
+    job.sendEvent({ type: 'oauth', action: 'exit' });
+    if (activeOAuthJob?.id === id) {
+        activeOAuthJob = null;
+    }
+}
+
+async function cancelActiveOAuthLogin(): Promise<void> {
+    const job = activeOAuthJob;
+    if (!job) {
+        return;
+    }
+    activeOAuthJob = null;
+    if (!job.process.killed) {
+        job.process.kill('SIGKILL');
+    }
+    await killProcessOnPort(OAUTH_LOCAL_PORT);
+    job.sendEvent({ type: 'oauth', action: 'exit' });
 }
 
 function normalizeOAuthLoginUrl(loginUrl: string): string {
@@ -855,9 +858,14 @@ export async function saveSfdxAuthUrlOrg(alias: string, sfdxAuthUrl: string): Pr
     });
 }
 
-export async function startOAuthLogin(payload: { alias: string; loginUrl: string }): Promise<any> {
-    if (activeOAuthLoginPromise) {
-        cancelActiveOAuthLogin();
+export async function startOAuthLogin(
+    payload: { alias: string; loginUrl: string },
+    sendEvent: DesktopOAuthEventSender
+): Promise<any> {
+    if (activeOAuthJob) {
+        await cancelActiveOAuthLogin();
+    } else {
+        await killProcessOnPort(OAUTH_LOCAL_PORT);
     }
 
     const alias = String(payload.alias || '').trim();
@@ -869,20 +877,30 @@ export async function startOAuthLogin(payload: { alias: string; loginUrl: string
     const command = getOAuthLoginCommand(alias, loginUrl);
     const runId = ++activeOAuthLoginRunId;
 
-    await killProcessOnPort(OAUTH_LOCAL_PORT);
-    activeOAuthLoginPromise = runInteractiveShellCommand(command, child => {
-        if (activeOAuthLoginRunId === runId) {
-            activeOAuthLoginProcess = child;
+    const child = exec(command, (error, stdout, stderr) => {
+        if (error) {
+            const message = error.killed
+                ? 'Salesforce CLI OAuth login was cancelled.'
+                : cleanCliErrorMessage(stderr || stdout || error.message);
+            void finishOAuthJob(runId, {
+                type: 'oauth',
+                action: 'error',
+                error: { message },
+            });
+            return;
         }
-    })
-        .then(res => ({ res }))
-        .finally(() => {
-            if (activeOAuthLoginRunId === runId) {
-                activeOAuthLoginPromise = null;
-                activeOAuthLoginProcess = null;
-            }
+        void finishOAuthJob(runId, {
+            type: 'oauth',
+            action: 'done',
+            data: stdout,
         });
-    return activeOAuthLoginPromise;
+    });
+    activeOAuthJob = {
+        id: runId,
+        process: child,
+        sendEvent,
+    };
+    return { res: 'success' };
 }
 
 export async function installLatestPmd(projectPath: string | null | undefined): Promise<{

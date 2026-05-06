@@ -46,8 +46,7 @@ const OAUTH_LOCAL_PORT = 1717;
 const PMD_RELEASE_TAG = process.env.WORKBENCH_PMD_RELEASE_TAG || 'pmd_releases/7.18.0';
 const PMD_RELEASES_API_URL = `https://api.github.com/repos/pmd/pmd/releases/tags/${PMD_RELEASE_TAG}`;
 const PMD_EXPECTED_SHA256 = process.env.WORKBENCH_PMD_SHA256 || null;
-let activeOAuthLoginPromise = null;
-let activeOAuthLoginProcess = null;
+let activeOAuthJob = null;
 let activeOAuthLoginRunId = 0;
 function getStorePath() {
     return node_path_1.default.join(electron_1.app.getPath('userData'), 'desktop-store.json');
@@ -339,22 +338,6 @@ function runCliCommand(command, args, cwd) {
 function shellQuote(value) {
     return `'${value.replace(/'/g, `'\\''`)}'`;
 }
-function runInteractiveShellCommand(command, onProcess) {
-    return new Promise((resolve, reject) => {
-        const child = (0, node_child_process_1.exec)(command, (error, stdout, stderr) => {
-            if (error) {
-                if (error.killed) {
-                    reject(new Error('Salesforce CLI OAuth login was cancelled.'));
-                    return;
-                }
-                reject(new Error(cleanCliErrorMessage(stderr || stdout || error.message)));
-                return;
-            }
-            resolve(stdout);
-        });
-        onProcess?.(child);
-    });
-}
 function cleanCliErrorMessage(message) {
     const stripped = String(message || '').replace(/\u001b\[[0-9;]*m/g, '');
     if (/Killed:\s*9/.test(stripped)) {
@@ -379,12 +362,29 @@ function killProcessOnPort(port) {
         });
     });
 }
-function cancelActiveOAuthLogin() {
-    if (activeOAuthLoginProcess && !activeOAuthLoginProcess.killed) {
-        activeOAuthLoginProcess.kill('SIGKILL');
+async function finishOAuthJob(id, payload) {
+    const job = activeOAuthJob;
+    if (!job || job.id !== id) {
+        return;
     }
-    activeOAuthLoginProcess = null;
-    activeOAuthLoginPromise = null;
+    job.sendEvent(payload);
+    await killProcessOnPort(OAUTH_LOCAL_PORT);
+    job.sendEvent({ type: 'oauth', action: 'exit' });
+    if (activeOAuthJob?.id === id) {
+        activeOAuthJob = null;
+    }
+}
+async function cancelActiveOAuthLogin() {
+    const job = activeOAuthJob;
+    if (!job) {
+        return;
+    }
+    activeOAuthJob = null;
+    if (!job.process.killed) {
+        job.process.kill('SIGKILL');
+    }
+    await killProcessOnPort(OAUTH_LOCAL_PORT);
+    job.sendEvent({ type: 'oauth', action: 'exit' });
 }
 function normalizeOAuthLoginUrl(loginUrl) {
     const value = String(loginUrl || '').trim();
@@ -642,9 +642,12 @@ async function saveSfdxAuthUrlOrg(alias, sfdxAuthUrl) {
         sfdxAuthUrl,
     });
 }
-async function startOAuthLogin(payload) {
-    if (activeOAuthLoginPromise) {
-        cancelActiveOAuthLogin();
+async function startOAuthLogin(payload, sendEvent) {
+    if (activeOAuthJob) {
+        await cancelActiveOAuthLogin();
+    }
+    else {
+        await killProcessOnPort(OAUTH_LOCAL_PORT);
     }
     const alias = String(payload.alias || '').trim();
     if (!alias) {
@@ -653,20 +656,30 @@ async function startOAuthLogin(payload) {
     const loginUrl = normalizeOAuthLoginUrl(payload.loginUrl);
     const command = getOAuthLoginCommand(alias, loginUrl);
     const runId = ++activeOAuthLoginRunId;
-    await killProcessOnPort(OAUTH_LOCAL_PORT);
-    activeOAuthLoginPromise = runInteractiveShellCommand(command, child => {
-        if (activeOAuthLoginRunId === runId) {
-            activeOAuthLoginProcess = child;
+    const child = (0, node_child_process_1.exec)(command, (error, stdout, stderr) => {
+        if (error) {
+            const message = error.killed
+                ? 'Salesforce CLI OAuth login was cancelled.'
+                : cleanCliErrorMessage(stderr || stdout || error.message);
+            void finishOAuthJob(runId, {
+                type: 'oauth',
+                action: 'error',
+                error: { message },
+            });
+            return;
         }
-    })
-        .then(res => ({ res }))
-        .finally(() => {
-        if (activeOAuthLoginRunId === runId) {
-            activeOAuthLoginPromise = null;
-            activeOAuthLoginProcess = null;
-        }
+        void finishOAuthJob(runId, {
+            type: 'oauth',
+            action: 'done',
+            data: stdout,
+        });
     });
-    return activeOAuthLoginPromise;
+    activeOAuthJob = {
+        id: runId,
+        process: child,
+        sendEvent,
+    };
+    return { res: 'success' };
 }
 async function installLatestPmd(projectPath) {
     if (!projectPath) {

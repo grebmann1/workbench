@@ -31,9 +31,19 @@ import {
     normalizeLlmProvider,
 } from 'shared/llm';
 import LOGGER from 'shared/logger';
-import { isEmpty, isNotUndefinedOrNull, classSet } from 'shared/utils';
+import { isEmpty, isElectronApp, isNotUndefinedOrNull, classSet } from 'shared/utils';
 
 import { normalizeMcpServerConfigs } from '../mcp/mcpJsonParser';
+
+const desktopAgentInstructions = `# Workbench Desktop Agent
+
+You are running inside Workbench Desktop, an Electron app. Chrome browser control is unavailable in this environment:
+
+- Do not use or suggest Chrome tabs, Chrome debugger, Puppeteer, CDP, screenshots of Chrome tabs, or browser-domain automation.
+- The sandbox \`js\` browser automation command is unavailable.
+- Prefer bash filesystem commands, Salesforce shim commands, MCP tools, \`ask_user\`, and Workbench navigation/context tools.
+- If a task requires Chrome debugger access or controlling an external Chrome tab, explain that it is not available in Desktop and offer a non-browser alternative when possible.
+`;
 
 export default class App extends ToolkitElement {
     quickPromptSuggestions = [
@@ -326,6 +336,7 @@ export default class App extends ToolkitElement {
 
     _buildRunningEnvironmentContext(): string {
         const state = store.getState();
+        const isDesktop = isElectronApp();
         const isSidePanel = state.application?.isSidePanel ?? false;
         const connector = state.application?.connector ?? null;
         const isLoggedIn = connector != null;
@@ -337,6 +348,24 @@ export default class App extends ToolkitElement {
         const appLine = currentApplication
             ? `\nCurrently visible panel: ${currentApplication}`
             : '';
+
+        if (isDesktop) {
+            return `
+
+## Environment Context
+
+**Running in: Workbench Desktop**
+
+${loginStatus}${appLine}
+
+Chrome extension APIs, Chrome tabs, Chrome debugger, Puppeteer/CDP browser automation, and Chrome-domain access are unavailable in Desktop.
+
+Use Desktop-safe tools:
+- Workbench navigation tools (\`navigate_workbench_app\`, \`sf navigate\`) update the visible Desktop UI.
+- \`sf data query\`, \`sf apex run --no-ui\`, \`sf api request\`, and metadata commands run against the connected org.
+- Bash filesystem commands, MCP tools, \`ask_user\`, and Workbench context tools are available.
+`;
+        }
 
         if (isSidePanel) {
             return `
@@ -382,6 +411,17 @@ You have full access to the toolkit UI. All navigation and display tools work no
 `;
     }
 
+    _isChromeControlEnabled(): boolean {
+        return !isElectronApp();
+    }
+
+    _buildAgentSystemPrompt(): string {
+        const baseInstructions = this._isChromeControlEnabled()
+            ? browserAgentInstructions
+            : desktopAgentInstructions;
+        return `${baseInstructions}${this._buildRunningEnvironmentContext()}`;
+    }
+
     async buildAgentExecutionContext(model = this.selectedModel) {
         const conversationId = this.activeConversationId;
         const state = store.getState();
@@ -412,7 +452,8 @@ You have full access to the toolkit UI. All navigation and display tools work no
                     state.agent?.selectedModel ||
                     getDefaultModelForAgentProvider(activeProvider, isInternal),
                 selectedReasoning: state.agent?.selectedReasoning ?? DEFAULT_REASONING,
-                systemPrompt: `${browserAgentInstructions}${this._buildRunningEnvironmentContext()}`,
+                systemPrompt: this._buildAgentSystemPrompt(),
+                chromeControlEnabled: this._isChromeControlEnabled(),
                 isStoreEnabled: true,
                 store,
                 extraTools: [askUserTool, ...workbenchContextTools],

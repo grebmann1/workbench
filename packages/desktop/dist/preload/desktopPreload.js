@@ -19,6 +19,15 @@ const desktopApi = {
     openOrgUrl: (payload) => electron_1.ipcRenderer.invoke('desktop:open-org-url', payload),
     setStoredOrg: (payload) => electron_1.ipcRenderer.invoke('desktop:set-stored-org', payload),
     startOAuth: (payload) => electron_1.ipcRenderer.invoke('desktop:start-oauth', payload),
+    onOAuth: (listener) => {
+        const wrappedListener = (_event, payload) => {
+            listener(payload);
+        };
+        electron_1.ipcRenderer.on('desktop:oauth', wrappedListener);
+        return () => {
+            electron_1.ipcRenderer.removeListener('desktop:oauth', wrappedListener);
+        };
+    },
     getStoredOrg: (alias) => electron_1.ipcRenderer.invoke('desktop:get-stored-org', alias),
     getAllOrgs: () => electron_1.ipcRenderer.invoke('desktop:get-all-orgs'),
     openExternal: (url) => electron_1.ipcRenderer.invoke('desktop:open-external', url),
@@ -35,6 +44,13 @@ const desktopApi = {
     renameStoredOrg: (payload) => electron_1.ipcRenderer.invoke('desktop:rename-stored-org', payload),
     removeStoredOrg: (alias) => electron_1.ipcRenderer.invoke('desktop:remove-stored-org', alias),
     notifyLimitedModeStatus: (payload) => electron_1.ipcRenderer.invoke('desktop:notify-limited-mode-status', payload),
+    getChromeStatus: () => electron_1.ipcRenderer.invoke('desktop:chrome-status'),
+    startChrome: (payload = {}) => electron_1.ipcRenderer.invoke('desktop:chrome-start', payload),
+    listChromeTabs: () => electron_1.ipcRenderer.invoke('desktop:chrome-list-tabs'),
+    openChromeTab: (payload = {}) => electron_1.ipcRenderer.invoke('desktop:chrome-open-tab', payload),
+    navigateChromeTab: (payload) => electron_1.ipcRenderer.invoke('desktop:chrome-navigate', payload),
+    closeChromeTab: (payload) => electron_1.ipcRenderer.invoke('desktop:chrome-close-tab', payload),
+    screenshotChromeTab: (payload) => electron_1.ipcRenderer.invoke('desktop:chrome-screenshot', payload),
 };
 electron_1.contextBridge.exposeInMainWorld('desktop', desktopApi);
 electron_1.contextBridge.exposeInMainWorld('electron', {

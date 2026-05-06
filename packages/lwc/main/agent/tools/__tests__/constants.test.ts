@@ -23,6 +23,14 @@ test('SHELL_TOOL_HELP: every entry is a non-empty string', () => {
     assert.ok(SHELL_TOOL_HELP.saveSkill.includes('save-skill'), 'saveSkill help mentions command');
 });
 
+test('SHELL_TOOL_HELP: no-browser command help omits browser automation commands', () => {
+    assert.ok(SHELL_TOOL_HELP.customCommands.includes("js -e '<code>'"));
+    assert.ok(SHELL_TOOL_HELP.customCommands.includes('open <file>'));
+    assert.ok(!SHELL_TOOL_HELP.customCommandsNoBrowser.includes("js -e '<code>'"));
+    assert.ok(!SHELL_TOOL_HELP.customCommandsNoBrowser.includes('open <file>'));
+    assert.ok(SHELL_TOOL_HELP.customCommandsNoBrowser.includes('Browser automation commands'));
+});
+
 test('TOOL_OUTPUT_LIMITS: maxChars > tailChars > 0, integer page size', () => {
     assert.ok(TOOL_OUTPUT_LIMITS.maxChars > TOOL_OUTPUT_LIMITS.tailChars);
     assert.ok(TOOL_OUTPUT_LIMITS.tailChars > 0);

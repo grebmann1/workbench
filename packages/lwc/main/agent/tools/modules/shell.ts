@@ -70,7 +70,11 @@ export function generateBashDescription(cwd: string, opts?: BashToolOptions) {
         lines.push(opts.toolPrompt);
         lines.push('');
     }
-    lines.push(SHELL_TOOL_HELP.customCommands);
+    lines.push(
+        opts?.execInSandbox
+            ? SHELL_TOOL_HELP.customCommands
+            : SHELL_TOOL_HELP.customCommandsNoBrowser
+    );
     lines.push('');
     if (opts?.extraInstructions) {
         lines.push(opts.extraInstructions);

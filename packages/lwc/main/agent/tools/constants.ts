@@ -27,6 +27,8 @@ Notes:
     availableFilesLabel: 'Available files:',
     customCommands:
         "Custom commands: js -e '<code>', js <file>, open <file>, save-skill, web-search, sf apex run, sf apex test run, sf data query, sf api request, sf org list, sf org connect, sf org open, sf navigate, sf debug log enable|list|get, sf limits display, sf sobject describe, sf metadata list-types, sf metadata list-records, sf metadata deploy|retrieve. Most sf commands accept --target-org <alias> to run against a different org.",
+    customCommandsNoBrowser:
+        'Custom commands: save-skill, web-search, sf apex run, sf apex test run, sf data query, sf api request, sf org list, sf org connect, sf org open, sf navigate, sf debug log enable|list|get, sf limits display, sf sobject describe, sf metadata list-types, sf metadata list-records, sf metadata deploy|retrieve. Browser automation commands such as js and open are unavailable in this environment. Most sf commands accept --target-org <alias> to run against a different org.',
     sfCliShimsHelp: 'SF CLI shims help:',
     webSearch: `Search the internet using Bright Data's SERP API.
 

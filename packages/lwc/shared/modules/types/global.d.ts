@@ -119,6 +119,14 @@ interface Window {
         openOrgUrl: (payload: Record<string, unknown>) => Promise<{ success: true }>;
         setStoredOrg: (payload: Record<string, unknown>) => Promise<unknown>;
         startOAuth: (payload: { alias: string; loginUrl: string }) => Promise<unknown>;
+        onOAuth: (
+            listener: (payload: {
+                action: 'done' | 'error' | 'exit';
+                data?: unknown;
+                error?: { message?: string };
+                type: 'oauth';
+            }) => void
+        ) => () => void;
         getStoredOrg: (alias: string) => Promise<unknown>;
         getAllOrgs: () => Promise<unknown>;
         getCodeInitialConfig: (

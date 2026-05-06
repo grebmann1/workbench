@@ -66,6 +66,13 @@ export function registerDesktopIpcRouter({
     ) => {
         event.sender.send(`desktop:legacy:${channel}`, payload);
     };
+    const sendOAuthEvent = (
+        event: Electron.IpcMainInvokeEvent,
+        payload: Record<string, unknown>
+    ) => {
+        event.sender.send('desktop:oauth', payload);
+        sendLegacyEvent(event, 'oauth', payload);
+    };
 
     const trustedHandler =
         <T extends unknown[], R>(
@@ -136,7 +143,7 @@ export function registerDesktopIpcRouter({
     ipcMain.handle(
         'desktop:start-oauth',
         trustedHandler(async (_event, payload: { alias: string; loginUrl: string }) => {
-            return startOAuthLogin(payload);
+            return startOAuthLogin(payload, eventPayload => sendOAuthEvent(_event, eventPayload));
         })
     );
     ipcMain.handle(
@@ -278,10 +285,13 @@ export function registerDesktopIpcRouter({
                 case 'org-createNewOrgAlias':
                     return {
                         error: null,
-                        result: await startOAuthLogin({
-                            alias: args.alias,
-                            loginUrl: args.instanceurl || args.loginUrl,
-                        }),
+                        result: await startOAuthLogin(
+                            {
+                                alias: args.alias,
+                                loginUrl: args.instanceurl || args.loginUrl,
+                            },
+                            eventPayload => sendOAuthEvent(_event, eventPayload)
+                        ),
                     };
                 case 'org-seeDetails':
                     return { error: null, res: await seeOrgDetails(args.alias) };

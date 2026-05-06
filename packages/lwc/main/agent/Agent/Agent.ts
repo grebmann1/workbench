@@ -133,6 +133,7 @@ type AgentSettings = {
     isStoreEnabled?: boolean;
     isInternal?: boolean;
     useResponsesApi?: boolean;
+    chromeControlEnabled?: boolean;
     extraTools?: Array<{
         name: string;
         description?: string;
@@ -320,7 +321,8 @@ export class Agent {
     }) {
         const id = conversationId || guid();
         const shell = getOrCreateBashInstanceForConversation(id);
-        if (!getCdpHandlerForConversation(id)) {
+        const chromeControlEnabled = settings.chromeControlEnabled !== false;
+        if (chromeControlEnabled && !getCdpHandlerForConversation(id)) {
             await ensureCdpHandlerInitialized(id, {
                 getBashInstance: () => shell,
                 brightDataApiKey: settings.brightDataApiKey ?? null,
@@ -331,7 +333,10 @@ export class Agent {
         const fs = getIndexedDbFileSystem();
 
         const bashTools = createBashTools(shell, fs, {
-            execInSandbox: (code, timeoutMs) => cdpHandler.execInSandbox(code, timeoutMs),
+            execInSandbox:
+                chromeControlEnabled && cdpHandler
+                    ? (code, timeoutMs) => cdpHandler.execInSandbox(code, timeoutMs)
+                    : undefined,
             brightDataApiKey: settings.brightDataApiKey ?? null,
         });
         const currentModel = settings.selectedModel || DEFAULT_MODEL;

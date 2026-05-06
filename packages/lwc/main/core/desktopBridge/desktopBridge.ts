@@ -31,6 +31,13 @@ type DesktopLaunchIntent =
 
 type LaunchIntentListener = (intent: DesktopLaunchIntent) => void;
 type LegacyDesktopListener = (payload: any) => void;
+type DesktopOAuthEvent = {
+    action: 'done' | 'error' | 'exit';
+    data?: unknown;
+    error?: { message?: string };
+    type: 'oauth';
+};
+type DesktopOAuthListener = (payload: DesktopOAuthEvent) => void;
 
 function getDesktopApi() {
     return window.desktop;
@@ -149,6 +156,23 @@ export async function startDesktopOAuth(payload: {
     }
 
     return response?.result || response?.res;
+}
+
+export function onDesktopOAuth(listener: DesktopOAuthListener): () => void {
+    const desktopApi = getDesktopApi();
+    if (desktopApi?.onOAuth) {
+        return desktopApi.onOAuth(listener);
+    }
+
+    const legacyApi = getLegacyElectronApi();
+    if (legacyApi?.listener_on) {
+        legacyApi.listener_on('oauth', listener);
+        return () => {
+            legacyApi.listener_off?.('oauth');
+        };
+    }
+
+    return () => {};
 }
 
 export async function getDesktopStoredOrg(alias: string): Promise<any> {
