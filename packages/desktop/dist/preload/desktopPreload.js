@@ -44,13 +44,6 @@ const desktopApi = {
     renameStoredOrg: (payload) => electron_1.ipcRenderer.invoke('desktop:rename-stored-org', payload),
     removeStoredOrg: (alias) => electron_1.ipcRenderer.invoke('desktop:remove-stored-org', alias),
     notifyLimitedModeStatus: (payload) => electron_1.ipcRenderer.invoke('desktop:notify-limited-mode-status', payload),
-    getChromeStatus: () => electron_1.ipcRenderer.invoke('desktop:chrome-status'),
-    startChrome: (payload = {}) => electron_1.ipcRenderer.invoke('desktop:chrome-start', payload),
-    listChromeTabs: () => electron_1.ipcRenderer.invoke('desktop:chrome-list-tabs'),
-    openChromeTab: (payload = {}) => electron_1.ipcRenderer.invoke('desktop:chrome-open-tab', payload),
-    navigateChromeTab: (payload) => electron_1.ipcRenderer.invoke('desktop:chrome-navigate', payload),
-    closeChromeTab: (payload) => electron_1.ipcRenderer.invoke('desktop:chrome-close-tab', payload),
-    screenshotChromeTab: (payload) => electron_1.ipcRenderer.invoke('desktop:chrome-screenshot', payload),
 };
 electron_1.contextBridge.exposeInMainWorld('desktop', desktopApi);
 electron_1.contextBridge.exposeInMainWorld('electron', {

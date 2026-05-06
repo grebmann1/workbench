@@ -1350,16 +1350,12 @@ open /workspace/demo/index.html
 
 The viewer automatically resolves local imports from \`/workspace\`:
 
-- \`<link href>\`, \`<script src>\`, \`<img src>\`
+- stylesheet links, external script sources, and image sources
 - CSS \`@import\` and \`url()\`
 - Inline styles with \`url()\`
 - \`<video>\`, \`<audio>\`, \`<iframe>\`
 
-External CDN scripts load normally:
-
-\`\`\`html
-<script src="https://d3js.org/d3.v7.min.js"><\\/script>
-\`\`\`
+External CDN scripts load normally when referenced from HTML.
 
 **Limitations:**
 

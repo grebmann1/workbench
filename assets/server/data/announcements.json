@@ -1,9 +1,9 @@
 {
     "announcement": {
-        "id": "2026-05-05-2-0-2-coming",
+        "id": "2026-05-05-2-0-2-release",
         "active": true,
         "variant": "brand",
-        "title": "Workbench 2.0.2 is coming",
+        "title": "Workbench 2.0.2 is here",
         "message": "Workbench 2.0.2 adds the new Audit Trail app with filtering and CSV export, strengthens Desktop with secured local automation, encrypted org token storage, a same-origin Salesforce proxy, prerequisite checks, release packaging, and refreshed desktop docs.",
         "linkLabel": "View release notes",
         "linkUrl": "https://www.sf-workbench.com/app?applicationName=release",

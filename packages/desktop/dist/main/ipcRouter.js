@@ -2,7 +2,6 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.registerDesktopIpcRouter = registerDesktopIpcRouter;
 const electron_1 = require("electron");
-const desktopChromeController_1 = require("./desktopChromeController");
 const desktopServices_1 = require("./desktopServices");
 function isSafeExternalUrl(url) {
     try {
@@ -130,13 +129,6 @@ function registerDesktopIpcRouter({ getLaunchIntent, getRendererUrl, handleLegac
         updateLimitedModeStatus(event.sender, payload);
         return { success: true };
     }));
-    electron_1.ipcMain.handle('desktop:chrome-status', trustedHandler(async () => desktopChromeController_1.desktopChromeController.getStatus()));
-    electron_1.ipcMain.handle('desktop:chrome-start', trustedHandler(async (_event, payload = {}) => desktopChromeController_1.desktopChromeController.start(payload)));
-    electron_1.ipcMain.handle('desktop:chrome-list-tabs', trustedHandler(async () => desktopChromeController_1.desktopChromeController.listTabs()));
-    electron_1.ipcMain.handle('desktop:chrome-open-tab', trustedHandler(async (_event, payload = {}) => desktopChromeController_1.desktopChromeController.openTab(payload.url)));
-    electron_1.ipcMain.handle('desktop:chrome-navigate', trustedHandler(async (_event, payload) => desktopChromeController_1.desktopChromeController.navigate(payload.tabId, payload.url)));
-    electron_1.ipcMain.handle('desktop:chrome-close-tab', trustedHandler(async (_event, payload) => desktopChromeController_1.desktopChromeController.closeTab(payload.tabId)));
-    electron_1.ipcMain.handle('desktop:chrome-screenshot', trustedHandler(async (_event, payload) => desktopChromeController_1.desktopChromeController.screenshot(payload.tabId, { fullPage: payload.fullPage })));
     electron_1.ipcMain.handle('desktop:invoke-legacy', trustedHandler(async (_event, payload) => {
         const args = payload.args || {};
         switch (payload.channel) {
