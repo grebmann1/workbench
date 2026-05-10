@@ -22,6 +22,7 @@ interface StepItem {
     typeLabel: string;
     typeClass: string;
     duration: string;
+    durationMs: number;
     tokenCount: number | null;
     hasTokens: boolean;
     status: string;
@@ -29,9 +30,13 @@ interface StepItem {
     statusClass: string;
     input: string;
     output: string;
+    rawInput: string;
+    rawOutput: string;
     isExpanded: boolean;
     isActive: boolean;
     cardClass: string;
+    isLLMCall: boolean;
+    isNotLLMCall: boolean;
 }
 
 function formatDuration(ms: number | null | undefined): string {
@@ -237,6 +242,7 @@ export default class Debugger extends ToolkitElement {
                     typeLabel: STEP_TYPE_LABELS[s.StepType] || s.StepType,
                     typeClass: `step-type-badge step-type_${(s.StepType || '').toLowerCase()}`,
                     duration: formatDuration(s.Duration),
+                    durationMs: s.Duration || 0,
                     tokenCount: s.TokenCount,
                     hasTokens: s.TokenCount != null && s.TokenCount > 0,
                     status: s.Status,
@@ -244,9 +250,13 @@ export default class Debugger extends ToolkitElement {
                     statusClass: `step-status step-status_${(s.Status || '').toLowerCase()}`,
                     input: prettifyJson(s.StepInput),
                     output: prettifyJson(s.StepOutput),
+                    rawInput: s.StepInput || '',
+                    rawOutput: s.StepOutput || '',
                     isExpanded: this.expandedSteps.has(s.Id),
                     isActive,
                     cardClass: isActive ? 'step-card step-card--active' : 'step-card',
+                    isLLMCall: s.StepType === 'LLMCall',
+                    isNotLLMCall: s.StepType !== 'LLMCall',
                 };
             });
     }

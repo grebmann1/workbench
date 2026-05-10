@@ -102,26 +102,36 @@
                                                 </div>
                                             </div>
                                             <template lwc:if={step.isExpanded}>
-                                                <div class="step-body">
-                                                    <template lwc:if={step.input}>
-                                                        <div class="step-section">
-                                                            <span class="step-section-label">
-                                                                Input
-                                                            </span>
-                                                            <pre class="step-json">{step.input}</pre>
-                                                        </div>
-                                                    </template>
-                                                    <template lwc:if={step.output}>
-                                                        <div class="step-section">
-                                                            <span class="step-section-label">
-                                                                Output
-                                                            </span>
-                                                            <pre class="step-json">
-                                                                {step.output}
-                                                            </pre>
-                                                        </div>
-                                                    </template>
-                                                </div>
+                                                <template lwc:if={step.isLLMCall}>
+                                                    <agentforce-llm-detail
+                                                        step-input={step.rawInput}
+                                                        step-output={step.rawOutput}
+                                                        duration={step.durationMs}
+                                                        token-count={step.tokenCount}>
+                                                    </agentforce-llm-detail>
+                                                </template>
+                                                <template lwc:if={step.isNotLLMCall}>
+                                                    <div class="step-body">
+                                                        <template lwc:if={step.input}>
+                                                            <div class="step-section">
+                                                                <span class="step-section-label">
+                                                                    Input
+                                                                </span>
+                                                                <pre class="step-json">{step.input}</pre>
+                                                            </div>
+                                                        </template>
+                                                        <template lwc:if={step.output}>
+                                                            <div class="step-section">
+                                                                <span class="step-section-label">
+                                                                    Output
+                                                                </span>
+                                                                <pre class="step-json">
+                                                                    {step.output}
+                                                                </pre>
+                                                            </div>
+                                                        </template>
+                                                    </div>
+                                                </template>
                                             </template>
                                         </div>
                                     </div>
