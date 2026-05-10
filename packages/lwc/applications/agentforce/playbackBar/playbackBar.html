@@ -1,0 +1,25 @@
+<template>
+    <div class="fsm-playbar">
+        <button class="btn-fsm" onclick={handlePrev} disabled={isPrevDisabled} title="Previous (K)">
+            &larr; Prev
+        </button>
+
+        <button class="btn-fsm btn-fsm--play" onclick={handleTogglePlay} title="Play/Pause (Space)">
+            {playLabel}
+        </button>
+
+        <button class="btn-fsm" onclick={handleNext} disabled={isNextDisabled} title="Next (J)">
+            Next &rarr;
+        </button>
+
+        <span class="fsm-step-label">{stepLabel}</span>
+
+        <div class="speed-pills">
+            <button class={speedClass05} onclick={handleSpeed05}>0.5x</button>
+            <button class={speedClass10} onclick={handleSpeed10}>1x</button>
+            <button class={speedClass20} onclick={handleSpeed20}>2x</button>
+        </div>
+
+        <span class="keyboard-hint">J/K or arrow keys</span>
+    </div>
+</template>

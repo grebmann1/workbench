@@ -305,6 +305,26 @@ export default class Debugger extends ToolkitElement {
         this.expandedSteps = new Set(this.expandedSteps);
     }
 
+    get filteredStepCount(): number {
+        return this.stepList.length;
+    }
+
+    handlePlaybackPrev() {
+        store.dispatch(DEBUGGER.reduxSlice.actions.prevStep());
+    }
+
+    handlePlaybackNext() {
+        store.dispatch(DEBUGGER.reduxSlice.actions.nextStep());
+    }
+
+    handlePlaybackToggle() {
+        store.dispatch(DEBUGGER.reduxSlice.actions.togglePlayback());
+    }
+
+    handlePlaybackSpeed(e: CustomEvent) {
+        store.dispatch(DEBUGGER.reduxSlice.actions.setPlaybackSpeed(e.detail.speed));
+    }
+
     handleFilterChange(e: Event) {
         const input = e.target as HTMLInputElement;
         const type = input.dataset.type;

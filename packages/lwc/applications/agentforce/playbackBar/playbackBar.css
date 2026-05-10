@@ -1,0 +1,107 @@
+:host {
+    display: block;
+    --af-surface: var(--lwc-colorBackgroundAlt, #ffffff);
+    --af-surface2: var(--lwc-colorBackgroundStencil, #f0f1f5);
+    --af-border: var(--lwc-colorBorder, #d4d7e3);
+    --af-text: var(--lwc-colorTextDefault, #1e2030);
+    --af-text-dim: var(--lwc-colorTextWeak, #6b7084);
+    --af-blue: #2563eb;
+    --af-cyan: #0891b2;
+    --af-cyan-bg: rgba(8, 145, 178, 0.08);
+    --af-cyan-border: rgba(8, 145, 178, 0.35);
+    --af-radius-sm: 6px;
+}
+
+.fsm-playbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--af-border);
+    background: var(--af-surface);
+    flex-shrink: 0;
+}
+
+.btn-fsm {
+    font-size: 12px;
+    padding: 6px 12px;
+    border-radius: var(--af-radius-sm);
+    border: 1px solid var(--af-border);
+    background: var(--af-surface2);
+    color: var(--af-text);
+    cursor: pointer;
+    font-weight: 600;
+    transition: border-color 0.15s, color 0.15s;
+}
+
+.btn-fsm:hover {
+    border-color: var(--af-blue);
+    color: var(--af-blue);
+}
+
+.btn-fsm:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.btn-fsm:disabled:hover {
+    border-color: var(--af-border);
+    color: var(--af-text);
+}
+
+.btn-fsm--play {
+    background: var(--af-blue);
+    color: white;
+    border-color: var(--af-blue);
+}
+
+.btn-fsm--play:hover {
+    opacity: 0.9;
+    color: white;
+    border-color: var(--af-blue);
+}
+
+.fsm-step-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--af-text);
+    font-variant-numeric: tabular-nums;
+    min-width: 80px;
+    text-align: center;
+}
+
+.speed-pills {
+    display: flex;
+    gap: 4px;
+    margin-left: auto;
+}
+
+.speed-pill {
+    font-size: 10px;
+    padding: 3px 9px;
+    border-radius: 999px;
+    border: 1px solid var(--af-border);
+    background: var(--af-surface2);
+    color: var(--af-text-dim);
+    cursor: pointer;
+    font-weight: 500;
+    transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+
+.speed-pill:hover {
+    border-color: var(--af-blue);
+    color: var(--af-blue);
+}
+
+.speed-pill.is-active {
+    border-color: var(--af-cyan-border);
+    color: var(--af-cyan);
+    background: var(--af-cyan-bg);
+}
+
+.keyboard-hint {
+    font-size: 10px;
+    color: var(--af-text-dim);
+    margin-left: 8px;
+}

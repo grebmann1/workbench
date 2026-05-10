@@ -68,6 +68,16 @@
                                     <span class="summary-value">{summaryTotalTokens}</span>
                                 </span>
                             </div>
+                            <agentforce-playback-bar
+                                current-index={currentStepIndex}
+                                total-steps={filteredStepCount}
+                                is-playing={playbackActive}
+                                speed={playbackSpeed}
+                                onprev={handlePlaybackPrev}
+                                onnext={handlePlaybackNext}
+                                ontoggleplay={handlePlaybackToggle}
+                                onspeedchange={handlePlaybackSpeed}>
+                            </agentforce-playback-bar>
                             <div class="viz-toolbar">
                                 <span class="viz-toolbar-title">Show:</span>
                                 <template for:each={filterItems} for:item="f">
