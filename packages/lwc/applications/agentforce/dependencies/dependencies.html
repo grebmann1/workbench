@@ -11,6 +11,26 @@
                     <span key={item.key} class={item.cls}>{item.label}</span>
                 </template>
             </div>
+            <template lwc:if={hasAnalysis}>
+                <div class="dependencies-insights">
+                    <template lwc:if={hasCycles}>
+                        <div class="insight">
+                            <span class="insight__icon">&#x1F501;</span>
+                            <span class="insight__text">{cycleCount} feedback loop(s) detected</span>
+                        </div>
+                    </template>
+                    <template lwc:if={hasBottlenecks}>
+                        <div class="insight">
+                            <span class="insight__icon">&#x26A1;</span>
+                            <span class="insight__text">Bottleneck: {topBottleneckLabel}</span>
+                        </div>
+                    </template>
+                    <div class="insight">
+                        <span class="insight__icon">&#x1F4CF;</span>
+                        <span class="insight__text">Graph depth: {graphDiameter} levels</span>
+                    </div>
+                </div>
+            </template>
             <div class="dependencies-graph-container">
                 <div class="graph-wrap"
                      lwc:ref="mermaid"

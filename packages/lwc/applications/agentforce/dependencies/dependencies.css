@@ -174,3 +174,32 @@
     padding: 0 4px;
     user-select: none;
 }
+
+.dependencies-insights {
+    display: flex;
+    gap: 12px;
+    padding: 8px 16px;
+    border-bottom: 1px solid var(--af-border);
+    background: var(--af-surface2);
+    flex-wrap: wrap;
+}
+
+.insight {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--af-text);
+    padding: 4px 10px;
+    border-radius: var(--af-radius-sm);
+    border: 1px solid var(--af-border);
+    background: var(--af-surface);
+}
+
+.insight__icon {
+    font-size: 14px;
+}
+
+.insight__text {
+    font-weight: 500;
+}

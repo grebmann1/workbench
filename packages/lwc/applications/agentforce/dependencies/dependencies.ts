@@ -2,8 +2,10 @@ import ToolkitElement from 'host-api/element';
 import { store, connectStore } from 'host-api/store';
 import { wire, track } from 'lwc';
 import { ensureMermaidLoaded } from 'shared/loader';
+import { analyze } from './graphAnalysis';
 
 import type { GenAiPlanner, GenAiPlugin, GenAiFunction, FlowRef, ApexRef } from 'agentforce/slices/agents';
+import type { GraphData, GraphNode, GraphEdge, AnalysisResult } from './graphAnalysis';
 
 export default class Dependencies extends ToolkitElement {
     agents: GenAiPlanner[] = [];
@@ -18,6 +20,7 @@ export default class Dependencies extends ToolkitElement {
     @track private _zoom: number = 1;
     @track private _panX: number = 0;
     @track private _panY: number = 0;
+    @track private _analysisResult: AnalysisResult | null = null;
     private _isPanning: boolean = false;
     private _panStart = { x: 0, y: 0, panX: 0, panY: 0 };
     private _originalViewBox: { x: number; y: number; w: number; h: number } | null = null;
@@ -195,6 +198,14 @@ export default class Dependencies extends ToolkitElement {
             svgEl.style.height = '100%';
             this._applyViewBox(svgEl);
         }
+
+        const graphData = this.buildGraphData();
+        if (graphData.nodes.length > 0) {
+            this._analysisResult = analyze(graphData);
+            this.annotateGraph(this._analysisResult);
+        } else {
+            this._analysisResult = null;
+        }
     }
 
     private _applyViewBox(svgEl?: Element) {
@@ -261,6 +272,111 @@ export default class Dependencies extends ToolkitElement {
 
     get hasGraph(): boolean {
         return !!this._originalViewBox;
+    }
+
+    private buildGraphData(): GraphData {
+        const agent = this.agents.find(a => a.Id === this.selectedAgentId);
+        if (!agent) return { nodes: [], edges: [] };
+
+        const nodes: GraphNode[] = [];
+        const edges: GraphEdge[] = [];
+
+        const agentNodeId = `Agent_${this.sanitizeId(agent.Id)}`;
+        nodes.push({ id: agentNodeId, label: agent.MasterLabel, type: 'agent' });
+
+        const agentTopics = this.topics.filter(t => t.GenAiPlannerId === agent.Id);
+        for (const topic of agentTopics) {
+            const topicNodeId = `Topic_${this.sanitizeId(topic.Id)}`;
+            nodes.push({ id: topicNodeId, label: topic.MasterLabel, type: 'topic' });
+            edges.push({ from: agentNodeId, to: topicNodeId });
+
+            const topicActions = this.actions.filter(a => a.GenAiPluginId === topic.Id);
+            for (const action of topicActions) {
+                const actionNodeId = `Action_${this.sanitizeId(action.Id)}`;
+                nodes.push({ id: actionNodeId, label: action.MasterLabel, type: 'action' });
+                edges.push({ from: topicNodeId, to: actionNodeId });
+
+                const flowRef = this.dependencies.flows.find(f => f.actionId === action.Id);
+                if (flowRef) {
+                    const flowNodeId = `Flow_${this.sanitizeId(flowRef.id)}`;
+                    if (!nodes.find(n => n.id === flowNodeId)) {
+                        nodes.push({ id: flowNodeId, label: flowRef.label, type: 'flow' });
+                    }
+                    edges.push({ from: actionNodeId, to: flowNodeId, label: 'Flow' });
+                } else if (action.FlowDefinitionId) {
+                    const flowNodeId = `Flow_${this.sanitizeId(action.FlowDefinitionId)}`;
+                    if (!nodes.find(n => n.id === flowNodeId)) {
+                        nodes.push({ id: flowNodeId, label: action.FlowDefinitionId, type: 'flow' });
+                    }
+                    edges.push({ from: actionNodeId, to: flowNodeId, label: 'Flow' });
+                }
+
+                const apexRef = this.dependencies.apexClasses.find(a => a.actionId === action.Id);
+                if (apexRef) {
+                    const apexNodeId = `Apex_${this.sanitizeId(apexRef.id)}`;
+                    if (!nodes.find(n => n.id === apexNodeId)) {
+                        nodes.push({ id: apexNodeId, label: apexRef.name, type: 'apex' });
+                    }
+                    edges.push({ from: actionNodeId, to: apexNodeId, label: 'Apex' });
+                }
+            }
+        }
+
+        return { nodes, edges };
+    }
+
+    private annotateGraph(analysis: AnalysisResult) {
+        const svg = this.refs.mermaid?.querySelector('svg');
+        if (!svg) return;
+
+        const cycleNodes = new Set(analysis.cycles.flat());
+        for (const nodeId of cycleNodes) {
+            const el = svg.querySelector(`[id*="${nodeId}"]`);
+            if (el) {
+                const rect = el.querySelector('rect') || el.querySelector('polygon');
+                if (rect) rect.setAttribute('stroke-dasharray', '5,3');
+            }
+        }
+
+        for (const nodeId of analysis.bottlenecks) {
+            const el = svg.querySelector(`[id*="${nodeId}"]`);
+            if (el) {
+                const rect = el.querySelector('rect') || el.querySelector('polygon');
+                if (rect) rect.setAttribute('stroke-width', '3');
+            }
+        }
+    }
+
+    get hasCycles(): boolean {
+        return (this._analysisResult?.cycles.length ?? 0) > 0;
+    }
+
+    get cycleCount(): number {
+        return this._analysisResult?.cycles.length ?? 0;
+    }
+
+    get hasBottlenecks(): boolean {
+        return (this._analysisResult?.bottlenecks.length ?? 0) > 0;
+    }
+
+    get topBottleneckLabel(): string {
+        if (!this._analysisResult?.bottlenecks.length) return '';
+        const id = this._analysisResult.bottlenecks[0];
+        const allItems = [
+            ...this.agents.map(a => ({ id: `Agent_${this.sanitizeId(a.Id)}`, label: a.MasterLabel })),
+            ...this.topics.map(t => ({ id: `Topic_${this.sanitizeId(t.Id)}`, label: t.MasterLabel })),
+            ...this.actions.map(a => ({ id: `Action_${this.sanitizeId(a.Id)}`, label: a.MasterLabel })),
+        ];
+        const match = allItems.find(i => i.id === id);
+        return match?.label || id;
+    }
+
+    get graphDiameter(): number {
+        return this._analysisResult?.diameter ?? 0;
+    }
+
+    get hasAnalysis(): boolean {
+        return this._analysisResult !== null;
     }
 
     private sanitizeId(id: string): string {
