@@ -1,6 +1,6 @@
 import ToolkitElement from 'host-api/element';
 import { store, connectStore } from 'host-api/store';
-import { wire } from 'lwc';
+import { wire, track } from 'lwc';
 import { ensureMermaidLoaded } from 'shared/loader';
 
 import type { GenAiPlanner, GenAiPlugin, GenAiFunction, FlowRef, ApexRef } from 'agentforce/slices/agents';
@@ -15,18 +15,33 @@ export default class Dependencies extends ToolkitElement {
     _rendered = false;
     _lastGraphKey = '';
 
+    @track private _zoom: number = 1;
+    @track private _panX: number = 0;
+    @track private _panY: number = 0;
+    private _isPanning: boolean = false;
+    private _panStart = { x: 0, y: 0, panX: 0, panY: 0 };
+    private _originalViewBox: { x: number; y: number; w: number; h: number } | null = null;
+
     @wire(connectStore, { store })
     storeChange({ agentforce, application }: any) {
         const isCurrentApp = this.verifyIsActive(application?.currentApplication);
         if (!isCurrentApp) return;
 
         if (agentforce) {
+            const prevAgentId = this.selectedAgentId;
             this.agents = agentforce.agents || [];
             this.topics = agentforce.topics || [];
             this.actions = agentforce.actions || [];
             this.selectedAgentId = agentforce.selectedAgentId || null;
             this.dependencies = agentforce.dependencies || { flows: [], apexClasses: [] };
             this.loading = agentforce.loading || false;
+
+            if (this.selectedAgentId !== prevAgentId) {
+                this._zoom = 1;
+                this._panX = 0;
+                this._panY = 0;
+                this._originalViewBox = null;
+            }
         }
 
         if (this._rendered) {
@@ -164,6 +179,88 @@ export default class Dependencies extends ToolkitElement {
         if (bindFunctions) {
             bindFunctions(this.refs.mermaid);
         }
+
+        const svgEl = this.refs.mermaid.querySelector('svg');
+        if (svgEl) {
+            const vbAttr = svgEl.getAttribute('viewBox');
+            if (vbAttr) {
+                const vb = vbAttr.split(' ').map(Number);
+                if (vb.length === 4) {
+                    this._originalViewBox = { x: vb[0], y: vb[1], w: vb[2], h: vb[3] };
+                }
+            }
+            svgEl.removeAttribute('width');
+            svgEl.removeAttribute('height');
+            svgEl.style.width = '100%';
+            svgEl.style.height = '100%';
+            this._applyViewBox(svgEl);
+        }
+    }
+
+    private _applyViewBox(svgEl?: Element) {
+        const svg = svgEl || this.refs.mermaid?.querySelector('svg');
+        if (!svg || !this._originalViewBox) return;
+        const { x, y, w, h } = this._originalViewBox;
+        const scaledW = w / this._zoom;
+        const scaledH = h / this._zoom;
+        const cx = x + w / 2 + this._panX;
+        const cy = y + h / 2 + this._panY;
+        svg.setAttribute('viewBox', `${cx - scaledW / 2} ${cy - scaledH / 2} ${scaledW} ${scaledH}`);
+    }
+
+    handleWheel(e: WheelEvent) {
+        e.preventDefault();
+        if (!this._originalViewBox) return;
+        const factor = e.deltaY > 0 ? 1.15 : 0.87;
+        this._zoom = Math.max(0.33, Math.min(3.0, this._zoom * factor));
+        this._applyViewBox();
+    }
+
+    handlePointerDown(e: PointerEvent) {
+        if (e.button !== 0) return;
+        this._isPanning = true;
+        this._panStart = { x: e.clientX, y: e.clientY, panX: this._panX, panY: this._panY };
+        (e.currentTarget as Element).setPointerCapture(e.pointerId);
+    }
+
+    handlePointerMove(e: PointerEvent) {
+        if (!this._isPanning || !this._originalViewBox) return;
+        const rect = (e.currentTarget as Element).getBoundingClientRect();
+        const dx = (e.clientX - this._panStart.x) / rect.width * this._originalViewBox.w / this._zoom;
+        const dy = (e.clientY - this._panStart.y) / rect.height * this._originalViewBox.h / this._zoom;
+        this._panX = this._panStart.panX - dx;
+        this._panY = this._panStart.panY - dy;
+        this._applyViewBox();
+    }
+
+    handlePointerUp(e: PointerEvent) {
+        this._isPanning = false;
+        (e.currentTarget as Element).releasePointerCapture(e.pointerId);
+    }
+
+    handleZoomIn() {
+        this._zoom = Math.min(3.0, this._zoom * 1.25);
+        this._applyViewBox();
+    }
+
+    handleZoomOut() {
+        this._zoom = Math.max(0.33, this._zoom * 0.8);
+        this._applyViewBox();
+    }
+
+    handleZoomReset() {
+        this._zoom = 1;
+        this._panX = 0;
+        this._panY = 0;
+        this._applyViewBox();
+    }
+
+    get zoomPercent(): string {
+        return `${Math.round(this._zoom * 100)}%`;
+    }
+
+    get hasGraph(): boolean {
+        return !!this._originalViewBox;
     }
 
     private sanitizeId(id: string): string {

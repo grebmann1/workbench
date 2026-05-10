@@ -11,7 +11,24 @@
                     <span key={item.key} class={item.cls}>{item.label}</span>
                 </template>
             </div>
-            <div class="dependencies-graph" lwc:ref="mermaid" lwc:dom="manual"></div>
+            <div class="dependencies-graph-container">
+                <div class="graph-wrap"
+                     lwc:ref="mermaid"
+                     lwc:dom="manual"
+                     onwheel={handleWheel}
+                     onpointerdown={handlePointerDown}
+                     onpointermove={handlePointerMove}
+                     onpointerup={handlePointerUp}>
+                </div>
+                <template lwc:if={hasGraph}>
+                    <div class="fsm-zoom-controls">
+                        <button class="fsm-zoom-btn" onclick={handleZoomIn} title="Zoom In">+</button>
+                        <span class="fsm-zoom-level">{zoomPercent}</span>
+                        <button class="fsm-zoom-btn" onclick={handleZoomOut} title="Zoom Out">-</button>
+                        <button class="fsm-zoom-btn" onclick={handleZoomReset} title="Fit">R</button>
+                    </div>
+                </template>
+            </div>
         </template>
         <template lwc:else>
             <div class="dependencies-empty">
