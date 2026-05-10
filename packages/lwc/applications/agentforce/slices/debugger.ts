@@ -33,6 +33,7 @@ export interface DebuggerState {
     playbackActive: boolean;
     playbackSpeed: number;
     filters: Record<string, boolean>;
+    searchQuery: string;
 }
 
 const initialState: DebuggerState = {
@@ -51,6 +52,7 @@ const initialState: DebuggerState = {
         LLMCall: true,
         GuardrailCheck: true,
     },
+    searchQuery: '',
 };
 
 function errorMessage(err: unknown): string {
@@ -161,6 +163,10 @@ const debuggerSlice = createSlice({
         },
         setFilter: (state, action: { payload: { type: string; enabled: boolean } }) => {
             state.filters[action.payload.type] = action.payload.enabled;
+            state.currentStepIndex = -1;
+        },
+        setSearchQuery: (state, action: { payload: string }) => {
+            state.searchQuery = action.payload;
             state.currentStepIndex = -1;
         },
     },

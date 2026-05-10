@@ -87,6 +87,19 @@
                                     </label>
                                 </template>
                             </div>
+                            <div class="viz-toolbar viz-toolbar--search">
+                                <span class="viz-toolbar-title">Search:</span>
+                                <input type="text"
+                                       class="viz-search-input"
+                                       placeholder="Filter steps... (Ctrl+F)"
+                                       value={searchQuery}
+                                       oninput={handleSearchInput}
+                                       onkeydown={handleSearchKeydown}>
+                                <template lwc:if={hasSearchQuery}>
+                                    <button class="btn-fsm btn-fsm--sm" onclick={handleSearchClear}>Clear</button>
+                                    <span class="fsm-chip">{filteredStepCount} of {totalStepCount}</span>
+                                </template>
+                            </div>
                             <div class="timeline slds-scrollable_y">
                                 <div class="timeline-line"></div>
                                 <template for:each={stepList} for:item="step">

@@ -100,6 +100,7 @@ export default class Debugger extends ToolkitElement {
     @track playbackActive: boolean = false;
     @track playbackSpeed: number = 1500;
     @track _filters: Record<string, boolean> = {};
+    @track searchQuery: string = '';
     private _keyHandler: ((e: KeyboardEvent) => void) | null = null;
     private _playbackTimer: ReturnType<typeof setInterval> | null = null;
     private _isActive: boolean = false;
@@ -130,6 +131,13 @@ export default class Debugger extends ToolkitElement {
                     break;
                 case 'Escape':
                     store.dispatch(DEBUGGER.reduxSlice.actions.setStepIndex(-1));
+                    break;
+                case 'f':
+                    if (e.ctrlKey || e.metaKey) {
+                        e.preventDefault();
+                        const input = this.template.querySelector('.viz-search-input') as HTMLInputElement;
+                        if (input) input.focus();
+                    }
                     break;
             }
         };
@@ -173,6 +181,7 @@ export default class Debugger extends ToolkitElement {
             this.playbackActive = agentforceDebugger.playbackActive;
             this.playbackSpeed = agentforceDebugger.playbackSpeed;
             this._filters = agentforceDebugger.filters;
+            this.searchQuery = agentforceDebugger.searchQuery;
         }
 
         // Auto-play timer management
@@ -232,8 +241,16 @@ export default class Debugger extends ToolkitElement {
     }
 
     get stepList(): StepItem[] {
-        return this.steps
-            .filter(s => this._filters[s.StepType] !== false)
+        let filtered = this.steps.filter(s => this._filters[s.StepType] !== false);
+        if (this.searchQuery) {
+            const q = this.searchQuery.toLowerCase();
+            filtered = filtered.filter(s =>
+                (s.StepType || '').toLowerCase().includes(q) ||
+                (s.StepInput || '').toLowerCase().includes(q) ||
+                (s.StepOutput || '').toLowerCase().includes(q)
+            );
+        }
+        return filtered
             .map((s, idx, arr) => {
                 const originalIndex = this.steps.indexOf(s);
                 const isActive = originalIndex === this.currentStepIndex;
@@ -344,5 +361,33 @@ export default class Debugger extends ToolkitElement {
             label: key.replace(/([A-Z])/g, ' $1').trim(),
             enabled,
         }));
+    }
+
+    handleSearchInput(e: Event) {
+        const value = (e.target as HTMLInputElement).value;
+        store.dispatch(DEBUGGER.reduxSlice.actions.setSearchQuery(value));
+    }
+
+    handleSearchClear() {
+        store.dispatch(DEBUGGER.reduxSlice.actions.setSearchQuery(''));
+    }
+
+    handleSearchKeydown(e: KeyboardEvent) {
+        if (e.key === 'Escape') {
+            store.dispatch(DEBUGGER.reduxSlice.actions.setSearchQuery(''));
+            (e.target as HTMLElement).blur();
+        }
+    }
+
+    get filteredStepCount(): number {
+        return this.stepList.length;
+    }
+
+    get totalStepCount(): number {
+        return this.steps.length;
+    }
+
+    get hasSearchQuery(): boolean {
+        return this.searchQuery.length > 0;
     }
 }

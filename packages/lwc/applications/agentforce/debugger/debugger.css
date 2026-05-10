@@ -393,3 +393,44 @@
     filter: var(--af-active-glow);
     transition: border-color 0.25s, background 0.25s, filter 0.25s;
 }
+
+/* Search toolbar */
+.viz-toolbar--search {
+    gap: 8px;
+}
+
+.viz-search-input {
+    flex: 1;
+    min-width: 120px;
+    max-width: 240px;
+    border: 1px solid var(--af-border);
+    border-radius: var(--af-radius-sm, 6px);
+    padding: 5px 10px;
+    font-size: 12px;
+    background: var(--af-surface2);
+    color: var(--af-text);
+    outline: none;
+    transition: border-color 0.15s;
+}
+
+.viz-search-input:focus {
+    border-color: var(--af-blue, #2563eb);
+}
+
+.viz-search-input::placeholder {
+    color: var(--af-text-dim);
+}
+
+.btn-fsm--sm {
+    font-size: 11px;
+    padding: 4px 8px;
+}
+
+.fsm-chip {
+    font-size: 11px;
+    padding: 4px 9px;
+    border-radius: 6px;
+    background: var(--af-surface2);
+    border: 1px solid var(--af-border);
+    font-family: var(--af-font-mono, monospace);
+}
