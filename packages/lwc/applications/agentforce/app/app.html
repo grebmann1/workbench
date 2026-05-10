@@ -23,6 +23,18 @@
                         </button>
                         <button
                             class="agentforce__tab"
+                            aria-selected={isDependenciesActive}
+                            onclick={handleSelectDependencies}>
+                            Dependencies
+                        </button>
+                        <button
+                            class="agentforce__tab"
+                            aria-selected={isDebuggerActive}
+                            onclick={handleSelectDebugger}>
+                            Debugger
+                        </button>
+                        <button
+                            class="agentforce__tab"
                             aria-selected={isEditorActive}
                             onclick={handleSelectEditor}>
                             Editor
@@ -35,6 +47,12 @@
                                     Inspector panel — agent tree will render here.
                                 </p>
                             </div>
+                        </template>
+                        <template lwc:if={isDependenciesActive}>
+                            <agentforce-dependencies class="slds-full-height"></agentforce-dependencies>
+                        </template>
+                        <template lwc:if={isDebuggerActive}>
+                            <agentforce-debugger class="slds-full-height"></agentforce-debugger>
                         </template>
                         <template lwc:if={isEditorActive}>
                             <agentforce-editor class="slds-full-height"></agentforce-editor>

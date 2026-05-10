@@ -33,11 +33,30 @@ export interface GenAiPromptTemplate {
     Description: string | null;
 }
 
+export interface FlowRef {
+    id: string;
+    label: string;
+    processType: string;
+    actionId: string;
+}
+
+export interface ApexRef {
+    id: string;
+    name: string;
+    actionId: string;
+}
+
+export interface AgentforceDependencies {
+    flows: FlowRef[];
+    apexClasses: ApexRef[];
+}
+
 export interface AgentforceState {
     agents: GenAiPlanner[];
     topics: GenAiPlugin[];
     actions: GenAiFunction[];
     prompts: GenAiPromptTemplate[];
+    dependencies: AgentforceDependencies;
     loading: boolean;
     error: string | null;
     selectedAgentId: string | null;
@@ -49,6 +68,7 @@ const initialState: AgentforceState = {
     topics: [],
     actions: [],
     prompts: [],
+    dependencies: { flows: [], apexClasses: [] },
     loading: false,
     error: null,
     selectedAgentId: null,
@@ -118,6 +138,57 @@ export const fetchPromptTemplates = createAsyncThunk(
     }
 );
 
+export const fetchDependencies = createAsyncThunk(
+    'agentforce/fetchDependencies',
+    async ({
+        connector,
+        actions,
+    }: {
+        connector: ConnectorLike;
+        actions: GenAiFunction[];
+    }): Promise<AgentforceDependencies> => {
+        const flows: FlowRef[] = [];
+        const apexClasses: ApexRef[] = [];
+
+        const flowActions = actions.filter(a => a.FlowDefinitionId);
+        if (flowActions.length > 0) {
+            const flowIds = flowActions.map(a => `'${a.FlowDefinitionId}'`).join(',');
+            const flowRecords = await toolingQuery<{
+                Id: string;
+                MasterLabel: string;
+                ActiveVersionId: string;
+            }>(
+                connector,
+                `SELECT Id, MasterLabel, ActiveVersionId FROM FlowDefinition WHERE Id IN (${flowIds})`
+            );
+            for (const fr of flowRecords) {
+                const action = flowActions.find(a => a.FlowDefinitionId === fr.Id);
+                if (action) {
+                    flows.push({
+                        id: fr.Id,
+                        label: fr.MasterLabel,
+                        processType: '',
+                        actionId: action.Id,
+                    });
+                }
+            }
+        }
+
+        const apexActions = actions.filter(
+            a => a.ActionType && a.ActionType.toLowerCase().includes('apex')
+        );
+        for (const action of apexActions) {
+            apexClasses.push({
+                id: action.Id,
+                name: action.DeveloperName || action.MasterLabel,
+                actionId: action.Id,
+            });
+        }
+
+        return { flows, apexClasses };
+    }
+);
+
 const agentforceSlice = createSlice({
     name: 'agentforce',
     initialState,
@@ -127,6 +198,7 @@ const agentforceSlice = createSlice({
             state.selectedTopicId = null;
             state.topics = [];
             state.actions = [];
+            state.dependencies = { flows: [], apexClasses: [] };
         },
         selectTopic: (state, action: { payload: string }) => {
             state.selectedTopicId = action.payload;
@@ -186,6 +258,18 @@ const agentforceSlice = createSlice({
                 state.prompts = action.payload;
             })
             .addCase(fetchPromptTemplates.rejected, (state, action) => {
+                state.loading = false;
+                state.error = errorMessage(action.error?.message);
+            })
+            .addCase(fetchDependencies.pending, state => {
+                state.loading = true;
+                state.error = null;
+            })
+            .addCase(fetchDependencies.fulfilled, (state, action) => {
+                state.loading = false;
+                state.dependencies = action.payload;
+            })
+            .addCase(fetchDependencies.rejected, (state, action) => {
                 state.loading = false;
                 state.error = errorMessage(action.error?.message);
             });

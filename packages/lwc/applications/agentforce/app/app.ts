@@ -3,7 +3,7 @@ import ToolkitElement from 'host-api/element';
 import { store as legacyStore, store_application as legacyStore_application } from 'shared/store';
 import { track } from 'lwc';
 
-type Tab = 'inspector' | 'editor';
+type Tab = 'inspector' | 'dependencies' | 'debugger' | 'editor';
 
 let _agentforceBootstrapped = false;
 function bootstrapAgentforceExtension() {
@@ -27,12 +27,28 @@ export default class App extends ToolkitElement {
         return this.activeTab === 'inspector';
     }
 
+    get isDependenciesActive(): boolean {
+        return this.activeTab === 'dependencies';
+    }
+
+    get isDebuggerActive(): boolean {
+        return this.activeTab === 'debugger';
+    }
+
     get isEditorActive(): boolean {
         return this.activeTab === 'editor';
     }
 
     handleSelectInspector = (): void => {
         this.activeTab = 'inspector';
+    };
+
+    handleSelectDependencies = (): void => {
+        this.activeTab = 'dependencies';
+    };
+
+    handleSelectDebugger = (): void => {
+        this.activeTab = 'debugger';
     };
 
     handleSelectEditor = (): void => {

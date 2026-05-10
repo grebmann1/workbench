@@ -1,0 +1,148 @@
+<template>
+    <div class="debugger-root slds-full-height">
+        <template lwc:if={loading}>
+            <div class="slds-is-relative loading-container">
+                <slds-spinner
+                    variant="brand"
+                    size="small"
+                    alternative-text="Loading conversation data"></slds-spinner>
+            </div>
+        </template>
+        <template lwc:elseif={error}>
+            <div class="debugger-empty">
+                <p class="slds-text-body_regular slds-text-color_weak">{error}</p>
+            </div>
+        </template>
+        <template lwc:elseif={hasAgent}>
+            <div class="debugger-split">
+                <div class="debugger-left">
+                    <div class="panel-header">
+                        <span class="panel-title">Conversations</span>
+                    </div>
+                    <template lwc:if={hasInteractions}>
+                        <ul class="interaction-list slds-scrollable_y">
+                            <template for:each={interactionList} for:item="item">
+                                <li key={item.id}>
+                                    <div
+                                        class={item.itemClass}
+                                        data-id={item.id}
+                                        onclick={handleInteractionClick}>
+                                        <div class="interaction-meta">
+                                            <span class="interaction-time">
+                                                {item.formattedTime}
+                                            </span>
+                                            <span class={item.statusClass}>{item.status}</span>
+                                        </div>
+                                        <div class="interaction-details">
+                                            <span class="interaction-duration">
+                                                {item.duration}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </li>
+                            </template>
+                        </ul>
+                    </template>
+                    <template lwc:else>
+                        <div class="debugger-empty">
+                            <p class="slds-text-body_regular slds-text-color_weak">
+                                No conversation data available
+                            </p>
+                        </div>
+                    </template>
+                </div>
+                <div class="debugger-right">
+                    <template lwc:if={hasSelectedInteraction}>
+                        <template lwc:if={hasSteps}>
+                            <div class="summary-bar">
+                                <span class="summary-pill">
+                                    <span class="summary-label">Steps</span>
+                                    <span class="summary-value">{summaryStepCount}</span>
+                                </span>
+                                <span class="summary-pill">
+                                    <span class="summary-label">Duration</span>
+                                    <span class="summary-value">{summaryTotalDuration}</span>
+                                </span>
+                                <span class="summary-pill">
+                                    <span class="summary-label">Tokens</span>
+                                    <span class="summary-value">{summaryTotalTokens}</span>
+                                </span>
+                            </div>
+                            <div class="timeline slds-scrollable_y">
+                                <div class="timeline-line"></div>
+                                <template for:each={stepList} for:item="step">
+                                    <div key={step.id} class="timeline-step">
+                                        <div class="timeline-dot-container">
+                                            <span class={step.statusClass}>{step.statusIcon}</span>
+                                        </div>
+                                        <div class="step-card">
+                                            <div
+                                                class="step-header"
+                                                data-id={step.id}
+                                                onclick={handleStepToggle}>
+                                                <span class={step.typeClass}>{step.typeLabel}</span>
+                                                <div class="step-metrics">
+                                                    <span class="step-duration">
+                                                        {step.duration}
+                                                    </span>
+                                                    <template lwc:if={step.hasTokens}>
+                                                        <span class="step-tokens">
+                                                            {step.tokenCount} tokens
+                                                        </span>
+                                                    </template>
+                                                </div>
+                                            </div>
+                                            <template lwc:if={step.isExpanded}>
+                                                <div class="step-body">
+                                                    <template lwc:if={step.input}>
+                                                        <div class="step-section">
+                                                            <span class="step-section-label">
+                                                                Input
+                                                            </span>
+                                                            <pre class="step-json">{step.input}</pre>
+                                                        </div>
+                                                    </template>
+                                                    <template lwc:if={step.output}>
+                                                        <div class="step-section">
+                                                            <span class="step-section-label">
+                                                                Output
+                                                            </span>
+                                                            <pre class="step-json">
+                                                                {step.output}
+                                                            </pre>
+                                                        </div>
+                                                    </template>
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                        </template>
+                        <template lwc:else>
+                            <div class="debugger-empty">
+                                <p class="slds-text-body_regular slds-text-color_weak">
+                                    No steps found for this conversation
+                                </p>
+                            </div>
+                        </template>
+                    </template>
+                    <template lwc:else>
+                        <div class="debugger-empty">
+                            <p class="slds-text-body_regular slds-text-color_weak">
+                                Select a conversation to view its execution trace
+                            </p>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </template>
+        <template lwc:else>
+            <div class="debugger-empty">
+                <p class="slds-text-body_regular slds-text-color_weak">
+                    Select an agent in the Inspector to view conversation traces
+                </p>
+            </div>
+        </template>
+    </div>
+</template>
