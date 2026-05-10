@@ -29,6 +29,10 @@ export interface DebuggerState {
     steps: GenAiInteractionStep[];
     loading: boolean;
     error: string | null;
+    currentStepIndex: number;
+    playbackActive: boolean;
+    playbackSpeed: number;
+    filters: Record<string, boolean>;
 }
 
 const initialState: DebuggerState = {
@@ -37,6 +41,16 @@ const initialState: DebuggerState = {
     steps: [],
     loading: false,
     error: null,
+    currentStepIndex: -1,
+    playbackActive: false,
+    playbackSpeed: 1500,
+    filters: {
+        PlannerInvocation: true,
+        TopicClassification: true,
+        ActionExecution: true,
+        LLMCall: true,
+        GuardrailCheck: true,
+    },
 };
 
 function errorMessage(err: unknown): string {
@@ -89,12 +103,65 @@ const debuggerSlice = createSlice({
         selectInteraction: (state, action: { payload: string }) => {
             state.selectedInteractionId = action.payload;
             state.steps = [];
+            state.currentStepIndex = -1;
+            state.playbackActive = false;
         },
         clearDebugger: state => {
             state.interactions = [];
             state.selectedInteractionId = null;
             state.steps = [];
             state.error = null;
+            state.currentStepIndex = -1;
+            state.playbackActive = false;
+        },
+        setStepIndex: (state, action: { payload: number }) => {
+            const maxIndex = state.steps.length - 1;
+            state.currentStepIndex = Math.max(-1, Math.min(action.payload, maxIndex));
+            state.playbackActive = false;
+        },
+        nextStep: state => {
+            const visibleIndices = state.steps
+                .map((s, i) => ({ type: s.StepType, index: i }))
+                .filter(item => state.filters[item.type] !== false)
+                .map(item => item.index);
+            if (visibleIndices.length === 0) return;
+
+            const currentPos = visibleIndices.indexOf(state.currentStepIndex);
+            if (currentPos < visibleIndices.length - 1) {
+                state.currentStepIndex = visibleIndices[currentPos + 1];
+            } else if (state.currentStepIndex === -1) {
+                state.currentStepIndex = visibleIndices[0];
+            } else {
+                // At end — stop playback
+                state.playbackActive = false;
+            }
+        },
+        prevStep: state => {
+            const visibleIndices = state.steps
+                .map((s, i) => ({ type: s.StepType, index: i }))
+                .filter(item => state.filters[item.type] !== false)
+                .map(item => item.index);
+            if (visibleIndices.length === 0) return;
+
+            const currentPos = visibleIndices.indexOf(state.currentStepIndex);
+            if (currentPos > 0) {
+                state.currentStepIndex = visibleIndices[currentPos - 1];
+            } else if (currentPos === -1) {
+                // Not in visible list, go to first visible
+                state.currentStepIndex = visibleIndices[0];
+            } else {
+                state.currentStepIndex = visibleIndices[0];
+            }
+        },
+        togglePlayback: state => {
+            state.playbackActive = !state.playbackActive;
+        },
+        setPlaybackSpeed: (state, action: { payload: number }) => {
+            state.playbackSpeed = action.payload;
+        },
+        setFilter: (state, action: { payload: { type: string; enabled: boolean } }) => {
+            state.filters[action.payload.type] = action.payload.enabled;
+            state.currentStepIndex = -1;
         },
     },
     extraReducers: builder => {
@@ -120,6 +187,8 @@ const debuggerSlice = createSlice({
             .addCase(fetchSteps.fulfilled, (state, action) => {
                 state.loading = false;
                 state.steps = action.payload;
+                state.currentStepIndex = -1;
+                state.playbackActive = false;
             })
             .addCase(fetchSteps.rejected, (state, action) => {
                 state.loading = false;

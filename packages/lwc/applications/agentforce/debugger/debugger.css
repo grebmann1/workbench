@@ -1,4 +1,4 @@
-/* AgentLens Design Tokens — adapted for LWC shadow DOM */
+/* === AgentLens Design Tokens === */
 :host {
     --af-bg: var(--lwc-colorBackground, #f5f6fa);
     --af-surface: var(--lwc-colorBackgroundAlt, #ffffff);
@@ -14,31 +14,13 @@
     --af-orange: #ea580c;
     --af-teal: #0d9488;
     --af-cyan: #0891b2;
-    --af-yellow: #d97706;
-    --af-red: #dc2626;
-    --af-blue-bg: rgba(37, 99, 235, 0.08);
-    --af-blue-border: rgba(37, 99, 235, 0.25);
-    --af-green-bg: rgba(5, 150, 105, 0.08);
-    --af-green-border: rgba(5, 150, 105, 0.25);
-    --af-purple-bg: rgba(124, 58, 237, 0.08);
-    --af-purple-border: rgba(124, 58, 237, 0.25);
-    --af-orange-bg: rgba(234, 88, 12, 0.08);
-    --af-orange-border: rgba(234, 88, 12, 0.25);
-    --af-teal-bg: rgba(13, 148, 136, 0.08);
-    --af-teal-border: rgba(13, 148, 136, 0.35);
-    --af-cyan-bg: rgba(8, 145, 178, 0.08);
-    --af-cyan-border: rgba(8, 145, 178, 0.35);
-    --af-step-planner: var(--af-blue);
-    --af-step-topic: var(--af-purple);
-    --af-step-action: var(--af-teal);
-    --af-step-llm: var(--af-cyan);
-    --af-step-guardrail: var(--af-orange);
-    --af-radius: 10px;
     --af-radius-sm: 6px;
     --af-gap: 8px;
-    --af-gap-lg: 14px;
+    --af-cyan-bg: rgba(8, 145, 178, 0.08);
+    --af-cyan-border: rgba(8, 145, 178, 0.35);
     --af-active-color: var(--af-cyan);
     --af-active-glow: drop-shadow(0 0 12px rgba(8, 145, 178, 0.45));
+
     display: block;
     height: 100%;
 }
@@ -368,4 +350,46 @@
     word-break: break-word;
     max-height: 16rem;
     overflow: auto;
+}
+
+/* Filter toolbar — AgentLens .viz-toolbar */
+.viz-toolbar {
+    background: var(--af-surface);
+    border-bottom: 1px solid var(--af-border);
+    padding: 6px 16px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 14px;
+    align-items: center;
+}
+
+.viz-toolbar-title {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--af-text-dim);
+}
+
+.viz-toolbar-label {
+    font-size: 11px;
+    color: var(--af-text);
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.viz-toolbar-label input[type=checkbox] {
+    accent-color: var(--af-blue);
+    flex-shrink: 0;
+}
+
+/* Active step — AgentLens cyan glow */
+.step-card--active {
+    border-left: 3px solid var(--af-active-color);
+    background: var(--af-cyan-bg);
+    filter: var(--af-active-glow);
+    transition: border-color 0.25s, background 0.25s, filter 0.25s;
 }

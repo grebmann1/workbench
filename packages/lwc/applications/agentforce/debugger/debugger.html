@@ -68,6 +68,15 @@
                                     <span class="summary-value">{summaryTotalTokens}</span>
                                 </span>
                             </div>
+                            <div class="viz-toolbar">
+                                <span class="viz-toolbar-title">Show:</span>
+                                <template for:each={filterItems} for:item="f">
+                                    <label key={f.key} class="viz-toolbar-label">
+                                        <input type="checkbox" checked={f.enabled} data-type={f.key} onchange={handleFilterChange}>
+                                        {f.label}
+                                    </label>
+                                </template>
+                            </div>
                             <div class="timeline slds-scrollable_y">
                                 <div class="timeline-line"></div>
                                 <template for:each={stepList} for:item="step">
@@ -75,7 +84,7 @@
                                         <div class="timeline-dot-container">
                                             <span class={step.statusClass}>{step.statusIcon}</span>
                                         </div>
-                                        <div class="step-card">
+                                        <div class={step.cardClass}>
                                             <div
                                                 class="step-header"
                                                 data-id={step.id}
