@@ -5,7 +5,13 @@ import { persistPromptImageFiles } from 'agent/utils';
 import { getIndexedDbFileSystem } from 'core/fs';
 import { Agent } from 'agent/Agent';
 import { browserAgentInstructions } from 'agent/agents';
-import { askUserTool, resolveQuestion, rejectQuestion, workbenchContextTools } from 'agent/tools';
+import {
+    askUserTool,
+    resolveQuestion,
+    rejectQuestion,
+    workbenchContextTools,
+    agentforceTools,
+} from 'agent/tools';
 import {
     Constants,
     Message,
@@ -415,7 +421,7 @@ You have full access to the toolkit UI. All navigation and display tools work no
                 systemPrompt: `${browserAgentInstructions}${this._buildRunningEnvironmentContext()}`,
                 isStoreEnabled: true,
                 store,
-                extraTools: [askUserTool, ...workbenchContextTools],
+                extraTools: [askUserTool, ...workbenchContextTools, ...agentforceTools],
                 brightDataApiKey: brightDataApiKey ?? null,
                 googleSheetEnabled: googleSheetEnabled ?? false,
                 mcpServers,

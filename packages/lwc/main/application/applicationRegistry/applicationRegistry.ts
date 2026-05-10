@@ -2,6 +2,7 @@
 // Run: npm run generate:application-manifest
 
 import accessAnalyzer_app_module from 'accessAnalyzer/app';
+import agentforce_app_module from 'agentforce/app';
 import anonymousApex_app_module from 'anonymousApex/app';
 import api_app_module from 'api/app';
 import auditTrail_app_module from 'auditTrail/app';
@@ -41,6 +42,23 @@ const APPLICATION_APP_MAPPING = {
         path: 'access',
         menuGroup: 'admin',
         menuOrder: 60,
+    },
+    'agentforce/app': {
+        module: agentforce_app_module,
+        isFullHeight: true,
+        isDeletable: true,
+        isElectronOnly: false,
+        isOfflineAvailable: false,
+        isMenuVisible: true,
+        isTabVisible: true,
+        label: 'Agentforce Explorer',
+        type: 'developer',
+        description: 'Inspect, debug, and edit Agentforce agents, topics, and actions',
+        quickActionIcon: 'standard:bot',
+        shortName: 'Agentforce',
+        path: 'agentforce',
+        menuGroup: 'code',
+        menuOrder: 35,
     },
     'anonymousApex/app': {
         module: anonymousApex_app_module,
@@ -359,6 +377,14 @@ const APPLICATION_APP_MAPPING = {
 };
 
 const APPLICATION_SLASH_COMMANDS = [
+    {
+        command: 'agentforce',
+        description: 'Open the Agentforce Explorer',
+        iconName: 'standard:bot',
+        autoExecute: true,
+        commandId: 'agentforce.open',
+        appId: 'agentforce',
+    },
     {
         command: 'audit',
         description: 'Open the Setup Audit Trail viewer',

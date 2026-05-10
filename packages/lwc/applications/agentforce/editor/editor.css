@@ -1,0 +1,16 @@
+:host {
+    display: block;
+    height: 100%;
+}
+
+.editor-root {
+    height: 100%;
+}
+
+.editor-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    padding: var(--lwc-spacingXLarge, 2rem);
+}

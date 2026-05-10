@@ -1,0 +1,47 @@
+<template>
+    <div class={pageClass}>
+        <builder-editor>
+            <builder-header
+                slot="header"
+                title="Tools"
+                sub-title="Agentforce Explorer"
+                icon-name="standard:bot">
+                <p slot="meta" class="slds-page-header__meta-text slds-text-color_weak">
+                    Inspect, debug, and edit Agentforce agents, topics, and actions.
+                </p>
+            </builder-header>
+            <article class="full-page-body slds-card">
+                <div
+                    class="slds-is-relative slds-full-width slds-full-height slds-flex-column agentforce__body"
+                    style="min-height: 200px">
+                    <div class="agentforce__tabs">
+                        <button
+                            class="agentforce__tab"
+                            aria-selected={isInspectorActive}
+                            onclick={handleSelectInspector}>
+                            Inspector
+                        </button>
+                        <button
+                            class="agentforce__tab"
+                            aria-selected={isEditorActive}
+                            onclick={handleSelectEditor}>
+                            Editor
+                        </button>
+                    </div>
+                    <div class="agentforce__content">
+                        <template lwc:if={isInspectorActive}>
+                            <div class="agentforce__placeholder">
+                                <p class="slds-text-body_regular slds-text-color_weak">
+                                    Inspector panel — agent tree will render here.
+                                </p>
+                            </div>
+                        </template>
+                        <template lwc:if={isEditorActive}>
+                            <agentforce-editor class="slds-full-height"></agentforce-editor>
+                        </template>
+                    </div>
+                </div>
+            </article>
+        </builder-editor>
+    </div>
+</template>

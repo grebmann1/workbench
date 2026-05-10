@@ -3,6 +3,7 @@ export { createBashTools } from './modules/shell';
 export { askUserTool } from './modules/agentTools';
 export { resolveQuestion, rejectQuestion } from './modules/askUserBridge';
 export { workbenchContextTools } from './modules/workbenchContextTools';
+export { agentforceTools } from './modules/agentforceTools';
 export {
     createMcpToolset,
     discoverMcpServerTools,

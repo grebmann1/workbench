@@ -1,0 +1,56 @@
+<template>
+    <div class="viewer-container slds-full-height slds-flex-column">
+        <template lwc:if={hasSelection}>
+            <div class="viewer-card">
+                <div class="viewer-header">
+                    <div class="viewer-title-row">
+                        <h2 class="viewer-title">{recordTitle}</h2>
+                        <span class="viewer-badge">{recordTypeBadge}</span>
+                    </div>
+                    <button class="slds-button slds-button_neutral copy-btn" onclick={copyJson}>
+                        Copy JSON
+                    </button>
+                </div>
+                <div class="viewer-body slds-scrollable_y">
+                    <template lwc:if={isAgent}>
+                        <dl class="field-list">
+                            <template for:each={agentFields} for:item="field">
+                                <div key={field.key} class="field-item">
+                                    <dt class="field-label">{field.label}</dt>
+                                    <dd class="field-value">{field.value}</dd>
+                                </div>
+                            </template>
+                        </dl>
+                    </template>
+                    <template lwc:elseif={isTopic}>
+                        <dl class="field-list">
+                            <template for:each={topicFields} for:item="field">
+                                <div key={field.key} class="field-item">
+                                    <dt class="field-label">{field.label}</dt>
+                                    <dd class="field-value">{field.value}</dd>
+                                </div>
+                            </template>
+                        </dl>
+                    </template>
+                    <template lwc:elseif={isAction}>
+                        <dl class="field-list">
+                            <template for:each={actionFields} for:item="field">
+                                <div key={field.key} class="field-item">
+                                    <dt class="field-label">{field.label}</dt>
+                                    <dd class="field-value">{field.value}</dd>
+                                </div>
+                            </template>
+                        </dl>
+                    </template>
+                </div>
+            </div>
+        </template>
+        <template lwc:else>
+            <div class="empty-state">
+                <p class="slds-text-body_regular slds-text-color_weak">
+                    Select an agent, topic, or action to view details
+                </p>
+            </div>
+        </template>
+    </div>
+</template>

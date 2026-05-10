@@ -1,0 +1,29 @@
+{
+    "id": "agentforce",
+    "name": "agentforce/app",
+    "label": "Agentforce Explorer",
+    "shortName": "Agentforce",
+    "description": "Inspect, debug, and edit Agentforce agents, topics, and actions",
+    "path": "agentforce",
+    "quickActionIcon": "standard:bot",
+    "type": "developer",
+    "menuGroup": "code",
+    "menuOrder": 35,
+    "flags": {
+        "isFullHeight": true,
+        "isDeletable": true,
+        "isElectronOnly": false,
+        "isOfflineAvailable": false,
+        "isMenuVisible": true,
+        "isTabVisible": true
+    },
+    "slashCommands": [
+        {
+            "command": "agentforce",
+            "description": "Open the Agentforce Explorer",
+            "iconName": "standard:bot",
+            "autoExecute": true,
+            "commandId": "agentforce.open"
+        }
+    ]
+}

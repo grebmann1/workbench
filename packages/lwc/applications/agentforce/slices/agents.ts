@@ -1,0 +1,197 @@
+import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import type { ConnectorLike } from 'host-api/connector';
+import { injectReducer } from 'host-api/store';
+
+export interface GenAiPlanner {
+    Id: string;
+    MasterLabel: string;
+    DeveloperName: string;
+    Description: string | null;
+}
+
+export interface GenAiPlugin {
+    Id: string;
+    MasterLabel: string;
+    DeveloperName: string;
+    Description: string | null;
+    GenAiPlannerId: string;
+}
+
+export interface GenAiFunction {
+    Id: string;
+    MasterLabel: string;
+    DeveloperName: string;
+    ActionType: string | null;
+    FlowDefinitionId: string | null;
+    GenAiPluginId: string;
+}
+
+export interface GenAiPromptTemplate {
+    Id: string;
+    MasterLabel: string;
+    DeveloperName: string;
+    Description: string | null;
+}
+
+export interface AgentforceState {
+    agents: GenAiPlanner[];
+    topics: GenAiPlugin[];
+    actions: GenAiFunction[];
+    prompts: GenAiPromptTemplate[];
+    loading: boolean;
+    error: string | null;
+    selectedAgentId: string | null;
+    selectedTopicId: string | null;
+}
+
+const initialState: AgentforceState = {
+    agents: [],
+    topics: [],
+    actions: [],
+    prompts: [],
+    loading: false,
+    error: null,
+    selectedAgentId: null,
+    selectedTopicId: null,
+};
+
+function errorMessage(err: unknown): string {
+    if (!err) return 'Unknown error';
+    if (err instanceof Error) return err.message;
+    if (typeof err === 'string') return err;
+    return String(err);
+}
+
+function normalizeQueryRecords<T>(res: unknown): T[] {
+    const records = (res as { records?: T[] })?.records;
+    return Array.isArray(records) ? records : [];
+}
+
+async function toolingQuery<T>(connector: ConnectorLike, soql: string): Promise<T[]> {
+    const tooling = (
+        connector as { conn?: { tooling?: { query?: (soql: string) => Promise<unknown> } } }
+    )?.conn?.tooling;
+    if (!tooling?.query) {
+        throw new Error('Tooling API is not available for this connection.');
+    }
+    const res = await tooling.query(soql);
+    return normalizeQueryRecords<T>(res);
+}
+
+export const fetchAgents = createAsyncThunk(
+    'agentforce/fetchAgents',
+    async ({ connector }: { connector: ConnectorLike }) => {
+        return toolingQuery<GenAiPlanner>(
+            connector,
+            'SELECT Id, MasterLabel, DeveloperName, Description FROM GenAiPlanner ORDER BY MasterLabel'
+        );
+    }
+);
+
+export const fetchTopics = createAsyncThunk(
+    'agentforce/fetchTopics',
+    async ({ connector, agentId }: { connector: ConnectorLike; agentId: string }) => {
+        return toolingQuery<GenAiPlugin>(
+            connector,
+            `SELECT Id, MasterLabel, DeveloperName, Description FROM GenAiPlugin WHERE GenAiPlannerId = '${agentId}'`
+        );
+    }
+);
+
+export const fetchActions = createAsyncThunk(
+    'agentforce/fetchActions',
+    async ({ connector, topicId }: { connector: ConnectorLike; topicId: string }) => {
+        return toolingQuery<GenAiFunction>(
+            connector,
+            `SELECT Id, MasterLabel, DeveloperName, ActionType, FlowDefinitionId FROM GenAiFunction WHERE GenAiPluginId = '${topicId}'`
+        );
+    }
+);
+
+export const fetchPromptTemplates = createAsyncThunk(
+    'agentforce/fetchPromptTemplates',
+    async ({ connector }: { connector: ConnectorLike }) => {
+        return toolingQuery<GenAiPromptTemplate>(
+            connector,
+            'SELECT Id, MasterLabel, DeveloperName, Description FROM GenAiPromptTemplate ORDER BY MasterLabel'
+        );
+    }
+);
+
+const agentforceSlice = createSlice({
+    name: 'agentforce',
+    initialState,
+    reducers: {
+        selectAgent: (state, action: { payload: string }) => {
+            state.selectedAgentId = action.payload;
+            state.selectedTopicId = null;
+            state.topics = [];
+            state.actions = [];
+        },
+        selectTopic: (state, action: { payload: string }) => {
+            state.selectedTopicId = action.payload;
+            state.actions = [];
+        },
+        clearSelection: state => {
+            state.selectedAgentId = null;
+            state.selectedTopicId = null;
+            state.topics = [];
+            state.actions = [];
+        },
+    },
+    extraReducers: builder => {
+        builder
+            .addCase(fetchAgents.pending, state => {
+                state.loading = true;
+                state.error = null;
+            })
+            .addCase(fetchAgents.fulfilled, (state, action) => {
+                state.loading = false;
+                state.agents = action.payload;
+            })
+            .addCase(fetchAgents.rejected, (state, action) => {
+                state.loading = false;
+                state.error = errorMessage(action.error?.message);
+            })
+            .addCase(fetchTopics.pending, state => {
+                state.loading = true;
+                state.error = null;
+            })
+            .addCase(fetchTopics.fulfilled, (state, action) => {
+                state.loading = false;
+                state.topics = action.payload;
+            })
+            .addCase(fetchTopics.rejected, (state, action) => {
+                state.loading = false;
+                state.error = errorMessage(action.error?.message);
+            })
+            .addCase(fetchActions.pending, state => {
+                state.loading = true;
+                state.error = null;
+            })
+            .addCase(fetchActions.fulfilled, (state, action) => {
+                state.loading = false;
+                state.actions = action.payload;
+            })
+            .addCase(fetchActions.rejected, (state, action) => {
+                state.loading = false;
+                state.error = errorMessage(action.error?.message);
+            })
+            .addCase(fetchPromptTemplates.pending, state => {
+                state.loading = true;
+                state.error = null;
+            })
+            .addCase(fetchPromptTemplates.fulfilled, (state, action) => {
+                state.loading = false;
+                state.prompts = action.payload;
+            })
+            .addCase(fetchPromptTemplates.rejected, (state, action) => {
+                state.loading = false;
+                state.error = errorMessage(action.error?.message);
+            });
+    },
+});
+
+export const reduxSlice = agentforceSlice;
+
+injectReducer('agentforce', agentforceSlice.reducer);

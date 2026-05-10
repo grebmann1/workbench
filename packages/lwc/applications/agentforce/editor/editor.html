@@ -1,0 +1,20 @@
+<template>
+    <div class="editor-root slds-flex-column slds-full-height">
+        <template lwc:if={hasSelection}>
+            <editor-default
+                lwc:ref="editor"
+                class="slds-full-height"
+                onmonacoloaded={handleMonacoLoaded}
+                is-read-only
+                is-einstein-hidden
+                is-format-hidden></editor-default>
+        </template>
+        <template lwc:else>
+            <div class="editor-empty">
+                <p class="slds-text-body_regular slds-text-color_weak">
+                    Select an agent in the Inspector to view its AgentScript representation.
+                </p>
+            </div>
+        </template>
+    </div>
+</template>

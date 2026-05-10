@@ -1,0 +1,46 @@
+:host {
+    display: block;
+    height: 100%;
+}
+
+.agentforce__body {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.agentforce__tabs {
+    display: flex;
+    border-bottom: 1px solid var(--lwc-colorBorder, #dddbda);
+    padding: 0 var(--lwc-spacingSmall, 0.75rem);
+}
+
+.agentforce__tab {
+    padding: var(--lwc-spacingSmall, 0.75rem) var(--lwc-spacingMedium, 1rem);
+    border: none;
+    border-bottom: 2px solid transparent;
+    background: none;
+    cursor: pointer;
+    font-size: 0.875rem;
+    color: var(--lwc-colorTextWeak, #706e6b);
+}
+
+.agentforce__tab[aria-selected='true'] {
+    border-bottom-color: var(--lwc-colorBrand, #0176d3);
+    color: var(--lwc-colorBrand, #0176d3);
+    font-weight: 600;
+}
+
+.agentforce__content {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+}
+
+.agentforce__placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    padding: var(--lwc-spacingXLarge, 2rem);
+}
