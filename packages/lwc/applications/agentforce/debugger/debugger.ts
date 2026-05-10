@@ -32,6 +32,7 @@ interface StepItem {
     output: string;
     rawInput: string;
     rawOutput: string;
+    prevOutput: string;
     isExpanded: boolean;
     isActive: boolean;
     cardClass: string;
@@ -233,7 +234,7 @@ export default class Debugger extends ToolkitElement {
     get stepList(): StepItem[] {
         return this.steps
             .filter(s => this._filters[s.StepType] !== false)
-            .map((s, _i, filtered) => {
+            .map((s, idx, arr) => {
                 const originalIndex = this.steps.indexOf(s);
                 const isActive = originalIndex === this.currentStepIndex;
                 return {
@@ -252,6 +253,7 @@ export default class Debugger extends ToolkitElement {
                     output: prettifyJson(s.StepOutput),
                     rawInput: s.StepInput || '',
                     rawOutput: s.StepOutput || '',
+                    prevOutput: idx > 0 ? (arr[idx - 1].StepOutput || '') : '',
                     isExpanded: this.expandedSteps.has(s.Id),
                     isActive,
                     cardClass: isActive ? 'step-card step-card--active' : 'step-card',

@@ -1,0 +1,70 @@
+:host {
+    display: block;
+    --af-surface2: var(--lwc-colorBackgroundStencil, #f0f1f5);
+    --af-border: var(--lwc-colorBorder, #d4d7e3);
+    --af-text: var(--lwc-colorTextDefault, #1e2030);
+    --af-text-dim: var(--lwc-colorTextWeak, #6b7084);
+    --af-purple: #7c3aed;
+    --af-red: #dc2626;
+    --af-green: #059669;
+    --af-font-mono: 'SF Mono', SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace;
+    --af-radius-sm: 6px;
+}
+
+.fsm-detail-section {
+    margin-top: 10px;
+}
+
+.fsm-detail-section-h {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--af-text-dim);
+    margin-bottom: 5px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.fsm-detail-badge {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 3px 9px;
+    border-radius: 999px;
+    border: 1px solid var(--af-border);
+    background: var(--af-surface2);
+}
+
+.fsm-detail-var {
+    margin: 6px 0;
+    padding: 8px 10px;
+    border-radius: var(--af-radius-sm);
+    border: 1px solid var(--af-border);
+    background: var(--af-surface2);
+}
+
+.fsm-detail-var-name {
+    font-weight: 700;
+    color: var(--af-purple);
+    font-family: var(--af-font-mono);
+    font-size: 12px;
+    margin-bottom: 3px;
+}
+
+.fsm-detail-var-val {
+    font-family: var(--af-font-mono);
+    font-size: 12px;
+    color: var(--af-text);
+    word-break: break-word;
+}
+
+.fsm-detail-var-val.old {
+    opacity: 0.55;
+    text-decoration: line-through;
+    color: var(--af-red);
+}
+
+.fsm-detail-var-val.new {
+    color: var(--af-green);
+}
