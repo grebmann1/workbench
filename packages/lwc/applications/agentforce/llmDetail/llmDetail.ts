@@ -38,13 +38,16 @@ export default class LlmDetail extends ToolkitElement {
     }
 
     get formattedTokens(): string {
-        if (this._parsedOutput?.tokensUsed?.total) return String(this._parsedOutput.tokensUsed.total);
+        if (this._parsedOutput?.tokensUsed?.total)
+            return String(this._parsedOutput.tokensUsed.total);
         return this.tokenCount ? String(this.tokenCount) : '';
     }
 
     get formattedDuration(): string {
         if (!this.duration) return '';
-        return this.duration < 1000 ? `${this.duration}ms` : `${(this.duration / 1000).toFixed(1)}s`;
+        return this.duration < 1000
+            ? `${this.duration}ms`
+            : `${(this.duration / 1000).toFixed(1)}s`;
     }
 
     get finishReason(): string {
@@ -67,7 +70,9 @@ export default class LlmDetail extends ToolkitElement {
     }
 
     get hasToolCalls(): boolean {
-        return Array.isArray(this._parsedOutput?.toolCalls) && this._parsedOutput.toolCalls.length > 0;
+        return (
+            Array.isArray(this._parsedOutput?.toolCalls) && this._parsedOutput.toolCalls.length > 0
+        );
     }
 
     get toolCalls() {
@@ -90,10 +95,18 @@ export default class LlmDetail extends ToolkitElement {
     }
 
     get rawInput(): string {
-        try { return JSON.stringify(JSON.parse(this.stepInput), null, 2); } catch { return this.stepInput || '(empty)'; }
+        try {
+            return JSON.stringify(JSON.parse(this.stepInput), null, 2);
+        } catch {
+            return this.stepInput || '(empty)';
+        }
     }
 
     get rawOutput(): string {
-        try { return JSON.stringify(JSON.parse(this.stepOutput), null, 2); } catch { return this.stepOutput || '(empty)'; }
+        try {
+            return JSON.stringify(JSON.parse(this.stepOutput), null, 2);
+        } catch {
+            return this.stepOutput || '(empty)';
+        }
     }
 }

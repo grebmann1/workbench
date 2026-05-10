@@ -177,6 +177,9 @@ export function analyze(graph: GraphData): AnalysisResult {
     const centrality = computeCentrality(graph);
     const diameter = computeDiameter(graph);
     const sorted = [...centrality.entries()].sort((a, b) => b[1] - a[1]);
-    const bottlenecks = sorted.slice(0, 3).filter(([, v]) => v > 0).map(([id]) => id);
+    const bottlenecks = sorted
+        .slice(0, 3)
+        .filter(([, v]) => v > 0)
+        .map(([id]) => id);
     return { cycles, centrality, diameter, bottlenecks };
 }

@@ -135,7 +135,9 @@ export default class Debugger extends ToolkitElement {
                 case 'f':
                     if (e.ctrlKey || e.metaKey) {
                         e.preventDefault();
-                        const input = this.template.querySelector('.viz-search-input') as HTMLInputElement;
+                        const input = this.template.querySelector(
+                            '.viz-search-input'
+                        ) as HTMLInputElement;
                         if (input) input.focus();
                     }
                     break;
@@ -244,40 +246,40 @@ export default class Debugger extends ToolkitElement {
         let filtered = this.steps.filter(s => this._filters[s.StepType] !== false);
         if (this.searchQuery) {
             const q = this.searchQuery.toLowerCase();
-            filtered = filtered.filter(s =>
-                (s.StepType || '').toLowerCase().includes(q) ||
-                (s.StepInput || '').toLowerCase().includes(q) ||
-                (s.StepOutput || '').toLowerCase().includes(q)
+            filtered = filtered.filter(
+                s =>
+                    (s.StepType || '').toLowerCase().includes(q) ||
+                    (s.StepInput || '').toLowerCase().includes(q) ||
+                    (s.StepOutput || '').toLowerCase().includes(q)
             );
         }
-        return filtered
-            .map((s, idx, arr) => {
-                const originalIndex = this.steps.indexOf(s);
-                const isActive = originalIndex === this.currentStepIndex;
-                return {
-                    id: s.Id,
-                    stepType: s.StepType,
-                    typeLabel: STEP_TYPE_LABELS[s.StepType] || s.StepType,
-                    typeClass: `step-type-badge step-type_${(s.StepType || '').toLowerCase()}`,
-                    duration: formatDuration(s.Duration),
-                    durationMs: s.Duration || 0,
-                    tokenCount: s.TokenCount,
-                    hasTokens: s.TokenCount != null && s.TokenCount > 0,
-                    status: s.Status,
-                    statusIcon: s.Status === 'Success' ? '✓' : s.Status === 'Error' ? '✗' : '—',
-                    statusClass: `step-status step-status_${(s.Status || '').toLowerCase()}`,
-                    input: prettifyJson(s.StepInput),
-                    output: prettifyJson(s.StepOutput),
-                    rawInput: s.StepInput || '',
-                    rawOutput: s.StepOutput || '',
-                    prevOutput: idx > 0 ? (arr[idx - 1].StepOutput || '') : '',
-                    isExpanded: this.expandedSteps.has(s.Id),
-                    isActive,
-                    cardClass: isActive ? 'step-card step-card--active' : 'step-card',
-                    isLLMCall: s.StepType === 'LLMCall',
-                    isNotLLMCall: s.StepType !== 'LLMCall',
-                };
-            });
+        return filtered.map((s, idx, arr) => {
+            const originalIndex = this.steps.indexOf(s);
+            const isActive = originalIndex === this.currentStepIndex;
+            return {
+                id: s.Id,
+                stepType: s.StepType,
+                typeLabel: STEP_TYPE_LABELS[s.StepType] || s.StepType,
+                typeClass: `step-type-badge step-type_${(s.StepType || '').toLowerCase()}`,
+                duration: formatDuration(s.Duration),
+                durationMs: s.Duration || 0,
+                tokenCount: s.TokenCount,
+                hasTokens: s.TokenCount != null && s.TokenCount > 0,
+                status: s.Status,
+                statusIcon: s.Status === 'Success' ? '✓' : s.Status === 'Error' ? '✗' : '—',
+                statusClass: `step-status step-status_${(s.Status || '').toLowerCase()}`,
+                input: prettifyJson(s.StepInput),
+                output: prettifyJson(s.StepOutput),
+                rawInput: s.StepInput || '',
+                rawOutput: s.StepOutput || '',
+                prevOutput: idx > 0 ? arr[idx - 1].StepOutput || '' : '',
+                isExpanded: this.expandedSteps.has(s.Id),
+                isActive,
+                cardClass: isActive ? 'step-card step-card--active' : 'step-card',
+                isLLMCall: s.StepType === 'LLMCall',
+                isNotLLMCall: s.StepType !== 'LLMCall',
+            };
+        });
     }
 
     get summaryTotalDuration(): string {

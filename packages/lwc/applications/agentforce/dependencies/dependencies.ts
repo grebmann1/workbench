@@ -4,7 +4,13 @@ import { wire, track } from 'lwc';
 import { ensureMermaidLoaded } from 'shared/loader';
 import { analyze } from './graphAnalysis';
 
-import type { GenAiPlanner, GenAiPlugin, GenAiFunction, FlowRef, ApexRef } from 'agentforce/slices/agents';
+import type {
+    GenAiPlanner,
+    GenAiPlugin,
+    GenAiFunction,
+    FlowRef,
+    ApexRef,
+} from 'agentforce/slices/agents';
 import type { GraphData, GraphNode, GraphEdge, AnalysisResult } from './graphAnalysis';
 
 export default class Dependencies extends ToolkitElement {
@@ -89,7 +95,9 @@ export default class Dependencies extends ToolkitElement {
             const topicActions = this.actions.filter(a => a.GenAiPluginId === topic.Id);
             for (const action of topicActions) {
                 const actionNode = `Action_${this.sanitizeId(action.Id)}`;
-                lines.push(`    ${actionNode}["Action: ${this.sanitizeLabel(action.MasterLabel)}"]`);
+                lines.push(
+                    `    ${actionNode}["Action: ${this.sanitizeLabel(action.MasterLabel)}"]`
+                );
                 lines.push(`    ${topicNode} --> ${actionNode}`);
 
                 const flowRef = this.dependencies.flows.find(f => f.actionId === action.Id);
@@ -108,7 +116,9 @@ export default class Dependencies extends ToolkitElement {
 
                 if (!flowRef && !apexRef && action.FlowDefinitionId) {
                     const flowNode = `Flow_${this.sanitizeId(action.FlowDefinitionId)}`;
-                    lines.push(`    ${flowNode}["Flow: ${this.sanitizeLabel(action.FlowDefinitionId)}"]`);
+                    lines.push(
+                        `    ${flowNode}["Flow: ${this.sanitizeLabel(action.FlowDefinitionId)}"]`
+                    );
                     lines.push(`    ${actionNode} -->|Flow| ${flowNode}`);
                 }
             }
@@ -216,7 +226,10 @@ export default class Dependencies extends ToolkitElement {
         const scaledH = h / this._zoom;
         const cx = x + w / 2 + this._panX;
         const cy = y + h / 2 + this._panY;
-        svg.setAttribute('viewBox', `${cx - scaledW / 2} ${cy - scaledH / 2} ${scaledW} ${scaledH}`);
+        svg.setAttribute(
+            'viewBox',
+            `${cx - scaledW / 2} ${cy - scaledH / 2} ${scaledW} ${scaledH}`
+        );
     }
 
     handleWheel(e: WheelEvent) {
@@ -237,8 +250,10 @@ export default class Dependencies extends ToolkitElement {
     handlePointerMove(e: PointerEvent) {
         if (!this._isPanning || !this._originalViewBox) return;
         const rect = (e.currentTarget as Element).getBoundingClientRect();
-        const dx = (e.clientX - this._panStart.x) / rect.width * this._originalViewBox.w / this._zoom;
-        const dy = (e.clientY - this._panStart.y) / rect.height * this._originalViewBox.h / this._zoom;
+        const dx =
+            (((e.clientX - this._panStart.x) / rect.width) * this._originalViewBox.w) / this._zoom;
+        const dy =
+            (((e.clientY - this._panStart.y) / rect.height) * this._originalViewBox.h) / this._zoom;
         this._panX = this._panStart.panX - dx;
         this._panY = this._panStart.panY - dy;
         this._applyViewBox();
@@ -306,7 +321,11 @@ export default class Dependencies extends ToolkitElement {
                 } else if (action.FlowDefinitionId) {
                     const flowNodeId = `Flow_${this.sanitizeId(action.FlowDefinitionId)}`;
                     if (!nodes.find(n => n.id === flowNodeId)) {
-                        nodes.push({ id: flowNodeId, label: action.FlowDefinitionId, type: 'flow' });
+                        nodes.push({
+                            id: flowNodeId,
+                            label: action.FlowDefinitionId,
+                            type: 'flow',
+                        });
                     }
                     edges.push({ from: actionNodeId, to: flowNodeId, label: 'Flow' });
                 }
@@ -363,9 +382,18 @@ export default class Dependencies extends ToolkitElement {
         if (!this._analysisResult?.bottlenecks.length) return '';
         const id = this._analysisResult.bottlenecks[0];
         const allItems = [
-            ...this.agents.map(a => ({ id: `Agent_${this.sanitizeId(a.Id)}`, label: a.MasterLabel })),
-            ...this.topics.map(t => ({ id: `Topic_${this.sanitizeId(t.Id)}`, label: t.MasterLabel })),
-            ...this.actions.map(a => ({ id: `Action_${this.sanitizeId(a.Id)}`, label: a.MasterLabel })),
+            ...this.agents.map(a => ({
+                id: `Agent_${this.sanitizeId(a.Id)}`,
+                label: a.MasterLabel,
+            })),
+            ...this.topics.map(t => ({
+                id: `Topic_${this.sanitizeId(t.Id)}`,
+                label: t.MasterLabel,
+            })),
+            ...this.actions.map(a => ({
+                id: `Action_${this.sanitizeId(a.Id)}`,
+                label: a.MasterLabel,
+            })),
         ];
         const match = allItems.find(i => i.id === id);
         return match?.label || id;
