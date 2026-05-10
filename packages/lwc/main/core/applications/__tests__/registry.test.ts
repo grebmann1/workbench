@@ -34,7 +34,7 @@ function loadManifests(): Array<{ dir: string; manifest: Manifest }> {
 const MANIFESTS = loadManifests();
 
 // Known menu groups from skeleton/registry.
-const KNOWN_MENU_GROUPS = new Set(['data', 'code', 'admin', 'deploy', 'utilities']);
+const KNOWN_MENU_GROUPS = new Set(['data', 'code', 'agentforce', 'admin', 'deploy', 'utilities']);
 
 test('applications registry: finds at least one manifest', () => {
     assert.ok(MANIFESTS.length >= 1, `expected >=1 manifests, got ${MANIFESTS.length}`);

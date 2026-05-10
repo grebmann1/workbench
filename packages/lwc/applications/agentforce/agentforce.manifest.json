@@ -7,8 +7,8 @@
     "path": "agentforce",
     "quickActionIcon": "standard:bot",
     "type": "developer",
-    "menuGroup": "code",
-    "menuOrder": 35,
+    "menuGroup": "agentforce",
+    "menuOrder": 10,
     "flags": {
         "isFullHeight": true,
         "isDeletable": true,

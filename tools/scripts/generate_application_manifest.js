@@ -81,7 +81,7 @@ const ALLOWED_TYPES = new Set(['developer', 'admin', 'data', 'utility']);
 
 // `menuGroup` picks the section of the left-nav menu. A typo drops the app
 // out of the menu entirely with no warning.
-const ALLOWED_MENU_GROUPS = new Set(['data', 'code', 'admin', 'deploy', 'utilities']);
+const ALLOWED_MENU_GROUPS = new Set(['data', 'code', 'agentforce', 'admin', 'deploy', 'utilities']);
 
 // Used for `id` (folder name / Redux key / identifier). Mirrors the LWC
 // camelCase convention we use for module specifiers.
