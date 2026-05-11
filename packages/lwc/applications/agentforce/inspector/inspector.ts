@@ -18,21 +18,31 @@ export default class Inspector extends ToolkitElement {
     selectedItemType: string | null = null;
     expandedAgents: Set<string> = new Set();
     expandedTopics: Set<string> = new Set();
+    private _hasFetchedAgents = false;
 
     connectedCallback() {
-        if (this.connector) {
-            store.dispatch(
-                AGENTS.fetchAgents({
-                    connector: this.connector,
-                })
-            );
-        }
+        this._loadAgents();
+    }
+
+    private _loadAgents() {
+        if (this._hasFetchedAgents) return;
+        if (!this.connector) return;
+        this._hasFetchedAgents = true;
+        store.dispatch(
+            AGENTS.fetchAgents({
+                connector: this.connector,
+            })
+        );
     }
 
     @wire(connectStore, { store })
     storeChange({ agentforce, application }: any) {
         const isCurrentApp = this.verifyIsActive(application?.currentApplication);
         if (!isCurrentApp) return;
+
+        if (!this._hasFetchedAgents && this.connector) {
+            this._loadAgents();
+        }
 
         if (agentforce) {
             this.agents = agentforce.agents || [];

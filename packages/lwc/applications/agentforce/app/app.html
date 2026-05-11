@@ -42,11 +42,7 @@
                     </div>
                     <div class="agentforce__content">
                         <template lwc:if={isInspectorActive}>
-                            <div class="agentforce__placeholder">
-                                <p class="slds-text-body_regular slds-text-color_weak">
-                                    Inspector panel — agent tree will render here.
-                                </p>
-                            </div>
+                            <agentforce-inspector class="slds-full-height"></agentforce-inspector>
                         </template>
                         <template lwc:if={isDependenciesActive}>
                             <agentforce-dependencies class="slds-full-height"></agentforce-dependencies>

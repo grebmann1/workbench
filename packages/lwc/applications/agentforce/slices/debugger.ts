@@ -62,39 +62,48 @@ function errorMessage(err: unknown): string {
     return String(err);
 }
 
-function normalizeQueryRecords<T>(res: unknown): T[] {
-    const records = (res as { records?: T[] })?.records;
-    return Array.isArray(records) ? records : [];
-}
-
 async function toolingQuery<T>(connector: ConnectorLike, soql: string): Promise<T[]> {
-    const tooling = (
-        connector as { conn?: { tooling?: { query?: (soql: string) => Promise<unknown> } } }
-    )?.conn?.tooling;
+    const conn = (connector as { conn?: Record<string, unknown> })?.conn;
+    const tooling = conn?.tooling as
+        | { query?: (soql: string) => { run: (opts: unknown) => Promise<T[] | null> } }
+        | undefined;
     if (!tooling?.query) {
         throw new Error('Tooling API is not available for this connection.');
     }
-    const res = await tooling.query(soql);
-    return normalizeQueryRecords<T>(res);
+    const queryExec = tooling.query(soql);
+    const records = await queryExec.run({
+        responseTarget: 'Records',
+        autoFetch: true,
+        maxFetch: 10000,
+    });
+    return records || [];
 }
 
 export const fetchInteractions = createAsyncThunk(
     'agentforceDebugger/fetchInteractions',
     async ({ connector, agentId }: { connector: ConnectorLike; agentId: string }) => {
-        return toolingQuery<GenAiInteraction>(
-            connector,
-            `SELECT Id, ConversationIdentifier, PlannerId, StartTime, EndTime, Status FROM GenAiInteraction WHERE PlannerId = '${agentId}' ORDER BY StartTime DESC LIMIT 50`
-        );
+        try {
+            return await toolingQuery<GenAiInteraction>(
+                connector,
+                `SELECT Id, ConversationIdentifier, PlannerId, StartTime, EndTime, Status FROM GenAiInteraction WHERE PlannerId = '${agentId}' ORDER BY StartTime DESC LIMIT 50`
+            );
+        } catch {
+            return [];
+        }
     }
 );
 
 export const fetchSteps = createAsyncThunk(
     'agentforceDebugger/fetchSteps',
     async ({ connector, interactionId }: { connector: ConnectorLike; interactionId: string }) => {
-        return toolingQuery<GenAiInteractionStep>(
-            connector,
-            `SELECT Id, GenAiInteractionId, StepType, StepInput, StepOutput, Duration, TokenCount, Status, StepOrder FROM GenAiInteractionStep WHERE GenAiInteractionId = '${interactionId}' ORDER BY StepOrder`
-        );
+        try {
+            return await toolingQuery<GenAiInteractionStep>(
+                connector,
+                `SELECT Id, GenAiInteractionId, StepType, StepInput, StepOutput, Duration, TokenCount, Status, StepOrder FROM GenAiInteractionStep WHERE GenAiInteractionId = '${interactionId}' ORDER BY StepOrder`
+            );
+        } catch {
+            return [];
+        }
     }
 );
 

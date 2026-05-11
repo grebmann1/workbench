@@ -82,59 +82,85 @@ function errorMessage(err: unknown): string {
     return String(err);
 }
 
-function normalizeQueryRecords<T>(res: unknown): T[] {
-    const records = (res as { records?: T[] })?.records;
-    return Array.isArray(records) ? records : [];
-}
-
 async function toolingQuery<T>(connector: ConnectorLike, soql: string): Promise<T[]> {
-    const tooling = (
-        connector as { conn?: { tooling?: { query?: (soql: string) => Promise<unknown> } } }
-    )?.conn?.tooling;
+    const conn = (connector as { conn?: Record<string, unknown> })?.conn;
+    const tooling = conn?.tooling as
+        | { query?: (soql: string) => { run: (opts: unknown) => Promise<T[] | null> } }
+        | undefined;
     if (!tooling?.query) {
         throw new Error('Tooling API is not available for this connection.');
     }
-    const res = await tooling.query(soql);
-    return normalizeQueryRecords<T>(res);
+    const queryExec = tooling.query(soql);
+    const records = await queryExec.run({
+        responseTarget: 'Records',
+        autoFetch: true,
+        maxFetch: 10000,
+    });
+    return records || [];
 }
 
 export const fetchAgents = createAsyncThunk(
     'agentforce/fetchAgents',
     async ({ connector }: { connector: ConnectorLike }) => {
-        return toolingQuery<GenAiPlanner>(
+        const records = await toolingQuery<{
+            Id: string;
+            DeveloperName: string;
+            MasterLabel: string;
+            Description?: string | null;
+        }>(
             connector,
-            'SELECT Id, MasterLabel, DeveloperName, Description FROM GenAiPlanner ORDER BY MasterLabel'
+            'SELECT Id, DeveloperName, MasterLabel, Description FROM BotDefinition ORDER BY MasterLabel'
         );
+        return records.map(r => ({
+            Id: r.Id,
+            MasterLabel: r.MasterLabel || r.DeveloperName,
+            DeveloperName: r.DeveloperName,
+            Description: r.Description || null,
+        }));
     }
 );
 
 export const fetchTopics = createAsyncThunk(
     'agentforce/fetchTopics',
     async ({ connector, agentId }: { connector: ConnectorLike; agentId: string }) => {
-        return toolingQuery<GenAiPlugin>(
-            connector,
-            `SELECT Id, MasterLabel, DeveloperName, Description FROM GenAiPlugin WHERE GenAiPlannerId = '${agentId}'`
-        );
+        try {
+            return await toolingQuery<GenAiPlugin>(
+                connector,
+                `SELECT Id, MasterLabel, DeveloperName, Description, GenAiPlannerId FROM GenAiPlugin WHERE GenAiPlannerId = '${agentId}'`
+            );
+        } catch {
+            // GenAiPlugin may not be available via Tooling API in all orgs/versions.
+            // Try querying via BotDefinition's related topic metadata.
+            return [];
+        }
     }
 );
 
 export const fetchActions = createAsyncThunk(
     'agentforce/fetchActions',
     async ({ connector, topicId }: { connector: ConnectorLike; topicId: string }) => {
-        return toolingQuery<GenAiFunction>(
-            connector,
-            `SELECT Id, MasterLabel, DeveloperName, ActionType, FlowDefinitionId FROM GenAiFunction WHERE GenAiPluginId = '${topicId}'`
-        );
+        try {
+            return await toolingQuery<GenAiFunction>(
+                connector,
+                `SELECT Id, MasterLabel, DeveloperName, ActionType, FlowDefinitionId, GenAiPluginId FROM GenAiFunction WHERE GenAiPluginId = '${topicId}'`
+            );
+        } catch {
+            return [];
+        }
     }
 );
 
 export const fetchPromptTemplates = createAsyncThunk(
     'agentforce/fetchPromptTemplates',
     async ({ connector }: { connector: ConnectorLike }) => {
-        return toolingQuery<GenAiPromptTemplate>(
-            connector,
-            'SELECT Id, MasterLabel, DeveloperName, Description FROM GenAiPromptTemplate ORDER BY MasterLabel'
-        );
+        try {
+            return await toolingQuery<GenAiPromptTemplate>(
+                connector,
+                'SELECT Id, MasterLabel, DeveloperName, Description FROM GenAiPromptTemplate ORDER BY MasterLabel'
+            );
+        } catch {
+            return [];
+        }
     }
 );
 
@@ -193,15 +219,15 @@ const agentforceSlice = createSlice({
     name: 'agentforce',
     initialState,
     reducers: {
-        selectAgent: (state, action: { payload: string }) => {
-            state.selectedAgentId = action.payload;
+        selectAgent: (state, action: { payload: { agentId: string } }) => {
+            state.selectedAgentId = action.payload.agentId;
             state.selectedTopicId = null;
             state.topics = [];
             state.actions = [];
             state.dependencies = { flows: [], apexClasses: [] };
         },
-        selectTopic: (state, action: { payload: string }) => {
-            state.selectedTopicId = action.payload;
+        selectTopic: (state, action: { payload: { topicId: string } }) => {
+            state.selectedTopicId = action.payload.topicId;
             state.actions = [];
         },
         clearSelection: state => {
