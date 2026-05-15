@@ -62,30 +62,51 @@ function errorMessage(err: unknown): string {
     return String(err);
 }
 
-async function toolingQuery<T>(connector: ConnectorLike, soql: string): Promise<T[]> {
+type ApiMode = 'tooling' | 'data';
+type QueryApi = { query?: (soql: string) => { run: (opts: unknown) => Promise<unknown[] | null> } };
+
+async function soqlQuery<T>(
+    connector: ConnectorLike,
+    soql: string,
+    mode: ApiMode = 'tooling'
+): Promise<T[]> {
     const conn = (connector as { conn?: Record<string, unknown> })?.conn;
-    const tooling = conn?.tooling as
-        | { query?: (soql: string) => { run: (opts: unknown) => Promise<T[] | null> } }
-        | undefined;
-    if (!tooling?.query) {
-        throw new Error('Tooling API is not available for this connection.');
+    let api: QueryApi | undefined;
+    if (mode === 'tooling') {
+        api = conn?.tooling as QueryApi | undefined;
+    } else {
+        api = conn as QueryApi | undefined;
     }
-    const queryExec = tooling.query(soql);
+    if (!api?.query) {
+        throw new Error(
+            `${mode === 'tooling' ? 'Tooling' : 'Data'} API is not available for this connection.`
+        );
+    }
+    const queryExec = api.query(soql);
     const records = await queryExec.run({
         responseTarget: 'Records',
         autoFetch: true,
         maxFetch: 10000,
     });
-    return records || [];
+    return (records as T[] | null) || [];
 }
 
 export const fetchInteractions = createAsyncThunk(
     'agentforceDebugger/fetchInteractions',
-    async ({ connector, agentId }: { connector: ConnectorLike; agentId: string }) => {
+    async ({
+        connector,
+        agentId,
+        apiMode = 'tooling',
+    }: {
+        connector: ConnectorLike;
+        agentId: string;
+        apiMode?: ApiMode;
+    }) => {
         try {
-            return await toolingQuery<GenAiInteraction>(
+            return await soqlQuery<GenAiInteraction>(
                 connector,
-                `SELECT Id, ConversationIdentifier, PlannerId, StartTime, EndTime, Status FROM GenAiInteraction WHERE PlannerId = '${agentId}' ORDER BY StartTime DESC LIMIT 50`
+                `SELECT Id, ConversationIdentifier, PlannerId, StartTime, EndTime, Status FROM GenAiInteraction WHERE PlannerId = '${agentId}' ORDER BY StartTime DESC LIMIT 50`,
+                apiMode
             );
         } catch {
             return [];
@@ -95,11 +116,20 @@ export const fetchInteractions = createAsyncThunk(
 
 export const fetchSteps = createAsyncThunk(
     'agentforceDebugger/fetchSteps',
-    async ({ connector, interactionId }: { connector: ConnectorLike; interactionId: string }) => {
+    async ({
+        connector,
+        interactionId,
+        apiMode = 'tooling',
+    }: {
+        connector: ConnectorLike;
+        interactionId: string;
+        apiMode?: ApiMode;
+    }) => {
         try {
-            return await toolingQuery<GenAiInteractionStep>(
+            return await soqlQuery<GenAiInteractionStep>(
                 connector,
-                `SELECT Id, GenAiInteractionId, StepType, StepInput, StepOutput, Duration, TokenCount, Status, StepOrder FROM GenAiInteractionStep WHERE GenAiInteractionId = '${interactionId}' ORDER BY StepOrder`
+                `SELECT Id, GenAiInteractionId, StepType, StepInput, StepOutput, Duration, TokenCount, Status, StepOrder FROM GenAiInteractionStep WHERE GenAiInteractionId = '${interactionId}' ORDER BY StepOrder`,
+                apiMode
             );
         } catch {
             return [];

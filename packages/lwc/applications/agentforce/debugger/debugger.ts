@@ -103,12 +103,14 @@ export default class Debugger extends ToolkitElement {
     @track searchQuery: string = '';
     private _keyHandler: ((e: KeyboardEvent) => void) | null = null;
     private _playbackTimer: ReturnType<typeof setInterval> | null = null;
+    private _playbackTimerSpeed: number | null = null;
     private _isActive: boolean = false;
 
     private _previousAgentId: string | null = null;
 
     connectedCallback() {
         super.connectedCallback?.();
+        this.restorePersistedFilters();
         this._keyHandler = (e: KeyboardEvent) => {
             const el = e.target as HTMLElement;
             if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable) return;
@@ -153,6 +155,8 @@ export default class Debugger extends ToolkitElement {
         }
         if (this._playbackTimer) {
             clearInterval(this._playbackTimer);
+            this._playbackTimer = null;
+            this._playbackTimerSpeed = null;
         }
     }
 
@@ -187,14 +191,7 @@ export default class Debugger extends ToolkitElement {
         }
 
         // Auto-play timer management
-        if (this.playbackActive && !this._playbackTimer) {
-            this._playbackTimer = setInterval(() => {
-                store.dispatch(DEBUGGER.reduxSlice.actions.nextStep());
-            }, this.playbackSpeed);
-        } else if (!this.playbackActive && this._playbackTimer) {
-            clearInterval(this._playbackTimer);
-            this._playbackTimer = null;
-        }
+        this.syncPlaybackTimer();
 
         if (this.selectedAgentId && this.selectedAgentId !== this._previousAgentId) {
             this._previousAgentId = this.selectedAgentId;
@@ -243,19 +240,25 @@ export default class Debugger extends ToolkitElement {
     }
 
     get stepList(): StepItem[] {
-        let filtered = this.steps.filter(s => this._filters[s.StepType] !== false);
-        if (this.searchQuery) {
-            const q = this.searchQuery.toLowerCase();
-            filtered = filtered.filter(
-                s =>
-                    (s.StepType || '').toLowerCase().includes(q) ||
-                    (s.StepInput || '').toLowerCase().includes(q) ||
-                    (s.StepOutput || '').toLowerCase().includes(q)
-            );
-        }
-        return filtered.map((s, idx, arr) => {
-            const originalIndex = this.steps.indexOf(s);
+        const query = this.searchQuery.trim().toLowerCase();
+        const filtered = this.steps
+            .map((step, originalIndex) => ({ step, originalIndex }))
+            .filter(({ step }) => this._filters[step.StepType] !== false)
+            .filter(({ step }) => {
+                if (!query) return true;
+                return (
+                    (step.StepType || '').toLowerCase().includes(query) ||
+                    (step.StepInput || '').toLowerCase().includes(query) ||
+                    (step.StepOutput || '').toLowerCase().includes(query)
+                );
+            });
+
+        return filtered.map(({ step: s, originalIndex }, idx, arr) => {
             const isActive = originalIndex === this.currentStepIndex;
+            const isExpanded = this.expandedSteps.has(s.Id);
+            const isLLMCall = s.StepType === 'LLMCall';
+            const input = isExpanded && !isLLMCall ? prettifyJson(s.StepInput) : '';
+            const output = isExpanded && !isLLMCall ? prettifyJson(s.StepOutput) : '';
             return {
                 id: s.Id,
                 stepType: s.StepType,
@@ -268,16 +271,16 @@ export default class Debugger extends ToolkitElement {
                 status: s.Status,
                 statusIcon: s.Status === 'Success' ? '✓' : s.Status === 'Error' ? '✗' : '—',
                 statusClass: `step-status step-status_${(s.Status || '').toLowerCase()}`,
-                input: prettifyJson(s.StepInput),
-                output: prettifyJson(s.StepOutput),
+                input,
+                output,
                 rawInput: s.StepInput || '',
                 rawOutput: s.StepOutput || '',
-                prevOutput: idx > 0 ? arr[idx - 1].StepOutput || '' : '',
-                isExpanded: this.expandedSteps.has(s.Id),
+                prevOutput: idx > 0 ? arr[idx - 1].step.StepOutput || '' : '',
+                isExpanded,
                 isActive,
                 cardClass: isActive ? 'step-card step-card--active' : 'step-card',
-                isLLMCall: s.StepType === 'LLMCall',
-                isNotLLMCall: s.StepType !== 'LLMCall',
+                isLLMCall,
+                isNotLLMCall: !isLLMCall,
             };
         });
     }
@@ -330,6 +333,21 @@ export default class Debugger extends ToolkitElement {
         return this.stepList.length;
     }
 
+    get playbackVisibleIndices(): number[] {
+        return this.steps
+            .map((s, i) => ({ type: s.StepType, index: i }))
+            .filter(item => this._filters[item.type] !== false)
+            .map(item => item.index);
+    }
+
+    get playbackCurrentIndex(): number {
+        return this.playbackVisibleIndices.indexOf(this.currentStepIndex);
+    }
+
+    get playbackTotalSteps(): number {
+        return this.playbackVisibleIndices.length;
+    }
+
     handlePlaybackPrev() {
         store.dispatch(DEBUGGER.reduxSlice.actions.prevStep());
     }
@@ -350,10 +368,14 @@ export default class Debugger extends ToolkitElement {
         const input = e.target as HTMLInputElement;
         const type = input.dataset.type;
         if (!type) return;
+        const nextFilters = {
+            ...this._filters,
+            [type]: input.checked,
+        };
         store.dispatch(DEBUGGER.reduxSlice.actions.setFilter({ type, enabled: input.checked }));
         localStorage.setItem(
             'workbench.agentforce.debugger.filters',
-            JSON.stringify(this._filters)
+            JSON.stringify(nextFilters)
         );
     }
 
@@ -381,15 +403,54 @@ export default class Debugger extends ToolkitElement {
         }
     }
 
-    get filteredStepCount(): number {
-        return this.stepList.length;
-    }
-
     get totalStepCount(): number {
         return this.steps.length;
     }
 
     get hasSearchQuery(): boolean {
         return this.searchQuery.length > 0;
+    }
+
+    private syncPlaybackTimer() {
+        if (!this.playbackActive) {
+            if (this._playbackTimer) {
+                clearInterval(this._playbackTimer);
+                this._playbackTimer = null;
+                this._playbackTimerSpeed = null;
+            }
+            return;
+        }
+
+        const speedChanged =
+            this._playbackTimer !== null &&
+            this._playbackTimerSpeed !== null &&
+            this._playbackTimerSpeed !== this.playbackSpeed;
+
+        if (speedChanged && this._playbackTimer) {
+            clearInterval(this._playbackTimer);
+            this._playbackTimer = null;
+            this._playbackTimerSpeed = null;
+        }
+
+        if (!this._playbackTimer) {
+            this._playbackTimer = setInterval(() => {
+                store.dispatch(DEBUGGER.reduxSlice.actions.nextStep());
+            }, this.playbackSpeed);
+            this._playbackTimerSpeed = this.playbackSpeed;
+        }
+    }
+
+    private restorePersistedFilters() {
+        const raw = localStorage.getItem('workbench.agentforce.debugger.filters');
+        if (!raw) return;
+        try {
+            const parsed = JSON.parse(raw) as Record<string, unknown>;
+            for (const [type, enabled] of Object.entries(parsed)) {
+                if (typeof enabled !== 'boolean') continue;
+                store.dispatch(DEBUGGER.reduxSlice.actions.setFilter({ type, enabled }));
+            }
+        } catch {
+            // Ignore malformed persisted state.
+        }
     }
 }

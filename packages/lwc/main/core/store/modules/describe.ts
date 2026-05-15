@@ -13,6 +13,37 @@ const DESCRIBE_ID = {
     STANDARD: 'STANDARD',
 };
 
+const DESCRIBE_SOURCE = {
+    TOOLING: 'tooling',
+    STANDARD: 'standard',
+} as const;
+
+type DescribeEntry = Record<string, unknown> & {
+    useToolingApi: boolean;
+    source: string;
+    sourceScopedId: string;
+};
+
+const buildDescribeEntriesMap = (
+    items: Array<Record<string, unknown>> = [],
+    idField: string,
+    baseAttributes: { useToolingApi: boolean; source: string }
+): Record<string, DescribeEntry[]> => {
+    return items.reduce<Record<string, DescribeEntry[]>>((acc, item) => {
+        if (!item?.hasOwnProperty?.(idField)) return acc;
+        const key = lowerCaseKey(item[idField]);
+        if (!key) return acc;
+        const entry: DescribeEntry = {
+            ...item,
+            ...baseAttributes,
+            sourceScopedId: `${baseAttributes.source}:${key}`,
+        };
+        acc[key] = acc[key] || [];
+        acc[key].push(entry);
+        return acc;
+    }, {});
+};
+
 // Create an entity adapter for sObjects
 
 // Thunks using createAsyncThunk
@@ -30,27 +61,29 @@ export const describeSObjects = createAsyncThunk(
             if (isUndefinedOrNull(connector.alias)) {
                 throw new Error('No alias found');
             }
-            cacheManager.saveOrgData(connector.alias, CACHE_ORG_DATA_TYPES.DESCRIBE_GLOBAL, result);
+            await cacheManager.saveOrgData(
+                connector.alias,
+                CACHE_ORG_DATA_TYPES.DESCRIBE_GLOBAL,
+                result
+            );
             return result;
         };
 
         try {
+            return await fetchDescribeAndSave();
+        } catch (err) {
             const cachedDescribe = await cacheManager.loadOrgData(
                 connector.alias,
                 CACHE_ORG_DATA_TYPES.DESCRIBE_GLOBAL
             );
-            LOGGER.debug('cachedDescribe', cachedDescribe);
+            LOGGER.debug('cachedDescribe fallback', cachedDescribe);
             if (cachedDescribe) {
-                fetchDescribeAndSave();
                 return cachedDescribe;
-            } else {
-                return await fetchDescribeAndSave();
             }
-        } catch (err) {
             getStore()?.dispatch(
                 ERROR.reduxSlice.actions.addError({
                     message: 'Error describing SObjects',
-                    details: err.message,
+                    details: err?.message || String(err),
                 })
             );
             throw err;
@@ -108,6 +141,8 @@ const describeSlice = createSlice({
     initialState: {
         prefixMap: {},
         nameMap: {},
+        prefixEntriesMap: {},
+        nameEntriesMap: {},
         error: null,
         isFetching: false,
     },
@@ -119,29 +154,63 @@ const describeSlice = createSlice({
             })
             .addCase(describeSObjects.fulfilled, (state, action) => {
                 const { standard, tooling } = action.payload;
+                const toolingAttributes = {
+                    useToolingApi: true,
+                    source: DESCRIBE_SOURCE.TOOLING,
+                };
+                const standardAttributes = {
+                    useToolingApi: false,
+                    source: DESCRIBE_SOURCE.STANDARD,
+                };
                 // Tooling
                 Object.assign(
                     state.prefixMap,
-                    arrayToMap(tooling.sobjects, 'keyPrefix', { useToolingApi: true }, lowerCaseKey)
+                    arrayToMap(tooling.sobjects, 'keyPrefix', toolingAttributes, lowerCaseKey)
                 );
                 Object.assign(
                     state.nameMap,
-                    arrayToMap(tooling.sobjects, 'name', { useToolingApi: true }, lowerCaseKey)
+                    arrayToMap(tooling.sobjects, 'name', toolingAttributes, lowerCaseKey)
                 );
                 // Standard
                 Object.assign(
                     state.prefixMap,
-                    arrayToMap(
-                        standard.sobjects,
-                        'keyPrefix',
-                        { useToolingApi: false },
-                        lowerCaseKey
-                    )
+                    arrayToMap(standard.sobjects, 'keyPrefix', standardAttributes, lowerCaseKey)
                 );
                 Object.assign(
                     state.nameMap,
-                    arrayToMap(standard.sobjects, 'name', { useToolingApi: false }, lowerCaseKey)
+                    arrayToMap(standard.sobjects, 'name', standardAttributes, lowerCaseKey)
                 );
+
+                state.nameEntriesMap = buildDescribeEntriesMap(
+                    tooling.sobjects,
+                    'name',
+                    toolingAttributes
+                );
+                const standardNameEntriesMap = buildDescribeEntriesMap(
+                    standard.sobjects,
+                    'name',
+                    standardAttributes
+                );
+                Object.entries(standardNameEntriesMap).forEach(([key, entries]) => {
+                    state.nameEntriesMap[key] = [...(state.nameEntriesMap[key] || []), ...entries];
+                });
+
+                state.prefixEntriesMap = buildDescribeEntriesMap(
+                    tooling.sobjects,
+                    'keyPrefix',
+                    toolingAttributes
+                );
+                const standardPrefixEntriesMap = buildDescribeEntriesMap(
+                    standard.sobjects,
+                    'keyPrefix',
+                    standardAttributes
+                );
+                Object.entries(standardPrefixEntriesMap).forEach(([key, entries]) => {
+                    state.prefixEntriesMap[key] = [
+                        ...(state.prefixEntriesMap[key] || []),
+                        ...entries,
+                    ];
+                });
 
                 state.isFetching = false;
             })

@@ -44,3 +44,22 @@
     height: 100%;
     padding: var(--lwc-spacingXLarge, 2rem);
 }
+
+.agentforce__split-pane {
+    display: flex;
+    min-height: 0;
+}
+
+.agentforce__pane-left {
+    width: 280px;
+    min-width: 200px;
+    flex-shrink: 0;
+    border-right: 1px solid var(--lwc-colorBorder, #dddbda);
+    overflow: hidden;
+}
+
+.agentforce__pane-right {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+}

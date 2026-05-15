@@ -11,89 +11,116 @@
         <template lwc:elseif={isEmpty}>
             <div class="slds-p-around_medium empty-state">
                 <p class="slds-text-body_regular slds-text-color_weak">
-                    No Agentforce agents found in this org
+                    No agents or agent scripts found.
                 </p>
             </div>
         </template>
         <template lwc:else>
-            <ul class="slds-tree slds-scrollable_y" role="tree" aria-label="Agent hierarchy">
-                <template for:each={treeData} for:item="agent">
-                    <li
-                        key={agent.id}
-                        class="tree-item level-0"
-                        role="treeitem"
-                        aria-expanded={agent.isExpanded}>
-                        <div class={agent.nodeClass} data-id={agent.id} onclick={handleAgentClick}>
-                            <span class="tree-toggle">
-                                <template lwc:if={agent.isExpanded}>
-                                    <span class="toggle-icon expanded">&#9660;</span>
-                                </template>
-                                <template lwc:else>
-                                    <span class="toggle-icon">&#9654;</span>
-                                </template>
-                            </span>
-                            <span class="node-icon agent-icon"></span>
-                            <span class="node-label">{agent.label}</span>
-                        </div>
-                        <template lwc:if={agent.isExpanded}>
-                            <ul class="slds-tree__group" role="group">
-                                <template for:each={agent.children} for:item="topic">
-                                    <li
-                                        key={topic.id}
-                                        class="tree-item level-1"
-                                        role="treeitem"
-                                        aria-expanded={topic.isExpanded}>
-                                        <div
-                                            class={topic.nodeClass}
-                                            data-id={topic.id}
-                                            onclick={handleTopicClick}>
-                                            <span class="tree-toggle">
-                                                <template lwc:if={topic.hasChildren}>
-                                                    <template lwc:if={topic.isExpanded}>
-                                                        <span class="toggle-icon expanded">
-                                                            &#9660;
-                                                        </span>
-                                                    </template>
-                                                    <template lwc:else>
-                                                        <span class="toggle-icon">&#9654;</span>
-                                                    </template>
-                                                </template>
-                                            </span>
-                                            <span class="node-icon topic-icon"></span>
-                                            <span class="node-label">{topic.label}</span>
-                                        </div>
-                                        <template lwc:if={topic.isExpanded}>
-                                            <ul class="slds-tree__group" role="group">
-                                                <template
-                                                    for:each={topic.children}
-                                                    for:item="action">
-                                                    <li
-                                                        key={action.id}
-                                                        class="tree-item level-2"
-                                                        role="treeitem">
-                                                        <div
-                                                            class={action.nodeClass}
-                                                            data-id={action.id}
-                                                            onclick={handleActionClick}>
-                                                            <span
-                                                                class="tree-toggle leaf-spacer"></span>
-                                                            <span
-                                                                class="node-icon action-icon"></span>
-                                                            <span class="node-label">
-                                                                {action.label}
+            <template lwc:if={hasAgents}>
+                <div class="tree-section-header">Agents</div>
+                <ul class="slds-tree slds-scrollable_y" role="tree" aria-label="Agent hierarchy">
+                    <template for:each={treeData} for:item="agent">
+                        <li
+                            key={agent.id}
+                            class="tree-item level-0"
+                            role="treeitem"
+                            aria-expanded={agent.isExpanded}>
+                            <div
+                                class={agent.nodeClass}
+                                data-id={agent.id}
+                                onclick={handleAgentClick}>
+                                <span class="tree-toggle">
+                                    <template lwc:if={agent.isExpanded}>
+                                        <span class="toggle-icon expanded">&#9660;</span>
+                                    </template>
+                                    <template lwc:else>
+                                        <span class="toggle-icon">&#9654;</span>
+                                    </template>
+                                </span>
+                                <span class="node-icon agent-icon"></span>
+                                <span class="node-label">{agent.label}</span>
+                            </div>
+                            <template lwc:if={agent.isExpanded}>
+                                <ul class="slds-tree__group" role="group">
+                                    <template for:each={agent.children} for:item="topic">
+                                        <li
+                                            key={topic.id}
+                                            class="tree-item level-1"
+                                            role="treeitem"
+                                            aria-expanded={topic.isExpanded}>
+                                            <div
+                                                class={topic.nodeClass}
+                                                data-id={topic.id}
+                                                onclick={handleTopicClick}>
+                                                <span class="tree-toggle">
+                                                    <template lwc:if={topic.hasChildren}>
+                                                        <template lwc:if={topic.isExpanded}>
+                                                            <span class="toggle-icon expanded">
+                                                                &#9660;
                                                             </span>
-                                                        </div>
-                                                    </li>
-                                                </template>
-                                            </ul>
-                                        </template>
-                                    </li>
-                                </template>
-                            </ul>
-                        </template>
-                    </li>
-                </template>
-            </ul>
+                                                        </template>
+                                                        <template lwc:else>
+                                                            <span class="toggle-icon">&#9654;</span>
+                                                        </template>
+                                                    </template>
+                                                </span>
+                                                <span class="node-icon topic-icon"></span>
+                                                <span class="node-label">{topic.label}</span>
+                                            </div>
+                                            <template lwc:if={topic.isExpanded}>
+                                                <ul class="slds-tree__group" role="group">
+                                                    <template
+                                                        for:each={topic.children}
+                                                        for:item="action">
+                                                        <li
+                                                            key={action.id}
+                                                            class="tree-item level-2"
+                                                            role="treeitem">
+                                                            <div
+                                                                class={action.nodeClass}
+                                                                data-id={action.id}
+                                                                onclick={handleActionClick}>
+                                                                <span
+                                                                    class="tree-toggle leaf-spacer"></span>
+                                                                <span
+                                                                    class="node-icon action-icon"></span>
+                                                                <span class="node-label">
+                                                                    {action.label}
+                                                                </span>
+                                                            </div>
+                                                        </li>
+                                                    </template>
+                                                </ul>
+                                            </template>
+                                        </li>
+                                    </template>
+                                </ul>
+                            </template>
+                        </li>
+                    </template>
+                </ul>
+            </template>
+            <template lwc:if={hasAgentScripts}>
+                <div class="tree-section-header">Agent Scripts</div>
+                <ul class="slds-tree slds-scrollable_y" role="tree" aria-label="Agent Scripts">
+                    <template for:each={scriptTreeData} for:item="script">
+                        <li key={script.fullName} class="tree-item level-0" role="treeitem">
+                            <div
+                                class={script.nodeClass}
+                                data-id={script.fullName}
+                                onclick={handleScriptClick}>
+                                <span class="tree-toggle leaf-spacer"></span>
+                                <lightning-icon
+                                    class="node-icon script-icon"
+                                    icon-name="utility:einstein"
+                                    size="xx-small"></lightning-icon>
+                                <span class="node-label">{script.label}</span>
+                                <span class="node-meta">{script.lastModified}</span>
+                            </div>
+                        </li>
+                    </template>
+                </ul>
+            </template>
         </template>
     </div>
 </template>

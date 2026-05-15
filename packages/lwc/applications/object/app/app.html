@@ -93,7 +93,8 @@
                                     <template lwc:if={isViewerDisplayed}>
                                         <object-sobject
                                             object-records={records}
-                                            record-name={currentTab.id}></object-sobject>
+                                            record-name={activeRecordName}
+                                            use-tooling-api={activeUseToolingApi}></object-sobject>
                                     </template>
                                     <template lwc:else>
                                         <illustration-empty

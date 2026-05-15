@@ -15,6 +15,7 @@ import {
 export default class StructureViewer extends ToolkitElement {
     @track _record;
     @track items = [];
+    @api linkMode = 'navigate';
 
     @api
     get record() {

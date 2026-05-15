@@ -15,4 +15,31 @@ test.describe('@extension textcompare', () => {
             await expect(page.getByRole('button', { name })).toBeVisible();
         }
     });
+
+    test('renders diff editor panes and survives a swap round-trip', async ({ appPage }) => {
+        const page = await appPage('textcompare');
+        await expect(page.getByRole('heading', { name: /text compare/i })).toBeVisible();
+
+        // The "two panes" surface is a single Monaco diff editor (editor-diff)
+        // hosting two unnamed inputareas. Once Monaco mounts, each pane
+        // exposes role="textbox" — that is the only ARIA-visible result
+        // region for the diff. Wait for both to appear before interacting.
+        const panes = page.getByRole('textbox');
+        await expect(panes.first()).toBeVisible({ timeout: 15_000 });
+        await expect(panes.nth(1)).toBeVisible({ timeout: 15_000 });
+
+        // Type two distinct strings into the left and right panes. Monaco
+        // accepts keyboard input via its focused inputarea, so click-then-type
+        // is the supported keyboard journey here (no shadow-CSS needed).
+        await panes.first().click();
+        await page.keyboard.type('alpha');
+        await panes.nth(1).click();
+        await page.keyboard.type('beta');
+
+        // Swap is the primary state-mutating toolbar action; both panes
+        // remain rendered (the diff result region) after invoking it.
+        await page.getByRole('button', { name: /^swap$/i }).click();
+        await expect(panes.first()).toBeVisible();
+        await expect(panes.nth(1)).toBeVisible();
+    });
 });

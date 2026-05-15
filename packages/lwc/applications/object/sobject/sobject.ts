@@ -7,6 +7,7 @@ import { ensureMermaidLoaded } from 'shared/loader';
 import LOGGER from 'shared/logger';
 import { store as legacyStore, store_application } from 'shared/store';
 import { classSet, isEmpty, isNotUndefinedOrNull, isUndefinedOrNull } from 'shared/utils';
+import { ensureSessionClientCallOption } from '../sessionCallOptions';
 /** Store */
 
 import { getFieldTypeIcon, API_COLORS } from './constants';
@@ -41,6 +42,9 @@ export default class Sobject extends ToolkitElement {
 
     @api
     objectRecords: AnyRecord[] = [];
+
+    @api
+    useToolingApi = false;
 
     @api
     get recordName(): string | null {
@@ -190,7 +194,9 @@ export default class Sobject extends ToolkitElement {
     checkTotalRecords = async (): Promise<void> => {
         this.extraSelectedDetails = { totalRecords: 0 };
         try {
-            const res = await this.connector.conn.query(
+            await ensureSessionClientCallOption(this.connector);
+            const conn = this.useToolingApi ? this.connector.conn.tooling : this.connector.conn;
+            const res = await conn.query(
                 `SELECT Count(Id) total FROM ${this.selectedDetails.name}`
             );
             const total = res?.records?.[0]?.total;
@@ -204,12 +210,13 @@ export default class Sobject extends ToolkitElement {
 
     describeSpecific = async (name: string): Promise<void> => {
         try {
+            await ensureSessionClientCallOption(this.connector);
             const sobjectConfig = (
                 await store.dispatch(
                     SOBJECT.describeSObject({
                         connector: this.connector.conn,
                         sObjectName: name,
-                        useToolingApi: false,
+                        useToolingApi: this.useToolingApi === true,
                     })
                 )
             ).payload;

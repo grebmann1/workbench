@@ -9,6 +9,7 @@ function nodeClass(isSelected: boolean): string {
 
 export default class Inspector extends ToolkitElement {
     agents: any[] = [];
+    agentScripts: any[] = [];
     topics: any[] = [];
     actions: any[] = [];
     loading = false;
@@ -28,11 +29,8 @@ export default class Inspector extends ToolkitElement {
         if (this._hasFetchedAgents) return;
         if (!this.connector) return;
         this._hasFetchedAgents = true;
-        store.dispatch(
-            AGENTS.fetchAgents({
-                connector: this.connector,
-            })
-        );
+        store.dispatch(AGENTS.fetchAgents({ connector: this.connector }));
+        store.dispatch(AGENTS.fetchAgentScripts({ connector: this.connector }));
     }
 
     @wire(connectStore, { store })
@@ -46,6 +44,7 @@ export default class Inspector extends ToolkitElement {
 
         if (agentforce) {
             this.agents = agentforce.agents || [];
+            this.agentScripts = agentforce.agentScripts || [];
             this.topics = agentforce.topics || [];
             this.actions = agentforce.actions || [];
             this.loading = agentforce.loading || false;
@@ -125,8 +124,35 @@ export default class Inspector extends ToolkitElement {
         return this.agents.length > 0;
     }
 
+    get hasAgentScripts(): boolean {
+        return this.agentScripts.length > 0;
+    }
+
     get isEmpty(): boolean {
-        return !this.loading && !this.hasAgents;
+        return !this.loading && !this.hasAgents && !this.hasAgentScripts;
+    }
+
+    get scriptTreeData(): any[] {
+        return this.agentScripts.map(script => ({
+            fullName: script.fullName,
+            label: script.fullName.replace(/_/g, ' '),
+            lastModified: script.lastModifiedDate
+                ? new Date(script.lastModifiedDate).toLocaleDateString()
+                : '',
+            isSelected: this.selectedItemId === script.fullName,
+            nodeClass: nodeClass(this.selectedItemId === script.fullName),
+        }));
+    }
+
+    handleScriptClick(event: Event) {
+        const target = event.currentTarget as HTMLElement;
+        const scriptId = target.dataset.id;
+        if (!scriptId) return;
+        this.selectedItemId = scriptId;
+        this.selectedItemType = 'script';
+        store.dispatch(
+            AGENTS.fetchAgentScriptContent({ connector: this.connector, fullName: scriptId })
+        );
     }
 
     get treeData(): any[] {

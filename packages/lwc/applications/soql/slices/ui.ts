@@ -9,6 +9,7 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import type { ConnectorLike, ConnectionLike } from 'host-api/connector';
 import { DOCUMENT } from 'host-api/store';
 import { stripNamespace, isNotUndefinedOrNull, isEmpty, guid, lowerCaseKey } from 'host-api/utils';
+import { getDescribeByName } from '../describeResolver';
 
 import * as QUERY from './query';
 
@@ -118,6 +119,7 @@ function saveCacheSettings(alias, state) {
             recentPanelToggled,
             tabs,
             includeDeletedRecords,
+            useToolingApi,
             currentTab,
         } = state;
         localStorage.setItem(
@@ -128,6 +130,7 @@ function saveCacheSettings(alias, state) {
                 recentPanelToggled,
                 tabs,
                 includeDeletedRecords,
+                useToolingApi,
                 currentTabId: currentTab?.id,
             })
         );
@@ -357,7 +360,11 @@ export const saveAllPendingEdits = createAsyncThunk(
         for (const sobjectType of Object.keys(byType)) {
             const entries = byType[sobjectType];
             const useToolingApi =
-                describeState?.nameMap?.[lowerCaseKey(sobjectType)]?.useToolingApi === true;
+                getDescribeByName({
+                    describeState,
+                    sobjectName: sobjectType,
+                    useToolingApi: state?.ui?.useToolingApi === true,
+                })?.useToolingApi === true;
             const conn: any = useToolingApi
                 ? (connector.conn as any).tooling
                 : (connector.conn as any);
@@ -417,6 +424,7 @@ const uiSlice = createSlice({
         leftPanelToggled: false,
         recentPanelToggled: false,
         includeDeletedRecords: false,
+        useToolingApi: false,
         isInitialized: false,
         _alias: undefined,
         pendingEdits: {} as Record<string, Record<string, any>>,
@@ -433,6 +441,7 @@ const uiSlice = createSlice({
                     recentPanelToggled,
                     tabs,
                     includeDeletedRecords,
+                    useToolingApi,
                     currentTabId,
                 } = cachedConfig;
                 const restoredTabs =
@@ -447,6 +456,7 @@ const uiSlice = createSlice({
                     tabs: restoredTabs,
                     currentTab: restoredCurrent,
                     includeDeletedRecords,
+                    useToolingApi: useToolingApi === true,
                 });
                 updateSOQL(state, restoredCurrent?.body || '');
             }
@@ -533,6 +543,13 @@ const uiSlice = createSlice({
         updateIncludeDeletedRecords: (state, action) => {
             const { value, alias } = action.payload;
             state.includeDeletedRecords = value === true;
+            if (isNotUndefinedOrNull(alias)) {
+                saveCacheSettings(alias, state);
+            }
+        },
+        updateUseToolingApi: (state, action) => {
+            const { value, alias } = action.payload;
+            state.useToolingApi = value === true;
             if (isNotUndefinedOrNull(alias)) {
                 saveCacheSettings(alias, state);
             }

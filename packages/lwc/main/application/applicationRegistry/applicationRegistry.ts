@@ -57,8 +57,8 @@ const APPLICATION_APP_MAPPING = {
         quickActionIcon: 'standard:bot',
         shortName: 'Agentforce',
         path: 'agentforce',
-        menuGroup: 'code',
-        menuOrder: 35,
+        menuGroup: 'agentforce',
+        menuOrder: 10,
     },
     'anonymousApex/app': {
         module: anonymousApex_app_module,

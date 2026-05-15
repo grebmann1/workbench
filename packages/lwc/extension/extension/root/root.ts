@@ -18,6 +18,7 @@ const VARIANT = {
     DEFAULT: 'default',
     OVERLAY: 'overlay',
     VSCODE: 'vscode',
+    CHAT: 'chat',
 };
 
 const MATCH_CONTENT_SCRIPT_URL = 'matchContentScriptUrl';
@@ -70,6 +71,10 @@ export default class Root extends LightningElement {
 
     get isVscode() {
         return this.normalizedVariant === VARIANT.VSCODE;
+    }
+
+    get isChat() {
+        return this.normalizedVariant === VARIANT.CHAT;
     }
 
     /*messageListener = (message, sender, sendResponse) => {

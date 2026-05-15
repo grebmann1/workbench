@@ -2,6 +2,7 @@ import ToolkitElement from 'host-api/element';
 import { store, connectStore } from 'host-api/store';
 import { api, wire } from 'lwc';
 import { AGENTS } from 'agentforce/slices';
+import type { AgentScriptContent } from 'agentforce/slices/agents';
 
 interface FieldEntry {
     label: string;
@@ -15,6 +16,8 @@ export default class Viewer extends ToolkitElement {
     actions: any[] = [];
     selectedAgentId: string | null = null;
     selectedTopicId: string | null = null;
+    selectedScriptContent: AgentScriptContent | null = null;
+    scriptContentLoading = false;
 
     _selectedActionId: string | null = null;
 
@@ -37,10 +40,16 @@ export default class Viewer extends ToolkitElement {
             this.actions = agentforce.actions || [];
             this.selectedAgentId = agentforce.selectedAgentId || null;
             this.selectedTopicId = agentforce.selectedTopicId || null;
+            this.selectedScriptContent = agentforce.selectedScriptContent || null;
+            this.scriptContentLoading = agentforce.scriptContentLoading || false;
         }
     }
 
     copyJson() {
+        if (this.isScript && this.selectedScriptContent) {
+            navigator.clipboard.writeText(this.selectedScriptContent.agentSource);
+            return;
+        }
         const record = this.selectedRecord;
         if (!record) return;
         navigator.clipboard.writeText(JSON.stringify(record, null, 2));
@@ -71,7 +80,19 @@ export default class Viewer extends ToolkitElement {
     }
 
     get hasSelection(): boolean {
-        return this.selectedRecord !== null;
+        return this.selectedRecord !== null || this.isScript;
+    }
+
+    get isScript(): boolean {
+        return this.selectedScriptContent !== null || this.scriptContentLoading;
+    }
+
+    get scriptSource(): string {
+        return this.selectedScriptContent?.agentSource || '';
+    }
+
+    get scriptName(): string {
+        return this.selectedScriptContent?.fullName?.replace(/_/g, ' ') || '';
     }
 
     get recordTitle(): string {

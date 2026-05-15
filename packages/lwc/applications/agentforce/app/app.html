@@ -42,16 +42,29 @@
                     </div>
                     <div class="agentforce__content">
                         <template lwc:if={isInspectorActive}>
-                            <agentforce-inspector class="slds-full-height"></agentforce-inspector>
+                            <div class="agentforce__split-pane slds-full-height">
+                                <agentforce-inspector
+                                    class="agentforce__pane-left"
+                                    application-name={applicationName}></agentforce-inspector>
+                                <agentforce-viewer
+                                    class="agentforce__pane-right"
+                                    application-name={applicationName}></agentforce-viewer>
+                            </div>
                         </template>
                         <template lwc:if={isDependenciesActive}>
-                            <agentforce-dependencies class="slds-full-height"></agentforce-dependencies>
+                            <agentforce-dependencies
+                                class="slds-full-height"
+                                application-name={applicationName}></agentforce-dependencies>
                         </template>
                         <template lwc:if={isDebuggerActive}>
-                            <agentforce-debugger class="slds-full-height"></agentforce-debugger>
+                            <agentforce-debugger
+                                class="slds-full-height"
+                                application-name={applicationName}></agentforce-debugger>
                         </template>
                         <template lwc:if={isEditorActive}>
-                            <agentforce-editor class="slds-full-height"></agentforce-editor>
+                            <agentforce-editor
+                                class="slds-full-height"
+                                application-name={applicationName}></agentforce-editor>
                         </template>
                     </div>
                 </div>

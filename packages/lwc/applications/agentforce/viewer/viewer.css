@@ -91,6 +91,19 @@
     margin: 0;
 }
 
+.script-source {
+    font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+    font-size: 0.75rem;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-break: break-word;
+    margin: 0;
+    padding: 0.5rem;
+    background: var(--slds-g-color-neutral-base-97, #fafafa);
+    border-radius: 0.25rem;
+    border: 1px solid var(--slds-g-color-neutral-base-90, #e5e5e5);
+}
+
 .empty-state {
     display: flex;
     align-items: center;

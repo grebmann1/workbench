@@ -14,6 +14,7 @@ export default class StructureViewerItem extends ToolkitElement {
     @api title;
     @api value;
     @api items;
+    @api linkMode = 'navigate';
 
     @api isOpen = false;
 
@@ -31,8 +32,20 @@ export default class StructureViewerItem extends ToolkitElement {
 
     goToUrl = e => {
         e.preventDefault();
+        e.stopPropagation();
         const redirectUrl = e.currentTarget.dataset.url;
-        //console.log('redirectUrl',redirectUrl);
+        if (this.linkMode === 'event') {
+            this.dispatchEvent(
+                new CustomEvent('customlink', {
+                    detail: {
+                        url: redirectUrl,
+                    },
+                    bubbles: true,
+                    composed: true,
+                })
+            );
+            return;
+        }
         legacyStore.dispatch(store_application.navigate(redirectUrl));
     };
 
@@ -130,6 +143,12 @@ export default class StructureViewerItem extends ToolkitElement {
 
     get href() {
         return `/${this.value}`;
+    }
+
+    get isUrlValue() {
+        if (!this.isValueAvailable || typeof this.value !== 'string') return false;
+        const trimmedValue = this.value.trim();
+        return trimmedValue.startsWith('/') || /^https?:\/\//i.test(trimmedValue);
     }
 
     get formattedItems() {

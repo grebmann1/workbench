@@ -35,6 +35,7 @@ import { api, wire, track } from 'lwc';
 import { CurrentPageReference, NavigationContext, generateUrl, navigate } from 'lwr/navigation';
 import moment from 'moment';
 import PerformanceModal from 'soql/performanceModal';
+import { getDescribeByName, getDescribeByPrefix } from '../describeResolver';
 import { UI, QUERY } from 'soql/slices';
 import { querySelectors } from 'soql/slices/query';
 
@@ -271,7 +272,16 @@ export default class App extends ToolkitElement {
         const fullSObjectName = ui.selectedSObject
             ? lowerCaseKey(fullApiName(ui.selectedSObject, this.namespace))
             : null;
-        if (fullSObjectName && describe.nameMap && describe.nameMap[fullSObjectName]) {
+        if (
+            fullSObjectName &&
+            isNotUndefinedOrNull(
+                getDescribeByName({
+                    describeState: describe,
+                    sobjectName: fullSObjectName,
+                    useToolingApi: ui?.useToolingApi === true,
+                })
+            )
+        ) {
             this.selectedSObject = fullSObjectName;
         } else {
             this.selectedSObject = null;
@@ -291,7 +301,11 @@ export default class App extends ToolkitElement {
                 this._responseRows = queryState.data.records;
                 this._abortingMap[ui.currentTab.id] = null; // Reset the abortingMap
                 this._displayStopButton = false;
-                this._sobject = describe.nameMap[queryState.sobjectName];
+                this._sobject = getDescribeByName({
+                    describeState: describe,
+                    sobjectName: queryState.sobjectName,
+                    useToolingApi: queryState?.useToolingApi === true ? true : ui?.useToolingApi,
+                });
                 this.formatDate();
             } else if (queryState.isFetching) {
                 this._displayStopButton = true;
@@ -344,6 +358,19 @@ export default class App extends ToolkitElement {
         }, 30000);
     };
 
+    getEffectiveUseToolingApi = (sobjectName, ui, describe) => {
+        if (ui?.useToolingApi === true) {
+            return true;
+        }
+        return (
+            getDescribeByName({
+                describeState: describe,
+                sobjectName,
+                useToolingApi: false,
+            })?.useToolingApi === true
+        );
+    };
+
     deleteRecords = async (sobject, records) => {
         if (isUndefinedOrNull(sobject)) return [];
         const connector: ConnectionLike = sobject.useToolingApi
@@ -377,6 +404,11 @@ export default class App extends ToolkitElement {
     handlePerformanceCheckClick = async e => {
         try {
             const { ui, describe } = store.getState() as any;
+            const effectiveUseToolingApi = this.getEffectiveUseToolingApi(
+                this.selectedSObject,
+                ui,
+                describe
+            );
             //this.isLoading = true;
             const result = await store
                 .dispatch(
@@ -384,8 +416,7 @@ export default class App extends ToolkitElement {
                         connector: this.connector,
                         soql: formatQueryWithComment(this.soql),
                         tabId: ui.currentTab.id,
-                        useToolingApi:
-                            describe.nameMap[lowerCaseKey(this.selectedSObject)]?.useToolingApi,
+                        useToolingApi: effectiveUseToolingApi,
                     })
                 )
                 .unwrap();
@@ -408,6 +439,11 @@ export default class App extends ToolkitElement {
         if (!query) return;
 
         const { ui, describe } = store.getState() as any;
+        const effectiveUseToolingApi = this.getEffectiveUseToolingApi(
+            this.selectedSObject,
+            ui,
+            describe
+        );
         // Block running a new query when the current tab has unsaved inline edits.
         if (!(await confirmDiscardPendingEdits(ui, ui.currentTab?.id))) return;
         // Clear current tab selection before running a new query
@@ -422,7 +458,7 @@ export default class App extends ToolkitElement {
                 sobjectName: this.selectedSObject,
                 isAllRows,
                 createdDate: Date.now(),
-                useToolingApi: describe.nameMap[lowerCaseKey(this.selectedSObject)]?.useToolingApi,
+                useToolingApi: effectiveUseToolingApi,
                 includeDeletedRecords: ui.includeDeletedRecords || false,
             })
         );
@@ -553,7 +589,11 @@ export default class App extends ToolkitElement {
                 });
                 return;
             }
-            _sobject = describe.prefixMap[_firstId.substr(0, 3)];
+            _sobject = getDescribeByPrefix({
+                describeState: describe,
+                idPrefix: _firstId.substr(0, 3),
+                useToolingApi: ui?.useToolingApi === true,
+            });
             if (_sobject) {
                 customMessages.push(
                     `${selectedIds.length} ${
