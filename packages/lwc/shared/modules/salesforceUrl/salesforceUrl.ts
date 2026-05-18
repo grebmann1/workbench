@@ -40,3 +40,54 @@ export function toSalesforcePath(urlOrPath: unknown, instanceUrl: string) {
     }
     return `${raw.startsWith('?') ? '' : '/'}${raw}`;
 }
+
+export type SalesforceOpenKind = 'record' | 'list' | 'setup' | 'app' | 'page' | 'url';
+
+export function buildFrontDoorUrl(baseFrontDoorUrl: string, retUrl: string) {
+    const url = new URL(baseFrontDoorUrl);
+    url.searchParams.set('retURL', retUrl);
+    return url.toString();
+}
+
+export function buildSalesforceNavigationPath(args: {
+    kind: SalesforceOpenKind;
+    object?: string;
+    id?: string;
+    filter?: string;
+    node?: string;
+    appApiName?: string;
+    path?: string;
+    absoluteUrl?: string;
+    instanceHost: string;
+}) {
+    const { kind, object, id, filter, node, appApiName, path, absoluteUrl, instanceHost } = args;
+    if (kind === 'record') {
+        return `/lightning/r/${encodeURIComponent(String(object))}/${encodeURIComponent(String(id))}/view`;
+    }
+    if (kind === 'list') {
+        const filterName = filter || '__Recent';
+        return `/lightning/o/${encodeURIComponent(String(object))}/list?filterName=${encodeURIComponent(filterName)}`;
+    }
+    if (kind === 'setup') {
+        return `/lightning/setup/${encodeURIComponent(String(node))}/home`;
+    }
+    if (kind === 'app') {
+        return `/lightning/app/${encodeURIComponent(String(appApiName))}`;
+    }
+    if (kind === 'page') {
+        const normalizedPath = String(path || '').trim();
+        if (!normalizedPath.startsWith('/lightning/')) {
+            throw new Error('sf open page requires --path starting with /lightning/.');
+        }
+        return normalizedPath;
+    }
+    const url = new URL(String(absoluteUrl));
+    if (url.protocol !== 'https:') {
+        throw new Error('sf open url only supports https URLs.');
+    }
+    if (url.host !== instanceHost) {
+        throw new Error(`sf open url host mismatch. Expected ${instanceHost}, got ${url.host}.`);
+    }
+    url.searchParams.delete('sid');
+    return `${url.pathname}${url.search}${url.hash}`;
+}

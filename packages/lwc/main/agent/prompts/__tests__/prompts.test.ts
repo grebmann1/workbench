@@ -5,6 +5,7 @@ import { SUMMARIZATION_PROMPT } from '../summarizationPrompt.ts';
 import { SUMMARIZATION_SYSTEM_PROMPT } from '../summarizationSystemPrompt.ts';
 import { TURN_PREFIX_SUMMARIZATION_PROMPT } from '../turnPrefixSummarizationPrompt.ts';
 import { UPDATE_SUMMARIZATION_PROMPT } from '../updateSummarizationPrompt.ts';
+import { browserAgentInstructions } from '../../agents/instructions/browserAgentInstructions.ts';
 
 test('SUMMARIZATION_PROMPT: declares the required headings consumers rely on', () => {
     for (const heading of [
@@ -64,4 +65,12 @@ test('all prompts: are non-empty strings with no stray control characters', () =
         assert.ok(value.length > 0, `${name} must be non-empty`);
         assert.ok(!controlRegex.test(value), `${name} has control character`);
     }
+});
+
+test('browserAgentInstructions: reduced length stays within slim budget', () => {
+    // Before prompt split this prompt was ~62k chars.
+    const beforeLength = 62000;
+    const afterLength = browserAgentInstructions.length;
+    assert.ok(afterLength < beforeLength, `expected ${afterLength} to be < ${beforeLength}`);
+    assert.ok(afterLength < 10000, `expected slimmed prompt < 10000 chars, got ${afterLength}`);
 });

@@ -9,6 +9,7 @@ import {
     collectFlagArray,
     getApexExecutionExitCode,
     detectMetadataType,
+    registerSalesforceShellCommands,
 } from '../salesforceShellCommands.ts';
 
 test('formatCliOutput: null/undefined → empty', () => {
@@ -111,4 +112,236 @@ test('detectMetadataType: strips -meta.xml suffix from apiName', () => {
 
 test('detectMetadataType: no extension returns type=null', () => {
     assert.deepEqual(detectMetadataType('README'), { type: null, apiName: 'README' });
+});
+
+test('parseCliArgs: sf open flags requiring values are consumed', () => {
+    const { flags } = parseCliArgs([
+        '--object',
+        'Account',
+        '--id',
+        '001000000000001',
+        '--filter',
+        '__Recent',
+        '--node',
+        'ManageUsers',
+        '--path',
+        '/lightning/o/Account/list',
+    ]);
+    assert.equal(flags.get('object'), 'Account');
+    assert.equal(flags.get('id'), '001000000000001');
+    assert.equal(flags.get('filter'), '__Recent');
+    assert.equal(flags.get('node'), 'ManageUsers');
+    assert.equal(flags.get('path'), '/lightning/o/Account/list');
+});
+
+test('registerSalesforceShellCommands: sf open record delegates to openSalesforce handler', async () => {
+    let sfCommand: any;
+    const shell = {
+        registerCommand(cmd) {
+            if (cmd.name === 'sf') {
+                sfCommand = cmd;
+            }
+        },
+    };
+    let capturedArgs: any = null;
+    const handlers: any = {
+        executeApex: async () => ({}),
+        executeSoql: async () => ({}),
+        executeApi: async () => ({}),
+        listOrgs: async () => ({}),
+        openOrg: async () => ({}),
+        connectOrg: async () => ({}),
+        navigate: async () => ({}),
+        openSalesforce: async args => {
+            capturedArgs = args;
+            return { result: 'ok', exitCode: 0 };
+        },
+        runApexTests: async () => ({}),
+        enableDebugLog: async () => ({}),
+        listDebugLogs: async () => ({}),
+        getDebugLog: async () => ({}),
+        displayLimits: async () => ({}),
+        describeSObject: async () => ({}),
+        deployMetadata: async () => ({}),
+        retrieveMetadata: async () => ({}),
+        listMetadataTypes: async () => ({}),
+        listMetadataRecords: async () => ({}),
+    };
+    registerSalesforceShellCommands({ shell: shell as any, handlers });
+    assert.ok(sfCommand, 'sf command should be registered');
+    const result = await sfCommand.execute(
+        ['open', 'record', '--object', 'Account', '--id', '001000000000001'],
+        {
+            cwd: '/workspace',
+            fs: {
+                resolvePath: (_cwd, path) => path,
+                readFile: async () => '',
+                exists: async () => true,
+            },
+        }
+    );
+    assert.equal(result.exitCode, 0);
+    assert.equal(capturedArgs.kind, 'record');
+    assert.equal(capturedArgs.object, 'Account');
+    assert.equal(capturedArgs.id, '001000000000001');
+});
+
+test('registerSalesforceShellCommands: sf open validates missing required args', async () => {
+    let sfCommand: any;
+    const shell = {
+        registerCommand(cmd) {
+            if (cmd.name === 'sf') {
+                sfCommand = cmd;
+            }
+        },
+    };
+    const handlers: any = {
+        executeApex: async () => ({}),
+        executeSoql: async () => ({}),
+        executeApi: async () => ({}),
+        listOrgs: async () => ({}),
+        openOrg: async () => ({}),
+        connectOrg: async () => ({}),
+        navigate: async () => ({}),
+        openSalesforce: async () => ({ result: 'ok', exitCode: 0 }),
+        runApexTests: async () => ({}),
+        enableDebugLog: async () => ({}),
+        listDebugLogs: async () => ({}),
+        getDebugLog: async () => ({}),
+        displayLimits: async () => ({}),
+        describeSObject: async () => ({}),
+        deployMetadata: async () => ({}),
+        retrieveMetadata: async () => ({}),
+        listMetadataTypes: async () => ({}),
+        listMetadataRecords: async () => ({}),
+    };
+    registerSalesforceShellCommands({ shell: shell as any, handlers });
+
+    const recordMissingId = await sfCommand.execute(['open', 'record', '--object', 'Account'], {
+        cwd: '/workspace',
+        fs: {
+            resolvePath: (_cwd, path) => path,
+            readFile: async () => '',
+            exists: async () => true,
+        },
+    });
+    assert.equal(recordMissingId.exitCode, 1);
+    assert.match(recordMissingId.stderr, /record requires --object and --id/);
+
+    const pageMissingPath = await sfCommand.execute(['open', 'page'], {
+        cwd: '/workspace',
+        fs: {
+            resolvePath: (_cwd, path) => path,
+            readFile: async () => '',
+            exists: async () => true,
+        },
+    });
+    assert.equal(pageMissingPath.exitCode, 1);
+    assert.match(pageMissingPath.stderr, /page requires --path/);
+});
+
+test('registerSalesforceShellCommands: sf open rejects unknown subcommand with help text', async () => {
+    let sfCommand: any;
+    const shell = {
+        registerCommand(cmd) {
+            if (cmd.name === 'sf') {
+                sfCommand = cmd;
+            }
+        },
+    };
+    const handlers: any = {
+        executeApex: async () => ({}),
+        executeSoql: async () => ({}),
+        executeApi: async () => ({}),
+        listOrgs: async () => ({}),
+        openOrg: async () => ({}),
+        connectOrg: async () => ({}),
+        navigate: async () => ({}),
+        openSalesforce: async () => ({ result: 'ok', exitCode: 0 }),
+        runApexTests: async () => ({}),
+        enableDebugLog: async () => ({}),
+        listDebugLogs: async () => ({}),
+        getDebugLog: async () => ({}),
+        displayLimits: async () => ({}),
+        describeSObject: async () => ({}),
+        deployMetadata: async () => ({}),
+        retrieveMetadata: async () => ({}),
+        listMetadataTypes: async () => ({}),
+        listMetadataRecords: async () => ({}),
+    };
+    registerSalesforceShellCommands({ shell: shell as any, handlers });
+    const result = await sfCommand.execute(['open', 'unknown-mode'], {
+        cwd: '/workspace',
+        fs: {
+            resolvePath: (_cwd, path) => path,
+            readFile: async () => '',
+            exists: async () => true,
+        },
+    });
+    assert.equal(result.exitCode, 1);
+    assert.match(result.stderr, /Unknown sf open subcommand/);
+    assert.match(result.stderr, /sf open record/);
+});
+
+test('registerSalesforceShellCommands: sf open passes targetOrg/newTab/url args to handler', async () => {
+    let sfCommand: any;
+    const shell = {
+        registerCommand(cmd) {
+            if (cmd.name === 'sf') {
+                sfCommand = cmd;
+            }
+        },
+    };
+    let capturedArgs: any = null;
+    const handlers: any = {
+        executeApex: async () => ({}),
+        executeSoql: async () => ({}),
+        executeApi: async () => ({}),
+        listOrgs: async () => ({}),
+        openOrg: async () => ({}),
+        connectOrg: async () => ({}),
+        navigate: async () => ({}),
+        openSalesforce: async args => {
+            capturedArgs = args;
+            return { result: 'ok', exitCode: 0 };
+        },
+        runApexTests: async () => ({}),
+        enableDebugLog: async () => ({}),
+        listDebugLogs: async () => ({}),
+        getDebugLog: async () => ({}),
+        displayLimits: async () => ({}),
+        describeSObject: async () => ({}),
+        deployMetadata: async () => ({}),
+        retrieveMetadata: async () => ({}),
+        listMetadataTypes: async () => ({}),
+        listMetadataRecords: async () => ({}),
+    };
+    registerSalesforceShellCommands({ shell: shell as any, handlers });
+    const result = await sfCommand.execute(
+        [
+            'open',
+            'url',
+            '--url',
+            'https://acme.my.salesforce.com/lightning/o/Account/list?filterName=__Recent',
+            '--target-org',
+            'my-sandbox',
+            '--new-tab',
+        ],
+        {
+            cwd: '/workspace',
+            fs: {
+                resolvePath: (_cwd, path) => path,
+                readFile: async () => '',
+                exists: async () => true,
+            },
+        }
+    );
+    assert.equal(result.exitCode, 0);
+    assert.equal(capturedArgs.kind, 'url');
+    assert.equal(
+        capturedArgs.absoluteUrl,
+        'https://acme.my.salesforce.com/lightning/o/Account/list?filterName=__Recent'
+    );
+    assert.equal(capturedArgs.targetOrg, 'my-sandbox');
+    assert.equal(capturedArgs.newTab, true);
 });

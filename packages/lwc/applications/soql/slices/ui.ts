@@ -119,7 +119,6 @@ function saveCacheSettings(alias, state) {
             recentPanelToggled,
             tabs,
             includeDeletedRecords,
-            useToolingApi,
             currentTab,
         } = state;
         localStorage.setItem(
@@ -130,7 +129,6 @@ function saveCacheSettings(alias, state) {
                 recentPanelToggled,
                 tabs,
                 includeDeletedRecords,
-                useToolingApi,
                 currentTabId: currentTab?.id,
             })
         );
@@ -234,8 +232,18 @@ function parseSObjectFromBody(body) {
 }
 
 function formatTab(tab) {
-    const { id, name, body, isDraft, fileId, fileBody, tableSearch, selectedRecordIds, sobject } =
-        tab;
+    const {
+        id,
+        name,
+        body,
+        isDraft,
+        fileId,
+        fileBody,
+        tableSearch,
+        selectedRecordIds,
+        sobject,
+        useToolingApi,
+    } = tab;
     return {
         id,
         name,
@@ -246,6 +254,7 @@ function formatTab(tab) {
         tableSearch: tableSearch || '',
         selectedRecordIds: Array.isArray(selectedRecordIds) ? selectedRecordIds : [],
         sobject: sobject || parseSObjectFromBody(body),
+        useToolingApi: useToolingApi === true,
     };
 }
 
@@ -363,7 +372,7 @@ export const saveAllPendingEdits = createAsyncThunk(
                 getDescribeByName({
                     describeState,
                     sobjectName: sobjectType,
-                    useToolingApi: state?.ui?.useToolingApi === true,
+                    useToolingApi: state?.ui?.currentTab?.useToolingApi === true,
                 })?.useToolingApi === true;
             const conn: any = useToolingApi
                 ? (connector.conn as any).tooling
@@ -424,7 +433,6 @@ const uiSlice = createSlice({
         leftPanelToggled: false,
         recentPanelToggled: false,
         includeDeletedRecords: false,
-        useToolingApi: false,
         isInitialized: false,
         _alias: undefined,
         pendingEdits: {} as Record<string, Record<string, any>>,
@@ -441,7 +449,6 @@ const uiSlice = createSlice({
                     recentPanelToggled,
                     tabs,
                     includeDeletedRecords,
-                    useToolingApi,
                     currentTabId,
                 } = cachedConfig;
                 const restoredTabs =
@@ -456,7 +463,6 @@ const uiSlice = createSlice({
                     tabs: restoredTabs,
                     currentTab: restoredCurrent,
                     includeDeletedRecords,
-                    useToolingApi: useToolingApi === true,
                 });
                 updateSOQL(state, restoredCurrent?.body || '');
             }
@@ -549,7 +555,11 @@ const uiSlice = createSlice({
         },
         updateUseToolingApi: (state, action) => {
             const { value, alias } = action.payload;
-            state.useToolingApi = value === true;
+            const tabIndex = state.tabs.findIndex(x => x.id === state.currentTab.id);
+            if (tabIndex > -1) {
+                state.tabs[tabIndex].useToolingApi = value === true;
+                state.currentTab = state.tabs[tabIndex];
+            }
             if (isNotUndefinedOrNull(alias)) {
                 saveCacheSettings(alias, state);
             }

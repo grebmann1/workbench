@@ -95,6 +95,10 @@ export default class OnboardaiProvider extends LightningElement {
     };
 
     handleOpenSettings = () => {
+        if (!this.navContext) {
+            this.dispatchEvent(new CustomEvent('opensettings', { bubbles: true, composed: true }));
+            return;
+        }
         navigate(this.navContext, {
             type: 'application',
             state: { applicationName: 'settings' },

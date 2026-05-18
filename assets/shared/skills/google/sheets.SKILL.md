@@ -1,10 +1,10 @@
 ---
 name: google-sheets
-description: Work with Google Sheets through Do Browser workspace APIs. Use when the user asks to create spreadsheets, inspect sheet metadata, read or write ranges, clear or delete data, append rows, apply formatting, or run batch operations in Google Sheets. This skill covers workspace.status(), workspace.current(), workspace.sheets.requestAccess(), workspace.sheets.createSpreadsheet(), workspace.sheets.getSpreadsheet(), workspace.sheets.listSheets(), workspace.sheets.readRange(), workspace.sheets.batchRead(), workspace.sheets.writeRange(), workspace.sheets.batchWrite(), workspace.sheets.appendRows(), workspace.sheets.clearRange(), workspace.sheets.batchClear(), workspace.sheets.setFormat(), and workspace.sheets.batchUpdate().
+description: Work with Google Sheets through Workbench workspace APIs. Use when the user asks to create spreadsheets, inspect sheet metadata, read or write ranges, clear or delete data, append rows, apply formatting, or run batch operations in Google Sheets. This skill covers workspace.status(), workspace.current(), workspace.sheets.requestAccess(), workspace.sheets.createSpreadsheet(), workspace.sheets.getSpreadsheet(), workspace.sheets.listSheets(), workspace.sheets.readRange(), workspace.sheets.batchRead(), workspace.sheets.writeRange(), workspace.sheets.batchWrite(), workspace.sheets.appendRows(), workspace.sheets.clearRange(), workspace.sheets.batchClear(), workspace.sheets.setFormat(), and workspace.sheets.batchUpdate().
 ---
 # Google Sheets
 
-Use this skill to operate on Google Sheets from JS eval in Do Browser.
+Use this skill to operate on Google Sheets from JS eval in Workbench.
 
 ## Scope
 

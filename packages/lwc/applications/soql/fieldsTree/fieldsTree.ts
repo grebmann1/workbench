@@ -88,7 +88,7 @@ export default class FieldsTree extends ToolkitElement {
         const describeEntry = getDescribeByName({
             describeState: describe,
             sobjectName: this.sobject,
-            useToolingApi: ui?.useToolingApi === true,
+            useToolingApi: ui?.currentTab?.useToolingApi === true,
         });
         store.dispatch(
             SOBJECT.describeSObject({
@@ -139,7 +139,7 @@ export default class FieldsTree extends ToolkitElement {
         const describeEntry = getDescribeByName({
             describeState: describe,
             sobjectName: relationshipSObjectName,
-            useToolingApi: ui?.useToolingApi === true,
+            useToolingApi: ui?.currentTab?.useToolingApi === true,
         });
         store.dispatch(
             SOBJECT.describeSObject({

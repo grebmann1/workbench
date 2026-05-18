@@ -83,7 +83,7 @@ export default class QueryEditorPanel extends ToolkitElement {
 
         this._describe = describe;
 
-        const { soql, tabs, currentTab, includeDeletedRecords, useToolingApi } = ui;
+        const { soql, tabs, currentTab, includeDeletedRecords } = ui;
         if (ui.query) {
             const sobjectState = SELECTORS.sobject.selectById(
                 { sobject },
@@ -98,7 +98,7 @@ export default class QueryEditorPanel extends ToolkitElement {
         }
 
         this.includeDeletedRecords = includeDeletedRecords || false;
-        this.useToolingApi = useToolingApi === true;
+        this.useToolingApi = currentTab?.useToolingApi === true;
 
         this.tabs = tabs;
         if (currentTab && this._hasRendered) {

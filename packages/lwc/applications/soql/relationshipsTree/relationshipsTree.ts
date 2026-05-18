@@ -113,7 +113,7 @@ export default class RelationshipsTree extends ToolkitElement {
         const describeEntry = getDescribeByName({
             describeState: describe,
             sobjectName: childSObject,
-            useToolingApi: ui?.useToolingApi === true,
+            useToolingApi: ui?.currentTab?.useToolingApi === true,
         });
         store.dispatch(
             SOBJECT.describeSObject({

@@ -262,8 +262,8 @@ export default class App extends ToolkitElement {
         const isCurrentApp = this.verifyIsActive(application.currentApplication);
         if (!isCurrentApp) return;
 
-        if (ui && this._useToolingApi != ui.useToolingApi) {
-            this._useToolingApi = ui.useToolingApi;
+        if (ui && this._useToolingApi != (ui.currentTab?.useToolingApi === true)) {
+            this._useToolingApi = ui.currentTab?.useToolingApi === true;
         }
         this.isLeftToggled = ui.leftPanelToggled;
         this.isRecentToggled = ui.recentPanelToggled;
@@ -278,7 +278,7 @@ export default class App extends ToolkitElement {
                 getDescribeByName({
                     describeState: describe,
                     sobjectName: fullSObjectName,
-                    useToolingApi: ui?.useToolingApi === true,
+                    useToolingApi: ui?.currentTab?.useToolingApi === true,
                 })
             )
         ) {
@@ -304,7 +304,10 @@ export default class App extends ToolkitElement {
                 this._sobject = getDescribeByName({
                     describeState: describe,
                     sobjectName: queryState.sobjectName,
-                    useToolingApi: queryState?.useToolingApi === true ? true : ui?.useToolingApi,
+                    useToolingApi:
+                        queryState?.useToolingApi === true
+                            ? true
+                            : ui?.currentTab?.useToolingApi === true,
                 });
                 this.formatDate();
             } else if (queryState.isFetching) {
@@ -359,7 +362,7 @@ export default class App extends ToolkitElement {
     };
 
     getEffectiveUseToolingApi = (sobjectName, ui, describe) => {
-        if (ui?.useToolingApi === true) {
+        if (ui?.currentTab?.useToolingApi === true) {
             return true;
         }
         return (
@@ -592,7 +595,7 @@ export default class App extends ToolkitElement {
             _sobject = getDescribeByPrefix({
                 describeState: describe,
                 idPrefix: _firstId.substr(0, 3),
-                useToolingApi: ui?.useToolingApi === true,
+                useToolingApi: ui?.currentTab?.useToolingApi === true,
             });
             if (_sobject) {
                 customMessages.push(

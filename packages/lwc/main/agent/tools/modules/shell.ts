@@ -21,6 +21,7 @@ import type { ConnectorLike } from 'core/connector';
 import { store, ERROR, APPLICATION } from 'core/store';
 import { invokeCommand } from 'host-api/commands';
 import LOGGER from 'shared/logger';
+import { buildFrontDoorUrl, buildSalesforceNavigationPath } from 'shared/salesforceUrl';
 import { API as API_UTILS, compressImage } from 'shared/utils';
 import { z } from 'zod';
 
@@ -719,6 +720,51 @@ export function registerShellCommands({
             async navigate({ app }) {
                 await wrappedNavigate({ applicationName: app });
                 return { result: `Navigated to ${app}` };
+            },
+            async openSalesforce({
+                kind,
+                object,
+                id,
+                filter,
+                node,
+                appApiName,
+                path,
+                absoluteUrl,
+                newTab,
+                targetOrg,
+            }) {
+                const connector = targetOrg ? await resolveConnector(targetOrg) : undefined;
+                const active = connector ?? (store.getState() as any)?.application?.connector;
+                if (!active?.conn) {
+                    throw new Error('No active org connector found.');
+                }
+                const instanceUrl = String(
+                    active?.conn?.instanceUrl || active?.configuration?.instanceUrl || ''
+                ).trim();
+                if (!instanceUrl) {
+                    throw new Error('Unable to resolve Salesforce instance URL from connector.');
+                }
+                const instanceHost = new URL(instanceUrl).host;
+                const retUrl = buildSalesforceNavigationPath({
+                    kind,
+                    object,
+                    id,
+                    filter,
+                    node,
+                    appApiName,
+                    path,
+                    absoluteUrl,
+                    instanceHost,
+                });
+                const frontDoorBase =
+                    String(active?.frontDoorUrl || '').trim() ||
+                    `${instanceUrl.replace(/\/+$/, '')}/secur/frontdoor.jsp`;
+                const url = buildFrontDoorUrl(frontDoorBase, retUrl);
+                const alias = active?.configuration?.alias || targetOrg;
+                await openBrowser({ url, alias, target: 'default' });
+                return {
+                    result: `Opened Salesforce ${kind} route: ${retUrl}${newTab ? ' (new-tab)' : ''}`,
+                };
             },
             async runApexTests({ classNames, testLevel, timeoutMs, targetOrg }) {
                 const connector = targetOrg ? await resolveConnector(targetOrg) : undefined;

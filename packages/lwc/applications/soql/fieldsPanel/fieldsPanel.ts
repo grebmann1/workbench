@@ -41,7 +41,7 @@ export default class FieldsPanel extends ToolkitElement {
         const describeEntry = getDescribeByName({
             describeState: describe,
             sobjectName: fullSObjectName,
-            useToolingApi: ui?.useToolingApi === true,
+            useToolingApi: ui?.currentTab?.useToolingApi === true,
         });
         if (!describeEntry) {
             return;

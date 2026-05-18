@@ -21,7 +21,7 @@ export default class SobjectsPanel extends ToolkitElement {
 
         this.selectedId = ui?.selectedSObject
             ? lowerCaseKey(
-                  `${ui.selectedSObject}::${ui?.useToolingApi === true ? 'tooling' : 'standard'}`
+                  `${ui.selectedSObject}::${ui?.currentTab?.useToolingApi === true ? 'tooling' : 'standard'}`
               )
             : '';
 

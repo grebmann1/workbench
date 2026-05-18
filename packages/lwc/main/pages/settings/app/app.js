@@ -1,4 +1,3 @@
-import { GOOGLE_SIGNIN_SCOPES, GOOGLE_DRIVE_SCOPES } from 'agent/googleAuth';
 import {
     discoverMcpServerTools,
     formatMcpServersJson,
@@ -6,7 +5,7 @@ import {
     parseMcpServersJson,
 } from 'agent/tools';
 import { APPLICATION_APP_MAPPING } from 'application/applicationRegistry';
-import { store, APPLICATION, connectStore } from 'core/store';
+import { store, APPLICATION } from 'core/store';
 import ToolkitElement from 'core/toolkitElement';
 import Toast from 'lightning/toast';
 import { track, wire } from 'lwc';
@@ -20,13 +19,9 @@ import {
     getAiProviderFromConfig,
     getSyncedSettingsInitializedFromCache,
     resolveLlmProviderConfigMap,
-    saveSingleExtensionConfigToCache,
 } from 'shared/cacheManager';
-import { isInternalProviderBaseUrl } from 'shared/llm';
 import LOGGER from 'shared/logger';
 import { isChromeExtension, isElectronApp, METADATA as METADATA_UTILS } from 'shared/utils';
-
-const INTERNAL_PROVIDER_DOCS_URL = 'https://doc.sf-workbench.com/ai-agent/llm-provider-runtime';
 
 function buildEditableProviderConfigs(config) {
     const currentProviderConfigs = resolveLlmProviderConfigMap(config);
@@ -104,14 +99,6 @@ export default class App extends ToolkitElement {
 
     @track activeTab;
 
-    isOpenAIKeyVisible = false;
-    isMistralKeyVisible = false;
-
-    // Google Integration. `googleConnected` is derived from `googleUser.token` so the
-    // UI can never claim "Connected" while the session token is missing.
-    @track googleUser = null;
-    @track googleDriveConnected = false;
-
     // New property to track API version validity
     _isApiVersionValid = true;
 
@@ -121,9 +108,6 @@ export default class App extends ToolkitElement {
     @track cacheFilter = '';
     _cacheFilterTimer = null;
 
-    // AI Provider Onboarding
-    @track showOnboardAiProvider = false;
-
     @track metadataStorageTypeOptions = App.DEFAULT_METADATA_STORAGE_TYPES.map(type => ({
         label: type,
         value: type,
@@ -131,15 +115,6 @@ export default class App extends ToolkitElement {
 
     @wire(NavigationContext)
     navContext;
-
-    @wire(connectStore, { store })
-    storeChange({ application }) {
-        const settings = application?.settings || {};
-        const session = settings[CACHE_CONFIG.GOOGLE_SESSION.key] || null;
-        this.googleUser = session;
-        this.googleDriveConnected =
-            !!session?.token && !!settings[CACHE_CONFIG.GOOGLE_DRIVE_CONNECTED.key];
-    }
 
     connectedCallback() {
         this.loadConfigFromCache();
@@ -176,8 +151,14 @@ export default class App extends ToolkitElement {
 
     // Config Input Field Change
     inputfield_change = e => {
+        const config = this.config || {};
+        if (e.detail?.key) {
+            config[e.detail.key] = e.detail.value;
+            this.config = null;
+            this.config = config;
+            return;
+        }
         const inputField = e.currentTarget;
-        const config = this.config;
         if (e.detail?.value !== undefined) {
             config[inputField.dataset.key] = e.detail.value;
         } else if (inputField.type === 'toggle') {
@@ -220,17 +201,6 @@ export default class App extends ToolkitElement {
         });
         this.config = config;
         await this.saveToCache();
-    };
-
-    handleToggleVisibility = e => {
-        e.preventDefault();
-        let isVisible = e.currentTarget.dataset.isVisible !== 'true'; // toggle the visibility
-        this.template.querySelector(
-            'lightning-input[data-key="' + e.currentTarget.dataset.key + '"]'
-        ).type = isVisible ? 'text' : 'password';
-        // update the button
-        e.currentTarget.dataset.isVisible = isVisible;
-        e.currentTarget.iconName = isVisible ? 'utility:hide' : 'utility:preview';
     };
 
     handleResetPatternsClick = () => {
@@ -279,17 +249,8 @@ export default class App extends ToolkitElement {
         this.showCacheExplorer = false;
     };
 
-    handleOpenOnboardAiProvider = () => {
-        this.showOnboardAiProvider = true;
-    };
-
-    handleCloseOnboardAiProvider = () => {
-        this.showOnboardAiProvider = false;
-    };
-
-    handleOnboardAiProviderSetupComplete = async () => {
+    handleAiSettingsSetupComplete = async () => {
         await this.loadConfigFromCache();
-        this.handleCloseOnboardAiProvider();
     };
 
     handleCacheFilterChange = e => {
@@ -499,161 +460,6 @@ export default class App extends ToolkitElement {
             .sort((a, b) => (a.label || '').localeCompare(b.label || ''));
     }
 
-    handleConnectGoogle = async () => {
-        if (!this.isChrome || typeof chrome?.identity?.getAuthToken !== 'function') {
-            Toast.show({
-                label: 'Google sign-in is only available in the Chrome extension.',
-                variant: 'error',
-            });
-            return;
-        }
-        try {
-            const oauthToken = await new Promise((resolve, reject) => {
-                chrome.identity.getAuthToken(
-                    { interactive: true, scopes: GOOGLE_SIGNIN_SCOPES },
-                    t => {
-                        if (chrome.runtime.lastError || !t) {
-                            reject(
-                                new Error(
-                                    chrome.runtime.lastError?.message || 'Authorization failed'
-                                )
-                            );
-                        } else {
-                            resolve(t);
-                        }
-                    }
-                );
-            });
-
-            // Verify with the backend to get a session JWT — same flow as the AI panel's
-            // googleAuth component — so both entry points share the same stored token format.
-            let serverUrl = '';
-            try {
-                serverUrl = (process.env.WORKBENCH_BASE_URL || '').replace(/\/+$/, '');
-            } catch {}
-            serverUrl = serverUrl || window.location.origin;
-
-            const resp = await fetch(`${serverUrl}/google/oauth/verify-token`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ accessToken: oauthToken }),
-            });
-            if (!resp.ok) throw new Error(`Backend verification failed (${resp.status})`);
-            const data = await resp.json();
-
-            const session = {
-                token: data.token,
-                email: data.email,
-                name: data.name,
-                picture: data.picture,
-            };
-            await saveSingleExtensionConfigToCache(CACHE_CONFIG.GOOGLE_SESSION.key, session);
-            store.dispatch(
-                APPLICATION.reduxSlice.actions.updateSettings({
-                    [CACHE_CONFIG.GOOGLE_SESSION.key]: session,
-                })
-            );
-            Toast.show({ label: `Connected as ${data.name || data.email}`, variant: 'success' });
-        } catch (err) {
-            LOGGER.error('Google OAuth error', err);
-            Toast.show({ label: `Failed to connect: ${err.message}`, variant: 'error' });
-        }
-    };
-
-    handleDisconnectGoogle = async () => {
-        if (!this.isChrome || typeof chrome?.identity?.getAuthToken !== 'function') return;
-        try {
-            const token = await new Promise(resolve => {
-                chrome.identity.getAuthToken(
-                    { interactive: false, scopes: GOOGLE_SIGNIN_SCOPES },
-                    t => resolve(t || null)
-                );
-            });
-            if (token) {
-                await new Promise(resolve =>
-                    chrome.identity.removeCachedAuthToken({ token }, resolve)
-                );
-            }
-            await saveSingleExtensionConfigToCache(CACHE_CONFIG.GOOGLE_SESSION.key, null);
-            await saveSingleExtensionConfigToCache(CACHE_CONFIG.GOOGLE_DRIVE_CONNECTED.key, false);
-            store.dispatch(
-                APPLICATION.reduxSlice.actions.updateSettings({
-                    [CACHE_CONFIG.GOOGLE_SESSION.key]: null,
-                    [CACHE_CONFIG.GOOGLE_DRIVE_CONNECTED.key]: false,
-                })
-            );
-            Toast.show({ label: 'Disconnected from Google', variant: 'success' });
-        } catch (err) {
-            LOGGER.error('Google disconnect error', err);
-            Toast.show({ label: `Failed to disconnect: ${err.message}`, variant: 'error' });
-        }
-    };
-
-    handleConnectGoogleDrive = async () => {
-        if (!this.isChrome || typeof chrome?.identity?.getAuthToken !== 'function') {
-            Toast.show({
-                label: 'Google Drive is only available in the Chrome extension.',
-                variant: 'error',
-            });
-            return;
-        }
-        try {
-            await new Promise((resolve, reject) => {
-                chrome.identity.getAuthToken(
-                    { interactive: true, scopes: GOOGLE_DRIVE_SCOPES },
-                    token => {
-                        if (chrome.runtime.lastError || !token) {
-                            reject(
-                                new Error(
-                                    chrome.runtime.lastError?.message ||
-                                        'Drive authorization failed'
-                                )
-                            );
-                        } else {
-                            resolve(token);
-                        }
-                    }
-                );
-            });
-            await saveSingleExtensionConfigToCache(CACHE_CONFIG.GOOGLE_DRIVE_CONNECTED.key, true);
-            store.dispatch(
-                APPLICATION.reduxSlice.actions.updateSettings({
-                    [CACHE_CONFIG.GOOGLE_DRIVE_CONNECTED.key]: true,
-                })
-            );
-            Toast.show({ label: 'Google Drive & Sheets connected', variant: 'success' });
-        } catch (err) {
-            LOGGER.error('Google Drive OAuth error', err);
-            Toast.show({ label: `Failed to connect Drive: ${err.message}`, variant: 'error' });
-        }
-    };
-
-    handleDisconnectGoogleDrive = async () => {
-        await saveSingleExtensionConfigToCache(CACHE_CONFIG.GOOGLE_DRIVE_CONNECTED.key, false);
-        store.dispatch(
-            APPLICATION.reduxSlice.actions.updateSettings({
-                [CACHE_CONFIG.GOOGLE_DRIVE_CONNECTED.key]: false,
-            })
-        );
-        Toast.show({ label: 'Google Drive & Sheets disconnected', variant: 'success' });
-    };
-
-    get googleConnected() {
-        return !!this.googleUser?.token;
-    }
-
-    get googleUserDisplayName() {
-        return this.googleUser?.name || this.googleUser?.email || '';
-    }
-
-    get googleUserPicture() {
-        return this.googleUser?.picture || '';
-    }
-
-    get isDriveConnectDisabled() {
-        return !this.googleConnected;
-    }
-
     /** Methods **/
 
     sendToggleOverlayMessage = checked => {
@@ -784,9 +590,6 @@ export default class App extends ToolkitElement {
             this.hasIncognitoAccess = await chrome.extension.isAllowedIncognitoAccess();
             this.isChromeSyncSettingsEnabled = cacheManager.isChromeSyncSettingsEnabled; // Manually added to the cacheManager
         }
-
-        // Google session state is now driven by application.settings via storeChange;
-        // no manual assignment needed here.
     };
 
     loadMetadataStorageTypeOptions = async () => {
@@ -846,10 +649,6 @@ export default class App extends ToolkitElement {
     };
 
     /** Getters */
-
-    get openaiKeyInputType() {
-        return this.isOpenAIKeyVisible ? 'text' : 'password';
-    }
 
     get hasChanged() {
         return (
@@ -924,23 +723,6 @@ export default class App extends ToolkitElement {
 
     get isQaModeEnabled() {
         return this.sessionConfig?.client_id === 'SfdcInternalQA/';
-    }
-
-    // True when at least one configured provider endpoint points at the
-    // internal eng-ai-model-gateway. Drives a quiet hint in the AI tab that
-    // links to the internal-gateway quirks doc (OpenAI /responses burst,
-    // Gemini preview thought parts, Opus-4-7 thinking gap).
-    get hasInternalProvider() {
-        const config = this.config || {};
-        return (
-            isInternalProviderBaseUrl(config.openai_url) ||
-            isInternalProviderBaseUrl(config.anthropic_url) ||
-            isInternalProviderBaseUrl(config.gemini_url)
-        );
-    }
-
-    get internalProviderDocsUrl() {
-        return INTERNAL_PROVIDER_DOCS_URL;
     }
 
     get qaModeButtonVariant() {
