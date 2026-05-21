@@ -89,7 +89,7 @@ export default class App extends ToolkitElement {
     isDraft = false;
 
     // Models
-    _body = "System.debug('Hello the world');";
+    _body = 'System.debug(System.now());';
     currentModel: any = null;
     currentLogModel: any = null;
 
@@ -491,7 +491,7 @@ export default class App extends ToolkitElement {
             path: _uid,
             name: 'Script',
             apiVersion: 60,
-            body: `System.debug('Hello the world');`,
+            body: `System.debug(System.now());`,
             language: 'apex',
         };
     };
@@ -643,7 +643,7 @@ export default class App extends ToolkitElement {
             APEX.reduxSlice.actions.addTab({
                 tab: {
                     id: guid(),
-                    body: "System.debug('Hello the world');",
+                    body: 'System.debug(System.now());',
                 },
             })
         );
