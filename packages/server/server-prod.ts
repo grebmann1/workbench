@@ -59,6 +59,14 @@ announcements(app);
 app.get('/version', (_req, res) => {
     res.json({ version: process.env.npm_package_version });
 });
+app.get('/healthz', (_req, res) => {
+    res.json({
+        status: 'ok',
+        uptime: process.uptime(),
+        version: process.env.npm_package_version,
+        commit: process.env.GIT_COMMIT_SHA || null,
+    });
+});
 app.get('/config', (_req, res) => {
     res.json({
         clientId: process.env.CLIENT_ID,

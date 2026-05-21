@@ -11,6 +11,11 @@
                         variant="bare"
                         alternative-text="copy"
                         title="Copy Username"></lightning-button-icon>
+                    <template lwc:if={isImpersonating}>
+                        <span class="slds-badge footer-loginas-badge" title={impersonationTooltip}>
+                            Login As
+                        </span>
+                    </template>
                     <a class="slds-truncate" href="#" onclick={handleUsernameClick}>
                         {usernameFormatted}
                     </a>

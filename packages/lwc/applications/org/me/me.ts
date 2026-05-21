@@ -273,6 +273,12 @@ export default class Me extends ToolkitElement {
         return !this.isEdit;
     }
 
+    get impersonationBanner(): string | null {
+        if (!this.connector?.isImpersonating) return null;
+        const admin = this.connector.impersonatedBy;
+        return admin ? `Logged in as via ${admin}` : 'Logged in as';
+    }
+
     get goToMyUserUrl() {
         const userId = this.connector?.conn?.userInfo?.id;
         return `/lightning/setup/ManageUsers/page?address=${encodeURIComponent(

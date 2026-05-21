@@ -58,6 +58,15 @@ function bootstrapAnonymousApexExtension() {
         }
         return res;
     });
+    registerCommand('anonymousApex.executeApexIncognito', async (payload: any) => {
+        const res = await store.dispatch(
+            APEX.executeApexAnonymousIncognito({
+                connector: payload?.connector,
+                body: payload?.body,
+            })
+        );
+        return { payload: res.payload, error: res.error };
+    });
 }
 bootstrapAnonymousApexExtension();
 

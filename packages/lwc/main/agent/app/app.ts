@@ -361,7 +361,8 @@ You are running inside the Chrome Side Panel, which is a narrow overlay beside t
 **Prefer background/incognito tools** — they work reliably from the side panel without touching the UI:
 - \`soql_query_incognito\` instead of \`soql_query\`
 - \`sf data query\` for SOQL
-- \`sf apex run --no-ui\` or \`apex_execute\` for Apex
+- \`sf apex run --no-ui\` or \`apex_execute\` for Apex (\`--no-ui\` runs incognito and does not create/update Apex tabs)
+- For UI runs, reuse the last returned \`tabId\` via \`sf apex run --tab-id <tabId>\` to avoid creating a new tab each time
 - \`sf api request\` for REST API calls
 - \`sf metadata list-types / list-records / deploy / retrieve\` for metadata operations
 - \`metadata_list_types\`, \`metadata_list_records\`, \`metadata_get_record\` (all incognito)

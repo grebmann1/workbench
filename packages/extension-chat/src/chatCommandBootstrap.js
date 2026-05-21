@@ -39,6 +39,15 @@ export function bootstrapChatCommands() {
         }
         return res;
     });
+    registerCommand('anonymousApex.executeApexIncognito', async (payload = {}) => {
+        const res = await store.dispatch(
+            APEX.executeApexAnonymousIncognito({
+                connector: payload.connector,
+                body: payload.body,
+            })
+        );
+        return { payload: res.payload, error: res.error };
+    });
 
     registerCommand('api.executeRequest', async (payload = {}) => {
         const { connector, request, formattedRequest, tabId, isNewTab, tab, createdDate } = payload;

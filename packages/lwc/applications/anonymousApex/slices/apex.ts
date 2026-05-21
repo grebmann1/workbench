@@ -180,6 +180,22 @@ export const executeApexAnonymous = createAsyncThunk(
         }
     }
 );
+export const executeApexAnonymousIncognito = createAsyncThunk(
+    'apex/executeAnonymousIncognito',
+    async (
+        {
+            connector,
+            body,
+        }: {
+            connector: ConnectorLike;
+            body: string;
+        },
+        { getState }
+    ) => {
+        const res = await _executeApexAnonymous(connector, body, formatHeaders(getState().apex));
+        return { data: res, body, alias: connector.conn.alias };
+    }
+);
 // TODO : Add model to the state to be able to display the model in the editor instead of the body !!!!!
 // Priority : 1 (for full Editor concept)
 // Create a slice with reducers and extraReducers

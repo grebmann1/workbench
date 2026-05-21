@@ -10,16 +10,8 @@
     "action": {
         "default_title": "Click to open Workbench Chat"
     },
-    "commands": {
-        "open_side_panel": {
-            "description": "Open Side Panel",
-            "suggested_key": {
-                "default": "Ctrl+Shift+Space",
-                "linux": "Ctrl+Shift+Space",
-                "mac": "Command+Shift+Space",
-                "windows": "Ctrl+Shift+Space"
-            }
-        }
+    "side_panel": {
+        "default_path": "views/chat.html"
     },
     "content_security_policy": {
         "sandbox": "sandbox allow-scripts allow-forms allow-popups allow-modals; script-src 'self' 'unsafe-inline' 'unsafe-eval' https: http:; child-src 'self' blob:",

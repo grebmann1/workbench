@@ -1,0 +1,116 @@
+name: deploy
+# Manual deployment to the Heroku Container Registry.
+#
+# Trigger: Actions tab → "deploy" → Run workflow.
+# Required secrets:
+#   HEROKU_API_KEY  — `heroku authorizations:create` token (or a long-lived
+#                     account API key from `heroku auth:token`).
+#
+# What this does, end to end:
+#   1. Restores Node 22.14 + npm cache.
+#   2. Installs all workspace deps (root, apps/ui, apps/docs, packages/vscode).
+#   3. Runs `npm run docker:prebuild` to compile every artefact the Dockerfile
+#      `COPY`s from (the Dockerfile itself does not compile — see Dockerfile
+#      header for context).
+#   4. Stamps the deploying git SHA into the Heroku app as GIT_COMMIT_SHA so
+#      /healthz can report it. This causes a release on its own, but the next
+#      step's container:release supersedes it.
+#   5. `heroku container:push` builds the image from ./Dockerfile against the
+#      now-populated dist/ and packages/*/dist directories, then uploads to
+#      registry.heroku.com/<app>/web.
+#   6. `heroku container:release` promotes the pushed image to the active
+#      release, which restarts the dyno.
+#   7. Smoke-tests every public subdomain's /healthz endpoint.
+#
+# Security note: every `run` step that reads workflow inputs goes through env:
+# (never inlined as ${{ ... }} in shell), so untrusted input cannot be
+# interpolated as shell tokens.
+
+on:
+    workflow_dispatch:
+        inputs:
+            app:
+                description: 'Heroku app name'
+                required: true
+                default: 'workbench2'
+                type: string
+
+concurrency:
+    group: deploy-${{ inputs.app }}
+    cancel-in-progress: false
+
+jobs:
+    deploy:
+        runs-on: ubuntu-latest
+        timeout-minutes: 30
+        env:
+            HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+            APP: ${{ inputs.app }}
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: '22.14'
+                  cache: 'npm'
+
+            - name: Install workspace deps
+              run: |
+                  npm ci --no-audit --no-fund
+                  npm --prefix apps/ui ci --no-audit --no-fund
+                  npm --prefix apps/docs ci --no-audit --no-fund
+                  npm --prefix packages/vscode ci --no-audit --no-fund
+
+            - name: Pre-build static + server artefacts
+              run: npm run docker:prebuild
+
+            - name: Verify Heroku auth
+              run: |
+                  if [ -z "$HEROKU_API_KEY" ]; then
+                    echo "HEROKU_API_KEY secret is not set."
+                    exit 1
+                  fi
+                  heroku auth:whoami
+
+            - name: Stamp git SHA into Heroku config
+              run: |
+                  heroku config:set \
+                    GIT_COMMIT_SHA="${GITHUB_SHA}" \
+                    -a "$APP"
+
+            - name: Login to Heroku Container Registry
+              run: heroku container:login
+
+            - name: Build & push image
+              run: heroku container:push web -a "$APP"
+
+            - name: Release image
+              run: heroku container:release web -a "$APP"
+
+            - name: Smoke-test public endpoints
+              run: |
+                  set -e
+                  for host in sf-workbench.com api.sf-workbench.com doc.sf-workbench.com vscode.sf-workbench.com; do
+                    echo "==> $host /healthz"
+                    curl --fail --silent --show-error --max-time 15 "https://$host/healthz" || {
+                      echo "Healthcheck failed for $host"
+                      exit 1
+                    }
+                    echo
+                  done
+
+            - name: Summary
+              if: always()
+              env:
+                  ACTOR: ${{ github.actor }}
+                  STATUS: ${{ job.status }}
+              run: |
+                  {
+                    echo "### Deploy ${STATUS}"
+                    echo
+                    echo "- App: \`${APP}\`"
+                    echo "- Commit: \`${GITHUB_SHA}\`"
+                    echo "- Triggered by: @${ACTOR}"
+                  } >> "$GITHUB_STEP_SUMMARY"

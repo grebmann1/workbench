@@ -7,7 +7,6 @@ import {
 import { handleChromeInteraction } from './chromeApi.js';
 import {
     canonicalizeServerUrl,
-    getCurrentTabCookieStoreId,
     getHostAndSession,
     getSalesforceURL,
     getSidCookieForOrigin,
@@ -130,19 +129,18 @@ async function findExistingSession({ alias, instanceUrl } = {}) {
             const canonicalTabServerUrl = getSalesforceURL(tab.url);
             if (targetServerUrl && canonicalTabServerUrl !== targetServerUrl) continue;
 
-            // Use the tab's cookie store to fetch the SID cookie
-            const storeId = await getCurrentTabCookieStoreId(tab.id);
+            // Match Benchpress: omit storeId. Passing the wrong cookie store can
+            // return a stale admin sid during Login As impersonation.
             let cookie = await chrome.cookies.get({
                 name: 'sid',
                 url: canonicalTabServerUrl,
-                storeId,
             });
 
             // If not found, try soma->sfdcdev fallback like getHostAndSession does
             if (!cookie || !cookie.value) {
                 const fallbackUrl = canonicalTabServerUrl.replace('soma', 'sfdcdev');
                 if (fallbackUrl !== canonicalTabServerUrl) {
-                    cookie = await chrome.cookies.get({ name: 'sid', url: fallbackUrl, storeId });
+                    cookie = await chrome.cookies.get({ name: 'sid', url: fallbackUrl });
                     if (cookie && cookie.value) {
                         // Use fallbackUrl as canonical if cookie found there
                         if (!targetServerUrl) {

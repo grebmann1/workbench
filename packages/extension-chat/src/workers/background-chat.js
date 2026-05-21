@@ -11,12 +11,10 @@ import { safeDebug, safeLog } from '../../../extension/src/workers/utils/utils.j
 import { handleMcpHttpRequest } from '../../../extension/src/workers/shared/mcpProxy.js';
 import { handleLaunchWebAuthFlow } from '../../../extension/src/workers/shared/oauth.js';
 
-const OPEN_SIDE_PANEL = 'open_side_panel';
 const PORT_INSTANCE = 'sf-toolkit-instance';
 const STABLE_SIDEPANEL_PATH = 'views/chat.html';
 
 const instanceConnections = new Map();
-let isSidePanelEnabled = false;
 
 const wrapAsyncFunction = listener => (request, sender, sendResponse) => {
     Promise.resolve(listener(request, sender))
@@ -106,39 +104,9 @@ chrome.runtime.onConnect.addListener(port => {
     }
 });
 
-async function setSidePanelEnabled(enabled, tabId, { openPanel = false } = {}) {
-    isSidePanelEnabled = enabled;
-    const optionsPromise = chrome.sidePanel.setOptions({
-        path: STABLE_SIDEPANEL_PATH,
-        enabled: isSidePanelEnabled,
-    });
-    if (openPanel && isSidePanelEnabled && Number.isInteger(tabId)) {
-        const openPromise = chrome.sidePanel.open({ tabId });
-        await optionsPromise;
-        await openPromise;
-        return;
-    }
-    await optionsPromise;
-}
-
-async function toggleSidePanel(tabId, { openPanel = false } = {}) {
-    await setSidePanelEnabled(!isSidePanelEnabled, tabId, { openPanel });
-}
-
-chrome.action.onClicked.addListener(tab => {
-    toggleSidePanel(tab?.id, { openPanel: true }).catch(error => {
-        console.error('[Workbench Chat][BG] Failed to toggle side panel', error);
-    });
-});
-
 async function handleRuntimeMessage(message, sender) {
     if (message.action === 'launchWebAuthFlow') {
         return handleLaunchWebAuthFlow(message);
-    }
-    if (message.action === OPEN_SIDE_PANEL) {
-        // Runtime messages are often not user-gesture contexts, so only enable globally here.
-        await setSidePanelEnabled(true, sender.tab?.id, { openPanel: false });
-        return undefined;
     }
     if (message.action === 'fetchCookie') {
         return getHostAndSession(sender.tab);
@@ -159,18 +127,12 @@ async function handleRuntimeMessage(message, sender) {
 
 chrome.runtime.onMessage.addListener(wrapAsyncFunction(handleRuntimeMessage));
 
-chrome.commands.onCommand.addListener((command, tab) => {
-    if (command === OPEN_SIDE_PANEL) {
-        toggleSidePanel(tab?.id, { openPanel: true }).catch(() => {});
-    }
-});
-
 const init = async () => {
     chrome.sidePanel
-        .setPanelBehavior({ openPanelOnActionClick: false })
+        .setPanelBehavior({ openPanelOnActionClick: true })
         .catch(error => console.error(error));
     chrome.sidePanel
-        .setOptions({ path: STABLE_SIDEPANEL_PATH, enabled: isSidePanelEnabled })
+        .setOptions({ path: STABLE_SIDEPANEL_PATH })
         .catch(error => console.error(error));
 };
 

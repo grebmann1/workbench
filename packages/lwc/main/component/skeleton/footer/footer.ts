@@ -214,6 +214,16 @@ export default class Footer extends LightningElement {
             : `${this.connector.configuration.username}`;
     }
 
+    get isImpersonating() {
+        return Boolean(this.connector?.isImpersonating);
+    }
+
+    get impersonationTooltip() {
+        return this.connector?.impersonatedBy
+            ? `Logged in as via ${this.connector.impersonatedBy}`
+            : 'Logged in as';
+    }
+
     get accessTokenFormatted() {
         return isUndefinedOrNull(this.connector?.conn?.accessToken)
             ? ''
