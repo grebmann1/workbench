@@ -8,14 +8,27 @@
                 <h2 class="slds-tree__group-header slds-truncate">
                     {i18n.SOBJECTS_PANEL_SOBJECTS}
                 </h2>
-                <lightning-button-icon
-                    class="slds-p-right_small"
-                    icon-name="utility:refresh"
-                    variant="bare"
-                    alternative-text="Refresh"
-                    title="Refresh"
-                    disabled={isLoading}
-                    onclick={handleRefresh}></lightning-button-icon>
+                <div class="slds-grid slds-grid_vertical-align-center">
+                    <div class="always-tooling-toggle slds-p-right_small">
+                        <lightning-input
+                            class="toolkit-small"
+                            type="toggle"
+                            label="Standard & Tooling"
+                            name="alwaysShowTooling"
+                            message-toggle-active=""
+                            message-toggle-inactive=""
+                            onchange={handleAlwaysShowToolingChange}
+                            checked={alwaysShowTooling}></lightning-input>
+                    </div>
+                    <lightning-button-icon
+                        class="slds-p-right_small"
+                        icon-name="utility:refresh"
+                        variant="bare"
+                        alternative-text="Refresh"
+                        title="Refresh"
+                        disabled={isLoading}
+                        onclick={handleRefresh}></lightning-button-icon>
+                </div>
             </div>
         </div>
         <div class="sobjects-tree-wrapper">

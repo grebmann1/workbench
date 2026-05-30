@@ -119,6 +119,7 @@ function saveCacheSettings(alias, state) {
             recentPanelToggled,
             tabs,
             includeDeletedRecords,
+            alwaysShowTooling,
             currentTab,
         } = state;
         localStorage.setItem(
@@ -129,6 +130,7 @@ function saveCacheSettings(alias, state) {
                 recentPanelToggled,
                 tabs,
                 includeDeletedRecords,
+                alwaysShowTooling,
                 currentTabId: currentTab?.id,
             })
         );
@@ -433,6 +435,7 @@ const uiSlice = createSlice({
         leftPanelToggled: false,
         recentPanelToggled: false,
         includeDeletedRecords: false,
+        alwaysShowTooling: false,
         isInitialized: false,
         _alias: undefined,
         pendingEdits: {} as Record<string, Record<string, any>>,
@@ -449,6 +452,7 @@ const uiSlice = createSlice({
                     recentPanelToggled,
                     tabs,
                     includeDeletedRecords,
+                    alwaysShowTooling,
                     currentTabId,
                 } = cachedConfig;
                 const restoredTabs =
@@ -463,6 +467,7 @@ const uiSlice = createSlice({
                     tabs: restoredTabs,
                     currentTab: restoredCurrent,
                     includeDeletedRecords,
+                    alwaysShowTooling: alwaysShowTooling === true,
                 });
                 updateSOQL(state, restoredCurrent?.body || '');
             }
@@ -549,6 +554,13 @@ const uiSlice = createSlice({
         updateIncludeDeletedRecords: (state, action) => {
             const { value, alias } = action.payload;
             state.includeDeletedRecords = value === true;
+            if (isNotUndefinedOrNull(alias)) {
+                saveCacheSettings(alias, state);
+            }
+        },
+        updateAlwaysShowTooling: (state, action) => {
+            const { value, alias } = action.payload;
+            state.alwaysShowTooling = value === true;
             if (isNotUndefinedOrNull(alias)) {
                 saveCacheSettings(alias, state);
             }

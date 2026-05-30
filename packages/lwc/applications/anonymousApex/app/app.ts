@@ -27,6 +27,10 @@ import {
     compareString,
     splitTextByTimestamp,
 } from 'shared/utils';
+import {
+    hasExecuteAnonymousSignal,
+    normalizeExecuteAnonymousResult,
+} from '../slices/normalizeExecuteAnonymousResult';
 
 const apexLocalSelectors = APEX.apexAdapter.getSelectors((state: any) => state.apex.apex);
 
@@ -72,6 +76,13 @@ bootstrapAnonymousApexExtension();
 
 type AnyRecord = Record<string, any>;
 
+function normalizeApexResponseData(data: AnyRecord | null | undefined): AnyRecord | null {
+    if (!data || typeof data !== 'object') return null;
+    const unwrapped = data.data || data.response || data.result || data;
+    if (!hasExecuteAnonymousSignal(unwrapped)) return null;
+    return normalizeExecuteAnonymousResult(unwrapped);
+}
+
 export default class App extends ToolkitElement {
     _hasRendered = false;
     isLoading = false;
@@ -112,6 +123,7 @@ export default class App extends ToolkitElement {
     _cacheFiles: AnyRecord[] = [];
 
     isApexRunning = false;
+    _lastGlobalApexErrorSignature: string | null = null;
 
     // Interval
     _headerInterval: ReturnType<typeof setInterval> | null = null;
@@ -218,6 +230,7 @@ export default class App extends ToolkitElement {
         if (apexState) {
             this.isApexRunning = apexState.isFetching;
             if (this.isApexRunning) {
+                this._lastGlobalApexErrorSignature = null;
                 this.loading_enableAutoDate(apexState.createdDate);
             } else {
                 if (this._loadingInterval) clearInterval(this._loadingInterval);
@@ -231,8 +244,14 @@ export default class App extends ToolkitElement {
                 // Reset First
                 this.resetError();
                 this.resetEditorError();
+                const normalizedData = normalizeApexResponseData(apexState.data);
+                if (!normalizedData) {
+                    this.resetResponse();
+                    this.global_handleError(new Error('Invalid execute anonymous response.'));
+                    return;
+                }
                 // Assign Data
-                this._response = apexState.data;
+                this._response = normalizedData;
                 this._responseCreatedDate = apexState.createdDate;
                 //this._abortingMap[apex.currentTab.id] = null; // Reset the abortingMap`
                 // Update log
@@ -240,9 +259,22 @@ export default class App extends ToolkitElement {
                 this.header_formatDate();
                 // Handle Error from Salesforce
                 //console.log('this.handleError',!apexState.data.success && !apexState.data.compiled)
-                if (!apexState.data.success /**&& apexState.data.compiled**/) {
-                    reportError(apexState.data, { source: 'anonymousApex' });
-                    this.handleError(apexState.data);
+                if (!normalizedData.success || normalizedData.compiled === false) {
+                    const errorSignature = JSON.stringify({
+                        tabId: apex.currentTab?.id || '',
+                        createdDate: apexState.createdDate || '',
+                        success: normalizedData.success,
+                        compiled: normalizedData.compiled,
+                        compileProblem: normalizedData.compileProblem || '',
+                        exceptionMessage: normalizedData.exceptionMessage || '',
+                        line: normalizedData.line || '',
+                        column: normalizedData.column || '',
+                    });
+                    if (this._lastGlobalApexErrorSignature !== errorSignature) {
+                        this._lastGlobalApexErrorSignature = errorSignature;
+                        reportError(normalizedData, { source: 'anonymousApex' });
+                    }
+                    this.handleError(normalizedData);
                 }
             } else if (apexState.isFetching) {
                 this.resetResponse();
@@ -527,8 +559,17 @@ export default class App extends ToolkitElement {
     /** Errors */
 
     global_handleError = e => {
-        reportError(e, { source: 'anonymousApex' });
-        const errors = e.message.split(':');
+        const errorMessage = e?.message || String(e || 'Unknown error');
+        const errorSignature = JSON.stringify({
+            message: errorMessage,
+            stack: e?.stack || '',
+            source: 'anonymousApex',
+        });
+        if (this._lastGlobalApexErrorSignature !== errorSignature) {
+            this._lastGlobalApexErrorSignature = errorSignature;
+            reportError(e, { source: 'anonymousApex' });
+        }
+        const errors = errorMessage.split(':');
         if (errors.length > 1) {
             this.error_title = errors.shift();
         } else {

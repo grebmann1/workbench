@@ -2,6 +2,10 @@
     <div class={pageClass}>
         <builder-editor
             is-left-panel-toggled={isLeftToggled}
+            is-left-panel-resizable
+            left-panel-width="400"
+            left-panel-min-width="280"
+            left-panel-max-width="700"
             onexecuteaction={executeAction}
             onexecutesave={executeSave}>
             <!-- Header -->

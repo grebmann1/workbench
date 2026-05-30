@@ -11,6 +11,8 @@ export default class SobjectsPanel extends ToolkitElement {
     sobjects;
     isLoading = false;
     selectedId = '';
+    currentTabUseToolingApi = false;
+    alwaysShowTooling = false;
 
     _rawSObjects;
 
@@ -18,6 +20,9 @@ export default class SobjectsPanel extends ToolkitElement {
     storeChange({ describe, application, ui }) {
         const isCurrentApp = this.verifyIsActive(application?.currentApplication);
         if (!isCurrentApp) return;
+
+        this.currentTabUseToolingApi = ui?.currentTab?.useToolingApi === true;
+        this.alwaysShowTooling = ui?.alwaysShowTooling === true;
 
         this.selectedId = ui?.selectedSObject
             ? lowerCaseKey(
@@ -60,14 +65,28 @@ export default class SobjectsPanel extends ToolkitElement {
         );
     }
 
+    handleAlwaysShowToolingChange(event) {
+        store.dispatch(
+            UI.reduxSlice.actions.updateAlwaysShowTooling({
+                value: event.detail?.checked === true,
+                alias: this.alias,
+            })
+        );
+    }
+
     /** Getters */
 
     get computedTree() {
         if (!this.sobjects || !this.sobjects.length) {
             return [];
         }
+        const showStandard = this.alwaysShowTooling || !this.currentTabUseToolingApi;
+        const showTooling = this.alwaysShowTooling || this.currentTabUseToolingApi;
         return this.sobjects
             .filter(sobject => sobject.queryable)
+            .filter(sobject =>
+                (sobject?.source || 'standard') === 'tooling' ? showTooling : showStandard
+            )
             .map(sobject => ({
                 id: lowerCaseKey(`${sobject.name}::${sobject?.source || 'standard'}`),
                 name: sobject.itemLabel,

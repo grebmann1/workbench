@@ -40,6 +40,8 @@ const SOURCE = {
     TOOLING: 'tooling',
 };
 
+const SHOW_TOOLING_STORAGE_KEY = 'object-explorer-showToolingObjects';
+
 export default class App extends ToolkitElement {
     _hasRendered = false;
     @wire(NavigationContext)
@@ -55,6 +57,7 @@ export default class App extends ToolkitElement {
     // Filter
     typeFilter_value: string[] = [];
     metadataFilter_value: string[] = [];
+    showToolingObjects = false;
 
     _pageRef: any;
     @wire(CurrentPageReference)
@@ -76,6 +79,7 @@ export default class App extends ToolkitElement {
 
     connectedCallback() {
         Analytics.trackAppOpen('object', { alias: this.alias });
+        this.showToolingObjects = localStorage.getItem(SHOW_TOOLING_STORAGE_KEY) === 'true';
         this.loadCachedSettings();
         this.loadAlls();
     }
@@ -143,6 +147,12 @@ export default class App extends ToolkitElement {
         }, 1);
     };
 
+    showTooling_onChange = (e: any): void => {
+        this.showToolingObjects = e.detail.checked === true;
+        localStorage.setItem(SHOW_TOOLING_STORAGE_KEY, String(this.showToolingObjects));
+        this.filteredRecords = this.filterRecords();
+    };
+
     /** Methods */
 
     loadFromNavigation = async ({ state }: { state: any }): Promise<void> => {
@@ -174,9 +184,8 @@ export default class App extends ToolkitElement {
     };
 
     filterRecords = (): Array<Record<string, any>> => {
-        if (this.typeFilter_value.length == 0 && this.metadataFilter_value.length == 0)
-            return this.records;
         return this.records
+            .filter(x => this.showToolingObjects || x.source !== SOURCE.TOOLING)
             .filter(
                 x => this.typeFilter_value.includes(x.category) || this.typeFilter_value.length == 0
             )
