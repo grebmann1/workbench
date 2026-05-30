@@ -1,6 +1,6 @@
 {
     "name": "workbench",
-    "version": "2.0.2",
+    "version": "2.0.3",
     "scripts": {
         "start:dev:extension": "rm -rf dist/extension; npm-run-all --parallel watch:extension serve:extension",
         "start:dev:server": "npm run build:server && NODE_ENV=development DOTENV_CONFIG_PATH=.env.dev node -r dotenv/config packages/server/dist/server-dev.js",
@@ -29,6 +29,7 @@
         "start:dev:extension:main": "rm -rf dist/extension; npm-run-all --parallel watch:extension:main serve:extension",
         "start:dev:extension:sandbox": "npm-run-all --parallel watch:extension:sandbox serve:extension",
         "start:dev:extension:chat": "rm -rf dist/extension-chat; npm-run-all --parallel watch:extension:chat serve:extension:chat",
+        "start:dev:extension:all": "npm-run-all --parallel start:dev:extension start:dev:extension:chat",
         "start:dev:extension:vscode": "npm-run-all --parallel watch:extension start:dev:vscode",
         "start:dev:desktop:all": "npm-run-all --parallel watch:extension start:dev:desktop",
         "start:dev:vscode:debug": "npm --prefix packages/vscode run start:debug",

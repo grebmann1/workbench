@@ -1,5 +1,52 @@
 [
     {
+        "version": "2.0.3",
+        "date": "May 30th, 2026",
+        "sections": [
+            {
+                "title": "Agentforce Explorer Preview",
+                "categories": [
+                    {
+                        "category": "Stabilization",
+                        "items": [
+                            "Added the Agentforce Explorer foundation for inspecting agents, topics, actions, AgentScripts, traces, dependency graphs, and variable changes.",
+                            "Added loading skeletons, empty states, fuzzy search, trace step extraction, record-id extraction, and Agentforce-focused unit coverage.",
+                            "Kept Agentforce Explorer hidden from the main application menu while the preview is hardened for broader use."
+                        ]
+                    }
+                ]
+            },
+            {
+                "title": "Developer Tools",
+                "categories": [
+                    {
+                        "category": "Anonymous Apex, Record Viewer, SOQL, and GraphQL",
+                        "items": [
+                            "Improved Anonymous Apex result normalization so SOAP success, compile errors, runtime exceptions, and log output render more consistently.",
+                            "Added Record Viewer command wiring so Workbench can open records through the host command registry.",
+                            "Refined SOQL object and field panel behavior and moved shared SOQL query building into a tested utility.",
+                            "Improved GraphQL API-version handling for connector-backed requests."
+                        ]
+                    }
+                ]
+            },
+            {
+                "title": "Platform & Release Automation",
+                "categories": [
+                    {
+                        "category": "Application Platform",
+                        "items": [
+                            "Added shared helpers for page references, Salesforce setup URLs, slice error handling, and stale-while-revalidate caching.",
+                            "Expanded the host command registry with tests so apps and automation can communicate through stable command IDs.",
+                            "Added application-manifest generator tests and tightened packaged-app registry generation.",
+                            "Added the extension release workflow and documented the release pipeline plan."
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    {
         "version": "2.0.2",
         "date": "May 5th, 2026",
         "sections": [
