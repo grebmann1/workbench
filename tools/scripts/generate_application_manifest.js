@@ -492,4 +492,11 @@ function generate() {
     );
 }
 
-generate();
+// Run the generator only when invoked directly (`node tools/scripts/...`).
+// When `require()`d (e.g. from a unit test under tools/scripts/__test__/),
+// expose the pure validation helpers without side-effects.
+if (require.main === module) {
+    generate();
+} else {
+    module.exports = { validate, validateSlashCommands };
+}

@@ -21,15 +21,30 @@
                 </div>
             </div>
         </template>
-        <div class="slds-col slds-grow slds-grid slds-is-relative slds-scrollable_none">
+        <div
+            class="slds-col slds-grow slds-grid slds-is-relative slds-scrollable_none editor-content-row">
             <!-- Left Panel -->
-            <builder-left-panel class={showLeftPanelClass}>
+            <builder-left-panel
+                class={showLeftPanelClass}
+                is-variable-width={isResizableLeftPanelVisible}
+                style={leftPanelStyle}>
                 <!-- Start Left -->
                 <slot name="left"></slot>
                 <!-- End Left -->
             </builder-left-panel>
+            <template lwc:if={isResizableLeftPanelVisible}>
+                <div
+                    class="left-panel-resizer separator-horizontal"
+                    onmousedown={handleLeftPanelResizeMouseDown}>
+                    <span class="left-colapsed"></span>
+                    <span class="left-panel-resizer-icon separator-icon-horizontal"></span>
+                    <span class="right-colapsed"></span>
+                </div>
+            </template>
             <!-- Start Body -->
-            <slot></slot>
+            <div class="editor-body-container">
+                <slot></slot>
+            </div>
             <!-- End Body -->
             <!-- Right Panel -->
             <template lwc:if={showRightPanel}>
