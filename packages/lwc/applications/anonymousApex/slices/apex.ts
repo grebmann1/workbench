@@ -30,7 +30,7 @@ function updateCurrentTab(state, attributes) {
 }
 
 const createInitialTabs = () => {
-    return [enrichTab({ id: guid(), body: "System.debug('Hello the world');" }, null)];
+    return [enrichTab({ id: guid(), body: 'System.debug(System.now());' }, null)];
 };
 
 function formatTab({ id, name, body, isDraft, fileId, fileBody }) {
