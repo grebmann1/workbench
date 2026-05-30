@@ -1,26 +1,6 @@
-/* === AgentLens Design Tokens === */
+/* N11 — Tokens defined on `agentforce/app :host`, inherited via CSS
+ * custom-property propagation through shadow DOM. Do not redeclare. */
 :host {
-    --af-bg: var(--lwc-colorBackground, #f5f6fa);
-    --af-surface: var(--lwc-colorBackgroundAlt, #ffffff);
-    --af-surface2: var(--lwc-colorBackgroundStencil, #f0f1f5);
-    --af-border: var(--lwc-colorBorder, #d4d7e3);
-    --af-text: var(--lwc-colorTextDefault, #1e2030);
-    --af-text-dim: var(--lwc-colorTextWeak, #6b7084);
-    --af-text-bright: var(--lwc-colorTextStrong, #000000);
-    --af-font-mono: 'SF Mono', SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace;
-    --af-blue: #2563eb;
-    --af-green: #059669;
-    --af-purple: #7c3aed;
-    --af-orange: #ea580c;
-    --af-teal: #0d9488;
-    --af-cyan: #0891b2;
-    --af-radius-sm: 6px;
-    --af-gap: 8px;
-    --af-cyan-bg: rgba(8, 145, 178, 0.08);
-    --af-cyan-border: rgba(8, 145, 178, 0.35);
-    --af-active-color: var(--af-cyan);
-    --af-active-glow: drop-shadow(0 0 12px rgba(8, 145, 178, 0.45));
-
     display: block;
     height: 100%;
 }
@@ -56,6 +36,31 @@
     padding: 0.75rem 1rem;
     border-bottom: 1px solid var(--lwc-colorBorder, #dddbda);
     flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+.agentforce-debugger__refresh {
+    border: 0;
+    background: transparent;
+    color: var(--slds-g-color-neutral-base-30, #444);
+    padding: 0.125rem 0.25rem;
+    cursor: pointer;
+    border-radius: 0.25rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.agentforce-debugger__refresh:hover:not([disabled]) {
+    background-color: var(--slds-g-color-neutral-base-95, #f3f3f3);
+}
+
+.agentforce-debugger__refresh[disabled] {
+    cursor: not-allowed;
+    opacity: 0.5;
 }
 
 .panel-title {
@@ -154,31 +159,25 @@
     color: #0176d3;
 }
 
-.summary-bar {
-    display: flex;
-    gap: 0.75rem;
-    padding: 0.75rem 1rem;
-    border-bottom: 1px solid var(--lwc-colorBorder, #dddbda);
-    flex-shrink: 0;
-}
-
-.summary-pill {
+/* N12 — Inline summary on the selected interaction list row, replacing
+ * the prior `.summary-bar` chrome row in the right pane. */
+.interaction-summary {
     display: inline-flex;
     align-items: center;
-    gap: 0.375rem;
+    gap: 0.25rem;
+    margin-left: auto;
+}
+
+.interaction-summary-pill {
+    display: inline-flex;
+    align-items: center;
     background-color: var(--slds-g-color-neutral-base-95, #f3f3f3);
-    padding: 0.25rem 0.625rem;
-    border-radius: 1rem;
-    font-size: 0.75rem;
-}
-
-.summary-label {
-    color: var(--lwc-colorTextWeak, #706e6b);
-}
-
-.summary-value {
-    font-weight: 600;
     color: var(--lwc-colorTextDefault, #181818);
+    padding: 0.0625rem 0.375rem;
+    border-radius: 0.625rem;
+    font-size: 0.6875rem;
+    font-weight: 500;
+    white-space: nowrap;
 }
 
 .timeline {
@@ -292,10 +291,23 @@
     color: var(--lwc-colorTextWeak, #706e6b);
 }
 
+.step-name {
+    flex: 1;
+    min-width: 0;
+    margin: 0 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--lwc-colorTextDefault, #181818);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 .step-metrics {
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    flex-shrink: 0;
 }
 
 .step-duration {
@@ -352,37 +364,72 @@
     overflow: auto;
 }
 
-/* Filter toolbar — AgentLens .viz-toolbar */
-.viz-toolbar {
-    background: var(--af-surface);
-    border-bottom: 1px solid var(--af-border);
-    padding: 6px 16px;
+/* N12 — Unified single-row toolbar (target ≤48px) replacing the prior
+ * 4-stacked rows (summary + playback + filters + search). Holds the
+ * `<agentforce-playback-bar>` (its own component, scrubber + transport)
+ * plus inline search input and the filters disclosure popover trigger.
+ * Border-bottom moved here from `.fsm-playbar`. */
+.debugger-toolbar {
     display: flex;
-    flex-wrap: wrap;
-    gap: 6px 14px;
+    flex-wrap: nowrap;
     align-items: center;
+    gap: 8px;
+    padding: 4px 12px;
+    border-bottom: 1px solid var(--af-border);
+    background: var(--af-surface);
+    flex-shrink: 0;
+    min-height: 40px;
+    max-height: 48px;
 }
 
-.viz-toolbar-title {
-    font-size: 10px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: var(--af-text-dim);
+.debugger-toolbar__playback {
+    flex-shrink: 0;
+}
+
+.debugger-toolbar__search {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: 1;
+    min-width: 0;
+    margin-left: auto;
+}
+
+.debugger-toolbar__filters {
+    position: relative;
+    flex-shrink: 0;
+}
+
+/* N12 — SLDS-styled disclosure popover for step-type filters. Renders
+ * only when {@link debugger.ts#filtersOpen} is true; click-outside +
+ * Escape dismiss is wired by the host. */
+.debugger-filters-popover {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    min-width: 200px;
+    z-index: 100;
+}
+
+.debugger-filters-popover .slds-popover__body {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px;
 }
 
 .viz-toolbar-label {
-    font-size: 11px;
+    font-size: 12px;
     color: var(--af-text);
     display: inline-flex;
     align-items: center;
-    gap: 5px;
+    gap: 6px;
     cursor: pointer;
     white-space: nowrap;
 }
 
-.viz-toolbar-label input[type=checkbox] {
-    accent-color: var(--af-blue);
+.viz-toolbar-label input[type='checkbox'] {
+    accent-color: var(--af-color-agent);
     flex-shrink: 0;
 }
 
@@ -391,21 +438,19 @@
     border-left: 3px solid var(--af-active-color);
     background: var(--af-cyan-bg);
     filter: var(--af-active-glow);
-    transition: border-color 0.25s, background 0.25s, filter 0.25s;
-}
-
-/* Search toolbar */
-.viz-toolbar--search {
-    gap: 8px;
+    transition:
+        border-color 0.25s,
+        background 0.25s,
+        filter 0.25s;
 }
 
 .viz-search-input {
     flex: 1;
-    min-width: 120px;
+    min-width: 100px;
     max-width: 240px;
     border: 1px solid var(--af-border);
     border-radius: var(--af-radius-sm, 6px);
-    padding: 5px 10px;
+    padding: 4px 10px;
     font-size: 12px;
     background: var(--af-surface2);
     color: var(--af-text);
@@ -414,11 +459,37 @@
 }
 
 .viz-search-input:focus {
-    border-color: var(--af-blue, #2563eb);
+    border-color: var(--af-color-agent);
 }
 
 .viz-search-input::placeholder {
     color: var(--af-text-dim);
+}
+
+/* N12 — base button style for `btn-fsm` use inside the debugger shadow
+ * (CSS doesn't cross shadow boundaries). Mirrors playbackBar's variant. */
+.btn-fsm {
+    font-size: 12px;
+    padding: 4px 10px;
+    border-radius: var(--af-radius-sm);
+    border: 1px solid var(--af-border);
+    background: var(--af-surface2);
+    color: var(--af-text);
+    cursor: pointer;
+    font-weight: 600;
+    transition:
+        border-color 0.15s,
+        color 0.15s;
+}
+
+.btn-fsm:hover {
+    border-color: var(--af-color-agent);
+    color: var(--af-color-agent);
+}
+
+.btn-fsm[aria-expanded='true'] {
+    border-color: var(--af-color-agent);
+    color: var(--af-color-agent);
 }
 
 .btn-fsm--sm {
@@ -428,9 +499,10 @@
 
 .fsm-chip {
     font-size: 11px;
-    padding: 4px 9px;
+    padding: 3px 8px;
     border-radius: 6px;
     background: var(--af-surface2);
     border: 1px solid var(--af-border);
     font-family: var(--af-font-mono, monospace);
+    white-space: nowrap;
 }

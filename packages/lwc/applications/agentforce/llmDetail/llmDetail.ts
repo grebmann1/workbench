@@ -1,5 +1,11 @@
 import { api, track } from 'lwc';
 import ToolkitElement from 'host-api/element';
+import type {
+    LlmStepInput,
+    LlmStepOutput,
+    LlmStepMessage,
+    LlmStepToolCall,
+} from 'agentforce/slices/types';
 
 export default class LlmDetail extends ToolkitElement {
     @api stepInput: string = '';
@@ -8,8 +14,8 @@ export default class LlmDetail extends ToolkitElement {
     @api tokenCount: number = 0;
 
     @track private _parseError: boolean = false;
-    @track private _parsedInput: any = null;
-    @track private _parsedOutput: any = null;
+    @track private _parsedInput: LlmStepInput | null = null;
+    @track private _parsedOutput: LlmStepOutput | null = null;
     private _lastHash: string = '';
 
     renderedCallback() {
@@ -57,7 +63,7 @@ export default class LlmDetail extends ToolkitElement {
     get messages() {
         const msgs = this._parsedInput?.messages;
         if (!Array.isArray(msgs)) return [];
-        return msgs.map((m: any, i: number) => ({
+        return msgs.map((m: LlmStepMessage, i: number) => ({
             key: `msg-${i}`,
             roleLabel: m.role || 'unknown',
             content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content, null, 2),
@@ -77,7 +83,7 @@ export default class LlmDetail extends ToolkitElement {
 
     get toolCalls() {
         if (!this._parsedOutput?.toolCalls) return [];
-        return this._parsedOutput.toolCalls.map((tc: any, i: number) => ({
+        return this._parsedOutput.toolCalls.map((tc: LlmStepToolCall, i: number) => ({
             key: `tc-${i}`,
             name: tc.name || 'unknown',
             formattedArgs: JSON.stringify(tc.arguments || {}, null, 2),

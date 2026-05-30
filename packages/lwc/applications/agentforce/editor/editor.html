@@ -1,6 +1,27 @@
 <template>
     <div class="editor-root slds-flex-column slds-full-height">
-        <template lwc:if={hasSelection}>
+        <div class="editor-header">
+            <button
+                class="agentforce-editor__refresh"
+                type="button"
+                onclick={handleRefresh}
+                disabled={isRefreshDisabled}
+                title="Refresh script content"
+                aria-label="Refresh script content">
+                <lightning-icon
+                    icon-name="utility:refresh"
+                    size="xx-small"
+                    alternative-text="Refresh"></lightning-icon>
+            </button>
+        </div>
+        <template lwc:if={hasScriptError}>
+            <agentforce-empty-state
+                kind="editor"
+                state={errorVariant}
+                error-message={error}
+                onretry={handleRefresh}></agentforce-empty-state>
+        </template>
+        <template lwc:elseif={hasSelection}>
             <editor-default
                 lwc:ref="editor"
                 class="slds-full-height"

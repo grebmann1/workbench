@@ -2,7 +2,13 @@ import ToolkitElement from 'host-api/element';
 import { store, connectStore } from 'host-api/store';
 import { api, wire } from 'lwc';
 import { AGENTS } from 'agentforce/slices';
-import type { AgentScriptContent } from 'agentforce/slices/agents';
+import type {
+    AgentScriptContent,
+    GenAiPlanner,
+    GenAiPlugin,
+    GenAiFunction,
+} from 'agentforce/slices/agents';
+import type { AgentforceStoreShape } from 'agentforce/slices/types';
 
 interface FieldEntry {
     label: string;
@@ -10,10 +16,18 @@ interface FieldEntry {
     key: string;
 }
 
+/**
+ * Union of records the viewer can display in its detail panel.
+ *
+ * The viewer reads heterogeneous SOQL records (planner / plugin / function);
+ * we keep a single union here so `selectedRecord` can stay strongly typed.
+ */
+type SelectedRecord = GenAiPlanner | GenAiPlugin | GenAiFunction;
+
 export default class Viewer extends ToolkitElement {
-    agents: any[] = [];
-    topics: any[] = [];
-    actions: any[] = [];
+    agents: GenAiPlanner[] = [];
+    topics: GenAiPlugin[] = [];
+    actions: GenAiFunction[] = [];
     selectedAgentId: string | null = null;
     selectedTopicId: string | null = null;
     selectedScriptContent: AgentScriptContent | null = null;
@@ -30,7 +44,7 @@ export default class Viewer extends ToolkitElement {
     }
 
     @wire(connectStore, { store })
-    storeChange({ agentforce, application }: any) {
+    storeChange({ agentforce, application }: AgentforceStoreShape) {
         const isCurrentApp = this.verifyIsActive(application?.currentApplication);
         if (!isCurrentApp) return;
 
@@ -55,7 +69,7 @@ export default class Viewer extends ToolkitElement {
         navigator.clipboard.writeText(JSON.stringify(record, null, 2));
     }
 
-    get selectedRecord(): any | null {
+    get selectedRecord(): SelectedRecord | null {
         if (this._selectedActionId) {
             const action = this.actions.find(a => a.Id === this._selectedActionId);
             if (action) return action;
@@ -122,11 +136,13 @@ export default class Viewer extends ToolkitElement {
     get agentFields(): FieldEntry[] {
         const record = this.selectedRecord;
         if (!record) return [];
-        const topicsCount = this.topics.filter(t => t.GenAiPlannerId === record.Id).length;
+        const agent = this.agents.find(a => a.Id === record.Id);
+        if (!agent) return [];
+        const topicsCount = this.topics.filter(t => t.GenAiPlannerId === agent.Id).length;
         return [
-            { key: 'label', label: 'MasterLabel', value: record.MasterLabel || '' },
-            { key: 'devname', label: 'DeveloperName', value: record.DeveloperName || '' },
-            { key: 'desc', label: 'Description', value: record.Description || 'No description' },
+            { key: 'label', label: 'MasterLabel', value: agent.MasterLabel || '' },
+            { key: 'devname', label: 'DeveloperName', value: agent.DeveloperName || '' },
+            { key: 'desc', label: 'Description', value: agent.Description || 'No description' },
             { key: 'topics', label: 'Topics', value: String(topicsCount) },
         ];
     }
@@ -134,11 +150,13 @@ export default class Viewer extends ToolkitElement {
     get topicFields(): FieldEntry[] {
         const record = this.selectedRecord;
         if (!record) return [];
-        const parentAgent = this.agents.find(a => a.Id === record.GenAiPlannerId);
+        const topic = this.topics.find(t => t.Id === record.Id);
+        if (!topic) return [];
+        const parentAgent = this.agents.find(a => a.Id === topic.GenAiPlannerId);
         return [
-            { key: 'label', label: 'MasterLabel', value: record.MasterLabel || '' },
-            { key: 'devname', label: 'DeveloperName', value: record.DeveloperName || '' },
-            { key: 'desc', label: 'Description', value: record.Description || 'No description' },
+            { key: 'label', label: 'MasterLabel', value: topic.MasterLabel || '' },
+            { key: 'devname', label: 'DeveloperName', value: topic.DeveloperName || '' },
+            { key: 'desc', label: 'Description', value: topic.Description || 'No description' },
             { key: 'agent', label: 'Parent Agent', value: parentAgent?.MasterLabel || 'Unknown' },
         ];
     }
@@ -146,11 +164,13 @@ export default class Viewer extends ToolkitElement {
     get actionFields(): FieldEntry[] {
         const record = this.selectedRecord;
         if (!record) return [];
+        const action = this.actions.find(a => a.Id === record.Id);
+        if (!action) return [];
         return [
-            { key: 'label', label: 'MasterLabel', value: record.MasterLabel || '' },
-            { key: 'devname', label: 'DeveloperName', value: record.DeveloperName || '' },
-            { key: 'type', label: 'ActionType', value: record.ActionType || '' },
-            { key: 'flow', label: 'FlowDefinitionId', value: record.FlowDefinitionId || 'N/A' },
+            { key: 'label', label: 'MasterLabel', value: action.MasterLabel || '' },
+            { key: 'devname', label: 'DeveloperName', value: action.DeveloperName || '' },
+            { key: 'type', label: 'ActionType', value: action.ActionType || '' },
+            { key: 'flow', label: 'FlowDefinitionId', value: action.FlowDefinitionId || 'N/A' },
         ];
     }
 }

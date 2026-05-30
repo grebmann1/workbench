@@ -3,6 +3,14 @@ import { store, connectStore } from 'host-api/store';
 import { wire, track } from 'lwc';
 import { ensureMermaidLoaded } from 'shared/loader';
 import { analyze } from './graphAnalysis';
+import { AGENTS } from 'agentforce/slices';
+import {
+    deriveVariantFromError,
+    type EmptyStateVariant,
+} from 'agentforce/shared/emptyStates/emptyStates';
+
+const REFRESH_DEBOUNCE_MS = 500;
+const REFRESH_SHORT_CIRCUIT_MS = 2000;
 
 import type {
     GenAiPlanner,
@@ -11,6 +19,7 @@ import type {
     FlowRef,
     ApexRef,
 } from 'agentforce/slices/agents';
+import type { AgentforceStoreShape } from 'agentforce/slices/types';
 import type { GraphData, GraphNode, GraphEdge, AnalysisResult } from './graphAnalysis';
 
 export default class Dependencies extends ToolkitElement {
@@ -20,6 +29,7 @@ export default class Dependencies extends ToolkitElement {
     selectedAgentId: string | null = null;
     dependencies: { flows: FlowRef[]; apexClasses: ApexRef[] } = { flows: [], apexClasses: [] };
     loading = false;
+    error: string | null = null;
     _rendered = false;
     _lastGraphKey = '';
 
@@ -31,8 +41,54 @@ export default class Dependencies extends ToolkitElement {
     private _panStart = { x: 0, y: 0, panX: 0, panY: 0 };
     private _originalViewBox: { x: number; y: number; w: number; h: number } | null = null;
 
+    // N5 refresh-button state. Refetches dependencies for the current agent.
+    private _lastRefreshAt = 0;
+    private _refreshDebounce: ReturnType<typeof setTimeout> | null = null;
+
+    disconnectedCallback() {
+        if (this._refreshDebounce !== null) {
+            clearTimeout(this._refreshDebounce);
+            this._refreshDebounce = null;
+        }
+    }
+
+    /**
+     * Refresh dependencies for the currently selected agent. Refetches
+     * topics + actions + dependencies (the data this view depends on).
+     * Disabled while loading; debounced 500ms; short-circuits if last
+     * refresh < 2s ago. `bypassCache: true` plumbed for F2.
+     */
+    handleRefresh() {
+        if (this.loading) return;
+        if (!this.selectedAgentId) return;
+        const now = Date.now();
+        if (now - this._lastRefreshAt < REFRESH_SHORT_CIRCUIT_MS) return;
+        if (this._refreshDebounce !== null) clearTimeout(this._refreshDebounce);
+        this._refreshDebounce = setTimeout(() => {
+            const agentId = this.selectedAgentId;
+            if (this.connector && agentId) {
+                store.dispatch(
+                    AGENTS.fetchTopics({
+                        connector: this.connector,
+                        agentId,
+                        bypassCache: true,
+                    })
+                );
+                store.dispatch(
+                    AGENTS.fetchDependencies({
+                        connector: this.connector,
+                        actions: this.actions,
+                        bypassCache: true,
+                    })
+                );
+            }
+            this._lastRefreshAt = Date.now();
+            this._refreshDebounce = null;
+        }, REFRESH_DEBOUNCE_MS);
+    }
+
     @wire(connectStore, { store })
-    storeChange({ agentforce, application }: any) {
+    storeChange({ agentforce, application }: AgentforceStoreShape) {
         const isCurrentApp = this.verifyIsActive(application?.currentApplication);
         if (!isCurrentApp) return;
 
@@ -44,6 +100,7 @@ export default class Dependencies extends ToolkitElement {
             this.selectedAgentId = agentforce.selectedAgentId || null;
             this.dependencies = agentforce.dependencies || { flows: [], apexClasses: [] };
             this.loading = agentforce.loading || false;
+            this.error = agentforce.error || null;
 
             if (this.selectedAgentId !== prevAgentId) {
                 this._zoom = 1;
@@ -65,6 +122,23 @@ export default class Dependencies extends ToolkitElement {
 
     get hasSelection(): boolean {
         return this.selectedAgentId !== null;
+    }
+
+    /**
+     * Render the error empty-state when an agent is selected but the
+     * dependency fetch / graph build failed and we have nothing to show.
+     */
+    get hasGraphError(): boolean {
+        return (
+            !!this.error &&
+            this.hasSelection &&
+            this.dependencies.flows.length === 0 &&
+            this.dependencies.apexClasses.length === 0
+        );
+    }
+
+    get errorVariant(): EmptyStateVariant {
+        return deriveVariantFromError(this.error) || 'error';
     }
 
     get legendItems() {
@@ -184,6 +258,9 @@ export default class Dependencies extends ToolkitElement {
         if (!mermaid) return;
 
         this.refs.mermaid.innerHTML = '';
+        // TYPE-DEBT: mermaid is loaded dynamically via shared/loader and lacks
+        // shipped type definitions on the runtime surface. Deferred to X11
+        // (proper mermaid type contract) per the agentforce roadmap.
         const { svg, bindFunctions } = await (mermaid as any).render(
             'agentforce-dep-graph',
             graphDefinition

@@ -1,14 +1,6 @@
+/* N11 — Tokens inherited from `agentforce/app :host`. Do not redeclare. */
 :host {
     display: block;
-    --af-surface2: var(--lwc-colorBackgroundStencil, #f0f1f5);
-    --af-border: var(--lwc-colorBorder, #d4d7e3);
-    --af-text: var(--lwc-colorTextDefault, #1e2030);
-    --af-text-dim: var(--lwc-colorTextWeak, #6b7084);
-    --af-purple: #7c3aed;
-    --af-red: #dc2626;
-    --af-green: #059669;
-    --af-font-mono: 'SF Mono', SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace;
-    --af-radius-sm: 6px;
 }
 
 .fsm-detail-section {

@@ -1,38 +1,33 @@
+/* N11 — Tokens inherited from `agentforce/app :host`. Do not redeclare. */
 :host {
     display: block;
-    --af-surface: var(--lwc-colorBackgroundAlt, #ffffff);
-    --af-surface2: var(--lwc-colorBackgroundStencil, #f0f1f5);
-    --af-border: var(--lwc-colorBorder, #d4d7e3);
-    --af-text: var(--lwc-colorTextDefault, #1e2030);
-    --af-text-dim: var(--lwc-colorTextWeak, #6b7084);
-    --af-blue: #2563eb;
-    --af-cyan: #0891b2;
-    --af-cyan-bg: rgba(8, 145, 178, 0.08);
-    --af-cyan-border: rgba(8, 145, 178, 0.35);
-    --af-radius-sm: 6px;
 }
 
+/* N12 — slimmed for the unified single-row debugger toolbar. Drop the
+ * border-bottom (the wrapping `.debugger-toolbar` carries it) and the
+ * bottom row-wrap so this stays inline with search + filters disclosure. */
 .fsm-playbar {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     align-items: center;
-    gap: 8px;
-    padding: 10px 12px;
-    border-bottom: 1px solid var(--af-border);
-    background: var(--af-surface);
+    gap: 6px;
+    padding: 4px 8px;
+    background: transparent;
     flex-shrink: 0;
 }
 
 .btn-fsm {
     font-size: 12px;
-    padding: 6px 12px;
+    padding: 4px 10px;
     border-radius: var(--af-radius-sm);
     border: 1px solid var(--af-border);
     background: var(--af-surface2);
     color: var(--af-text);
     cursor: pointer;
     font-weight: 600;
-    transition: border-color 0.15s, color 0.15s;
+    transition:
+        border-color 0.15s,
+        color 0.15s;
 }
 
 .btn-fsm:hover {
@@ -74,7 +69,6 @@
 .speed-pills {
     display: flex;
     gap: 4px;
-    margin-left: auto;
 }
 
 .speed-pill {
@@ -86,7 +80,10 @@
     color: var(--af-text-dim);
     cursor: pointer;
     font-weight: 500;
-    transition: border-color 0.15s, color 0.15s, background 0.15s;
+    transition:
+        border-color 0.15s,
+        color 0.15s,
+        background 0.15s;
 }
 
 .speed-pill:hover {
@@ -98,10 +95,4 @@
     border-color: var(--af-cyan-border);
     color: var(--af-cyan);
     background: var(--af-cyan-bg);
-}
-
-.keyboard-hint {
-    font-size: 10px;
-    color: var(--af-text-dim);
-    margin-left: 8px;
 }

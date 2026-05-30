@@ -1,7 +1,13 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import type { ConnectorLike } from 'host-api/connector';
-import { injectReducer } from 'host-api/store';
+import { injectReducer, reportError } from 'host-api/store';
 import { createMetadataApiClient, unzipRetrieveZip } from 'shared/metadataApi';
+import { handleSliceError, setSliceErrorReporter } from 'shared/sliceHelpers/handleSliceError';
+import { runSoqlQuery, asSalesforceId } from 'shared/soqlQuery/soqlQuery';
+
+// Wire the host's reportError into the shared slice helper. Module init runs
+// once per app load; idempotent.
+setSliceErrorReporter(reportError);
 
 export interface GenAiPlanner {
     Id: string;
@@ -162,39 +168,26 @@ function normalizeMetadataListResults(results: unknown): Record<string, unknown>
     return [];
 }
 
-type QueryApi = { query?: (soql: string) => { run: (opts: unknown) => Promise<unknown[] | null> } };
-
-async function soqlQuery<T>(
-    connector: ConnectorLike,
-    soql: string,
-    mode: ApiMode = 'tooling'
-): Promise<T[]> {
-    const conn = (connector as { conn?: Record<string, unknown> })?.conn;
-    let api: QueryApi | undefined;
-    if (mode === 'tooling') {
-        api = conn?.tooling as QueryApi | undefined;
-    } else {
-        api = conn as QueryApi | undefined;
-    }
-    if (!api?.query) {
-        throw new Error(
-            `${mode === 'tooling' ? 'Tooling' : 'Data'} API is not available for this connection.`
-        );
-    }
-    const queryExec = api.query(soql);
-    const records = await queryExec.run({
-        responseTarget: 'Records',
-        autoFetch: true,
-        maxFetch: 10000,
-    });
-    return (records as T[] | null) || [];
-}
-
+/**
+ * Optional `bypassCache` is plumbed through every fetch thunk so refresh-button
+ * call sites can opt out of the SWR cache once F2 lands. Today the flag is a
+ * no-op (no SWR layer to bypass) — keeping the contract in place avoids a
+ * future signature break for refresh / X1 work.
+ */
 export const fetchAgents = createAsyncThunk(
     'agentforce/fetchAgents',
-    async ({ connector, apiMode = 'tooling' }: { connector: ConnectorLike; apiMode?: ApiMode }) => {
+    async ({
+        connector,
+        apiMode = 'tooling',
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        bypassCache: _bypassCache = false,
+    }: {
+        connector: ConnectorLike;
+        apiMode?: ApiMode;
+        bypassCache?: boolean;
+    }) => {
         try {
-            const records = await soqlQuery<{
+            const records = await runSoqlQuery<{
                 Id: string;
                 DeveloperName: string;
                 MasterLabel: string;
@@ -202,7 +195,7 @@ export const fetchAgents = createAsyncThunk(
             }>(
                 connector,
                 'SELECT Id, DeveloperName, MasterLabel, Description FROM BotDefinition ORDER BY MasterLabel',
-                apiMode
+                { mode: apiMode }
             );
             return records.map(r => ({
                 Id: r.Id,
@@ -210,15 +203,22 @@ export const fetchAgents = createAsyncThunk(
                 DeveloperName: r.DeveloperName,
                 Description: r.Description || null,
             }));
-        } catch {
-            return [];
+        } catch (err) {
+            handleSliceError('agentforce', err);
         }
     }
 );
 
 export const fetchAgentScripts = createAsyncThunk(
     'agentforce/fetchAgentScripts',
-    async ({ connector }: { connector: ConnectorLike }) => {
+    async ({
+        connector,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        bypassCache: _bypassCache = false,
+    }: {
+        connector: ConnectorLike;
+        bypassCache?: boolean;
+    }) => {
         const conn = (connector as { conn?: Record<string, unknown> })?.conn;
         const metaClient = createMetadataApiClient({
             connection: conn as never,
@@ -244,9 +244,12 @@ export const fetchAgentScriptContent = createAsyncThunk(
     async ({
         connector,
         fullName,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        bypassCache: _bypassCache = false,
     }: {
         connector: ConnectorLike;
         fullName: string;
+        bypassCache?: boolean;
     }): Promise<AgentScriptContent> => {
         const conn = (connector as { conn?: Record<string, unknown> })?.conn;
         // SOAP metadata.retrieve() — zip-based async flow
@@ -292,19 +295,23 @@ export const fetchTopics = createAsyncThunk(
         connector,
         agentId,
         apiMode = 'tooling',
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        bypassCache: _bypassCache = false,
     }: {
         connector: ConnectorLike;
         agentId: string;
         apiMode?: ApiMode;
+        bypassCache?: boolean;
     }) => {
         try {
-            return await soqlQuery<GenAiPlugin>(
+            const safeAgentId = asSalesforceId(agentId);
+            return await runSoqlQuery<GenAiPlugin>(
                 connector,
-                `SELECT Id, MasterLabel, DeveloperName, Description, GenAiPlannerId FROM GenAiPlugin WHERE GenAiPlannerId = '${agentId}'`,
-                apiMode
+                `SELECT Id, MasterLabel, DeveloperName, Description, GenAiPlannerId FROM GenAiPlugin WHERE GenAiPlannerId = '${safeAgentId}'`,
+                { mode: apiMode }
             );
-        } catch {
-            return [];
+        } catch (err) {
+            handleSliceError('agentforce', err);
         }
     }
 );
@@ -315,34 +322,47 @@ export const fetchActions = createAsyncThunk(
         connector,
         topicId,
         apiMode = 'tooling',
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        bypassCache: _bypassCache = false,
     }: {
         connector: ConnectorLike;
         topicId: string;
         apiMode?: ApiMode;
+        bypassCache?: boolean;
     }) => {
         try {
-            return await soqlQuery<GenAiFunction>(
+            const safeTopicId = asSalesforceId(topicId);
+            return await runSoqlQuery<GenAiFunction>(
                 connector,
-                `SELECT Id, MasterLabel, DeveloperName, ActionType, FlowDefinitionId, GenAiPluginId FROM GenAiFunction WHERE GenAiPluginId = '${topicId}'`,
-                apiMode
+                `SELECT Id, MasterLabel, DeveloperName, ActionType, FlowDefinitionId, GenAiPluginId FROM GenAiFunction WHERE GenAiPluginId = '${safeTopicId}'`,
+                { mode: apiMode }
             );
-        } catch {
-            return [];
+        } catch (err) {
+            handleSliceError('agentforce', err);
         }
     }
 );
 
 export const fetchPromptTemplates = createAsyncThunk(
     'agentforce/fetchPromptTemplates',
-    async ({ connector, apiMode = 'tooling' }: { connector: ConnectorLike; apiMode?: ApiMode }) => {
+    async ({
+        connector,
+        apiMode = 'tooling',
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        bypassCache: _bypassCache = false,
+    }: {
+        connector: ConnectorLike;
+        apiMode?: ApiMode;
+        bypassCache?: boolean;
+    }) => {
         try {
-            return await soqlQuery<GenAiPromptTemplate>(
+            return await runSoqlQuery<GenAiPromptTemplate>(
                 connector,
                 'SELECT Id, MasterLabel, DeveloperName, Description FROM GenAiPromptTemplate ORDER BY MasterLabel',
-                apiMode
+                { mode: apiMode }
             );
-        } catch {
-            return [];
+        } catch (err) {
+            handleSliceError('agentforce', err);
         }
     }
 );
@@ -353,25 +373,32 @@ export const fetchDependencies = createAsyncThunk(
         connector,
         actions,
         apiMode = 'tooling',
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        bypassCache: _bypassCache = false,
     }: {
         connector: ConnectorLike;
         actions: GenAiFunction[];
         apiMode?: ApiMode;
+        bypassCache?: boolean;
     }): Promise<AgentforceDependencies> => {
         const flows: FlowRef[] = [];
         const apexClasses: ApexRef[] = [];
 
         const flowActions = actions.filter(a => a.FlowDefinitionId);
         if (flowActions.length > 0) {
-            const flowIds = flowActions.map(a => `'${a.FlowDefinitionId}'`).join(',');
-            const flowRecords = await soqlQuery<{
+            // Validate every FlowDefinitionId at the boundary so the SOQL
+            // IN-list is safe-by-construction.
+            const flowIds = flowActions
+                .map(a => `'${asSalesforceId(a.FlowDefinitionId as string)}'`)
+                .join(',');
+            const flowRecords = await runSoqlQuery<{
                 Id: string;
                 MasterLabel: string;
                 ActiveVersionId: string;
             }>(
                 connector,
                 `SELECT Id, MasterLabel, ActiveVersionId FROM FlowDefinition WHERE Id IN (${flowIds})`,
-                apiMode
+                { mode: apiMode }
             );
             for (const fr of flowRecords) {
                 const action = flowActions.find(a => a.FlowDefinitionId === fr.Id);
@@ -445,6 +472,9 @@ const agentforceSlice = createSlice({
                 state.agents = action.payload;
             })
             .addCase(fetchAgents.rejected, (state, action) => {
+                // Stale-vs-clear policy: KEEP stale agents on rejection — Maya
+                // can keep navigating the previous list while we surface the
+                // error in the footer.
                 state.loading = false;
                 state.error = errorMessage(action.error?.message);
             })
@@ -457,8 +487,12 @@ const agentforceSlice = createSlice({
                 state.topics = action.payload;
             })
             .addCase(fetchTopics.rejected, (state, action) => {
+                // Stale-vs-clear policy: CLEAR — topics are scoped to the
+                // currently selected agent; stale topics from a different
+                // agent would mislead the user.
                 state.loading = false;
                 state.error = errorMessage(action.error?.message);
+                state.topics = [];
             })
             .addCase(fetchActions.pending, state => {
                 state.loading = true;
@@ -469,8 +503,11 @@ const agentforceSlice = createSlice({
                 state.actions = action.payload;
             })
             .addCase(fetchActions.rejected, (state, action) => {
+                // Stale-vs-clear policy: CLEAR — actions are scoped to the
+                // selected topic; same reasoning as topics.
                 state.loading = false;
                 state.error = errorMessage(action.error?.message);
+                state.actions = [];
             })
             .addCase(fetchPromptTemplates.pending, state => {
                 state.loading = true;
@@ -481,6 +518,9 @@ const agentforceSlice = createSlice({
                 state.prompts = action.payload;
             })
             .addCase(fetchPromptTemplates.rejected, (state, action) => {
+                // Stale-vs-clear policy: KEEP stale prompts — they are an
+                // org-wide list (not scoped to a selection), so a transient
+                // failure shouldn't blank the user's working context.
                 state.loading = false;
                 state.error = errorMessage(action.error?.message);
             })
@@ -493,13 +533,20 @@ const agentforceSlice = createSlice({
                 state.dependencies = action.payload;
             })
             .addCase(fetchDependencies.rejected, (state, action) => {
+                // Stale-vs-clear policy: CLEAR — dependencies are scoped to
+                // the actions they were derived from; stale entries can
+                // point at the wrong flow/apex.
                 state.loading = false;
                 state.error = errorMessage(action.error?.message);
+                state.dependencies = { flows: [], apexClasses: [] };
             })
             .addCase(fetchAgentScripts.fulfilled, (state, action) => {
                 state.agentScripts = action.payload;
             })
             .addCase(fetchAgentScripts.rejected, (state, action) => {
+                // Stale-vs-clear policy: CLEAR — the script list is the
+                // source of truth for the editor picker; a partial/stale
+                // list invites confusion.
                 state.agentScripts = [];
                 state.error = errorMessage(action.error?.message);
             })
@@ -512,8 +559,12 @@ const agentforceSlice = createSlice({
                 state.selectedScriptContent = action.payload;
             })
             .addCase(fetchAgentScriptContent.rejected, (state, action) => {
+                // Stale-vs-clear policy: CLEAR — the editor would otherwise
+                // render the previous script's body under the new script's
+                // title.
                 state.scriptContentLoading = false;
                 state.error = errorMessage(action.error?.message);
+                state.selectedScriptContent = null;
             });
     },
 });

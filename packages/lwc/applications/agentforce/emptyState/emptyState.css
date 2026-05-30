@@ -1,0 +1,34 @@
+.agentforce-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    min-height: 180px;
+    max-width: 480px;
+    margin: 0 auto;
+}
+
+.agentforce-empty-state__illustration {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.65;
+}
+
+.agentforce-empty-state__title {
+    font-weight: 600;
+    margin: 0;
+}
+
+.agentforce-empty-state__message {
+    margin: 0;
+    line-height: 1.4;
+}
+
+.agentforce-empty-state__actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    justify-content: center;
+}

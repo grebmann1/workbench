@@ -1,21 +1,49 @@
 <template>
     <div class="inspector-container slds-full-height slds-flex-column">
         <template lwc:if={loading}>
-            <div class="slds-is-relative loading-container">
-                <slds-spinner
-                    variant="brand"
-                    size="small"
-                    alternative-text="Loading agents"></slds-spinner>
-            </div>
+            <agentforce-tree-skeleton></agentforce-tree-skeleton>
+        </template>
+        <template lwc:elseif={hasError}>
+            <agentforce-empty-state
+                kind="inspector"
+                state={errorVariant}
+                error-message={error}
+                onretry={handleRefresh}></agentforce-empty-state>
         </template>
         <template lwc:elseif={isEmpty}>
-            <div class="slds-p-around_medium empty-state">
-                <p class="slds-text-body_regular slds-text-color_weak">
-                    No agents or agent scripts found.
-                </p>
-            </div>
+            <agentforce-empty-state kind="inspector" state="no-data"></agentforce-empty-state>
         </template>
         <template lwc:else>
+            <div class="agentforce-inspector__search">
+                <input
+                    type="text"
+                    class="agentforce-inspector__search-input"
+                    placeholder="Search agents, topics, actions…"
+                    value={searchQuery}
+                    oninput={handleSearchInput}
+                    aria-label="Search agents, topics, actions" />
+                <template lwc:if={hasSearchQuery}>
+                    <button
+                        class="agentforce-inspector__search-clear"
+                        type="button"
+                        onclick={handleSearchClear}
+                        aria-label="Clear search">
+                        ×
+                    </button>
+                </template>
+                <button
+                    class="agentforce-inspector__refresh"
+                    type="button"
+                    onclick={handleRefresh}
+                    disabled={loading}
+                    title="Refresh agents"
+                    aria-label="Refresh agents">
+                    <lightning-icon
+                        icon-name="utility:refresh"
+                        size="xx-small"
+                        alternative-text="Refresh"></lightning-icon>
+                </button>
+            </div>
             <template lwc:if={hasAgents}>
                 <div class="tree-section-header">Agents</div>
                 <ul class="slds-tree slds-scrollable_y" role="tree" aria-label="Agent hierarchy">
@@ -38,7 +66,26 @@
                                     </template>
                                 </span>
                                 <span class="node-icon agent-icon"></span>
-                                <span class="node-label">{agent.label}</span>
+                                <span class="node-label">
+                                    <template lwc:if={agent.labelSegments}>
+                                        <template
+                                            for:each={agent.labelSegments}
+                                            for:item="seg"
+                                            for:index="i">
+                                            <template lwc:if={seg.isMatch}>
+                                                <mark
+                                                    key={seg.key}
+                                                    class="agentforce-inspector__highlight">
+                                                    {seg.text}
+                                                </mark>
+                                            </template>
+                                            <template lwc:else>
+                                                <span key={seg.key}>{seg.text}</span>
+                                            </template>
+                                        </template>
+                                    </template>
+                                    <template lwc:else>{agent.label}</template>
+                                </span>
                             </div>
                             <template lwc:if={agent.isExpanded}>
                                 <ul class="slds-tree__group" role="group">
@@ -65,7 +112,28 @@
                                                     </template>
                                                 </span>
                                                 <span class="node-icon topic-icon"></span>
-                                                <span class="node-label">{topic.label}</span>
+                                                <span class="node-label">
+                                                    <template lwc:if={topic.labelSegments}>
+                                                        <template
+                                                            for:each={topic.labelSegments}
+                                                            for:item="seg"
+                                                            for:index="i">
+                                                            <template lwc:if={seg.isMatch}>
+                                                                <mark
+                                                                    key={seg.key}
+                                                                    class="agentforce-inspector__highlight">
+                                                                    {seg.text}
+                                                                </mark>
+                                                            </template>
+                                                            <template lwc:else>
+                                                                <span key={seg.key}>
+                                                                    {seg.text}
+                                                                </span>
+                                                            </template>
+                                                        </template>
+                                                    </template>
+                                                    <template lwc:else>{topic.label}</template>
+                                                </span>
                                             </div>
                                             <template lwc:if={topic.isExpanded}>
                                                 <ul class="slds-tree__group" role="group">
@@ -85,7 +153,30 @@
                                                                 <span
                                                                     class="node-icon action-icon"></span>
                                                                 <span class="node-label">
-                                                                    {action.label}
+                                                                    <template
+                                                                        lwc:if={action.labelSegments}>
+                                                                        <template
+                                                                            for:each={action.labelSegments}
+                                                                            for:item="seg"
+                                                                            for:index="i">
+                                                                            <template
+                                                                                lwc:if={seg.isMatch}>
+                                                                                <mark
+                                                                                    key={seg.key}
+                                                                                    class="agentforce-inspector__highlight">
+                                                                                    {seg.text}
+                                                                                </mark>
+                                                                            </template>
+                                                                            <template lwc:else>
+                                                                                <span key={seg.key}>
+                                                                                    {seg.text}
+                                                                                </span>
+                                                                            </template>
+                                                                        </template>
+                                                                    </template>
+                                                                    <template lwc:else>
+                                                                        {action.label}
+                                                                    </template>
                                                                 </span>
                                                             </div>
                                                         </li>
@@ -99,6 +190,11 @@
                         </li>
                     </template>
                 </ul>
+                <template lwc:if={hasTruncatedResults}>
+                    <div class="agentforce-inspector__truncated" aria-live="polite">
+                        +{truncatedExtraCount} more — refine your search
+                    </div>
+                </template>
             </template>
             <template lwc:if={hasAgentScripts}>
                 <div class="tree-section-header">Agent Scripts</div>

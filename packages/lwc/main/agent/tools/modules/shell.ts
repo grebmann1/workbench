@@ -628,7 +628,9 @@ export function registerShellCommands({
                             exitCode: 1,
                         };
                     }
-                    let output: any = { ...(res.payload?.response || {}), tabId };
+                    const apexPayload =
+                        res.payload?.data || res.payload?.response || res.payload || {};
+                    let output: any = { ...apexPayload, tabId };
                     if (res.error) output = { ...output, error: res.error };
                     return {
                         result: output,

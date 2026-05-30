@@ -1,54 +1,8 @@
-/* AgentLens Design Tokens — adapted for LWC shadow DOM */
+/* N11 — Tokens defined on `agentforce/app :host`, inherited via CSS
+ * custom-property propagation through shadow DOM. Do not redeclare. */
 :host {
-    --af-bg: var(--lwc-colorBackground, #f5f6fa);
-    --af-surface: var(--lwc-colorBackgroundAlt, #ffffff);
-    --af-surface2: var(--lwc-colorBackgroundStencil, #f0f1f5);
-    --af-border: var(--lwc-colorBorder, #d4d7e3);
-    --af-text: var(--lwc-colorTextDefault, #1e2030);
-    --af-text-dim: var(--lwc-colorTextWeak, #6b7084);
-    --af-text-bright: var(--lwc-colorTextStrong, #000000);
-    --af-font-mono: 'SF Mono', SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace;
-    --af-blue: #2563eb;
-    --af-green: #059669;
-    --af-purple: #7c3aed;
-    --af-orange: #ea580c;
-    --af-teal: #0d9488;
-    --af-cyan: #0891b2;
-    --af-yellow: #d97706;
-    --af-red: #dc2626;
-    --af-blue-bg: rgba(37, 99, 235, 0.08);
-    --af-blue-border: rgba(37, 99, 235, 0.25);
-    --af-green-bg: rgba(5, 150, 105, 0.08);
-    --af-green-border: rgba(5, 150, 105, 0.25);
-    --af-purple-bg: rgba(124, 58, 237, 0.08);
-    --af-purple-border: rgba(124, 58, 237, 0.25);
-    --af-orange-bg: rgba(234, 88, 12, 0.08);
-    --af-orange-border: rgba(234, 88, 12, 0.25);
-    --af-teal-bg: rgba(13, 148, 136, 0.08);
-    --af-teal-border: rgba(13, 148, 136, 0.35);
-    --af-cyan-bg: rgba(8, 145, 178, 0.08);
-    --af-cyan-border: rgba(8, 145, 178, 0.35);
-    --af-step-planner: var(--af-blue);
-    --af-step-topic: var(--af-purple);
-    --af-step-action: var(--af-teal);
-    --af-step-llm: var(--af-cyan);
-    --af-step-guardrail: var(--af-orange);
-    --af-radius: 10px;
-    --af-radius-sm: 6px;
-    --af-gap: 8px;
-    --af-gap-lg: 14px;
-    --af-active-color: var(--af-cyan);
-    --af-active-glow: drop-shadow(0 0 12px rgba(8, 145, 178, 0.45));
     display: block;
     height: 100%;
-    --af-surface: var(--lwc-colorBackgroundAlt, #ffffff);
-    --af-surface2: var(--lwc-colorBackgroundStencil, #f0f1f5);
-    --af-border: var(--lwc-colorBorder, #d4d7e3);
-    --af-text: var(--lwc-colorTextDefault, #1e2030);
-    --af-text-dim: var(--lwc-colorTextWeak, #6b7084);
-    --af-blue: #2563eb;
-    --af-font-mono: 'SF Mono', SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace;
-    --af-radius-sm: 6px;
 }
 
 .dependencies-root {
@@ -70,12 +24,43 @@
     padding: var(--lwc-spacingXLarge, 2rem);
 }
 
-.dependencies-legend {
+.dependencies-header {
     display: flex;
+    align-items: center;
+    justify-content: space-between;
     gap: var(--lwc-spacingXSmall, 0.5rem);
     padding: var(--lwc-spacingSmall, 0.75rem) var(--lwc-spacingMedium, 1rem);
     border-bottom: 1px solid var(--lwc-colorBorder, #dddbda);
+    flex-shrink: 0;
+}
+
+.dependencies-legend {
+    display: flex;
+    gap: var(--lwc-spacingXSmall, 0.5rem);
     flex-wrap: wrap;
+    flex: 1;
+    min-width: 0;
+}
+
+.agentforce-dependencies__refresh {
+    border: 0;
+    background: transparent;
+    color: var(--slds-g-color-neutral-base-30, #444);
+    padding: 0.125rem 0.25rem;
+    cursor: pointer;
+    border-radius: 0.25rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.agentforce-dependencies__refresh:hover:not([disabled]) {
+    background-color: var(--slds-g-color-neutral-base-95, #f3f3f3);
+}
+
+.agentforce-dependencies__refresh[disabled] {
+    cursor: not-allowed;
+    opacity: 0.5;
 }
 
 .legend-badge {
@@ -89,23 +74,23 @@
 }
 
 .legend-badge_agent {
-    background-color: #1b96ff;
+    background-color: var(--af-color-agent);
 }
 
 .legend-badge_topic {
-    background-color: #2e844a;
+    background-color: var(--af-color-topic);
 }
 
 .legend-badge_action {
-    background-color: #dd7a01;
+    background-color: var(--af-color-action);
 }
 
 .legend-badge_flow {
-    background-color: #7526c3;
+    background-color: var(--af-color-flow);
 }
 
 .legend-badge_apex {
-    background-color: #c23934;
+    background-color: var(--af-color-apex);
 }
 
 .dependencies-graph-container {
@@ -156,7 +141,9 @@
     align-items: center;
     justify-content: center;
     opacity: 0.85;
-    transition: opacity 0.15s, border-color 0.15s;
+    transition:
+        opacity 0.15s,
+        border-color 0.15s;
     padding: 0;
 }
 

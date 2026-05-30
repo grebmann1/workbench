@@ -51,10 +51,10 @@ export default class VariableDiff extends ToolkitElement {
         }
     }
 
-    private _flatten(obj: any, prefix: string = ''): Record<string, string> {
+    private _flatten(obj: unknown, prefix: string = ''): Record<string, string> {
         const result: Record<string, string> = {};
         if (!obj || typeof obj !== 'object') return result;
-        for (const [k, v] of Object.entries(obj)) {
+        for (const [k, v] of Object.entries(obj as Record<string, unknown>)) {
             const key = prefix ? `${prefix}.${k}` : k;
             if (v && typeof v === 'object' && !Array.isArray(v)) {
                 Object.assign(result, this._flatten(v, key));

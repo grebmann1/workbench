@@ -1,0 +1,70 @@
+.agentforce-card-skeleton {
+    padding: 0.5rem 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.agentforce-card-skeleton__card {
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 4px;
+    padding: 0.625rem 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    background: rgba(0, 0, 0, 0.015);
+}
+
+.agentforce-card-skeleton__line {
+    height: 0.75rem;
+    border-radius: 3px;
+    background: linear-gradient(
+        90deg,
+        rgba(0, 0, 0, 0.06) 0%,
+        rgba(0, 0, 0, 0.12) 50%,
+        rgba(0, 0, 0, 0.06) 100%
+    );
+    background-size: 200% 100%;
+    animation: agentforce-card-skeleton-pulse 1.4s ease-in-out infinite;
+}
+
+.agentforce-card-skeleton__line--w30 {
+    width: 30%;
+}
+.agentforce-card-skeleton__line--w35 {
+    width: 35%;
+}
+.agentforce-card-skeleton__line--w40 {
+    width: 40%;
+}
+.agentforce-card-skeleton__line--w45 {
+    width: 45%;
+}
+.agentforce-card-skeleton__line--w65 {
+    width: 65%;
+}
+.agentforce-card-skeleton__line--w70 {
+    width: 70%;
+}
+.agentforce-card-skeleton__line--w75 {
+    width: 75%;
+}
+.agentforce-card-skeleton__line--w80 {
+    width: 80%;
+}
+
+@keyframes agentforce-card-skeleton-pulse {
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .agentforce-card-skeleton__line {
+        animation: none;
+        opacity: 0.7;
+    }
+}
