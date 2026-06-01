@@ -216,8 +216,14 @@ test('selectAgent: clears topics, actions, dependencies, selectedScriptContent',
             },
         ] as GenAiPlugin[],
         actions: [{ Id: '0XaOLD' }] as unknown as AgentforceState['actions'],
-        dependencies: { flows: [{ id: 'f1' }] as unknown as AgentforceState['dependencies']['flows'], apexClasses: [] },
-        selectedScriptContent: { Id: '0Xs', Body: 'x' } as unknown as AgentforceState['selectedScriptContent'],
+        dependencies: {
+            flows: [{ id: 'f1' }] as unknown as AgentforceState['dependencies']['flows'],
+            apexClasses: [],
+        },
+        selectedScriptContent: {
+            Id: '0Xs',
+            Body: 'x',
+        } as unknown as AgentforceState['selectedScriptContent'],
     });
 
     const next = testSlice.reducer(before, testSlice.actions.selectAgent({ agentId: '0XxNEW' }));
@@ -246,13 +252,20 @@ test('setApiMode: clears agents and downstream selection cascade', () => {
         actions: [{ Id: '0Xa' }] as unknown as AgentforceState['actions'],
         selectedAgentId: '0XxAA',
         selectedTopicId: '0XtAA',
-        dependencies: { flows: [{ id: 'f' }] as unknown as AgentforceState['dependencies']['flows'], apexClasses: [] },
+        dependencies: {
+            flows: [{ id: 'f' }] as unknown as AgentforceState['dependencies']['flows'],
+            apexClasses: [],
+        },
     });
 
     const next = testSlice.reducer(before, testSlice.actions.setApiMode('metadata'));
 
     assert.equal(next.apiMode, 'metadata');
-    assert.deepEqual(next.agents, [], 'agent list must clear (different API surfaces shape data differently)');
+    assert.deepEqual(
+        next.agents,
+        [],
+        'agent list must clear (different API surfaces shape data differently)'
+    );
     assert.deepEqual(next.topics, []);
     assert.deepEqual(next.actions, []);
     assert.equal(next.selectedAgentId, null);
@@ -279,7 +292,9 @@ test('fetchDependencies.rejected: CLEARS dependencies and sets state.error', () 
     const before = makeState({
         dependencies: {
             flows: [{ id: 'f1' }] as unknown as AgentforceState['dependencies']['flows'],
-            apexClasses: [{ id: 'c1' }] as unknown as AgentforceState['dependencies']['apexClasses'],
+            apexClasses: [
+                { id: 'c1' },
+            ] as unknown as AgentforceState['dependencies']['apexClasses'],
         },
         loading: true,
     });

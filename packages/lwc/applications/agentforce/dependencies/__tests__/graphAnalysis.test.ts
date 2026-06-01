@@ -120,8 +120,7 @@ test('findCycles: deterministic across repeated calls (regression guard)', () =>
     const a = findCycles(g);
     const b = findCycles(g);
     // Compare via stable string keys (each component sorted).
-    const stable = (cs: string[][]) =>
-        cs.map(c => c.slice().sort().join(',')).sort();
+    const stable = (cs: string[][]) => cs.map(c => c.slice().sort().join(',')).sort();
     assert.deepEqual(stable(a), stable(b));
 });
 
@@ -131,7 +130,10 @@ test('findCycles: deterministic across repeated calls (regression guard)', () =>
 
 test('computeCentrality: <3 nodes returns empty map (degenerate case)', () => {
     assert.equal(computeCentrality(singleNode()).size, 0);
-    assert.equal(computeCentrality({ nodes: [node('A'), node('B')], edges: [edge('A', 'B')] }).size, 0);
+    assert.equal(
+        computeCentrality({ nodes: [node('A'), node('B')], edges: [edge('A', 'B')] }).size,
+        0
+    );
 });
 
 test('computeCentrality: linear chain — middle node B is the bottleneck', () => {

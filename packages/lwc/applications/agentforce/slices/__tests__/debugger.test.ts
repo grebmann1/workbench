@@ -393,7 +393,11 @@ test('selectInteraction: re-selecting same id is idempotent (preserves queued in
         currentStepIndex: 0,
     });
     const next = testSlice.reducer(before, testSlice.actions.selectInteraction('0XiAA'));
-    assert.deepEqual(next.pendingJumpIntent, { stepOrder: 3 }, 'queued intent must survive re-selection');
+    assert.deepEqual(
+        next.pendingJumpIntent,
+        { stepOrder: 3 },
+        'queued intent must survive re-selection'
+    );
     assert.deepEqual(next.steps, [stepFixture], 'steps must survive re-selection');
 });
 
