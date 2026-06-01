@@ -4,7 +4,7 @@
         "active": true,
         "variant": "brand",
         "title": "Workbench 2.0.3 is coming",
-        "message": "Workbench 2.0.3 adds the Agentforce Explorer preview foundation, improves Anonymous Apex result handling, Record Viewer commands, GraphQL tooling, and fixes SOQL Explorer field selection so managed-package namespaces stay intact.",
+        "message": "Workbench 2.0.3 improves Anonymous Apex result handling, Record Viewer commands, GraphQL tooling, and fixes SOQL Explorer field selection so managed-package namespaces stay intact.",
         "linkLabel": "View release notes",
         "linkUrl": "https://www.sf-workbench.com/app?applicationName=release",
         "startsAt": "2026-05-30T00:00:00Z",

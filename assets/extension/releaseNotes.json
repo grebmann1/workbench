@@ -4,19 +4,6 @@
         "date": "May 30th, 2026",
         "sections": [
             {
-                "title": "Agentforce Explorer Preview",
-                "categories": [
-                    {
-                        "category": "Stabilization",
-                        "items": [
-                            "Added the Agentforce Explorer foundation for inspecting agents, topics, actions, AgentScripts, traces, dependency graphs, and variable changes.",
-                            "Added loading skeletons, empty states, fuzzy search, trace step extraction, record-id extraction, and Agentforce-focused unit coverage.",
-                            "Kept Agentforce Explorer hidden from the main application menu while the preview is hardened for broader use."
-                        ]
-                    }
-                ]
-            },
-            {
                 "title": "Developer Tools",
                 "categories": [
                     {
