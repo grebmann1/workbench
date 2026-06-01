@@ -24,7 +24,7 @@
                         "items": [
                             "Improved Anonymous Apex result normalization so SOAP success, compile errors, runtime exceptions, and log output render more consistently.",
                             "Added Record Viewer command wiring so Workbench can open records through the host command registry.",
-                            "Refined SOQL object and field panel behavior and moved shared SOQL query building into a tested utility.",
+                            "Fixed SOQL Explorer field selection so managed-package namespaces are preserved when adding namespaced objects, fields, relationship paths, and child relationship fields to SELECT statements.",
                             "Improved GraphQL API-version handling for connector-backed requests."
                         ]
                     }
