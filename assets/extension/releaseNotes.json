@@ -14,6 +14,34 @@
                             "Fixed SOQL Explorer field selection so managed-package namespaces are preserved when adding namespaced objects, fields, relationship paths, and child relationship fields to SELECT statements.",
                             "Improved GraphQL API-version handling for connector-backed requests."
                         ]
+                    },
+                    {
+                        "category": "SObject Explorer",
+                        "items": [
+                            "Fixed SObject Explorer so internal objects (e.g. ManagedContentSpaceChannel) are listed when SfdcInternalQA is enabled in Settings → Session, matching SOQL Explorer behavior."
+                        ]
+                    }
+                ]
+            },
+            {
+                "title": "Sessions & Connectivity",
+                "categories": [
+                    {
+                        "category": "Login As",
+                        "items": [
+                            "Fixed Login As impersonation so Workbench picks up the impersonated user's session, hydrating user info, footer, My User panel, agent tools, and frontdoor links with the runtime user instead of the delegating admin."
+                        ]
+                    }
+                ]
+            },
+            {
+                "title": "User Experience",
+                "categories": [
+                    {
+                        "category": "Launcher",
+                        "items": [
+                            "Added Org Overview to the launcher modal so it remains discoverable when Header Application Tabs is disabled."
+                        ]
                     }
                 ]
             },

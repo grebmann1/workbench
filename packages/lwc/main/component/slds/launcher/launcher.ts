@@ -14,6 +14,16 @@ const application_mapping = [
         type: 'metadata',
     },
     {
+        id: 'org',
+        name: 'Org Overview',
+        shortName: 'OO',
+        component: 'org/app',
+        description: 'Overview of org details, limits, and users',
+        isDeletable: true,
+        isElectronOnly: false,
+        type: 'metadata',
+    },
+    {
         id: 'metadata',
         name: 'Metadata Explorer',
         shortName: 'ME',

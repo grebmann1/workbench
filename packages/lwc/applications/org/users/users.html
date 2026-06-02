@@ -33,6 +33,10 @@
                                 {activityRateLabel}
                             </span>
                             <span class="org-users-badge">{growthLabel}</span>
+                            <template lwc:if={hasUserTypeBreakdown}>
+                                <span class="org-users-badge">{internalLabel}</span>
+                                <span class="org-users-badge">{externalLabel}</span>
+                            </template>
                         </div>
                     </div>
                 </section>

@@ -241,7 +241,7 @@ const APPLICATION_APP_MAPPING = {
         isDeletable: false,
         isElectronOnly: false,
         isOfflineAvailable: false,
-        isMenuVisible: false,
+        isMenuVisible: true,
         isTabVisible: true,
         label: 'Org. Overview',
         type: 'admin',

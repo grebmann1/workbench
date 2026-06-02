@@ -14,7 +14,7 @@
         "isDeletable": false,
         "isElectronOnly": false,
         "isOfflineAvailable": false,
-        "isMenuVisible": false,
+        "isMenuVisible": true,
         "isTabVisible": true
     }
 }
