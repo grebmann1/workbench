@@ -1,0 +1,59 @@
+{
+    "manifest_version": 3,
+    "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAucxt8vPlv2steOlQgSNnq+6Mz8iwiXY+c5usfeePHEQbzelvg2RvH6SJRopz8tpmSbYu8A7ccWyls8DkzT7aj8FcGRaVEKwwxczIexV1BTs6bmKjYFfGoWmrGoyi839PGmn4xW/8lr2cuKQWVsfLPvvFHCv1i67CUfZBWFV8fmT3gKb4EtYfoNzAzRc/8E1A9+zlytNzxX1zEXNOYOJNqz0h1T+o5s6XpzCiiSeTpKwVgwvHVsXvaavqvobIrKpCIsVOrDfKfgo2sYwXrfTOsXyW885xdWNNVFPhWeaTVG4Z9i0fhZ50DuzIPdYuSK11Wc8T3WRykRlLM8l+XXuRYQIDAQAB",
+    "name": "Workbench Chat",
+    "version": "__buildVersion__",
+    "description": "AI chat-first Salesforce workbench assistant with browser tools",
+    "icons": {
+        "128": "__buildLogo__"
+    },
+    "action": {
+        "default_title": "Click to open Workbench Chat"
+    },
+    "side_panel": {
+        "default_path": "views/chat.html"
+    },
+    "content_security_policy": {
+        "sandbox": "sandbox allow-scripts allow-forms allow-popups allow-modals; script-src 'self' 'unsafe-inline' 'unsafe-eval' https: http:; child-src 'self' blob:",
+        "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'; frame-src __buildWorkbenchOrigin__;"
+    },
+    "web_accessible_resources": [
+        {
+            "matches": ["<all_urls>"],
+            "resources": ["scripts/*", "assets/*", "styles/*", "libs/*", "views/*", "*/*"]
+        }
+    ],
+    "host_permissions": ["<all_urls>"],
+    "background": {
+        "service_worker": "scripts/background.js",
+        "type": "module"
+    },
+    "permissions": [
+        "identity",
+        "cookies",
+        "storage",
+        "tabs",
+        "tabGroups",
+        "sidePanel",
+        "unlimitedStorage",
+        "activeTab",
+        "scripting",
+        "debugger"
+    ],
+    "incognito": "spanning",
+    "oauth2": {
+        "client_id": "__googleOauthClientId__",
+        "scopes": [
+            "openid",
+            "https://www.googleapis.com/auth/userinfo.email",
+            "https://www.googleapis.com/auth/userinfo.profile",
+            "https://www.googleapis.com/auth/drive",
+            "https://www.googleapis.com/auth/drive.file",
+            "https://www.googleapis.com/auth/presentations",
+            "https://www.googleapis.com/auth/spreadsheets"
+        ]
+    },
+    "sandbox": {
+        "pages": ["views/sandbox.html", "views/sandbox-render.html"]
+    }
+}

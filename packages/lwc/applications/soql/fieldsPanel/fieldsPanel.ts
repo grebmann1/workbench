@@ -2,6 +2,7 @@ import ToolkitElement from 'host-api/element';
 import { store, connectStore, SELECTORS, SOBJECT } from 'host-api/store';
 import { fullApiName, lowerCaseKey } from 'host-api/utils';
 import { wire, api } from 'lwc';
+import { getDescribeByName } from '../describeResolver';
 import { UI } from 'soql/slices';
 
 export default class FieldsPanel extends ToolkitElement {
@@ -37,7 +38,12 @@ export default class FieldsPanel extends ToolkitElement {
         if (!selectedSObject) return;
 
         const fullSObjectName = lowerCaseKey(fullApiName(selectedSObject, this.namespace));
-        if (describe.nameMap && !describe.nameMap[fullSObjectName]) {
+        const describeEntry = getDescribeByName({
+            describeState: describe,
+            sobjectName: fullSObjectName,
+            useToolingApi: ui?.currentTab?.useToolingApi === true,
+        });
+        if (!describeEntry) {
             return;
         }
         if (fullSObjectName !== this._selectedSObject) {
@@ -48,7 +54,7 @@ export default class FieldsPanel extends ToolkitElement {
                 SOBJECT.describeSObject({
                     connector: this.connector.conn,
                     sObjectName: this._selectedSObject,
-                    useToolingApi: describe.nameMap[fullSObjectName].useToolingApi,
+                    useToolingApi: describeEntry.useToolingApi === true,
                 })
             );
         }

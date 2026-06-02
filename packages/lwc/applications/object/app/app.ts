@@ -6,6 +6,7 @@ import { SOBJECTEXPLORER } from 'object/slices';
 import Analytics from 'shared/analytics';
 import { store_application, store as legacyStore } from 'shared/store';
 import { isUndefinedOrNull, isNotUndefinedOrNull, lowerCaseKey } from 'shared/utils';
+import { ensureSessionClientCallOption } from '../sessionCallOptions';
 
 let _objectBootstrapped = false;
 function bootstrapObjectExtension() {
@@ -34,6 +35,13 @@ const METADATAFILTER_OPTIONS = [
     { label: 'Is Retrieveable', value: 'retrieveable' },
 ];
 
+const SOURCE = {
+    STANDARD: 'standard',
+    TOOLING: 'tooling',
+};
+
+const SHOW_TOOLING_STORAGE_KEY = 'object-explorer-showToolingObjects';
+
 export default class App extends ToolkitElement {
     _hasRendered = false;
     @wire(NavigationContext)
@@ -49,6 +57,7 @@ export default class App extends ToolkitElement {
     // Filter
     typeFilter_value: string[] = [];
     metadataFilter_value: string[] = [];
+    showToolingObjects = false;
 
     _pageRef: any;
     @wire(CurrentPageReference)
@@ -70,6 +79,7 @@ export default class App extends ToolkitElement {
 
     connectedCallback() {
         Analytics.trackAppOpen('object', { alias: this.alias });
+        this.showToolingObjects = localStorage.getItem(SHOW_TOOLING_STORAGE_KEY) === 'true';
         this.loadCachedSettings();
         this.loadAlls();
     }
@@ -100,6 +110,7 @@ export default class App extends ToolkitElement {
             state: {
                 applicationName: 'sobject',
                 attribute1: item.rawName,
+                attribute2: item.source || SOURCE.STANDARD,
             },
         });
     };
@@ -136,13 +147,27 @@ export default class App extends ToolkitElement {
         }, 1);
     };
 
+    showTooling_onChange = (e: any): void => {
+        this.showToolingObjects = e.detail.checked === true;
+        localStorage.setItem(SHOW_TOOLING_STORAGE_KEY, String(this.showToolingObjects));
+        this.filteredRecords = this.filterRecords();
+    };
+
     /** Methods */
 
     loadFromNavigation = async ({ state }: { state: any }): Promise<void> => {
-        const { applicationName, attribute1 } = state;
+        const { applicationName, attribute1, attribute2 } = state;
         if (applicationName != 'sobject') return;
         if (attribute1) {
-            const tab = SOBJECTEXPLORER.formatTab({ id: attribute1, label: attribute1 });
+            const source = attribute2 === SOURCE.TOOLING ? SOURCE.TOOLING : SOURCE.STANDARD;
+            const useToolingApi = source === SOURCE.TOOLING;
+            const tab = SOBJECTEXPLORER.formatTab({
+                id: `${lowerCaseKey(attribute1)}::${source}`,
+                label: attribute1,
+                rawName: attribute1,
+                source,
+                useToolingApi,
+            });
             store.dispatch(SOBJECTEXPLORER.reduxSlice.actions.upsertTab({ tab }));
         }
         this.filteredRecords = this.filterRecords();
@@ -159,9 +184,8 @@ export default class App extends ToolkitElement {
     };
 
     filterRecords = (): Array<Record<string, any>> => {
-        if (this.typeFilter_value.length == 0 && this.metadataFilter_value.length == 0)
-            return this.records;
         return this.records
+            .filter(x => this.showToolingObjects || x.source !== SOURCE.TOOLING)
             .filter(
                 x => this.typeFilter_value.includes(x.category) || this.typeFilter_value.length == 0
             )
@@ -178,6 +202,7 @@ export default class App extends ToolkitElement {
     };
 
     load_describeGlobal = async (): Promise<Array<Record<string, any>>> => {
+        await ensureSessionClientCallOption(this.connector);
         const { standard, tooling } = (
             await store.dispatch(
                 DESCRIBE.describeSObjects({
@@ -185,7 +210,17 @@ export default class App extends ToolkitElement {
                 })
             )
         ).payload;
-        return standard?.sobjects || [];
+        const standardObjects = (standard?.sobjects || []).map(sobject => ({
+            ...sobject,
+            source: SOURCE.STANDARD,
+            useToolingApi: false,
+        }));
+        const toolingObjects = (tooling?.sobjects || []).map(sobject => ({
+            ...sobject,
+            source: SOURCE.TOOLING,
+            useToolingApi: true,
+        }));
+        return [...standardObjects, ...toolingObjects];
     };
 
     describeAll = async (): Promise<void> => {
@@ -211,10 +246,12 @@ export default class App extends ToolkitElement {
     get computedTree() {
         return this.filteredRecords
             .map(x => ({
-                id: lowerCaseKey(x.name),
-                name: `${x.name} / ${x.label}`,
-                title: `${x.name} / ${x.label}`,
+                id: lowerCaseKey(`${x.name}::${x.source || SOURCE.STANDARD}`),
+                name: `${x.name} (${x.source === SOURCE.TOOLING ? 'Tooling' : 'Standard'}) / ${x.label}`,
+                title: `${x.name} (${x.source === SOURCE.TOOLING ? 'Tooling' : 'Standard'}) / ${x.label}`,
                 rawName: x.name,
+                source: x.source || SOURCE.STANDARD,
+                useToolingApi: x.useToolingApi === true,
                 icon: getCategoryIcon(x.category, x.custom),
             }))
             .sort((a, b) => a.rawName.localeCompare(b.rawName));
@@ -255,12 +292,23 @@ export default class App extends ToolkitElement {
     get formattedTabs() {
         return this.tabs.map(tab => ({
             ...tab,
-            name: tab.label || tab.id,
+            name:
+                tab.label && tab.source
+                    ? `${tab.label} (${tab.source === SOURCE.TOOLING ? 'Tooling' : 'Standard'})`
+                    : tab.label || tab.id,
         }));
     }
 
     get activeTabId() {
         return this.currentTab?.id;
+    }
+
+    get activeRecordName() {
+        return this.currentTab?.rawName || this.currentTab?.label || this.currentTab?.id;
+    }
+
+    get activeUseToolingApi() {
+        return this.currentTab?.useToolingApi === true;
     }
 
     get isViewerDisplayed() {

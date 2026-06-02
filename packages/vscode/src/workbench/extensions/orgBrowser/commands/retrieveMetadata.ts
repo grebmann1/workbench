@@ -62,10 +62,17 @@ export function createRetrieveHandler({ dataRuntime, retrieveService, treeProvid
         if (!confirmed) {
             return 'canceled';
         }
-        const result = await retrieveService.retrieveMembers(members, {
-            openFirstFile: members.length === 1,
-            title: buildRetrieveTitle(node),
-        });
+        let result;
+        try {
+            result = await retrieveService.retrieveMembers(members, {
+                openFirstFile: members.length === 1,
+                title: buildRetrieveTitle(node),
+            });
+        } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            await vscode.window.showErrorMessage(`Retrieve failed: ${message}`);
+            throw error;
+        }
         if (node.kind === 'component' || node.kind === 'customField') {
             node.filePresent = true;
             treeProvider.fireChangeEvent(node);

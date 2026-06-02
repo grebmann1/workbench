@@ -92,7 +92,7 @@ export default class QuickAuthorize extends ToolkitElement {
 
     load_orgInformations = async () => {
         const response = await this.connector.conn.query(
-            'SELECT Fields(all) FROM Organization LIMIT 1'
+            'SELECT Id, Name, OrganizationType, CreatedDate, InstanceName, IsSandbox, LanguageLocaleKey, TimeZoneSidKey FROM Organization LIMIT 1'
         );
         return response.records[0];
     };

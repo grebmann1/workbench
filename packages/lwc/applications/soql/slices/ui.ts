@@ -1,14 +1,17 @@
-import {
-    getField,
-    getFlattenedFields,
-    composeQuery,
-    parseQuery,
-    isQueryValid,
-} from '@jetstreamapp/soql-parser-js';
+import { composeQuery, parseQuery, isQueryValid } from '@jetstreamapp/soql-parser-js';
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import type { ConnectorLike, ConnectionLike } from 'host-api/connector';
 import { DOCUMENT } from 'host-api/store';
-import { stripNamespace, isNotUndefinedOrNull, isEmpty, guid, lowerCaseKey } from 'host-api/utils';
+import { isNotUndefinedOrNull, isEmpty, guid, lowerCaseKey } from 'host-api/utils';
+import { getDescribeByName } from '../describeResolver';
+import {
+    INITIAL_QUERY,
+    clearAllFields,
+    selectAllFields,
+    selectSObject,
+    toggleField,
+    toggleRelationship,
+} from './queryFieldSelection';
 
 import * as QUERY from './query';
 
@@ -16,10 +19,6 @@ const queryFilesSelectors = DOCUMENT.queryFileAdapter.getSelectors(s => s);
 
 const SETTINGS_KEY = 'SETTINGS_KEY';
 
-const INITIAL_QUERY = {
-    fields: [getField('Id')],
-    sObject: undefined,
-};
 const INITIAL_BODY = 'SELECT Id';
 const INITIAL_TABS = [enrichTab({ id: guid(), body: INITIAL_BODY }, true)];
 
@@ -27,88 +26,6 @@ const QUERY_CONFIG = {
     fieldMaxLineLength: 100,
     fieldSubqueryParensOnOwnLine: false,
 };
-
-function _getRawFieldName(fieldName, relationships) {
-    if (relationships) {
-        return `${relationships}.${fieldName}`;
-    }
-    return fieldName;
-}
-
-function _toggleField(q, fieldName, relationships) {
-    fieldName = stripNamespace(fieldName);
-    relationships = stripNamespace(relationships);
-    const fieldNames = stripNamespace(getFlattenedFields(q));
-    const rawFieldName = stripNamespace(_getRawFieldName(fieldName, relationships));
-    if (fieldNames.includes(rawFieldName)) {
-        return {
-            ...q,
-            fields: q.fields.filter(field => {
-                const relationshipPath = field.relationships && field.relationships.join('.');
-                return (
-                    stripNamespace(_getRawFieldName(field.field, relationshipPath)) !== rawFieldName
-                );
-            }),
-        };
-    }
-    if (relationships) {
-        return {
-            ...q,
-            fields: [
-                ...q.fields,
-                getField({
-                    field: fieldName,
-                    relationships: relationships.split('.'),
-                }),
-            ],
-        };
-    }
-    return {
-        ...q,
-        fields: [...q.fields, getField(fieldName)],
-    };
-}
-
-function _toggleChildRelationshipField(state, fieldName, relationships, childRelationship) {
-    fieldName = stripNamespace(fieldName);
-    childRelationship = stripNamespace(childRelationship);
-    const childField = state.fields.find(
-        field =>
-            field.subquery && stripNamespace(field.subquery.relationshipName) === childRelationship
-    );
-    if (!childField) {
-        return {
-            ...state,
-            fields: [
-                ...state.fields,
-                getField({
-                    subquery: {
-                        fields: [getField(fieldName)],
-                        relationshipName: childRelationship,
-                    },
-                }),
-            ],
-        };
-    }
-    relationships = stripNamespace(relationships);
-    const newSubquery = _toggleField(childField.subquery, fieldName, relationships);
-    const newFields = state.fields.map(field => {
-        if (
-            field.subquery &&
-            stripNamespace(field.subquery.relationshipName) === childRelationship
-        ) {
-            return {
-                ...field,
-                subquery: newSubquery,
-            };
-        }
-        return field;
-    });
-    return {
-        ...state,
-        fields: newFields,
-    };
-}
 
 function saveCacheSettings(alias, state) {
     try {
@@ -118,6 +35,7 @@ function saveCacheSettings(alias, state) {
             recentPanelToggled,
             tabs,
             includeDeletedRecords,
+            alwaysShowTooling,
             currentTab,
         } = state;
         localStorage.setItem(
@@ -128,6 +46,7 @@ function saveCacheSettings(alias, state) {
                 recentPanelToggled,
                 tabs,
                 includeDeletedRecords,
+                alwaysShowTooling,
                 currentTabId: currentTab?.id,
             })
         );
@@ -150,53 +69,6 @@ function loadCacheSettings(alias) {
         console.error('Failed to load CONFIG from localStorage', e);
     }
     return null;
-}
-
-function toggleField(state = INITIAL_QUERY, action) {
-    const { fieldName, relationships, childRelationship } = action.payload;
-    if (childRelationship) {
-        return _toggleChildRelationshipField(state, fieldName, relationships, childRelationship);
-    }
-    return _toggleField(state, fieldName, relationships);
-}
-
-function toggleRelationship(state = [], action) {
-    const { relationshipName } = action.payload;
-    const relationship = stripNamespace(relationshipName);
-    const fieldNames = stripNamespace(getFlattenedFields(state));
-    if (fieldNames.includes(relationship)) {
-        return {
-            ...state,
-            fields: state.fields.filter(
-                field =>
-                    !field.subquery ||
-                    stripNamespace(field.subquery.relationshipName) !== relationship
-            ),
-        };
-    }
-    const subquery = {
-        fields: [getField('Id')],
-        relationshipName: relationship,
-    };
-    return {
-        ...state,
-        fields: [...state.fields, getField({ subquery })],
-    };
-}
-
-function selectAllFields(q = INITIAL_QUERY, action) {
-    const { sObjectMeta } = action.payload;
-    return {
-        ...q,
-        fields: sObjectMeta.fields.map(field => getField(stripNamespace(field.name))),
-    };
-}
-
-function clearAllFields(q = INITIAL_QUERY) {
-    return {
-        ...q,
-        fields: [getField('Id')],
-    };
 }
 
 function updateCurrentTab(state, attributes) {
@@ -231,8 +103,18 @@ function parseSObjectFromBody(body) {
 }
 
 function formatTab(tab) {
-    const { id, name, body, isDraft, fileId, fileBody, tableSearch, selectedRecordIds, sobject } =
-        tab;
+    const {
+        id,
+        name,
+        body,
+        isDraft,
+        fileId,
+        fileBody,
+        tableSearch,
+        selectedRecordIds,
+        sobject,
+        useToolingApi,
+    } = tab;
     return {
         id,
         name,
@@ -243,6 +125,7 @@ function formatTab(tab) {
         tableSearch: tableSearch || '',
         selectedRecordIds: Array.isArray(selectedRecordIds) ? selectedRecordIds : [],
         sobject: sobject || parseSObjectFromBody(body),
+        useToolingApi: useToolingApi === true,
     };
 }
 
@@ -357,7 +240,11 @@ export const saveAllPendingEdits = createAsyncThunk(
         for (const sobjectType of Object.keys(byType)) {
             const entries = byType[sobjectType];
             const useToolingApi =
-                describeState?.nameMap?.[lowerCaseKey(sobjectType)]?.useToolingApi === true;
+                getDescribeByName({
+                    describeState,
+                    sobjectName: sobjectType,
+                    useToolingApi: state?.ui?.currentTab?.useToolingApi === true,
+                })?.useToolingApi === true;
             const conn: any = useToolingApi
                 ? (connector.conn as any).tooling
                 : (connector.conn as any);
@@ -417,6 +304,7 @@ const uiSlice = createSlice({
         leftPanelToggled: false,
         recentPanelToggled: false,
         includeDeletedRecords: false,
+        alwaysShowTooling: false,
         isInitialized: false,
         _alias: undefined,
         pendingEdits: {} as Record<string, Record<string, any>>,
@@ -433,6 +321,7 @@ const uiSlice = createSlice({
                     recentPanelToggled,
                     tabs,
                     includeDeletedRecords,
+                    alwaysShowTooling,
                     currentTabId,
                 } = cachedConfig;
                 const restoredTabs =
@@ -447,6 +336,7 @@ const uiSlice = createSlice({
                     tabs: restoredTabs,
                     currentTab: restoredCurrent,
                     includeDeletedRecords,
+                    alwaysShowTooling: alwaysShowTooling === true,
                 });
                 updateSOQL(state, restoredCurrent?.body || '');
             }
@@ -537,16 +427,31 @@ const uiSlice = createSlice({
                 saveCacheSettings(alias, state);
             }
         },
+        updateAlwaysShowTooling: (state, action) => {
+            const { value, alias } = action.payload;
+            state.alwaysShowTooling = value === true;
+            if (isNotUndefinedOrNull(alias)) {
+                saveCacheSettings(alias, state);
+            }
+        },
+        updateUseToolingApi: (state, action) => {
+            const { value, alias } = action.payload;
+            const tabIndex = state.tabs.findIndex(x => x.id === state.currentTab.id);
+            if (tabIndex > -1) {
+                state.tabs[tabIndex].useToolingApi = value === true;
+                state.currentTab = state.tabs[tabIndex];
+            }
+            if (isNotUndefinedOrNull(alias)) {
+                saveCacheSettings(alias, state);
+            }
+        },
         updateApiLimit: (state, action: { payload: { connector: ConnectorLike } }) => {
             const { limitInfo } = action.payload?.connector;
             state.apiUsage = limitInfo ? limitInfo.apiUsage : undefined;
         },
         selectSObject: (state, action) => {
             const { sObjectName } = action.payload;
-            const q = {
-                ...INITIAL_QUERY,
-                sObject: stripNamespace(sObjectName),
-            };
+            const q = selectSObject(sObjectName);
             state.selectedSObject = sObjectName;
             state.query = q;
             state.soql = composeQuery(q, { format: true, formatOptions: QUERY_CONFIG });

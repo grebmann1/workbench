@@ -1,0 +1,74 @@
+<template>
+    <div class={pageClass}>
+        <builder-editor>
+            <builder-header
+                slot="header"
+                title="Tools"
+                sub-title="Agentforce Explorer"
+                icon-name="standard:bot">
+                <p slot="meta" class="slds-page-header__meta-text slds-text-color_weak">
+                    Inspect, debug, and edit Agentforce agents, topics, and actions.
+                </p>
+            </builder-header>
+            <article class="full-page-body slds-card">
+                <div
+                    class="slds-is-relative slds-full-width slds-full-height slds-flex-column agentforce__body"
+                    style="min-height: 200px">
+                    <div class="agentforce__tabs">
+                        <button
+                            class="agentforce__tab"
+                            aria-selected={isInspectorActive}
+                            onclick={handleSelectInspector}>
+                            Inspector
+                        </button>
+                        <button
+                            class="agentforce__tab"
+                            aria-selected={isDependenciesActive}
+                            onclick={handleSelectDependencies}>
+                            Dependencies
+                        </button>
+                        <button
+                            class="agentforce__tab"
+                            aria-selected={isDebuggerActive}
+                            onclick={handleSelectDebugger}>
+                            Debugger
+                        </button>
+                        <button
+                            class="agentforce__tab"
+                            aria-selected={isEditorActive}
+                            onclick={handleSelectEditor}>
+                            Editor
+                        </button>
+                    </div>
+                    <div class="agentforce__content">
+                        <template lwc:if={isInspectorActive}>
+                            <div class="agentforce__split-pane slds-full-height">
+                                <agentforce-inspector
+                                    class="agentforce__pane-left"
+                                    application-name={applicationName}></agentforce-inspector>
+                                <agentforce-viewer
+                                    class="agentforce__pane-right"
+                                    application-name={applicationName}></agentforce-viewer>
+                            </div>
+                        </template>
+                        <template lwc:if={isDependenciesActive}>
+                            <agentforce-dependencies
+                                class="slds-full-height"
+                                application-name={applicationName}></agentforce-dependencies>
+                        </template>
+                        <template lwc:if={isDebuggerActive}>
+                            <agentforce-debugger
+                                class="slds-full-height"
+                                application-name={applicationName}></agentforce-debugger>
+                        </template>
+                        <template lwc:if={isEditorActive}>
+                            <agentforce-editor
+                                class="slds-full-height"
+                                application-name={applicationName}></agentforce-editor>
+                        </template>
+                    </div>
+                </div>
+            </article>
+        </builder-editor>
+    </div>
+</template>

@@ -13,6 +13,7 @@ List, connect, disconnect, or open Salesforce orgs.
 - Use **list_connections** first when user says "my orgs" or "which org".
 - Use **connect_org** to log in (by alias or sessionId+instanceUrl); optional redirect to an app.
 - Use **navigate_to_org** to open the org in the browser.
+- Use **`sf open ...`** (bash shim) to open specific Lightning destinations (record, list, setup, app, page, url) after org context is known.
 
 ## When NOT to use
 

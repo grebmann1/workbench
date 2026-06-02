@@ -8,20 +8,10 @@ import {
 } from 'shared/cacheManager';
 import { lowerCaseKey, guid, isNotUndefinedOrNull } from 'shared/utils';
 
+import { normalizeExecuteAnonymousResult } from './normalizeExecuteAnonymousResult';
+
 const apexFilesSelectors = DOCUMENT.apexFileAdapter.getSelectors(s => s.apexFiles);
 
-const Schemas = {};
-Schemas.ExecuteAnonymousResult = {
-    compileProblem: 'string',
-    compiled: 'boolean',
-    line: 'number',
-    column: 'number',
-    exceptionMessage: 'string',
-    exceptionStackTrace: 'string',
-    success: 'boolean',
-    // From Header
-    debugLog: 'string',
-};
 const INFO = 'INFO';
 const DEBUG = 'DEBUG';
 const ANONYNMOUS_APEX_SETTINGS_KEY = 'ANONYNMOUS_APEX_SETTINGS_KEY';
@@ -100,49 +90,101 @@ async function saveCacheSettings(alias, state) {
 /** Redux */
 
 export const apexAdapter = createEntityAdapter();
-const _executeApexAnonymous = (connector: ConnectorLike, body: string, headers: any) => {
-    //console.log('connector,body,headers',connector,body,headers);
-    return connector.conn.soap._invoke(
-        'executeAnonymous',
-        { apexcode: body },
-        Schemas.ExecuteAnonymousResult,
-        {
-            xmlns: 'http://soap.sforce.com/2006/08/apex',
-            endpointUrl: connector.conn.instanceUrl + '/services/Soap/s/' + connector.conn.version,
-            headers,
+const escapeXml = (value: string) =>
+    String(value)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&apos;');
+
+const getNodeText = (doc: XMLDocument, localName: string) => {
+    const nodes = doc.getElementsByTagName('*');
+    for (let i = 0; i < nodes.length; i += 1) {
+        const node = nodes.item(i);
+        if (node?.localName === localName) {
+            return node.textContent || '';
         }
-    );
+    }
+    return '';
 };
-const formatHeaders = state => ({
-    DebuggingHeader: {
-        categories: [
-            {
-                category: 'Apex_code',
-                level: state.debug_apexCode,
-            },
-            {
-                category: 'Callout',
-                level: state.debug_callout,
-            },
-            {
-                category: 'Validation',
-                level: state.debug_validation,
-            },
-            {
-                category: 'Db',
-                level: state.debug_db,
-            },
-            {
-                category: 'Apex_profiling',
-                level: state.debug_profiling,
-            },
-            {
-                category: 'System',
-                level: state.debug_system,
-            },
-        ],
-    },
-});
+
+const getBoolean = (doc: XMLDocument, localName: string) => getNodeText(doc, localName) === 'true';
+const getNumberOrNull = (doc: XMLDocument, localName: string) => {
+    const text = getNodeText(doc, localName);
+    const parsed = Number.parseInt(text, 10);
+    return Number.isFinite(parsed) ? parsed : null;
+};
+
+const buildDebugCategories = state => [
+    { category: 'Apex_code', level: state.debug_apexCode },
+    { category: 'Callout', level: state.debug_callout },
+    { category: 'Validation', level: state.debug_validation },
+    { category: 'Db', level: state.debug_db },
+    { category: 'Apex_profiling', level: state.debug_profiling },
+    { category: 'System', level: state.debug_system },
+];
+
+const parseExecuteAnonymousSoapResponse = (xmlText: string) => {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(xmlText, 'text/xml');
+    const fault = getNodeText(doc, 'faultstring');
+    if (fault) {
+        throw new Error(fault);
+    }
+
+    return normalizeExecuteAnonymousResult({
+        compiled: getBoolean(doc, 'compiled'),
+        success: getBoolean(doc, 'success'),
+        compileProblem: getNodeText(doc, 'compileProblem'),
+        exceptionMessage: getNodeText(doc, 'exceptionMessage'),
+        exceptionStackTrace: getNodeText(doc, 'exceptionStackTrace'),
+        line: getNumberOrNull(doc, 'line'),
+        column: getNumberOrNull(doc, 'column'),
+        debugLog: getNodeText(doc, 'debugLog'),
+    });
+};
+
+const _executeApexAnonymous = async (connector: ConnectorLike, body: string, state: any) => {
+    const conn = (connector as any).conn;
+    const endpointUrl = `${conn.instanceUrl}/services/Soap/s/${conn.version}`;
+    const debugCategoriesXml = buildDebugCategories(state)
+        .map(
+            ({ category, level }) =>
+                `<categories><category>${escapeXml(category)}</category><level>${escapeXml(level)}</level></categories>`
+        )
+        .join('');
+    const envelope = `<?xml version="1.0" encoding="utf-8"?>
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:apex="http://soap.sforce.com/2006/08/apex">
+  <soapenv:Header>
+    <apex:SessionHeader>
+      <apex:sessionId>${escapeXml(conn.accessToken || '')}</apex:sessionId>
+    </apex:SessionHeader>
+    <apex:DebuggingHeader>
+      ${debugCategoriesXml}
+    </apex:DebuggingHeader>
+  </soapenv:Header>
+  <soapenv:Body>
+    <apex:executeAnonymous>
+      <apex:apexcode>${escapeXml(body || '')}</apex:apexcode>
+    </apex:executeAnonymous>
+  </soapenv:Body>
+</soapenv:Envelope>`;
+    const res = await fetch(endpointUrl, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'text/xml; charset=UTF-8',
+            SOAPAction: 'executeAnonymous',
+        },
+        body: envelope,
+    });
+    const xmlText = await res.text();
+    if (!res.ok) {
+        const fallback = xmlText || `executeAnonymous failed (${res.status})`;
+        throw new Error(fallback);
+    }
+    return parseExecuteAnonymousSoapResponse(xmlText);
+};
 export const executeApexAnonymous = createAsyncThunk(
     'apex/executeAnonymous',
     async (
@@ -162,11 +204,7 @@ export const executeApexAnonymous = createAsyncThunk(
         //console.log('connector, body,tabId',connector, body,tabId);
         //const apiPath = isAllRows ? '/queryAll' : '/query';
         try {
-            const res = await _executeApexAnonymous(
-                connector,
-                body,
-                formatHeaders(getState().apex)
-            );
+            const res = await _executeApexAnonymous(connector, body, getState().apex);
             dispatch(
                 DOCUMENT.reduxSlices.RECENT.actions.saveApex({
                     body,
@@ -178,6 +216,22 @@ export const executeApexAnonymous = createAsyncThunk(
             console.error(err);
             throw err;
         }
+    }
+);
+export const executeApexAnonymousIncognito = createAsyncThunk(
+    'apex/executeAnonymousIncognito',
+    async (
+        {
+            connector,
+            body,
+        }: {
+            connector: ConnectorLike;
+            body: string;
+        },
+        { getState }
+    ) => {
+        const res = await _executeApexAnonymous(connector, body, getState().apex);
+        return { data: res, body, alias: connector.conn.alias };
     }
 );
 // TODO : Add model to the state to be able to display the model in the editor instead of the body !!!!!

@@ -293,6 +293,7 @@ const sharedModules = [
     { name: 'shared/llm', path: getSharedModulePath('llm') },
     { name: 'shared/loader', path: getSharedModulePath('loader') },
     { name: 'shared/logger', path: getSharedModulePath('logger') },
+    { name: 'shared/metadataApi', path: getSharedModulePath('metadataApi') },
     { name: 'shared/markdown', path: getSharedModulePath('markdown') },
     { name: 'shared/middleware', path: getSharedModulePath('middleware') },
     { name: 'shared/sf', path: getSharedModulePath('sf') },
@@ -300,6 +301,10 @@ const sharedModules = [
     { name: 'shared/types', path: r('../../packages/lwc/shared/modules/types/index.ts') },
     { name: 'shared/utils', path: getSharedModulePath('utils') },
     { name: 'shared/salesforceUrl', path: getSharedModulePath('salesforceUrl') },
+    { name: 'shared/pageReference/pageReference', path: r('../../packages/lwc/shared/modules/pageReference/pageReference.ts') },
+    { name: 'shared/sf/setupUrl', path: r('../../packages/lwc/shared/modules/sf/setupUrl.ts') },
+    { name: 'shared/sliceHelpers/handleSliceError', path: r('../../packages/lwc/shared/modules/sliceHelpers/handleSliceError.ts') },
+    { name: 'shared/soqlQuery/soqlQuery', path: r('../../packages/lwc/shared/modules/soqlQuery/soqlQuery.ts') },
 ];
 
 const coreAliasEntries = [
@@ -380,35 +385,44 @@ const monacoWrapperInlineScriptExtractor = () => ({
 });
 
 // Copy targets extracted for clarity
-const assetCopyTargets = [
-    { src: r('../../assets/extension/styles'), dest: r('../../dist/extension') },
-    { src: r('../../assets/extension/libs'), dest: r('../../dist/extension') },
+const getAssetCopyTargets = (distRoot) => [
+    { src: r('../../assets/extension/styles'), dest: r(distRoot) },
+    { src: r('../../assets/extension/libs'), dest: r(distRoot) },
     // { src: r('../../assets/shared/libs/extensions'), dest: r('../../dist/extension/libs') },
-    { src: r('../../assets/extension/images'), dest: r('../../dist/extension') },
-    { src: r('../../node_modules/@salesforce-ux/design-system/assets'), dest: r('../../dist/extension') },
+    { src: r('../../assets/extension/images'), dest: r(distRoot) },
+    { src: r('../../node_modules/@salesforce-ux/design-system/assets'), dest: r(distRoot) },
     // Default skills are fetched from /public/skills at runtime.
     // Note: copying a directory into ".../public/skills" would create ".../public/skills/skills/...".
     // We want "/public/skills/<...>".
-    { src: r('../../assets/shared/skills'), dest: r('../../dist/extension/public') },
-    { src: r('../../assets/extension/releaseNotes.json'), dest: r('../../dist/extension') }
+    { src: r('../../assets/shared/skills'), dest: r(`${distRoot}/public`) },
+    { src: r('../../assets/extension/releaseNotes.json'), dest: r(distRoot) }
 ];
 
-const getChromeCopyTargets = (isProduction) => [
-    { src: r('../../packages/extension/src/views/'), dest: r('../../dist/extension') },
+const getChromeCopyTargets = ({
+    isProduction,
+    distRoot = '../../dist/extension',
+    manifestTemplatePath = '../../packages/extension/manifest.template.json',
+    productionLogo = 'images/sf-toolkit-icon-128.png',
+    developmentLogo = 'images/sf-toolkit-icon-128-dev.png',
+    viewsPath = '../../packages/extension/src/views/',
+    scriptsPath = '../../packages/extension/src/scripts',
+    imagesPath = '../../packages/extension/src/images',
+}) => [
+    { src: r(viewsPath), dest: r(distRoot) },
     // Copy plain scripts (app.js, callback.js, preload.js, etc.) as-is.
     // The bundled `viewer.js` lives under `packages/extension/src/modules/`
     // (see `basicBundler` below) so this copy step cannot overwrite it.
-    { src: r('../../packages/extension/src/scripts'), dest: r('../../dist/extension') },
-    { src: r('../../packages/extension/src/images'), dest: r('../../dist/extension') },
+    { src: r(scriptsPath), dest: r(distRoot) },
+    { src: r(imagesPath), dest: r(distRoot) },
     {
-        src: r('../../packages/extension/manifest.template.json'),
-        dest: r('../../dist/extension'),
+        src: r(manifestTemplatePath),
+        dest: r(distRoot),
         rename: 'manifest.json',
         transform: (contents) => {
             let newContents = contents.toString();
             newContents = newContents.replace(
                 '__buildLogo__',
-                isProduction ? 'images/sf-toolkit-icon-128.png' : 'images/sf-toolkit-icon-128-dev.png'
+                isProduction ? productionLogo : developmentLogo
             );
             newContents = newContents.replace('__buildVersion__', data.version);
             newContents = newContents.replace(
@@ -436,6 +450,51 @@ const getChromeCopyTargets = (isProduction) => [
     }
 ];
 
+const getChromeChatCopyTargets = (isProduction) => [
+    { src: r('../../packages/extension-chat/src/views/chat.html'), dest: r('../../dist/extension-chat/views') },
+    { src: r('../../packages/extension-chat/src/views/sandbox.html'), dest: r('../../dist/extension-chat/views') },
+    { src: r('../../packages/extension-chat/src/views/sandbox-render.html'), dest: r('../../dist/extension-chat/views') },
+    { src: r('../../packages/extension-chat/src/scripts/chat.js'), dest: r('../../dist/extension-chat/scripts') },
+    { src: r('../../packages/extension-chat/src/scripts/chat-boot.js'), dest: r('../../dist/extension-chat/scripts') },
+    { src: r('../../packages/extension-chat/src/scripts/sandbox-render.js'), dest: r('../../dist/extension-chat/scripts') },
+    { src: r('../../packages/extension-chat/src/scripts/preload.js'), dest: r('../../dist/extension-chat/scripts') },
+    { src: r('../../packages/extension-chat/src/scripts/googleAnalytic.js'), dest: r('../../dist/extension-chat/scripts') },
+    {
+        src: r('../../packages/extension-chat/manifest.template.json'),
+        dest: r('../../dist/extension-chat'),
+        rename: 'manifest.json',
+        transform: (contents) => {
+            let newContents = contents.toString();
+            newContents = newContents.replace(
+                '__buildLogo__',
+                isProduction
+                    ? 'images/sf-toolkit-chat-icon-128.png'
+                    : 'images/sf-toolkit-chat-icon-128-dev.png'
+            );
+            newContents = newContents.replace('__buildVersion__', data.version);
+            newContents = newContents.replace(
+                '__buildWorkbenchOrigin__',
+                String(
+                    process.env.WORKBENCH_VSCODE_URL ||
+                        process.env.WORKBENCH_BASE_URL ||
+                        'https://www.sf-workbench.com'
+                )
+                    .trim()
+                    .replace(/\/+$/, '') + '/'
+            );
+            const googleClientId = String(process.env.GOOGLE_CLIENT_ID_EXTENSION || '');
+            if (googleClientId) {
+                newContents = newContents.replace('__googleOauthClientId__', googleClientId);
+            } else {
+                const parsed = JSON.parse(newContents);
+                delete parsed.oauth2;
+                newContents = JSON.stringify(parsed, null, 4);
+            }
+            return newContents;
+        },
+    },
+];
+
 // Modules array extracted for clarity
 const modules = [
     { dir: r('../../packages/lwc/extension') },
@@ -455,6 +514,7 @@ const modules = [
     { name: 'core/desktopBridge', path: r('../../packages/lwc/main/core/desktopBridge.ts') },
     { name: 'core/fs', path: r('../../packages/lwc/main/core/fs/fs.ts') },
     { name: 'core/store/storeRef', path: r('../../packages/lwc/main/core/store/storeRef.ts') },
+    { name: 'core/store/reportError', path: r('../../packages/lwc/main/core/store/reportError.ts') },
     { name: 'host-api/store', path: r('../../packages/lwc/main/host-api/store.ts') },
     { name: 'host-api/types', path: r('../../packages/lwc/main/host-api/types.ts') },
     { name: 'host-api/element', path: r('../../packages/lwc/main/host-api/element.ts') },
@@ -463,7 +523,7 @@ const modules = [
     { name: 'host-api/logger', path: r('../../packages/lwc/main/host-api/logger.ts') },
     { name: 'host-api/analytics', path: r('../../packages/lwc/main/host-api/analytics.ts') },
     { name: 'host-api/builder', path: r('../../packages/lwc/main/host-api/builder.ts') },
-    { name: 'host-api/commands', path: r('../../packages/lwc/main/host-api/commands.ts') },
+    { name: 'host-api/commands', path: r('../../packages/lwc/main/host-api/commands.js') },
     { name: 'host-api/slashCommands', path: r('../../packages/lwc/main/host-api/slashCommands.ts') },
     { name: 'host-api/settingsElement', path: r('../../packages/lwc/main/host-api/settingsElement.ts') },
     { name: 'host-api/desktopBridge', path: r('../../packages/lwc/main/host-api/desktopBridge.ts') },
@@ -492,6 +552,10 @@ const modules = [
     { name: 'graphql/shortcutsModal', path: r('../../packages/lwc/applications/graphql/shortcutsModal/shortcutsModal.ts') },
     { name: 'graphql/templates', path: r('../../packages/lwc/applications/graphql/templates.ts') },
     { name: 'graphql/catalogPanel', path: r('../../packages/lwc/applications/graphql/catalogPanel/catalogPanel.ts') },
+    { name: 'agentforce/slices/agents', path: r('../../packages/lwc/applications/agentforce/slices/agents.ts') },
+    { name: 'agentforce/slices/debugger', path: r('../../packages/lwc/applications/agentforce/slices/debugger.ts') },
+    { name: 'agentforce/inspector/search/fuzzyMatch', path: r('../../packages/lwc/applications/agentforce/inspector/search/fuzzyMatch.ts') },
+    { name: 'agentforce/shared/emptyStates/emptyStates', path: r('../../packages/lwc/applications/agentforce/shared/emptyStates/emptyStates.ts') },
     ...sharedModules,
     //{ name: 'jspdf', path: r('src/client/assets/libs/jspdf/jspdf.es.js') },
     //{ name: 'jspdf-autotable', path: r('src/client/assets/libs/jspdf/jspdf.plugin.autotable.js') },
@@ -510,6 +574,8 @@ const modules = [
     { name: 'vscode/bridge/iframeJsforceBridgeClient', path: r('../../packages/lwc/main/vscode/fullApp/bridge/iframeJsforceBridgeClient.ts') },
 ];
 
+const chatModules = modules;
+
 const injectedModules = [
     { name: 'core/store', path: r('../../packages/lwc/main/core/store/lightStore.ts') }, // fake store for injection
     { dir: r('../../packages/lwc/extension') },
@@ -522,6 +588,7 @@ const injectedModules = [
     { name: 'core/connector', path: r('../../packages/lwc/main/core/connector/connector.ts') },
     { name: 'core/desktopBridge', path: r('../../packages/lwc/main/core/desktopBridge.ts') },
     { name: 'core/store/storeRef', path: r('../../packages/lwc/main/core/store/storeRef.ts') },
+    { name: 'core/store/reportError', path: r('../../packages/lwc/main/core/store/reportError.ts') },
     { name: 'host-api/store', path: r('../../packages/lwc/main/host-api/store.ts') },
     { name: 'host-api/types', path: r('../../packages/lwc/main/host-api/types.ts') },
     { name: 'host-api/element', path: r('../../packages/lwc/main/host-api/element.ts') },
@@ -530,7 +597,7 @@ const injectedModules = [
     { name: 'host-api/logger', path: r('../../packages/lwc/main/host-api/logger.ts') },
     { name: 'host-api/analytics', path: r('../../packages/lwc/main/host-api/analytics.ts') },
     { name: 'host-api/builder', path: r('../../packages/lwc/main/host-api/builder.ts') },
-    { name: 'host-api/commands', path: r('../../packages/lwc/main/host-api/commands.ts') },
+    { name: 'host-api/commands', path: r('../../packages/lwc/main/host-api/commands.js') },
     { name: 'host-api/slashCommands', path: r('../../packages/lwc/main/host-api/slashCommands.ts') },
     { name: 'host-api/settingsElement', path: r('../../packages/lwc/main/host-api/settingsElement.ts') },
     { name: 'host-api/desktopBridge', path: r('../../packages/lwc/main/host-api/desktopBridge.ts') },
@@ -559,6 +626,10 @@ const injectedModules = [
     { name: 'graphql/shortcutsModal', path: r('../../packages/lwc/applications/graphql/shortcutsModal/shortcutsModal.ts') },
     { name: 'graphql/templates', path: r('../../packages/lwc/applications/graphql/templates.ts') },
     { name: 'graphql/catalogPanel', path: r('../../packages/lwc/applications/graphql/catalogPanel/catalogPanel.ts') },
+    { name: 'agentforce/slices/agents', path: r('../../packages/lwc/applications/agentforce/slices/agents.ts') },
+    { name: 'agentforce/slices/debugger', path: r('../../packages/lwc/applications/agentforce/slices/debugger.ts') },
+    { name: 'agentforce/inspector/search/fuzzyMatch', path: r('../../packages/lwc/applications/agentforce/inspector/search/fuzzyMatch.ts') },
+    { name: 'agentforce/shared/emptyStates/emptyStates', path: r('../../packages/lwc/applications/agentforce/shared/emptyStates/emptyStates.ts') },
     ...sharedModules,
     { npm: 'lightning-base-components' },
     { name: 'imported/jsforce', path: r('../../assets/extension/libs/jsforce/jsforce.js') },
@@ -670,13 +741,22 @@ const basicBundler = (
     ].filter(Boolean),
 });
 
-const coreBuilder = (modulesArg, isProduction) => ({
-    input: r('../../packages/extension/src/main.js'),
+const coreBuilder = (
+    modulesArg,
+    isProduction,
+    {
+        inputPath = '../../packages/extension/src/main.js',
+        outputScriptsDir = '../../dist/extension/scripts',
+        assetDistRoot = '../../dist/extension',
+        chromeCopyTargets = getChromeCopyTargets({ isProduction }),
+    } = {}
+) => ({
+    input: r(inputPath),
     context: 'globalThis',
     moduleContext,
     onwarn,
     output: {
-        dir: r('../../dist/extension/scripts'),
+        dir: r(outputScriptsDir),
         format: 'esm',
         sourcemap: false,
     },
@@ -704,11 +784,11 @@ const coreBuilder = (modulesArg, isProduction) => ({
             modules: modulesArg,
         }),
         copy({
-            targets: assetCopyTargets,
+            targets: getAssetCopyTargets(assetDistRoot),
             copyOnce: true,
         }),
         copy({
-            targets: getChromeCopyTargets(isProduction),
+            targets: chromeCopyTargets,
         }),
         monacoWrapperInlineScriptExtractor(),
         ...(isProduction ? [terserPlugin] : []),
@@ -721,12 +801,12 @@ const coreBuilder = (modulesArg, isProduction) => ({
  * per https://pptr.dev/guides/running-puppeteer-in-extensions
  * Uses browser resolution so puppeteer-core resolves to its ESM browser build.
  */
-const sandboxBuilder = (isProduction) => ({
+const sandboxBuilder = (isProduction, outputScriptsDir = '../../dist/extension/scripts/') => ({
     input: r('../../packages/extension/src/modules/sandbox.js'),
     context: 'globalThis',
     onwarn,
     output: {
-        dir: r('../../dist/extension/scripts/'),
+        dir: r(outputScriptsDir),
         format: 'esm'
     },
     external: ['chromium-bidi/lib/cjs/bidiMapper/BidiMapper.js'],
@@ -761,7 +841,17 @@ const getBundleTargets = (args) => {
 export default (args) => {
     const isProduction = getIsProduction(args);
     const mainBundles = [
-        coreBuilder(modules, isProduction),
+        coreBuilder(modules, isProduction, {
+            outputScriptsDir: '../../dist/extension/scripts',
+            assetDistRoot: '../../dist/extension',
+            chromeCopyTargets: getChromeCopyTargets({
+                isProduction,
+                distRoot: '../../dist/extension',
+                manifestTemplatePath: '../../packages/extension/manifest.template.json',
+                productionLogo: 'images/sf-toolkit-icon-128.png',
+                developmentLogo: 'images/sf-toolkit-icon-128-dev.png',
+            }),
+        }),
         basicBundler(
         '../../packages/extension/src/workers/background.js',
         '../../dist/extension/scripts/background.js',
@@ -810,15 +900,42 @@ export default (args) => {
     ];
 
     const sandboxBundles = [sandboxBuilder(isProduction)];
+    const chatMainBundles = [
+        coreBuilder(chatModules, isProduction, {
+            inputPath: '../../packages/extension-chat/src/main.js',
+            outputScriptsDir: '../../dist/extension-chat/scripts',
+            assetDistRoot: '../../dist/extension-chat',
+            chromeCopyTargets: getChromeChatCopyTargets(isProduction),
+        }),
+        basicBundler(
+            '../../packages/extension-chat/src/workers/background-chat.js',
+            '../../dist/extension-chat/scripts/background.js',
+            'BackgroundChat',
+            isProduction,
+            false,
+            [
+                { name: 'shared/cacheManager', path: r('../../packages/lwc/shared/dist/modules/cacheManager/cacheManager.js') },
+                { name: 'shared/llm', path: r('../../packages/lwc/shared/dist/modules/llm/llm.js') },
+                { name: 'shared/logger', path: r('../../packages/lwc/shared/dist/modules/logger/logger.js') },
+                { name: 'shared/utils', path: r('../../packages/lwc/shared/dist/modules/utils/utils.js') },
+            ]
+        ),
+    ];
+    const chatSandboxBundles = [sandboxBuilder(isProduction, '../../dist/extension-chat/scripts/')];
 
     const targets = getBundleTargets(args);
     if (targets.includes('all') || targets.includes('extension')) {
         return [...mainBundles, ...sandboxBundles];
     }
+    if (targets.includes('chat-all')) {
+        return [...chatMainBundles, ...chatSandboxBundles];
+    }
 
     const selected = [];
     if (targets.includes('main')) selected.push(...mainBundles, ...sandboxBundles);
     if (targets.includes('sandbox')) selected.push(...sandboxBundles);
+    if (targets.includes('chat')) selected.push(...chatMainBundles, ...chatSandboxBundles);
+    if (targets.includes('chat-sandbox')) selected.push(...chatSandboxBundles);
 
     // Default to all if an unknown target is provided.
     return selected.length ? selected : [...mainBundles, ...sandboxBundles];

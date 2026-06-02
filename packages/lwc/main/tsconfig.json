@@ -111,6 +111,10 @@
             "recordviewer/slices/recordViewer": [
                 "../applications/recordviewer/slices/recordViewer"
             ],
+            "agentforce/*": ["../applications/agentforce/*"],
+            "agentforce/app": ["../applications/agentforce/app/app"],
+            "agentforce/slices": ["../applications/agentforce/slices/slices"],
+            "agentforce/slices/agents": ["../applications/agentforce/slices/agents"],
             "urlencoder/*": ["../applications/urlencoder/*"],
             "urlencoder/app": ["../applications/urlencoder/app/app"],
             "textCompare/*": ["../applications/textCompare/*"],

@@ -1,0 +1,64 @@
+.agentforce-tree-skeleton {
+    padding: 0.5rem 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.agentforce-tree-skeleton__row {
+    height: 0.875rem;
+    border-radius: 4px;
+    background: linear-gradient(
+        90deg,
+        rgba(0, 0, 0, 0.06) 0%,
+        rgba(0, 0, 0, 0.12) 50%,
+        rgba(0, 0, 0, 0.06) 100%
+    );
+    background-size: 200% 100%;
+    animation: agentforce-skeleton-pulse 1.4s ease-in-out infinite;
+}
+
+.agentforce-tree-skeleton__row--indent {
+    margin-left: 1.25rem;
+}
+
+.agentforce-tree-skeleton__row--w55 {
+    width: 55%;
+}
+.agentforce-tree-skeleton__row--w60 {
+    width: 60%;
+}
+.agentforce-tree-skeleton__row--w65 {
+    width: 65%;
+}
+.agentforce-tree-skeleton__row--w70 {
+    width: 70%;
+}
+.agentforce-tree-skeleton__row--w75 {
+    width: 75%;
+}
+.agentforce-tree-skeleton__row--w80 {
+    width: 80%;
+}
+.agentforce-tree-skeleton__row--w85 {
+    width: 85%;
+}
+.agentforce-tree-skeleton__row--w90 {
+    width: 90%;
+}
+
+@keyframes agentforce-skeleton-pulse {
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .agentforce-tree-skeleton__row {
+        animation: none;
+        opacity: 0.7;
+    }
+}

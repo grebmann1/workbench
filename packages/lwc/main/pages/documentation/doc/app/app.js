@@ -212,12 +212,18 @@ export default class App extends ToolkitElement {
     @api
     externalSearch = async value => {
         this.isLoading = true;
-        if (!isEmpty(value)) {
-            this.displayMenu = true;
-            this.filteredItems = removeDuplicates(await this.getFilteredItems(value), 'id');
+        try {
+            if (!isEmpty(value)) {
+                this.displayMenu = true;
+                this.filteredItems = removeDuplicates(await this.getFilteredItems(value), 'id');
+            }
+            this.filter = value;
+        } catch (error) {
+            console.error('documentation.externalSearch', error);
+            this.filteredItems = [];
+        } finally {
+            this.isLoading = false;
         }
-        this.filter = value;
-        this.isLoading = false;
     };
 
     handleFilter = e => {
@@ -225,15 +231,22 @@ export default class App extends ToolkitElement {
         runActionAfterTimeOut(
             e.detail.value,
             async newValue => {
-                //this.filter = newValue;
-                if (!isEmpty(newValue)) {
-                    this.filteredItems = removeDuplicates(
-                        await this.getFilteredItems(newValue),
-                        'id'
-                    );
+                try {
+                    if (!isEmpty(newValue)) {
+                        this.filteredItems = removeDuplicates(
+                            await this.getFilteredItems(newValue),
+                            'id'
+                        );
+                    } else {
+                        this.filteredItems = [];
+                    }
+                    this.filter = newValue;
+                } catch (error) {
+                    console.error('documentation.handleFilter', error);
+                    this.filteredItems = [];
+                } finally {
+                    this.isMenuLoading = false;
                 }
-                this.filter = newValue;
-                this.isMenuLoading = false;
             },
             { timeout: 500, key: 'documentation.doc.handleFilter' }
         );
@@ -300,13 +313,15 @@ export default class App extends ToolkitElement {
 
     getFilteredItems = async value => {
         /** Doesnt work when testing the extension running on a server **/
-        return await (
-            await fetch(
-                `${this.searchHost}documentation/search?keywords=${encodeURIComponent(
-                    value
-                )}&filters=${encodeURIComponent(this.cloud_value)}`
-            )
-        ).json();
+        const response = await fetch(
+            `${this.searchHost}documentation/search?keywords=${encodeURIComponent(
+                value
+            )}&filters=${encodeURIComponent(this.cloud_value)}`
+        );
+        if (!response.ok) {
+            throw new Error(`Documentation search failed with status ${response.status}`);
+        }
+        return await response.json();
     };
 
     selectPageToView = async () => {

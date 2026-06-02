@@ -16,7 +16,7 @@ import {
 export default class Me extends ToolkitElement {
     @api title = 'Current User';
     @api isInjected = false;
-    @track user: Record<string, any> | null = {};
+    @track user: Record<string, any> = {};
 
     _username: string | null = null; // Used to control reloading
 
@@ -140,14 +140,13 @@ export default class Me extends ToolkitElement {
             return (await this.connector.conn.query(query([].concat(fields, exceptionFields))))
                 .records[0];
         }, null);
-        if (_user === null) {
+        if (_user === null || _user === undefined) {
             // Temporary solution, in case we don't have CurrencyIsoCode
             _user = await runSilent(async () => {
                 return (await this.connector.conn.query(query(fields))).records[0];
             }, null);
         }
-        this.user = null;
-        this.user = _user;
+        this.user = _user ?? {};
     };
 
     renderFieldErrors = (): void => {
@@ -179,6 +178,7 @@ export default class Me extends ToolkitElement {
     };
 
     handle_editClick = (): void => {
+        if (!this.user.Id || !this.metadata) return;
         this.isEdit = true;
         setTimeout(async () => {
             this.template.querySelectorAll('slds-input-field').forEach(element => {
@@ -202,6 +202,7 @@ export default class Me extends ToolkitElement {
     };
 
     handle_save = async (): Promise<void> => {
+        if (!this.user.Id) return;
         this.isSaving = true;
         const userUpdate = { Id: this.user.Id }; //
         this.template.querySelectorAll('slds-input-field').forEach(element => {
@@ -258,7 +259,7 @@ export default class Me extends ToolkitElement {
     /** Getters */
 
     get isEditButtonDisabled() {
-        return isUndefinedOrNull(this.metadata);
+        return isUndefinedOrNull(this.metadata) || isUndefinedOrNull(this.user.Id);
     }
 
     get isShareDisabled() {
@@ -271,6 +272,12 @@ export default class Me extends ToolkitElement {
 
     get isReadOnly() {
         return !this.isEdit;
+    }
+
+    get impersonationBanner(): string | null {
+        if (!this.connector?.isImpersonating) return null;
+        const admin = this.connector.impersonatedBy;
+        return admin ? `Logged in as via ${admin}` : 'Logged in as';
     }
 
     get goToMyUserUrl() {

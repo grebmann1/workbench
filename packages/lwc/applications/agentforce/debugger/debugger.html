@@ -1,0 +1,258 @@
+<template>
+    <div class="debugger-root slds-full-height">
+        <template lwc:if={loadingNoData}>
+            <agentforce-card-skeleton></agentforce-card-skeleton>
+        </template>
+        <template lwc:elseif={hasInteractionsError}>
+            <agentforce-empty-state
+                kind="debugger"
+                state={errorVariant}
+                error-message={error}
+                onretry={handleRefresh}></agentforce-empty-state>
+        </template>
+        <template lwc:elseif={hasAgent}>
+            <div class="debugger-split">
+                <div class="debugger-left">
+                    <div class="panel-header">
+                        <span class="panel-title">Conversations</span>
+                        <button
+                            class="agentforce-debugger__refresh"
+                            type="button"
+                            onclick={handleRefresh}
+                            disabled={loading}
+                            title="Refresh conversations"
+                            aria-label="Refresh conversations">
+                            <lightning-icon
+                                icon-name="utility:refresh"
+                                size="xx-small"
+                                alternative-text="Refresh"></lightning-icon>
+                        </button>
+                    </div>
+                    <template lwc:if={loading}>
+                        <agentforce-card-skeleton></agentforce-card-skeleton>
+                    </template>
+                    <template lwc:elseif={hasInteractions}>
+                        <ul class="interaction-list slds-scrollable_y">
+                            <template for:each={interactionList} for:item="item">
+                                <li key={item.id}>
+                                    <div
+                                        class={item.itemClass}
+                                        data-id={item.id}
+                                        onclick={handleInteractionClick}>
+                                        <div class="interaction-meta">
+                                            <span class="interaction-time">
+                                                {item.formattedTime}
+                                            </span>
+                                            <span class={item.statusClass}>{item.status}</span>
+                                        </div>
+                                        <div class="interaction-details">
+                                            <span class="interaction-duration">
+                                                {item.duration}
+                                            </span>
+                                            <!-- N12 — Summary stats inline on the selected row,
+                                                 contextual to this conversation, no longer duplicated
+                                                 as toolbar chrome. -->
+                                            <template lwc:if={item.showSummary}>
+                                                <span class="interaction-summary">
+                                                    <span class="interaction-summary-pill">
+                                                        {summaryStepCount} steps
+                                                    </span>
+                                                    <span class="interaction-summary-pill">
+                                                        {summaryTotalDuration}
+                                                    </span>
+                                                    <span class="interaction-summary-pill">
+                                                        {summaryTotalTokens} tok
+                                                    </span>
+                                                </span>
+                                            </template>
+                                        </div>
+                                    </div>
+                                </li>
+                            </template>
+                        </ul>
+                    </template>
+                    <template lwc:else>
+                        <agentforce-empty-state
+                            kind="debugger"
+                            state="no-data"></agentforce-empty-state>
+                    </template>
+                </div>
+                <div class="debugger-right">
+                    <template lwc:if={hasSelectedInteraction}>
+                        <template lwc:if={hasSteps}>
+                            <!-- N12 — Single unified toolbar row (target ≤48px).
+                                 Replaces the prior 4-row stack (summary + playback + filters
+                                 + search). Playback bar provides prev/play/next/step-label/speed.
+                                 Search + Filters disclosure share the same flex row. -->
+                            <div class="debugger-toolbar">
+                                <agentforce-playback-bar
+                                    class="debugger-toolbar__playback"
+                                    current-index={playbackCurrentIndex}
+                                    total-steps={playbackTotalSteps}
+                                    is-playing={playbackActive}
+                                    speed={playbackSpeed}
+                                    onprev={handlePlaybackPrev}
+                                    onnext={handlePlaybackNext}
+                                    ontoggleplay={handlePlaybackToggle}
+                                    onspeedchange={handlePlaybackSpeed}></agentforce-playback-bar>
+                                <div class="debugger-toolbar__search">
+                                    <input
+                                        type="text"
+                                        class="viz-search-input"
+                                        placeholder="Search… (Ctrl+F)"
+                                        value={searchQuery}
+                                        oninput={handleSearchInput}
+                                        onkeydown={handleSearchKeydown} />
+                                    <template lwc:if={hasSearchQuery}>
+                                        <span class="fsm-chip" title="Search matches">
+                                            {filteredStepCount}/{totalStepCount}
+                                        </span>
+                                    </template>
+                                </div>
+                                <div class="debugger-toolbar__filters">
+                                    <button
+                                        class="btn-fsm btn-fsm--sm"
+                                        type="button"
+                                        onclick={handleFiltersToggle}
+                                        aria-haspopup="true"
+                                        aria-expanded={filtersOpenStr}
+                                        aria-controls="debugger-filters-popover"
+                                        title="Step type filters">
+                                        Filters ({activeFilterCount})
+                                    </button>
+                                    <template lwc:if={filtersOpen}>
+                                        <div
+                                            id="debugger-filters-popover"
+                                            class="slds-popover slds-popover_medium debugger-filters-popover"
+                                            role="dialog"
+                                            aria-label="Step type filters">
+                                            <div class="slds-popover__body">
+                                                <template for:each={filterItems} for:item="f">
+                                                    <label key={f.key} class="viz-toolbar-label">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={f.enabled}
+                                                            data-type={f.key}
+                                                            onchange={handleFilterChange} />
+                                                        {f.label}
+                                                    </label>
+                                                </template>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+                            <div class="timeline slds-scrollable_y">
+                                <div class="timeline-line"></div>
+                                <template for:each={stepList} for:item="step">
+                                    <div key={step.id} class="timeline-step">
+                                        <div class="timeline-dot-container">
+                                            <span class={step.statusClass}>{step.statusIcon}</span>
+                                        </div>
+                                        <div class={step.cardClass}>
+                                            <div
+                                                class="step-header"
+                                                data-id={step.id}
+                                                onclick={handleStepToggle}>
+                                                <span class={step.typeClass}>{step.typeLabel}</span>
+                                                <template lwc:if={step.hasName}>
+                                                    <span class="step-name" title={step.name}>
+                                                        {step.name}
+                                                    </span>
+                                                </template>
+                                                <template lwc:if={step.hasRecordIds}>
+                                                    <span class="step-record-ids">
+                                                        <template
+                                                            for:each={step.recordIds}
+                                                            for:item="rec">
+                                                            <button
+                                                                key={rec.key}
+                                                                class="btn-fsm btn-fsm--sm step-open-record"
+                                                                type="button"
+                                                                data-record-id={rec.id}
+                                                                title="Open record"
+                                                                onclick={handleOpenRecord}>
+                                                                Open {rec.id}
+                                                            </button>
+                                                        </template>
+                                                    </span>
+                                                </template>
+                                                <div class="step-metrics">
+                                                    <span class="step-duration">
+                                                        {step.duration}
+                                                    </span>
+                                                    <template lwc:if={step.hasTokens}>
+                                                        <span class="step-tokens">
+                                                            {step.tokenCount} tokens
+                                                        </span>
+                                                    </template>
+                                                </div>
+                                            </div>
+                                            <template lwc:if={step.isExpanded}>
+                                                <template lwc:if={step.isLLMCall}>
+                                                    <agentforce-llm-detail
+                                                        step-input={step.rawInput}
+                                                        step-output={step.rawOutput}
+                                                        duration={step.durationMs}
+                                                        token-count={step.tokenCount}></agentforce-llm-detail>
+                                                </template>
+                                                <template lwc:if={step.isNotLLMCall}>
+                                                    <div class="step-body">
+                                                        <template lwc:if={step.input}>
+                                                            <div class="step-section">
+                                                                <span class="step-section-label">
+                                                                    Input
+                                                                </span>
+                                                                <pre class="step-json">
+{step.input}</pre
+                                                                >
+                                                            </div>
+                                                        </template>
+                                                        <template lwc:if={step.output}>
+                                                            <div class="step-section">
+                                                                <span class="step-section-label">
+                                                                    Output
+                                                                </span>
+                                                                <pre class="step-json">
+                                                                    {step.output}
+                                                                </pre>
+                                                            </div>
+                                                        </template>
+                                                    </div>
+                                                </template>
+                                                <agentforce-variable-diff
+                                                    previous-output={step.prevOutput}
+                                                    current-input={step.rawInput}></agentforce-variable-diff>
+                                            </template>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                        </template>
+                        <template lwc:else>
+                            <div class="debugger-empty">
+                                <p class="slds-text-body_regular slds-text-color_weak">
+                                    No steps found for this conversation
+                                </p>
+                            </div>
+                        </template>
+                    </template>
+                    <template lwc:else>
+                        <div class="debugger-empty">
+                            <p class="slds-text-body_regular slds-text-color_weak">
+                                Select a conversation to view its execution trace
+                            </p>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </template>
+        <template lwc:else>
+            <div class="debugger-empty">
+                <p class="slds-text-body_regular slds-text-color_weak">
+                    Select an agent in the Inspector to view conversation traces
+                </p>
+            </div>
+        </template>
+    </div>
+</template>

@@ -47,6 +47,13 @@ http {
         server_name sf-workbench.com www.sf-workbench.com;
         root /app/dist/ui;
 
+        # nginx-level liveness probe — confirms the front door is up.
+        location = /healthz {
+            access_log off;
+            add_header Content-Type text/plain;
+            return 200 "ok\n";
+        }
+
         # Canonical redirect: /app and /app/<path> → api.sf-workbench.com/<path>
         # Declared before the SPA catch-all so try_files doesn't swallow it.
         location ~ ^/app(/.*)?$ {
@@ -97,6 +104,12 @@ http {
         add_header Cross-Origin-Opener-Policy "same-origin" always;
         add_header Cross-Origin-Resource-Policy "cross-origin" always;
 
+        location = /healthz {
+            access_log off;
+            add_header Content-Type text/plain;
+            return 200 "ok\n";
+        }
+
         location / {
             try_files $uri $uri/ /index.html;
         }
@@ -118,6 +131,12 @@ http {
         listen ${PORT};
         server_name doc.sf-workbench.com;
         root /app/dist/docs;
+
+        location = /healthz {
+            access_log off;
+            add_header Content-Type text/plain;
+            return 200 "ok\n";
+        }
 
         location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {
             expires 1y;

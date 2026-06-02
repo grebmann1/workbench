@@ -1,5 +1,7 @@
 import { defineConfig } from '@playwright/test';
 
+const LIVE = process.env.LIVE === '1';
+
 export default defineConfig({
     testDir: './tests',
     timeout: 30_000,
@@ -27,7 +29,21 @@ export default defineConfig({
             name: 'extension',
             testDir: './tests/extension',
             testMatch: /.*\.spec\.ts/,
+            // Skip the live/ subtree — those need LIVE=1 + a captured session.
+            testIgnore: /live\//,
             timeout: 90_000,
+        },
+        {
+            // Live extension specs hit a real Salesforce sandbox. Gated by
+            // LIVE=1: without the flag we point testDir at a non-existent
+            // folder so Playwright reports "no tests found" and exits 0
+            // rather than failing hard on missing credentials.
+            name: 'live-extension',
+            testDir: LIVE ? './tests/extension/live' : './tests/extension/__disabled__',
+            testMatch: /.*\.live\.spec\.ts/,
+            timeout: 120_000,
+            retries: process.env.CI ? 1 : 0,
+            globalSetup: LIVE ? './globalSetup.live.ts' : undefined,
         },
     ],
 });

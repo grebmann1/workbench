@@ -12,6 +12,7 @@ import {
 } from 'host-api/utils';
 import LightningConfirm from 'lightning/confirm';
 import { wire, api, track } from 'lwc';
+import { getDescribeByName } from '../describeResolver';
 import { UI, QUERY } from 'soql/slices';
 import { querySelectors } from 'soql/slices/query';
 
@@ -21,6 +22,7 @@ export default class QueryEditorPanel extends ToolkitElement {
     @api namespace: string | null = null;
 
     includeDeletedRecords = false;
+    useToolingApi = false;
 
     isMenuSmall = false;
     _sobjectMeta: Record<string, any> | null = null;
@@ -96,6 +98,7 @@ export default class QueryEditorPanel extends ToolkitElement {
         }
 
         this.includeDeletedRecords = includeDeletedRecords || false;
+        this.useToolingApi = currentTab?.useToolingApi === true;
 
         this.tabs = tabs;
         if (currentTab && this._hasRendered) {
@@ -177,11 +180,16 @@ export default class QueryEditorPanel extends ToolkitElement {
         SObjects.filter(sobjectName => !this._childRelationships.includes(sobjectName)).forEach(
             sobjectName => {
                 this._childRelationships.push(sobjectName);
+                const describeEntry = getDescribeByName({
+                    describeState: describe,
+                    sobjectName,
+                    useToolingApi: this.useToolingApi,
+                });
                 store.dispatch(
                     SOBJECT.describeSObject({
                         connector: this.connector.conn,
                         sObjectName: sobjectName,
-                        useToolingApi: describe.nameMap[lowerCaseKey(sobjectName)]?.useToolingApi,
+                        useToolingApi: describeEntry?.useToolingApi === true,
                     })
                 );
             }
@@ -225,6 +233,16 @@ export default class QueryEditorPanel extends ToolkitElement {
         );
     };
 
+    handleUseToolingApiChange = e => {
+        this.useToolingApi = e.detail.checked;
+        store.dispatch(
+            UI.reduxSlice.actions.updateUseToolingApi({
+                value: this.useToolingApi,
+                alias: this.alias,
+            })
+        );
+    };
+
     handleFormatBody = () => {
         store.dispatch(UI.reduxSlice.actions.formatSoql());
     };
@@ -245,7 +263,13 @@ export default class QueryEditorPanel extends ToolkitElement {
             let name = x.fileId;
             if (!name) {
                 const apiName = x.sobject;
-                const meta = apiName && this._describe?.nameMap?.[lowerCaseKey(apiName)];
+                const meta =
+                    apiName &&
+                    getDescribeByName({
+                        describeState: this._describe,
+                        sobjectName: apiName,
+                        useToolingApi: this.useToolingApi,
+                    });
                 name = meta?.labelPlural || apiName || `Query ${index + 1}`;
             }
             return {

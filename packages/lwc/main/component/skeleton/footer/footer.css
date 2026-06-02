@@ -41,6 +41,11 @@
     cursor: pointer;
 }
 
+.footer-loginas-badge {
+    margin-right: var(--slds-g-spacing-xx-small, 0.25rem);
+    color: var(--slds-g-color-neutral-base-10, #181818);
+}
+
 .slds-utility-panel {
     z-index: var(--lwc-zIndexModal, 9000);
 }

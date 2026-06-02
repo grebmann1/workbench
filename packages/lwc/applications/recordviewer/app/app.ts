@@ -5,6 +5,7 @@ import { api, track, wire } from 'lwc';
 import { CurrentPageReference, NavigationContext, generateUrl, navigate } from 'lwr/navigation';
 import moment from 'moment';
 import { RECORDVIEWER } from 'recordviewer/slices';
+import { registerRecordViewerCommands } from './recordviewerCommands';
 import {
     isUndefinedOrNull,
     isNotUndefinedOrNull,
@@ -20,6 +21,11 @@ function bootstrapRecordViewerExtension() {
     if (_recordViewerBootstrapped) return;
     _recordViewerBootstrapped = true;
     injectReducer('recordViewer', RECORDVIEWER.reduxSlice.reducer);
+    // N9a — register the `recordviewer.open` cross-app command. Lives in
+    // a sibling file so tests can verify the registration without
+    // pulling the LWC component graph (`lightning/toast`,
+    // `lwr/navigation`, etc.) into the test harness.
+    registerRecordViewerCommands();
 }
 bootstrapRecordViewerExtension();
 import { CATEGORY_STORAGE } from 'host-api/builder';

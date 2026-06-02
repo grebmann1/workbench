@@ -84,14 +84,14 @@ export const executeQuery = createAsyncThunk(
         } catch (err: any) {
             if (err?.name === 'AbortError') throw err;
             try {
-                const { getStore } = await import('core/store/storeRef');
-                const { ERROR } = await import('host-api/store');
-                getStore()?.dispatch(
-                    ERROR.reduxSlice.actions.addError({
-                        message: 'Error executing GraphQL query',
-                        details: err?.message,
-                    })
-                );
+                // Lazily import the dedicated reportError module (not the
+                // `host-api/store` barrel): a dynamic import of the barrel
+                // forces Rollup to eagerly build its namespace object, which
+                // references `core/store`'s `SELECTORS` const before it
+                // initializes inside the store↔connector↔agent cycle (TDZ:
+                // "Cannot access 'SELECTORS' before initialization").
+                const { reportError } = await import('core/store/reportError');
+                reportError('Error executing GraphQL query', { details: err?.message });
             } catch {
                 // host store not loaded (e.g. unit tests) — surface error via thunk rejection only
             }

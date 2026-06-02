@@ -1,0 +1,90 @@
+<template>
+    <div class="dependencies-root slds-flex-column slds-full-height">
+        <template lwc:if={loading}>
+            <div class="dependencies-loading">
+                <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
+            </div>
+        </template>
+        <template lwc:elseif={hasGraphError}>
+            <agentforce-empty-state
+                kind="dependencies"
+                state={errorVariant}
+                error-message={error}
+                onretry={handleRefresh}></agentforce-empty-state>
+        </template>
+        <template lwc:elseif={hasSelection}>
+            <div class="dependencies-header">
+                <div class="dependencies-legend">
+                    <template for:each={legendItems} for:item="item">
+                        <span key={item.key} class={item.cls}>{item.label}</span>
+                    </template>
+                </div>
+                <button
+                    class="agentforce-dependencies__refresh"
+                    type="button"
+                    onclick={handleRefresh}
+                    disabled={loading}
+                    title="Refresh dependencies"
+                    aria-label="Refresh dependencies">
+                    <lightning-icon
+                        icon-name="utility:refresh"
+                        size="xx-small"
+                        alternative-text="Refresh"></lightning-icon>
+                </button>
+            </div>
+            <template lwc:if={hasAnalysis}>
+                <div class="dependencies-insights">
+                    <template lwc:if={hasCycles}>
+                        <div class="insight">
+                            <span class="insight__icon">&#x1F501;</span>
+                            <span class="insight__text">
+                                {cycleCount} feedback loop(s) detected
+                            </span>
+                        </div>
+                    </template>
+                    <template lwc:if={hasBottlenecks}>
+                        <div class="insight">
+                            <span class="insight__icon">&#x26A1;</span>
+                            <span class="insight__text">Bottleneck: {topBottleneckLabel}</span>
+                        </div>
+                    </template>
+                    <div class="insight">
+                        <span class="insight__icon">&#x1F4CF;</span>
+                        <span class="insight__text">Graph depth: {graphDiameter} levels</span>
+                    </div>
+                </div>
+            </template>
+            <div class="dependencies-graph-container">
+                <div
+                    class="graph-wrap"
+                    lwc:ref="mermaid"
+                    lwc:dom="manual"
+                    onwheel={handleWheel}
+                    onpointerdown={handlePointerDown}
+                    onpointermove={handlePointerMove}
+                    onpointerup={handlePointerUp}></div>
+                <template lwc:if={hasGraph}>
+                    <div class="fsm-zoom-controls">
+                        <button class="fsm-zoom-btn" onclick={handleZoomIn} title="Zoom In">
+                            +
+                        </button>
+                        <span class="fsm-zoom-level">{zoomPercent}</span>
+                        <button class="fsm-zoom-btn" onclick={handleZoomOut} title="Zoom Out">
+                            -
+                        </button>
+                        <button class="fsm-zoom-btn" onclick={handleZoomReset} title="Fit">
+                            R
+                        </button>
+                    </div>
+                </template>
+            </div>
+        </template>
+        <template lwc:else>
+            <div class="dependencies-empty">
+                <p class="slds-text-body_regular slds-text-color_weak">
+                    Select an agent to view its dependency graph.
+                </p>
+            </div>
+        </template>
+    </div>
+</template>

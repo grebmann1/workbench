@@ -389,7 +389,9 @@
                                             <div class={workbenchContainerClass}>
                                                 <slds-structure-viewer
                                                     class="slds-flex-column slds-fill-height slds-m-horizontal_x-small"
-                                                    record={content}></slds-structure-viewer>
+                                                    record={content}
+                                                    link-mode="event"
+                                                    oncustomlink={handle_customLinkClick}></slds-structure-viewer>
                                             </div>
 
                                             <div class={rawContainerClass}>

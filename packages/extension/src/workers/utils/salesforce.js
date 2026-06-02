@@ -105,21 +105,16 @@ export function isHttpUrl(raw) {
     }
 }
 
-export async function getSidCookieForOrigin({ origin, storeId }) {
+export async function getSidCookieForOrigin({ origin }) {
+    // Match Benchpress: omit storeId. Passing the wrong cookie store (e.g. when the
+    // tab is associated with a default store but storeId resolves to something else)
+    // returns nothing or the stale admin sid during Login As impersonation.
     if (!origin) return { error: 'Missing origin' };
-    let cookie = await chrome.cookies.get({
-        name: 'sid',
-        url: origin,
-        ...(storeId ? { storeId } : {}),
-    });
+    let cookie = await chrome.cookies.get({ name: 'sid', url: origin });
 
     if (!cookie?.value && origin.includes('soma')) {
         const fallbackOrigin = origin.replace('soma', 'sfdcdev');
-        cookie = await chrome.cookies.get({
-            name: 'sid',
-            url: fallbackOrigin,
-            ...(storeId ? { storeId } : {}),
-        });
+        cookie = await chrome.cookies.get({ name: 'sid', url: fallbackOrigin });
         if (cookie?.value) {
             return { serverUrl: fallbackOrigin, sessionId: cookie.value };
         }
@@ -143,8 +138,7 @@ export async function getSidCookieForTabId(tabId) {
     }
 
     const canonicalOrigin = getSalesforceURL(tab.url);
-    const storeId = await getCurrentTabCookieStoreId(tabId);
-    const res = await getSidCookieForOrigin({ origin: canonicalOrigin, storeId });
+    const res = await getSidCookieForOrigin({ origin: canonicalOrigin });
     if (res?.sessionId && res?.serverUrl) return res;
     return { error: 'No Salesforce sid cookie found for tab' };
 }
@@ -155,18 +149,11 @@ export async function getHostAndSession(tab) {
         let url = getSalesforceURL(tab.url);
         const parsedTabUrl = new URL(tab.url);
         const isDeveloperServer = !!parsedTabUrl.port;
-        const cookieStoreId = await getCurrentTabCookieStoreId(tab.id);
-        let cookie = await chrome.cookies.get({
-            name: 'sid',
-            url,
-            storeId: cookieStoreId,
-        });
+        // Omit storeId — matches Benchpress's pattern. See getSidCookieForOrigin.
+        let cookie = await chrome.cookies.get({ name: 'sid', url });
         if (!cookie || !cookie.value) {
             const fallbackUrl = url.replace('soma', 'sfdcdev');
-            cookie = await chrome.cookies.get({
-                name: 'sid',
-                url: fallbackUrl,
-            });
+            cookie = await chrome.cookies.get({ name: 'sid', url: fallbackUrl });
             url = fallbackUrl;
         }
         if (cookie?.value) {

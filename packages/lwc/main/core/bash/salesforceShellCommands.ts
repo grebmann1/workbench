@@ -63,6 +63,18 @@ type SalesforceShellHandlers = {
     openOrg: (args: { alias: string }) => Promise<SalesforceCommandExecution>;
     connectOrg: (args: { alias: string }) => Promise<SalesforceCommandExecution>;
     navigate: (args: { app: string }) => Promise<SalesforceCommandExecution>;
+    openSalesforce: (args: {
+        kind: 'record' | 'list' | 'setup' | 'app' | 'page' | 'url';
+        object?: string;
+        id?: string;
+        filter?: string;
+        node?: string;
+        appApiName?: string;
+        path?: string;
+        absoluteUrl?: string;
+        newTab?: boolean;
+        targetOrg?: string;
+    }) => Promise<SalesforceCommandExecution>;
     runApexTests: (args: {
         classNames: string[];
         testLevel: string;
@@ -345,6 +357,10 @@ export function parseCliArgs(argv: string[]) {
         'm',
         'api-name',
         'object',
+        'id',
+        'filter',
+        'node',
+        'path',
         'app',
         'a',
     ]);
@@ -475,6 +491,49 @@ Available apps:
   api, soql, anonymousApex, agent, connections, settings, accessAnalyzer,
   org, code, metadata, object, doc, recordViewer, platformevent, package,
   assistant, release`;
+
+export const OPEN_HELP = `Open a Salesforce Lightning destination in the browser (SF CLI shim).
+
+Usage:
+  sf open record --object Account --id 001XXXXXXXXXXXX
+  sf open list --object Account --filter __Recent
+  sf open setup --node ManageUsers
+  sf open app --app standard__LightningSales
+  sf open page --path /lightning/r/Account/001XXXXXXXXXXXX/view
+  sf open url --url https://mydomain.my.salesforce.com/lightning/o/Account/list
+  sf open --help
+
+Subcommands:
+  record    Open a record view page
+  list      Open an object list view
+  setup     Open a setup node page
+  app       Open a Lightning app route
+  page      Open a relative Lightning path
+  url       Open an absolute Salesforce URL (same host as target org)
+
+Options:
+  --target-org, -o   Alias of the org (default: active org)
+  --new-tab          Open in a new browser tab
+
+record:
+  --object           SObject API name (required)
+  --id               Record Id (required)
+
+list:
+  --object           SObject API name (required)
+  --filter           List filter name (default: __Recent)
+
+setup:
+  --node             Setup node path segment (required)
+
+app:
+  --app, -a          App route (required)
+
+page:
+  --path             Relative Lightning path, must start with /lightning/ (required)
+
+url:
+  --url              Absolute https URL on the same Salesforce host as target org (required)`;
 
 export function detectMetadataType(filePath: string): { type: string | null; apiName: string } {
     const basename = filePath.split('/').pop() || filePath;
@@ -730,6 +789,100 @@ export function registerSalesforceShellCommands({
         }
         try {
             const handled = normalizeHandlerResult(await handlers.navigate({ app }));
+            return {
+                stdout: formatCliOutput(handled.result),
+                stderr: '',
+                exitCode: handled.exitCode,
+            };
+        } catch (err) {
+            return commandError(err instanceof Error ? err.message : String(err));
+        }
+    };
+
+    const runOpenCli = async (argv: string[]) => {
+        if (!argv?.length || argv.includes('--help') || argv.includes('-h')) {
+            return { stdout: OPEN_HELP, stderr: '', exitCode: 0 };
+        }
+        const [kind, ...rest] = argv;
+        const supportedKinds = new Set(['record', 'list', 'setup', 'app', 'page', 'url']);
+        if (!supportedKinds.has(kind)) {
+            return {
+                stdout: '',
+                stderr: `Error: Unknown sf open subcommand "${kind}"\n\n${OPEN_HELP}\n`,
+                exitCode: 1,
+            };
+        }
+        const { flags } = parseCliArgs(rest);
+        const targetOrg = ensureSingleValue(getFlagValue(flags, 'target-org', 'o')) as
+            | string
+            | undefined;
+        const newTab = Boolean(getFlagValue(flags, 'new-tab'));
+        const object = ensureSingleValue(getFlagValue(flags, 'object')) as string | undefined;
+        const id = ensureSingleValue(getFlagValue(flags, 'id')) as string | undefined;
+        const filter = ensureSingleValue(getFlagValue(flags, 'filter')) as string | undefined;
+        const node = ensureSingleValue(getFlagValue(flags, 'node')) as string | undefined;
+        const appApiName = ensureSingleValue(getFlagValue(flags, 'app', 'a')) as string | undefined;
+        const path = ensureSingleValue(getFlagValue(flags, 'path')) as string | undefined;
+        const absoluteUrl = ensureSingleValue(getFlagValue(flags, 'url')) as string | undefined;
+
+        if (kind === 'record' && (!object || !id)) {
+            return {
+                stdout: '',
+                stderr: `Error: record requires --object and --id.\n\n${OPEN_HELP}\n`,
+                exitCode: 1,
+            };
+        }
+        if (kind === 'list' && !object) {
+            return {
+                stdout: '',
+                stderr: `Error: list requires --object.\n\n${OPEN_HELP}\n`,
+                exitCode: 1,
+            };
+        }
+        if (kind === 'setup' && !node) {
+            return {
+                stdout: '',
+                stderr: `Error: setup requires --node.\n\n${OPEN_HELP}\n`,
+                exitCode: 1,
+            };
+        }
+        if (kind === 'app' && !appApiName) {
+            return {
+                stdout: '',
+                stderr: `Error: app requires --app.\n\n${OPEN_HELP}\n`,
+                exitCode: 1,
+            };
+        }
+        if (kind === 'page' && !path) {
+            return {
+                stdout: '',
+                stderr: `Error: page requires --path.\n\n${OPEN_HELP}\n`,
+                exitCode: 1,
+            };
+        }
+        if (kind === 'url' && !absoluteUrl) {
+            return {
+                stdout: '',
+                stderr: `Error: url requires --url.\n\n${OPEN_HELP}\n`,
+                exitCode: 1,
+            };
+        }
+
+        try {
+            const handled = normalizeHandlerResult(
+                await handlers.openSalesforce({
+                    kind: kind as 'record' | 'list' | 'setup' | 'app' | 'page' | 'url',
+                    object,
+                    id,
+                    filter,
+                    node,
+                    appApiName,
+                    path,
+                    absoluteUrl,
+                    newTab,
+                    targetOrg,
+                })
+            );
             return {
                 stdout: formatCliOutput(handled.result),
                 stderr: '',
@@ -1076,6 +1229,7 @@ export function registerSalesforceShellCommands({
                 '  sf org list',
                 '  sf org connect',
                 '  sf org open',
+                '  sf open record|list|setup|app|page|url',
                 '  sf navigate',
                 '  sf debug log enable|list|get',
                 '  sf limits display',
@@ -1094,6 +1248,8 @@ export function registerSalesforceShellCommands({
                 API_HELP,
                 '',
                 ORG_HELP,
+                '',
+                OPEN_HELP,
                 '',
                 NAVIGATE_HELP,
                 '',
@@ -1131,6 +1287,9 @@ export function registerSalesforceShellCommands({
         }
         if (group === 'navigate') {
             return runNavigateCli([action, ...rest].filter(Boolean));
+        }
+        if (group === 'open') {
+            return runOpenCli([action, ...rest].filter(Boolean));
         }
         if (group === 'debug' && action === 'log') {
             return runDebugLogCli(rest, ctx);

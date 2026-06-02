@@ -1,0 +1,192 @@
+/* N11 — Tokens defined on `agentforce/app :host`, inherited via CSS
+ * custom-property propagation through shadow DOM. Do not redeclare. */
+:host {
+    display: block;
+    height: 100%;
+}
+
+.dependencies-root {
+    height: 100%;
+}
+
+.dependencies-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+}
+
+.dependencies-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    padding: var(--lwc-spacingXLarge, 2rem);
+}
+
+.dependencies-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--lwc-spacingXSmall, 0.5rem);
+    padding: var(--lwc-spacingSmall, 0.75rem) var(--lwc-spacingMedium, 1rem);
+    border-bottom: 1px solid var(--lwc-colorBorder, #dddbda);
+    flex-shrink: 0;
+}
+
+.dependencies-legend {
+    display: flex;
+    gap: var(--lwc-spacingXSmall, 0.5rem);
+    flex-wrap: wrap;
+    flex: 1;
+    min-width: 0;
+}
+
+.agentforce-dependencies__refresh {
+    border: 0;
+    background: transparent;
+    color: var(--slds-g-color-neutral-base-30, #444);
+    padding: 0.125rem 0.25rem;
+    cursor: pointer;
+    border-radius: 0.25rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.agentforce-dependencies__refresh:hover:not([disabled]) {
+    background-color: var(--slds-g-color-neutral-base-95, #f3f3f3);
+}
+
+.agentforce-dependencies__refresh[disabled] {
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+.legend-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.125rem 0.5rem;
+    border-radius: 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #fff;
+}
+
+.legend-badge_agent {
+    background-color: var(--af-color-agent);
+}
+
+.legend-badge_topic {
+    background-color: var(--af-color-topic);
+}
+
+.legend-badge_action {
+    background-color: var(--af-color-action);
+}
+
+.legend-badge_flow {
+    background-color: var(--af-color-flow);
+}
+
+.legend-badge_apex {
+    background-color: var(--af-color-apex);
+}
+
+.dependencies-graph-container {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.graph-wrap {
+    flex: 1;
+    width: 100%;
+    min-height: 200px;
+    background: var(--af-surface2);
+    touch-action: none;
+    cursor: grab;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.graph-wrap:active {
+    cursor: grabbing;
+}
+
+.fsm-zoom-controls {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    display: flex;
+    gap: 4px;
+    z-index: 10;
+}
+
+.fsm-zoom-btn {
+    background: var(--af-surface);
+    border: 1px solid var(--af-border);
+    border-radius: var(--af-radius-sm);
+    color: var(--af-text);
+    width: 28px;
+    height: 28px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.85;
+    transition:
+        opacity 0.15s,
+        border-color 0.15s;
+    padding: 0;
+}
+
+.fsm-zoom-btn:hover {
+    opacity: 1;
+    border-color: var(--af-blue);
+    color: var(--af-blue);
+}
+
+.fsm-zoom-level {
+    font-size: 10px;
+    color: var(--af-text-dim);
+    font-family: var(--af-font-mono);
+    align-self: center;
+    padding: 0 4px;
+    user-select: none;
+}
+
+.dependencies-insights {
+    display: flex;
+    gap: 12px;
+    padding: 8px 16px;
+    border-bottom: 1px solid var(--af-border);
+    background: var(--af-surface2);
+    flex-wrap: wrap;
+}
+
+.insight {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--af-text);
+    padding: 4px 10px;
+    border-radius: var(--af-radius-sm);
+    border: 1px solid var(--af-border);
+    background: var(--af-surface);
+}
+
+.insight__icon {
+    font-size: 14px;
+}
+
+.insight__text {
+    font-weight: 500;
+}

@@ -1,0 +1,114 @@
+.viewer-container {
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.viewer-card {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    border: 1px solid var(--slds-g-color-border-base-1, #e5e5e5);
+    border-radius: 0.25rem;
+    background: var(--slds-g-color-neutral-base-100, #fff);
+}
+
+.viewer-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--slds-g-color-border-base-1, #e5e5e5);
+}
+
+.viewer-title-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 0;
+}
+
+.viewer-title {
+    font-size: 1rem;
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.viewer-badge {
+    display: inline-block;
+    padding: 0.125rem 0.5rem;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    border-radius: 0.75rem;
+    background-color: var(--slds-g-color-neutral-base-90, #e5e5e5);
+    color: var(--slds-g-color-neutral-base-30, #444);
+    white-space: nowrap;
+}
+
+.copy-btn {
+    flex-shrink: 0;
+}
+
+.viewer-body {
+    flex: 1;
+    min-height: 0;
+    padding: 0.75rem 1rem;
+}
+
+.field-list {
+    margin: 0;
+    padding: 0;
+}
+
+.field-item {
+    display: flex;
+    flex-direction: column;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--slds-g-color-border-base-4, #f3f3f3);
+}
+
+.field-item:last-child {
+    border-bottom: none;
+}
+
+.field-label {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--slds-g-color-neutral-base-50, #747474);
+    margin-bottom: 0.125rem;
+}
+
+.field-value {
+    font-size: 0.8125rem;
+    color: var(--slds-g-color-neutral-base-10, #181818);
+    word-break: break-word;
+    margin: 0;
+}
+
+.script-source {
+    font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+    font-size: 0.75rem;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-break: break-word;
+    margin: 0;
+    padding: 0.5rem;
+    background: var(--slds-g-color-neutral-base-97, #fafafa);
+    border-radius: 0.25rem;
+    border: 1px solid var(--slds-g-color-neutral-base-90, #e5e5e5);
+}
+
+.empty-state {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    padding: 2rem;
+    text-align: center;
+}

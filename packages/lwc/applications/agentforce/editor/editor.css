@@ -1,0 +1,46 @@
+:host {
+    display: block;
+    height: 100%;
+}
+
+.editor-root {
+    height: 100%;
+}
+
+.editor-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    padding: var(--lwc-spacingXLarge, 2rem);
+}
+
+.editor-header {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 0.375rem 0.5rem;
+    border-bottom: 1px solid var(--slds-g-color-neutral-base-90, #e5e5e5);
+    flex-shrink: 0;
+}
+
+.agentforce-editor__refresh {
+    border: 0;
+    background: transparent;
+    color: var(--slds-g-color-neutral-base-30, #444);
+    padding: 0.125rem 0.25rem;
+    cursor: pointer;
+    border-radius: 0.25rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.agentforce-editor__refresh:hover:not([disabled]) {
+    background-color: var(--slds-g-color-neutral-base-95, #f3f3f3);
+}
+
+.agentforce-editor__refresh[disabled] {
+    cursor: not-allowed;
+    opacity: 0.5;
+}

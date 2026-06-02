@@ -26,6 +26,11 @@
     font-weight: 700;
 }
 
+.always-tooling-toggle {
+    display: flex;
+    align-items: center;
+}
+
 .tree-wrapper {
     flex: 1;
     min-height: 0;

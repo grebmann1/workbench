@@ -1,0 +1,58 @@
+<template>
+    <div class="fsm-single-card">
+        <div class="fsm-detail-h">
+            LLM Call
+            <template lwc:if={model}>
+                <span class="fsm-detail-badge badge-blue">{model}</span>
+            </template>
+            <div class="fsm-chips">
+                <template lwc:if={hasTokens}>
+                    <span class="fsm-chip fsm-chip-sent">{formattedTokens} tokens</span>
+                </template>
+                <template lwc:if={formattedDuration}>
+                    <span class="fsm-chip">{formattedDuration}</span>
+                </template>
+                <template lwc:if={finishReason}>
+                    <span class="fsm-chip">{finishReason}</span>
+                </template>
+            </div>
+        </div>
+
+        <template lwc:if={hasMessages}>
+            <div class="fsm-llm-section">
+                <div class="fsm-llm-h">Messages</div>
+                <template for:each={messages} for:item="msg">
+                    <div key={msg.key} class={msg.bubbleClass}>
+                        <div class="fsm-msg-role">{msg.roleLabel}</div>
+                        <div class="fsm-msg-body">{msg.content}</div>
+                    </div>
+                </template>
+            </div>
+        </template>
+
+        <template lwc:if={hasToolCalls}>
+            <div class="fsm-detail-exec">
+                <div class="fsm-detail-section-h">Tool Calls</div>
+                <template for:each={toolCalls} for:item="tc">
+                    <div key={tc.key} class="tool-call-item">
+                        <span class="tool-call-name">{tc.name}</span>
+                        <pre>{tc.formattedArgs}</pre>
+                    </div>
+                </template>
+            </div>
+        </template>
+
+        <template lwc:if={assistantResponse}>
+            <div class="fsm-detail-response">{assistantResponse}</div>
+        </template>
+
+        <template lwc:if={parseError}>
+            <div class="fsm-detail-exec">
+                <div class="fsm-detail-section-h">Raw Input</div>
+                <pre>{rawInput}</pre>
+                <div class="fsm-detail-section-h">Raw Output</div>
+                <pre>{rawOutput}</pre>
+            </div>
+        </template>
+    </div>
+</template>

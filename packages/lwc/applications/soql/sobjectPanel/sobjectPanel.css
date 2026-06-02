@@ -17,6 +17,24 @@
     padding: 0.5rem 0.5rem 0.5rem 1rem;
     font-size: 1rem;
     font-weight: 700;
+    line-height: 1.25rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+.slds-tree_container .slds-grid {
+    min-width: 0;
+}
+
+.slds-tree_container .slds-grid > * {
+    min-width: 0;
+}
+
+.always-tooling-toggle {
+    display: flex;
+    justify-content: flex-end;
 }
 
 .sobjects-tree-wrapper {

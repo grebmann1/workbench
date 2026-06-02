@@ -1,13 +1,13 @@
 {
     "announcement": {
-        "id": "2026-05-05-2-0-2-coming",
+        "id": "2026-05-30-2-0-3-coming",
         "active": true,
         "variant": "brand",
-        "title": "Workbench 2.0.2 is coming",
-        "message": "Workbench 2.0.2 adds the new Audit Trail app with filtering and CSV export, strengthens Desktop with secured local automation, encrypted org token storage, a same-origin Salesforce proxy, prerequisite checks, release packaging, and refreshed desktop docs.",
+        "title": "Workbench 2.0.3 is coming",
+        "message": "Workbench 2.0.3 improves Anonymous Apex result handling, Record Viewer commands, GraphQL tooling, and fixes SOQL Explorer field selection so managed-package namespaces stay intact.",
         "linkLabel": "View release notes",
         "linkUrl": "https://www.sf-workbench.com/app?applicationName=release",
-        "startsAt": "2026-05-05T00:00:00Z",
+        "startsAt": "2026-05-30T00:00:00Z",
         "endsAt": "2026-12-31T23:59:59Z"
     }
 }

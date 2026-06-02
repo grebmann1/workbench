@@ -22,6 +22,49 @@
             }
         },
         {
+            "id": "agentforce",
+            "name": "agentforce/app",
+            "label": "Agentforce Explorer",
+            "shortName": "Agentforce",
+            "description": "Inspect, debug, and edit Agentforce agents, topics, and actions",
+            "path": "agentforce",
+            "quickActionIcon": "standard:bot",
+            "type": "developer",
+            "menuGroup": "agentforce",
+            "menuOrder": 10,
+            "flags": {
+                "isFullHeight": true,
+                "isDeletable": true,
+                "isElectronOnly": false,
+                "isOfflineAvailable": false,
+                "isMenuVisible": false,
+                "isTabVisible": true
+            },
+            "slashCommands": [
+                {
+                    "command": "agentforce",
+                    "description": "Open the Agentforce Explorer",
+                    "iconName": "standard:bot",
+                    "autoExecute": true,
+                    "commandId": "agentforce.open"
+                },
+                {
+                    "command": "af-agent",
+                    "description": "Open a specific Agentforce agent by name",
+                    "iconName": "standard:bot",
+                    "autoExecute": true,
+                    "commandId": "agentforce.openAgent"
+                },
+                {
+                    "command": "af-trace",
+                    "description": "Open a conversation trace by ID",
+                    "iconName": "standard:bot",
+                    "autoExecute": true,
+                    "commandId": "agentforce.openTrace"
+                }
+            ]
+        },
+        {
             "id": "anonymousApex",
             "name": "anonymousApex/app",
             "label": "Anonymous Apex",

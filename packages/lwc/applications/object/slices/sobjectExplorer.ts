@@ -42,7 +42,7 @@ function saveCacheSettings(alias, state) {
 }
 
 export const formatTab = payload => {
-    const validParams = ['id', 'label', 'details'];
+    const validParams = ['id', 'label', 'details', 'rawName', 'useToolingApi', 'source'];
     const tab = {};
     validParams.forEach(key => {
         if (key in payload && payload[key] !== undefined) {

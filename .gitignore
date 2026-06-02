@@ -31,6 +31,7 @@ dist/web
 out/
 *.zip
 dist/extension/
+dist/extension-chat/
 /dist/ui/
 /dist/docs/
 /apps/docs/.docusaurus/

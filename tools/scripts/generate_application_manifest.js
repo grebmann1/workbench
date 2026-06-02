@@ -81,7 +81,7 @@ const ALLOWED_TYPES = new Set(['developer', 'admin', 'data', 'utility']);
 
 // `menuGroup` picks the section of the left-nav menu. A typo drops the app
 // out of the menu entirely with no warning.
-const ALLOWED_MENU_GROUPS = new Set(['data', 'code', 'admin', 'deploy', 'utilities']);
+const ALLOWED_MENU_GROUPS = new Set(['data', 'code', 'agentforce', 'admin', 'deploy', 'utilities']);
 
 // Used for `id` (folder name / Redux key / identifier). Mirrors the LWC
 // camelCase convention we use for module specifiers.
@@ -492,4 +492,11 @@ function generate() {
     );
 }
 
-generate();
+// Run the generator only when invoked directly (`node tools/scripts/...`).
+// When `require()`d (e.g. from a unit test under tools/scripts/__test__/),
+// expose the pure validation helpers without side-effects.
+if (require.main === module) {
+    generate();
+} else {
+    module.exports = { validate, validateSlashCommands };
+}

@@ -3,6 +3,7 @@ import ToolkitElement from 'host-api/element';
 import { store, connectStore, SELECTORS, SOBJECT } from 'host-api/store';
 import { fullApiName, isSame, lowerCaseKey } from 'host-api/utils';
 import { wire, api } from 'lwc';
+import { getDescribeByName } from '../describeResolver';
 import { UI } from 'soql/slices';
 
 import { getFieldTypeIcon } from './constants';
@@ -81,12 +82,19 @@ export default class FieldsTree extends ToolkitElement {
     }
 
     connectedCallback() {
-        const { describe } = store.getState();
+        const state = store.getState();
+        const describe = state.describe;
+        const ui = state.ui;
+        const describeEntry = getDescribeByName({
+            describeState: describe,
+            sobjectName: this.sobject,
+            useToolingApi: ui?.currentTab?.useToolingApi === true,
+        });
         store.dispatch(
             SOBJECT.describeSObject({
                 connector: this.connector.conn,
                 sObjectName: this.sobject,
-                useToolingApi: describe.nameMap[lowerCaseKey(this.sobject)]?.useToolingApi,
+                useToolingApi: describeEntry?.useToolingApi === true,
             })
         );
     }
@@ -125,13 +133,19 @@ export default class FieldsTree extends ToolkitElement {
         if (!this.loadingRefIds.includes(item.id)) {
             this.loadingRefIds = [...this.loadingRefIds, item.id];
         }
-        const { describe } = store.getState();
+        const state = store.getState();
+        const describe = state.describe;
+        const ui = state.ui;
+        const describeEntry = getDescribeByName({
+            describeState: describe,
+            sobjectName: relationshipSObjectName,
+            useToolingApi: ui?.currentTab?.useToolingApi === true,
+        });
         store.dispatch(
             SOBJECT.describeSObject({
                 connector: this.connector.conn,
                 sObjectName: relationshipSObjectName,
-                useToolingApi:
-                    describe.nameMap[lowerCaseKey(relationshipSObjectName)]?.useToolingApi,
+                useToolingApi: describeEntry?.useToolingApi === true,
             })
         );
     }

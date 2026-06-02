@@ -690,7 +690,7 @@ export default class Overlay extends ToolkitElement {
 
             // Organization
             const orgResult = await this.connector.conn.query(
-                'SELECT Id, Name, IsSandbox, OrganizationType, InstanceName FROM Organization LIMIT 1'
+                'SELECT Id, Name, IsSandbox, OrganizationType FROM Organization LIMIT 1'
             );
             const orgInfo = orgResult?.records?.[0] || {};
 

@@ -39,6 +39,8 @@ export type ConnectorLike = {
     configuration: ConnectorConfiguration;
     frontDoorUrl?: string;
     redirectUrl?: string;
+    isImpersonating?: boolean;
+    impersonatedBy?: string | null;
     dispose?: () => void;
     // Escape hatch for UI-side ephemeral fields.
     [key: string]: unknown;

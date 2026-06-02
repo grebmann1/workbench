@@ -109,6 +109,10 @@ Use this exact format:
 ## Context For Suffix
 - [Information needed to understand the kept recent messages]`;
 
+function shouldOmitTemperature(modelId: string) {
+    return /^gpt-5/i.test(modelId);
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
     return typeof value === 'object' && value !== null;
 }
@@ -546,7 +550,7 @@ async function summarizeConversation(
         promptParts.push(`Additional focus: ${customInstructions.trim()}`);
     }
 
-    const { text } = await generateText({
+    const request = {
         model: resolveProviderModelInstance(providerInstance, {
             provider,
             modelId,
@@ -556,9 +560,22 @@ async function summarizeConversation(
         prompt: promptParts.filter(Boolean).join('\n\n'),
         abortSignal: signal,
         maxRetries: 0,
-        temperature: 0.2,
         maxOutputTokens: Math.max(512, Math.floor(reserveTokens * 0.8)),
-    });
+    } as {
+        model: ReturnType<typeof resolveProviderModelInstance>;
+        system: string;
+        prompt: string;
+        abortSignal?: AbortSignal;
+        maxRetries: number;
+        maxOutputTokens: number;
+        temperature?: number;
+    };
+
+    if (!shouldOmitTemperature(modelId)) {
+        request.temperature = 0.2;
+    }
+
+    const { text } = await generateText(request);
 
     return text.trim();
 }

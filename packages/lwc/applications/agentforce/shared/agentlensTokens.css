@@ -1,0 +1,70 @@
+/* AgentLens Design Tokens — adapted for LWC shadow DOM.
+ *
+ * Canonical source for all `--af-*` tokens used by the Agentforce app.
+ * Hoisted into `app/app.css :host` so descendants inherit through shadow
+ * DOM via CSS custom-property inheritance. Component-level CSS files MUST
+ * NOT redeclare these tokens — keep edits in one place.
+ *
+ * Note: LWC OSS does not honor `@import` in component CSS, which is why
+ * `app.css` inlines the same `:host` block instead of `@import`-ing here.
+ * This file remains the single source of truth for review and future
+ * build-time concatenation.
+ */
+:host {
+    --af-bg: var(--lwc-colorBackground, #f5f6fa);
+    --af-surface: var(--lwc-colorBackgroundAlt, #ffffff);
+    --af-surface2: var(--lwc-colorBackgroundStencil, #f0f1f5);
+    --af-border: var(--lwc-colorBorder, #d4d7e3);
+    --af-text: var(--lwc-colorTextDefault, #1e2030);
+    --af-text-dim: var(--lwc-colorTextWeak, #6b7084);
+    --af-text-bright: var(--lwc-colorTextStrong, #000000);
+    --af-font-mono: 'SF Mono', SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace;
+
+    /* Palette primitives */
+    --af-blue: #2563eb;
+    --af-green: #059669;
+    --af-purple: #7c3aed;
+    --af-orange: #ea580c;
+    --af-teal: #0d9488;
+    --af-cyan: #0891b2;
+    --af-yellow: #d97706;
+    --af-red: #dc2626;
+
+    /* Tinted backgrounds + borders, derived from primitives */
+    --af-blue-bg: rgba(37, 99, 235, 0.08);
+    --af-blue-border: rgba(37, 99, 235, 0.25);
+    --af-green-bg: rgba(5, 150, 105, 0.08);
+    --af-green-border: rgba(5, 150, 105, 0.25);
+    --af-purple-bg: rgba(124, 58, 237, 0.08);
+    --af-purple-border: rgba(124, 58, 237, 0.25);
+    --af-orange-bg: rgba(234, 88, 12, 0.08);
+    --af-orange-border: rgba(234, 88, 12, 0.25);
+    --af-teal-bg: rgba(13, 148, 136, 0.08);
+    --af-teal-border: rgba(13, 148, 136, 0.35);
+    --af-cyan-bg: rgba(8, 145, 178, 0.08);
+    --af-cyan-border: rgba(8, 145, 178, 0.35);
+
+    /* Step-type semantic colors */
+    --af-step-planner: var(--af-blue);
+    --af-step-topic: var(--af-purple);
+    --af-step-action: var(--af-teal);
+    --af-step-llm: var(--af-cyan);
+    --af-step-guardrail: var(--af-orange);
+
+    /* N11 — Single agent-blue role token. Reconciles four scattered hexes
+     * (#0176d3 SLDS brand, #1b96ff legacy, #2563eb af-blue, #3b82f6) onto
+     * the canonical `--af-blue` primitive. AA foreground variants deferred
+     * to X12. */
+    --af-color-agent: var(--af-blue);
+    --af-color-topic: var(--af-green);
+    --af-color-action: var(--af-orange);
+    --af-color-flow: var(--af-purple);
+    --af-color-apex: var(--af-red);
+
+    --af-radius: 10px;
+    --af-radius-sm: 6px;
+    --af-gap: 8px;
+    --af-gap-lg: 14px;
+    --af-active-color: var(--af-cyan);
+    --af-active-glow: drop-shadow(0 0 12px rgba(8, 145, 178, 0.45));
+}

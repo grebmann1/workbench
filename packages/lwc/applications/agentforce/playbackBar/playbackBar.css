@@ -1,0 +1,98 @@
+/* N11 — Tokens inherited from `agentforce/app :host`. Do not redeclare. */
+:host {
+    display: block;
+}
+
+/* N12 — slimmed for the unified single-row debugger toolbar. Drop the
+ * border-bottom (the wrapping `.debugger-toolbar` carries it) and the
+ * bottom row-wrap so this stays inline with search + filters disclosure. */
+.fsm-playbar {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    background: transparent;
+    flex-shrink: 0;
+}
+
+.btn-fsm {
+    font-size: 12px;
+    padding: 4px 10px;
+    border-radius: var(--af-radius-sm);
+    border: 1px solid var(--af-border);
+    background: var(--af-surface2);
+    color: var(--af-text);
+    cursor: pointer;
+    font-weight: 600;
+    transition:
+        border-color 0.15s,
+        color 0.15s;
+}
+
+.btn-fsm:hover {
+    border-color: var(--af-blue);
+    color: var(--af-blue);
+}
+
+.btn-fsm:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.btn-fsm:disabled:hover {
+    border-color: var(--af-border);
+    color: var(--af-text);
+}
+
+.btn-fsm--play {
+    background: var(--af-blue);
+    color: white;
+    border-color: var(--af-blue);
+}
+
+.btn-fsm--play:hover {
+    opacity: 0.9;
+    color: white;
+    border-color: var(--af-blue);
+}
+
+.fsm-step-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--af-text);
+    font-variant-numeric: tabular-nums;
+    min-width: 80px;
+    text-align: center;
+}
+
+.speed-pills {
+    display: flex;
+    gap: 4px;
+}
+
+.speed-pill {
+    font-size: 10px;
+    padding: 3px 9px;
+    border-radius: 999px;
+    border: 1px solid var(--af-border);
+    background: var(--af-surface2);
+    color: var(--af-text-dim);
+    cursor: pointer;
+    font-weight: 500;
+    transition:
+        border-color 0.15s,
+        color 0.15s,
+        background 0.15s;
+}
+
+.speed-pill:hover {
+    border-color: var(--af-blue);
+    color: var(--af-blue);
+}
+
+.speed-pill.is-active {
+    border-color: var(--af-cyan-border);
+    color: var(--af-cyan);
+    background: var(--af-cyan-bg);
+}

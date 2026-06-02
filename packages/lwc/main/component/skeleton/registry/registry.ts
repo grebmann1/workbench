@@ -14,6 +14,12 @@ const APPLICATION_MENU_GROUPS = [
         order: 30,
     },
     {
+        key: 'agentforce',
+        label: 'Agentforce',
+        iconName: 'utility:einstein',
+        order: 35,
+    },
+    {
         key: 'admin',
         label: 'Admin',
         iconName: 'utility:setup',

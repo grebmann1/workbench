@@ -1,0 +1,45 @@
+<template>
+    <div class="chat-container slds-background_white">
+        <template lwc:if={isSettingsViewOpen}>
+            <div class="chat-settings-page">
+                <div class="chat-settings-header">
+                    <lightning-button
+                        label="Back to chat"
+                        icon-name="utility:back"
+                        variant="neutral"
+                        onclick={handleCloseSettings}></lightning-button>
+                    <h2 class="chat-settings-title">AI Settings</h2>
+                    <lightning-button
+                        label="Save"
+                        variant="brand"
+                        disabled={isSaveDisabled}
+                        onclick={handleSave}></lightning-button>
+                </div>
+                <div class="chat-settings-body">
+                    <agent-ai-settings
+                        hide-llm-settings-card
+                        hide-mcp-card
+                        use-inline-onboarding
+                        config={config}
+                        oninputchange={handleInputChange}
+                        onsetupcomplete={handleSetupComplete}></agent-ai-settings>
+                </div>
+            </div>
+        </template>
+        <template lwc:else>
+            <div class="chat-header">
+                <lightning-button-icon
+                    icon-name="utility:settings"
+                    alternative-text="AI settings"
+                    title="AI settings"
+                    onclick={handleOpenSettings}></lightning-button-icon>
+            </div>
+            <div class="chat-body">
+                <agent-app
+                    class="chat-agent"
+                    is-audio-recorder-disabled
+                    onopensettings={handleOpenSettings}></agent-app>
+            </div>
+        </template>
+    </div>
+</template>

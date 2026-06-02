@@ -12,6 +12,9 @@
                         <template lwc:elseif={isValueFalse}>
                             <span class="falseColor">{value}</span>
                         </template>
+                        <template lwc:elseif={isUrlValue}>
+                            <a data-url={value} onclick={goToUrl}>{value}</a>
+                        </template>
                         <template lwc:else>{value}</template>
                     </span>
                     <template lwc:if={isSalesforceId}>
@@ -27,7 +30,8 @@
                         <slds-structure-viewer-item
                             key={item.key}
                             title={item.key}
-                            value={item.value}></slds-structure-viewer-item>
+                            value={item.value}
+                            link-mode={linkMode}></slds-structure-viewer-item>
                     </template>
                 </ul>
                 <template lwc:if={hasMoreRecords}>

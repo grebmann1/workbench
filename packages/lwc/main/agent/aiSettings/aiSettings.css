@@ -1,0 +1,85 @@
+.description {
+    font-weight: 300;
+    font-size: 0.8125rem;
+}
+
+.provider-key-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.25rem;
+}
+
+.internal-provider-hint {
+    margin: 0;
+    line-height: 1.35;
+}
+
+.internal-provider-hint code {
+    font-size: 0.75rem;
+    padding: 0 0.15rem;
+}
+
+/* Aligns the visibility toggle with label-stacked fields */
+.provider-key-btn {
+    margin-top: 1.5rem;
+    flex-shrink: 0;
+}
+
+.google-user-info {
+    padding: 0.5rem 0;
+}
+
+.google-user-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+.google-badge--connected {
+    --slds-c-badge-color-background: #d4edda;
+    --slds-c-badge-text-color: #1b6b35;
+}
+
+.onboard-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgb(0 0 0 / 35%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9000;
+    padding: 1rem;
+}
+
+.onboard-modal {
+    background: #fff;
+    border-radius: 0.5rem;
+    border: 1px solid #e5e5e5;
+    box-shadow: 0 8px 32px rgb(0 0 0 / 20%);
+    width: min(960px, calc(100vw - 2rem));
+    max-height: calc(100vh - 2rem);
+    display: flex;
+    flex-direction: column;
+}
+
+.onboard-modal__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid #e5e5e5;
+}
+
+.onboard-modal__title {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 700;
+}
+
+.onboard-modal__body {
+    overflow: auto;
+    padding: 0.75rem;
+}

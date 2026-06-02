@@ -45,6 +45,41 @@ test('describe: describeSObjects.fulfilled merges standard + tooling maps', () =
     assert.ok(s.nameMap.apexclass);
     assert.ok(s.prefixMap['001']);
     assert.ok(s.prefixMap['01p']);
+    assert.ok(Array.isArray(s.nameEntriesMap.account));
+    assert.equal(s.nameEntriesMap.account.length, 1);
+    assert.equal(s.nameEntriesMap.account[0].source, 'standard');
+    assert.ok(Array.isArray(s.nameEntriesMap.apexclass));
+    assert.equal(s.nameEntriesMap.apexclass.length, 1);
+    assert.equal(s.nameEntriesMap.apexclass[0].source, 'tooling');
+});
+
+test('describe: duplicate names keep legacy winner and preserve both entries', () => {
+    const payload = {
+        standard: {
+            sobjects: [{ name: 'BotDefinition', keyPrefix: '0Xx', label: 'Bot Definition' }],
+        },
+        tooling: {
+            sobjects: [
+                { name: 'BotDefinition', keyPrefix: '0Xx', label: 'Bot Definition Tooling' },
+            ],
+        },
+    };
+    const s = r(undefined, {
+        type: describeSObjects.fulfilled.type,
+        payload,
+    } as any);
+
+    // Legacy single map keeps standard as winner (backward compatibility).
+    assert.equal(s.nameMap.botdefinition.useToolingApi, false);
+    assert.equal(s.nameMap.botdefinition.source, 'standard');
+
+    // Collision-safe maps keep both entries.
+    assert.ok(Array.isArray(s.nameEntriesMap.botdefinition));
+    assert.equal(s.nameEntriesMap.botdefinition.length, 2);
+    assert.deepEqual(s.nameEntriesMap.botdefinition.map(x => x.source).sort(), [
+        'standard',
+        'tooling',
+    ]);
 });
 
 test('describe: describeSObjects.rejected stores error message', () => {

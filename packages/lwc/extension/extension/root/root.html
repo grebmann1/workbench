@@ -14,6 +14,9 @@
         <template lwc:elseif={isVscode}>
             <views-vscode class="slds-full-height"></views-vscode>
         </template>
+        <template lwc:elseif={isChat}>
+            <panels-chat class="slds-full-height"></panels-chat>
+        </template>
     </template>
     <template lwc:else>
         <div class="slds-text-align_center slds-text-color_weak slds-p-horizontal_medium">

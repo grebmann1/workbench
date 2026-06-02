@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <title>Workbench Chat - Side Panel</title>
+        <style>
+            @keyframes sidepanel-fade-in-up {
+                from {
+                    opacity: 0;
+                    transform: translateY(6px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+
+            .sidepanel-boot {
+                min-height: 100vh;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                box-sizing: border-box;
+                overflow: hidden;
+                position: relative;
+                font:
+                    12px/1.4 -apple-system,
+                    BlinkMacSystemFont,
+                    'Segoe UI',
+                    sans-serif;
+                background: linear-gradient(135deg, #f5f8ff 0%, #eaf2ff 100%);
+            }
+
+            .sidepanel-boot__stage {
+                position: relative;
+                z-index: 1;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 12px;
+                animation: sidepanel-fade-in-up 0.6s ease both;
+            }
+
+            .sidepanel-boot__name {
+                margin: 0;
+                font-size: 20px;
+                font-weight: 700;
+                letter-spacing: 2px;
+                color: #0a1628;
+                text-transform: uppercase;
+            }
+
+            .sidepanel-boot__message {
+                margin: 0;
+                color: rgba(10, 22, 40, 0.55);
+                text-transform: uppercase;
+                letter-spacing: 1px;
+            }
+        </style>
+    </head>
+    <body class="sf-toolkit" style="margin: 0">
+        <div id="sidepanel-boot" class="sidepanel-boot">
+            <div class="sidepanel-boot__stage">
+                <p class="sidepanel-boot__name">Workbench Chat</p>
+                <p class="sidepanel-boot__message">Preparing side panel</p>
+            </div>
+        </div>
+        <script async src="/scripts/chat-boot.js" type="module"></script>
+    </body>
+</html>

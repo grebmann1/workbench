@@ -15,4 +15,17 @@ test.describe('@extension textcompare', () => {
             await expect(page.getByRole('button', { name })).toBeVisible();
         }
     });
+
+    test('renders diff editor panes', async ({ appPage }) => {
+        const page = await appPage('textcompare');
+        await expect(page.getByRole('heading', { name: /text compare/i })).toBeVisible();
+
+        // The "two panes" surface is a single Monaco diff editor (editor-diff)
+        // hosting two unnamed inputareas. Once Monaco mounts, each pane
+        // exposes role="textbox" — that is the only ARIA-visible result
+        // region for the diff.
+        const panes = page.getByRole('textbox');
+        await expect(panes.first()).toBeVisible({ timeout: 15_000 });
+        await expect(panes.nth(1)).toBeVisible({ timeout: 15_000 });
+    });
 });

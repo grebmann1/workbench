@@ -1222,11 +1222,11 @@ async function connectToPage(tabId) {
 /**
  * Wait for the page's document.readyState to be "complete" by polling.
  * @param {import('puppeteer-core').Page} page - Puppeteer page
- * @param {{ timeout?: number, pollInterval?: number }} options - timeout ms (default 2000), pollInterval ms (default 100)
+ * @param {{ timeout?: number, pollInterval?: number }} options - timeout ms (default 10000), pollInterval ms (default 100)
  * @returns {Promise<{ success: boolean, readyState: string, pendingRequests: number, waitTimeMs: number, timedOut: boolean }>}
  */
 async function waitForPageLoad(page, options = {}) {
-    const { timeout = 2000, pollInterval = 100 } = options;
+    const { timeout = 10000, pollInterval = 100 } = options;
     const start = Date.now();
 
     sandboxLog(`[waitForPageLoad] Waiting up to ${timeout}ms...`);
@@ -1271,6 +1271,36 @@ async function waitForPageLoad(page, options = {}) {
             timedOut: true,
         };
     }
+}
+
+/**
+ * Wait for Salesforce Lightning UI to settle after route changes.
+ * Checks for active spinners and aria-busy markers before returning success.
+ * @param {import('puppeteer-core').Page} page - Puppeteer page
+ * @param {{ timeout?: number, pollInterval?: number, settleMs?: number }} options
+ * @returns {Promise<{ success: boolean, waitTimeMs: number, timedOut: boolean }>}
+ */
+async function waitForLightning(page, options = {}) {
+    const { timeout = 12000, pollInterval = 100, settleMs = 500 } = options;
+    const start = Date.now();
+    let lastBusyAt = Date.now();
+    while (Date.now() - start < timeout) {
+        try {
+            const isBusy = await page.evaluate(() => {
+                if (document.querySelector('.slds-spinner_container[role="status"]')) {
+                    return true;
+                }
+                return Boolean(document.querySelector('[aria-busy="true"]'));
+            });
+            if (isBusy) {
+                lastBusyAt = Date.now();
+            } else if (Date.now() - lastBusyAt >= settleMs) {
+                return { success: true, waitTimeMs: Date.now() - start, timedOut: false };
+            }
+        } catch (_) {}
+        await new Promise(resolve => setTimeout(resolve, pollInterval));
+    }
+    return { success: false, waitTimeMs: timeout, timedOut: true };
 }
 
 /**
@@ -1647,6 +1677,7 @@ window.closeTab = closeTab;
 window.activateTab = activateTab;
 window.connectToPage = connectToPage;
 window.waitForPageLoad = waitForPageLoad;
+window.waitForLightning = waitForLightning;
 window.logImage = logImage;
 window.getSnapshot = getSnapshot;
 window.getElementByRef = getElementByRef;

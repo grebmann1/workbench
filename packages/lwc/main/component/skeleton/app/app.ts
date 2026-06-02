@@ -11,7 +11,7 @@ import {
     getDesktopLaunchIntent,
     onDesktopLaunchIntent,
 } from 'core/desktopBridge';
-import { connectStore, store, DOCUMENT, APPLICATION } from 'core/store';
+import { connectStore, store, DOCUMENT, APPLICATION, SHELL } from 'core/store';
 import { LightningElement, track, api, wire } from 'lwc';
 import { NavigationContext, CurrentPageReference, navigate } from 'lwr/navigation';
 import LOGGER from 'shared/logger';
@@ -106,7 +106,7 @@ export default class App extends LightningElement {
     }
 
     @wire(connectStore, { store })
-    storeChange({ application }) {
+    storeChange({ application, shell }) {
         this._isFullAppLoading = application.isLoading;
         this._fullAppLoadingMessage = application.isLoadingMessage;
 
@@ -117,6 +117,11 @@ export default class App extends LightningElement {
             } else if (!application.isLoggedIn) {
                 this.handleLogout();
             }
+        }
+
+        if (shell?.redirectTo) {
+            void this.handleRedirection({ redirectTo: shell.redirectTo });
+            store.dispatch(SHELL.reduxSlice.actions.clearRedirect());
         }
     }
 

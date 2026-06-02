@@ -35,37 +35,29 @@
                 <p class="slds-p-left_x-small">{totalRecords} records</p>
             </div>
         </template>
-        <div class="slds-col_bump-left">
-            <lightning-input
-                class="slds-p-right_small toolkit-small"
-                type="toggle"
-                label="Include Deleted Records"
-                name="deletedRecords"
-                message-toggle-active=""
-                message-toggle-inactive=""
-                onchange={handleIncludeDeletedRecordChange}
-                checked={includeDeletedRecords}></lightning-input>
+        <div class="slds-col_bump-left toggle-controls">
+            <div class="toggle-control">
+                <lightning-input
+                    class="toolkit-small"
+                    type="toggle"
+                    label="Enforce Tooling API"
+                    name="toolingApi"
+                    message-toggle-active=""
+                    message-toggle-inactive=""
+                    onchange={handleUseToolingApiChange}
+                    checked={useToolingApi}></lightning-input>
+            </div>
+            <div class="toggle-control">
+                <lightning-input
+                    class="toolkit-small"
+                    type="toggle"
+                    label="Include Deleted Records"
+                    name="deletedRecords"
+                    message-toggle-active=""
+                    message-toggle-inactive=""
+                    onchange={handleIncludeDeletedRecordChange}
+                    checked={includeDeletedRecords}></lightning-input>
+            </div>
         </div>
     </div>
-
-    <!--
-    <div class="slds-grid slds-p-around_xx-small">
-        <div class="slds-m-horizontal_small">
-            <lightning-input 
-                type="toggle" 
-                label="Use tooling api" 
-                name="toolingApi" 
-                message-toggle-active=""
-                message-toggle-inactive=""
-                onchange={handleToolingApiCheckboxChange}
-                checked={useToolingApi}
-            ></lightning-input>
-        </div>
-        <div class="slds-col_bump-left">
-            <button class="slds-button slds-button_neutral" onclick={formatQuery}>{i18n.QUERY_EDITOR_PANEL_FORMAT_SOQL}</button>
-            <button class="slds-button slds-button_brand" onclick={runQueryAll} title={i18n.EDITOR_PANEL_RUN_ALL_TITLE}> {i18n.EDITOR_PANEL_RUN_ALL} </button>
-            <button class="slds-button slds-button_brand" onclick={runQuery}>{i18n.EDITOR_PANEL_RUN}</button>
-        </div>
-    </div>
-    -->
 </template>

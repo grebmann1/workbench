@@ -1,0 +1,19 @@
+<template>
+    <template lwc:if={hasDiffs}>
+        <div class="fsm-detail-section">
+            <div class="fsm-detail-section-h">
+                Variables Updated
+                <span class="fsm-detail-badge">{diffCount}</span>
+            </div>
+            <template for:each={diffs} for:item="d">
+                <div key={d.key} class="fsm-detail-var">
+                    <div class="fsm-detail-var-name">{d.key}</div>
+                    <template lwc:if={d.oldValue}>
+                        <div class={d.oldClass}>{d.oldValue}</div>
+                    </template>
+                    <div class={d.newClass}>&rarr; {d.newValue}</div>
+                </div>
+            </template>
+        </div>
+    </template>
+</template>

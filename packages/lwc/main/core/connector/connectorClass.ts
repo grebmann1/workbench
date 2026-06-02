@@ -63,6 +63,8 @@ export class Connector {
             sessionId: this.conn?.accessToken,
             instanceUrl: this.conn?.instanceUrl,
             version: this.conn?.version,
+            isImpersonating: this.isImpersonating,
+            impersonatedBy: this.impersonatedBy,
         };
     }
 
@@ -142,6 +144,7 @@ export class Connector {
 
             let identity = undefined;
             let versions = undefined;
+            let oauthIdentityUsername: string | undefined = undefined;
             // Only fetch identity if not USERNAME credential type
             if (this.configuration.credentialType === OAUTH_TYPES.USERNAME) {
                 versions = await this.conn.request?.('/services/data/');
@@ -150,12 +153,70 @@ export class Connector {
                     this.conn.identity?.(),
                     this.conn.request?.('/services/data/'),
                 ]);
+                // Under "Login As", `conn.identity()` sometimes returns '' or undefined.
+                // Capture the OAuth username (delegating admin) before we coerce identity
+                // to {}, so the `_impersonatedBy` audit trail below survives that case.
+                oauthIdentityUsername =
+                    identity && typeof identity === 'object' ? identity.username : undefined;
+                identity = identity === '' || identity === undefined ? {} : identity;
                 this.conn._maxSessionRefreshRetries = 1;
             }
 
             const latestVersion = Array.isArray(versions)
                 ? versions.sort((a, b) => b.version.localeCompare(a.version))[0]
                 : undefined;
+
+            // Login As reconciliation. `conn.identity()` returns the OAuth token
+            // owner — under "Login As" that's still the delegating admin, even
+            // though SOQL/Apex run as the impersonated user. /chatter/users/me
+            // reports the runtime session user. When they disagree, hydrate
+            // identity-shape fields with a SOQL lookup of the impersonated user
+            // so every consumer of `userInfo` (My User panel, footer, agent
+            // tools, frontdoor links, …) tracks impersonation.
+            if (this.configuration.credentialType !== OAUTH_TYPES.USERNAME) {
+                const probeVersion = latestVersion?.version || '60.0';
+                const runtimeUserId = await this.conn
+                    .request?.(`/services/data/v${probeVersion}/chatter/users/me`)
+                    .then(r => r?.id)
+                    .catch(() => null);
+                LOGGER.log('runtimeUserId', runtimeUserId);
+                if (runtimeUserId && runtimeUserId !== identity?.user_id) {
+                    LOGGER.debug('Login As detected', {
+                        oauthUser: identity?.user_id,
+                        runtimeUser: runtimeUserId,
+                    });
+                    try {
+                        const escapedId = String(runtimeUserId).replace(/'/g, "\\'");
+                        const soqlResult = await this.conn.query?.(
+                            `SELECT Id, Username, FirstName, LastName, Email FROM User WHERE Id = '${escapedId}' LIMIT 1`
+                        );
+                        LOGGER.log('soqlResult', soqlResult);
+                        const r = soqlResult?.records?.[0];
+                        LOGGER.log('r', r);
+                        if (r) {
+                            const displayName = `${r.FirstName ?? ''} ${r.LastName ?? ''}`.trim();
+                            identity = {
+                                ...identity,
+                                user_id: r.Id,
+                                id: r.Id,
+                                username: r.Username,
+                                preferred_username: r.Username,
+                                first_name: r.FirstName,
+                                last_name: r.LastName,
+                                display_name: displayName || r.Username,
+                                email: r.Email,
+                                _impersonatedBy:
+                                    oauthIdentityUsername ||
+                                    identity?.username ||
+                                    this.configuration.username ||
+                                    null,
+                            };
+                        }
+                    } catch (e) {
+                        LOGGER.debug('Login As reconciliation SOQL failed', e?.message || e);
+                    }
+                }
+            }
             const organizationType = normalizeOrganizationType({
                 organizationType:
                     identity?.organization_type ||
@@ -208,14 +269,27 @@ export class Connector {
             if (sessionSettings && sessionSettings[CACHE_SESSION_CONFIG.CLIENT_ID.key]) {
                 callOptions.client = sessionSettings[CACHE_SESSION_CONFIG.CLIENT_ID.key];
             }
-            // Enrich Connection
+            // Enrich Connection. JSForce sets `conn.userInfo` from `conn.identity()`
+            // (the OAuth token owner). Under "Login As" that's the delegating admin,
+            // so downstream code reading `connector.conn.userInfo` (Me panel,
+            // User Explorer, agent tools, …) would target the wrong user. Overwrite
+            // with the reconciled identity when we have a usable one.
+            const hasReconciledIdentity = !!(
+                identity &&
+                (identity.id || identity.user_id || identity.username)
+            );
             Object.assign(this.conn, {
                 alias: this.configuration.alias,
                 version: currentVersion?.version,
                 _versions: versions,
                 _callOptions: callOptions,
+                ...(hasReconciledIdentity ? { userInfo: identity } : {}),
             });
 
+            console.log('enricheConnector ->', {
+                identity,
+                configuration: this.configuration,
+            });
             // Always normalize configuration before returning
             this.configuration = normalizeConfiguration(this.configuration, true);
         } catch (e) {
@@ -311,5 +385,15 @@ export class Connector {
 
     get errorMessage() {
         return this.configuration._errorMessage;
+    }
+
+    get impersonatedBy(): string | null {
+        const userInfo = this.configuration?.userInfo as Record<string, unknown> | undefined;
+        const value = userInfo?._impersonatedBy;
+        return typeof value === 'string' && value.length > 0 ? value : null;
+    }
+
+    get isImpersonating(): boolean {
+        return this.impersonatedBy !== null;
     }
 }
