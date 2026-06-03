@@ -61,6 +61,7 @@ export default class SobjectsPanel extends ToolkitElement {
         store.dispatch(
             DESCRIBE.describeSObjects({
                 connector: this.connector.conn,
+                forceRefresh: true,
             })
         );
     }

@@ -82,6 +82,65 @@ test('describe: duplicate names keep legacy winner and preserve both entries', (
     ]);
 });
 
+test('describe: describeSObjects.fulfilled with forceRefresh resets stale entries', () => {
+    const seeded = r(undefined, {
+        type: describeSObjects.fulfilled.type,
+        payload: {
+            standard: [
+                { name: 'StaleObject__c', keyPrefix: 'a01' },
+                { name: 'Account', keyPrefix: '001' },
+            ].reduce((acc, item) => {
+                acc.sobjects = acc.sobjects || [];
+                acc.sobjects.push(item);
+                return acc;
+            }, {} as any),
+            tooling: { sobjects: [] },
+        },
+    } as any);
+    assert.ok(seeded.nameMap.staleobject__c, 'precondition: stale entry seeded');
+
+    const refreshed = r(seeded, {
+        type: describeSObjects.fulfilled.type,
+        payload: {
+            standard: { sobjects: [{ name: 'Account', keyPrefix: '001' }] },
+            tooling: { sobjects: [] },
+        },
+        meta: { arg: { forceRefresh: true } },
+    } as any);
+
+    assert.equal(
+        refreshed.nameMap.staleobject__c,
+        undefined,
+        'forceRefresh should remove entries absent from new payload'
+    );
+    assert.ok(refreshed.nameMap.account, 'fresh entries still applied');
+    assert.equal(refreshed.nameEntriesMap.staleobject__c, undefined);
+});
+
+test('describe: describeSObjects.fulfilled without forceRefresh keeps existing entries (merge)', () => {
+    const seeded = r(undefined, {
+        type: describeSObjects.fulfilled.type,
+        payload: {
+            standard: { sobjects: [{ name: 'OldObject__c', keyPrefix: 'a02' }] },
+            tooling: { sobjects: [] },
+        },
+    } as any);
+
+    const merged = r(seeded, {
+        type: describeSObjects.fulfilled.type,
+        payload: {
+            standard: { sobjects: [{ name: 'NewObject__c', keyPrefix: 'a03' }] },
+            tooling: { sobjects: [] },
+        },
+    } as any);
+
+    assert.ok(
+        merged.nameMap.oldobject__c,
+        'non-forced fulfilled should preserve previous entries (merge semantics)'
+    );
+    assert.ok(merged.nameMap.newobject__c);
+});
+
 test('describe: describeSObjects.rejected stores error message', () => {
     const s = r(undefined, {
         type: describeSObjects.rejected.type,

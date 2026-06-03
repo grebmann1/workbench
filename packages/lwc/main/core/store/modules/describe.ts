@@ -49,15 +49,30 @@ const buildDescribeEntriesMap = (
 // Thunks using createAsyncThunk
 export const describeSObjects = createAsyncThunk(
     'describe/describeSObjects',
-    async ({ connector }: { connector: ConnectionLike }, { dispatch, getState }) => {
-        LOGGER.debug('describeSObjects/connector', connector);
+    async (
+        { connector, forceRefresh = false }: { connector: ConnectionLike; forceRefresh?: boolean },
+        { dispatch, getState }
+    ) => {
+        LOGGER.debug('describeSObjects/connector', connector, { forceRefresh });
         // TODO: connector should be replaced by conn or use the original connector
         //const conn = useToolingApi ? connector.tooling : connector;
         const fetchDescribeAndSave = async () => {
-            const result = {
-                standard: await connector.describeGlobal(),
-                tooling: await connector.tooling.describeGlobal(),
-            };
+            // When forced, append a cache-busting query param so the browser HTTP cache
+            // cannot serve a stale describeGlobal response. The shape returned by
+            // jsforce's request() for /sobjects is identical to describeGlobal().
+            const result = forceRefresh
+                ? {
+                      standard: await connector.request(
+                          `/services/data/v${connector.version}/sobjects?_=${Date.now()}`
+                      ),
+                      tooling: await connector.request(
+                          `/services/data/v${connector.version}/tooling/sobjects?_=${Date.now()}`
+                      ),
+                  }
+                : {
+                      standard: await connector.describeGlobal(),
+                      tooling: await connector.tooling.describeGlobal(),
+                  };
             if (isUndefinedOrNull(connector.alias)) {
                 throw new Error('No alias found');
             }
@@ -69,20 +84,40 @@ export const describeSObjects = createAsyncThunk(
             return result;
         };
 
+        if (forceRefresh) {
+            // Defense in depth: clear jsforce in-memory cache and the persisted
+            // cacheManager snapshot before fetching, so any silent fallback path
+            // cannot resurrect stale data.
+            connector.cache?.clear?.('describeGlobal');
+            connector.tooling?.cache?.clear?.('describeGlobal');
+            if (!isUndefinedOrNull(connector.alias)) {
+                await cacheManager.clearOrgData(
+                    connector.alias,
+                    CACHE_ORG_DATA_TYPES.DESCRIBE_GLOBAL
+                );
+            }
+        }
+
         try {
             return await fetchDescribeAndSave();
         } catch (err) {
-            const cachedDescribe = await cacheManager.loadOrgData(
-                connector.alias,
-                CACHE_ORG_DATA_TYPES.DESCRIBE_GLOBAL
-            );
-            LOGGER.debug('cachedDescribe fallback', cachedDescribe);
-            if (cachedDescribe) {
-                return cachedDescribe;
+            // On a user-initiated refresh, surface the error instead of silently
+            // returning stale cached data.
+            if (!forceRefresh) {
+                const cachedDescribe = await cacheManager.loadOrgData(
+                    connector.alias,
+                    CACHE_ORG_DATA_TYPES.DESCRIBE_GLOBAL
+                );
+                LOGGER.debug('cachedDescribe fallback', cachedDescribe);
+                if (cachedDescribe) {
+                    return cachedDescribe;
+                }
             }
             getStore()?.dispatch(
                 ERROR.reduxSlice.actions.addError({
-                    message: 'Error describing SObjects',
+                    message: forceRefresh
+                        ? 'Refresh failed: could not load SObjects from Salesforce'
+                        : 'Error describing SObjects',
                     details: err?.message || String(err),
                 })
             );
@@ -154,6 +189,14 @@ const describeSlice = createSlice({
             })
             .addCase(describeSObjects.fulfilled, (state, action) => {
                 const { standard, tooling } = action.payload;
+                // On a force-refresh, rebuild from scratch so deleted/renamed
+                // SObjects also drop out of state.
+                if ((action.meta as any)?.arg?.forceRefresh) {
+                    state.prefixMap = {};
+                    state.nameMap = {};
+                    state.nameEntriesMap = {};
+                    state.prefixEntriesMap = {};
+                }
                 const toolingAttributes = {
                     useToolingApi: true,
                     source: DESCRIBE_SOURCE.TOOLING,
