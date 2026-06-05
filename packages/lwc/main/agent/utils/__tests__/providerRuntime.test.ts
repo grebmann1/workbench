@@ -174,6 +174,7 @@ test('codexFormatRequest: injects store:false and lifts the system message into 
         method: 'POST',
         body: JSON.stringify({
             model: 'gpt-5.1-codex',
+            max_output_tokens: 16000,
             input: [
                 { role: 'system', content: [{ type: 'input_text', text: 'You are Codex.' }] },
                 { role: 'user', content: [{ type: 'input_text', text: 'hi' }] },
@@ -183,6 +184,7 @@ test('codexFormatRequest: injects store:false and lifts the system message into 
     const body = JSON.parse(out.options?.body as string);
     assert.equal(body.store, false);
     assert.equal(body.instructions, 'You are Codex.');
+    assert.equal(body.max_output_tokens, undefined); // WHAM rejects it
     assert.equal(body.input.length, 1);
     assert.equal(body.input[0].role, 'user');
 

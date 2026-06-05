@@ -73,6 +73,11 @@ export function codexFormatRequest(url: RequestInfo | URL, options?: RequestInit
         if (instructions) payload.input = rest;
         changed = true;
     }
+    // WHAM rejects `max_output_tokens` ("Unsupported parameter") — the model uses its own cap.
+    if (payload.max_output_tokens !== undefined) {
+        delete payload.max_output_tokens;
+        changed = true;
+    }
     return changed ? { url, options: { ...options, body: JSON.stringify(payload) } } : { url, options };
 }
 
