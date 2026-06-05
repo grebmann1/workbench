@@ -227,6 +227,7 @@ export function getMaxOutputTokensForModel(
     options: LlmModelOption[] = [
         ...Object.values(PROVIDER_MODEL_OPTIONS).flat(),
         ...INTERNAL_MODEL_OPTIONS,
+        ...CODEX_MODEL_OPTIONS,
     ]
 ): number {
     const normalized = normalizeString(model);
@@ -237,7 +238,10 @@ export function getMaxOutputTokensForModel(
 
 export function getProviderForModel(
     model: unknown,
-    options: LlmModelOption[] = Object.values(PROVIDER_MODEL_OPTIONS).flat()
+    options: LlmModelOption[] = [
+        ...Object.values(PROVIDER_MODEL_OPTIONS).flat(),
+        ...CODEX_MODEL_OPTIONS,
+    ]
 ): LlmProvider {
     const normalized = normalizeString(model);
     if (!normalized) {

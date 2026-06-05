@@ -121,7 +121,7 @@ test('normalizeProviderConfig: drops invalid authMode and access-less oauth', ()
     assert.equal(config.oauth, undefined);
 });
 
-test('normalizeProviderConfigMap: round-trips oauth credentials (data-loss regression)', () => {
+test('normalizeProviderConfigMap: is idempotent on oauth credentials', () => {
     const input = {
         openai: {
             apiKey: null,
@@ -130,8 +130,9 @@ test('normalizeProviderConfigMap: round-trips oauth credentials (data-loss regre
             oauth: { access: 'a', refresh: 'b', expires: 999, accountId: 'acct' },
         },
     };
-    // Two passes simulate save (buildProviderConfigCacheRecord) → load
-    // (resolveLlmProviderConfigMap), both of which normalize.
+    // Normalizing an already-normalized map must not drop the oauth blob. The
+    // full save→load round-trip through buildProviderConfigCacheRecord /
+    // resolveLlmProviderConfigMap is covered in cacheManager.test.ts.
     const twice = normalizeProviderConfigMap(normalizeProviderConfigMap(input));
     assert.equal(twice.openai.authMode, 'oauth');
     assert.equal(twice.openai.oauth?.access, 'a');
@@ -303,6 +304,16 @@ test('getMaxOutputTokensForModel: unknown model returns default 8192', () => {
     assert.equal(getMaxOutputTokensForModel('no-such-model'), 8192);
     assert.equal(getMaxOutputTokensForModel(''), 8192);
     assert.equal(getMaxOutputTokensForModel(null), 8192);
+});
+
+test('getMaxOutputTokensForModel: Codex-only slugs resolve their declared limit', () => {
+    // CODEX_MODEL_OPTIONS must be in the default lookup table, otherwise the
+    // codex-only slugs (absent from PROVIDER_MODEL_OPTIONS/INTERNAL) silently
+    // fall back to the 8192 default instead of 16000.
+    for (const model of CODEX_MODEL_OPTIONS) {
+        assert.equal(getMaxOutputTokensForModel(model.value), model.maxOutputTokens);
+    }
+    assert.equal(getMaxOutputTokensForModel('gpt-5.1-codex-mini'), 16000);
 });
 
 test('getProviderForModel: exact value match returns provider', () => {
