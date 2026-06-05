@@ -2,6 +2,7 @@
 import {
     createProviderInstance,
     getReasoningConfigFromSelection,
+    persistRefreshedOAuthCredentials,
     resolveProviderModelInstance,
     resolveProviderOptions,
 } from 'agent/utils';
@@ -18,8 +19,10 @@ import {
     getDefaultModelForProvider,
     getProviderModelOptions,
     buildAvailableAgentModelOptions,
+    hasUsableProviderCredentials,
     resolveAgentProviderBaseUrl,
     isOpenAiCompatibleGateway,
+    type OAuthCredentials,
 } from 'shared/llm';
 
 import type {
@@ -39,6 +42,8 @@ type RuntimeConfig = {
     baseUrl?: string;
     systemPrompt?: string;
     reasoning?: string;
+    authMode?: 'apiKey' | 'oauth';
+    oauth?: OAuthCredentials | null;
 };
 
 type FullRuntimeConfig = RuntimeConfig & {
@@ -55,6 +60,8 @@ async function readRuntimeConfig(): Promise<FullRuntimeConfig> {
             provider,
             apiKey: providerConfig?.apiKey || undefined,
             baseUrl: providerConfig?.baseUrl || undefined,
+            authMode: providerConfig?.authMode,
+            oauth: providerConfig?.oauth ?? null,
             providerConfigs,
         };
     } catch {
@@ -88,13 +95,22 @@ async function* streamCompletionViaProvider(
         getDefaultModelForProvider(provider) || 'gpt-4o'
     );
     const reasoning = String(modelConfig.reasoning || storedConfig.reasoning || 'none');
+    const authMode = storedConfig.authMode;
+    const oauth = storedConfig.oauth ?? null;
 
-    if (!apiKey) {
+    if (
+        !hasUsableProviderCredentials({
+            apiKey: apiKey || null,
+            baseUrl: baseUrl ?? '',
+            authMode,
+            oauth,
+        })
+    ) {
         yield {
             type: 'error',
             code: 'ENOCONFIG',
             message:
-                'AI bridge runtime is not configured. Set an API key to enable AI completions.',
+                'AI bridge runtime is not configured. Set an API key or sign in to enable AI completions.',
         };
         yield { type: 'done' };
         return;
@@ -102,7 +118,20 @@ async function* streamCompletionViaProvider(
 
     const isInternal = isOpenAiCompatibleGateway(provider, baseUrl);
     const reasoningConfig = getReasoningConfigFromSelection(reasoning);
-    const providerInstance = createProviderInstance({ provider, apiKey, baseUrl, isInternal });
+    const providerInstance = createProviderInstance({
+        provider,
+        apiKey,
+        baseUrl,
+        isInternal,
+        authMode,
+        oauth,
+        onTokenRefresh:
+            authMode === 'oauth'
+                ? credentials => {
+                      persistRefreshedOAuthCredentials(provider, credentials).catch(() => {});
+                  }
+                : undefined,
+    });
     const systemPrompt = buildSystemPrompt(
         String(modelConfig.systemPrompt || storedConfig.systemPrompt || '')
     );
@@ -239,7 +268,13 @@ async function* buildConfigStream(): AsyncGenerator<IframeAiBridgeChunk> {
                   isDefault: m.value === defaultModel,
               }));
 
-    yield { type: 'ai_config', provider, models, isConfigured: !!storedConfig.apiKey };
+    const isConfigured = hasUsableProviderCredentials({
+        apiKey: storedConfig.apiKey ?? null,
+        baseUrl: storedConfig.baseUrl ?? '',
+        authMode: storedConfig.authMode,
+        oauth: storedConfig.oauth ?? null,
+    });
+    yield { type: 'ai_config', provider, models, isConfigured };
     yield { type: 'done' };
 }
 
