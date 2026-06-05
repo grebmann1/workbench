@@ -2,9 +2,25 @@ import { GOOGLE_DRIVE_SCOPES } from 'agent/googleAuth';
 import { store, APPLICATION, connectStore } from 'core/store';
 import Toast from 'lightning/toast';
 import { api, LightningElement, track, wire } from 'lwc';
-import { CACHE_CONFIG, saveSingleExtensionConfigToCache } from 'shared/cacheManager';
-import { isInternalProviderBaseUrl } from 'shared/llm';
+import {
+    CACHE_CONFIG,
+    buildProviderConfigCacheRecord,
+    cacheManager,
+    getLlmProviderConfigCacheKeys,
+    resolveLlmProviderConfigMap,
+    saveSingleExtensionConfigToCache,
+} from 'shared/cacheManager';
+import {
+    isInternalProviderBaseUrl,
+    normalizeProviderConfigMap,
+    type LlmProviderConfigMap,
+} from 'shared/llm';
 import LOGGER from 'shared/logger';
+
+// Subscription sign-in maps a UI provider id to the LLM provider whose config stores the
+// OAuth credentials (Codex is an auth-mode on `openai`, xAI on `grok`).
+const OAUTH_PROVIDER_TO_LLM = { codex: 'openai', xai: 'grok' };
+const OAUTH_PROVIDER_LABELS = { codex: 'ChatGPT (Codex)', xai: 'xAI' };
 
 const INTERNAL_PROVIDER_DOCS_URL = 'https://doc.sf-workbench.com/ai-agent/llm-provider-runtime';
 
@@ -17,6 +33,8 @@ export default class AiSettings extends LightningElement {
     @track googleUser = null;
     @track googleDriveConnected = false;
     @track showOnboardAiProvider = false;
+    @track providerConfigs: Partial<LlmProviderConfigMap> = {};
+    @track isSigningIn = false;
 
     @wire(connectStore, { store })
     storeChange({ application }) {
@@ -25,6 +43,107 @@ export default class AiSettings extends LightningElement {
         this.googleUser = session;
         this.googleDriveConnected =
             !!session?.token && !!settings[CACHE_CONFIG.GOOGLE_DRIVE_CONNECTED.key];
+        this.providerConfigs = application?.providerConfigs || {};
+    }
+
+    connectedCallback() {
+        if (typeof chrome !== 'undefined' && chrome?.runtime?.onMessage) {
+            chrome.runtime.onMessage.addListener(this.handleOAuthResultMessage);
+        }
+    }
+
+    disconnectedCallback() {
+        if (typeof chrome !== 'undefined' && chrome?.runtime?.onMessage) {
+            chrome.runtime.onMessage.removeListener(this.handleOAuthResultMessage);
+        }
+    }
+
+    // Completion of an extension OAuth sign-in is delivered by the background worker.
+    handleOAuthResultMessage = message => {
+        if (message?.action !== 'workbench_oauth_result') return;
+        this.isSigningIn = false;
+        if (message.ok) {
+            this.reloadProviderConfigs()
+                .then(() => Toast.show({ label: 'Signed in.', variant: 'success' }))
+                .catch(err => LOGGER.error('Failed to reload provider configs', err));
+        } else {
+            Toast.show({ label: message.message || 'Sign-in failed.', variant: 'error' });
+        }
+    };
+
+    async reloadProviderConfigs() {
+        const cached = await cacheManager.loadConfig(getLlmProviderConfigCacheKeys());
+        const providerConfigs = resolveLlmProviderConfigMap(cached);
+        store.dispatch(APPLICATION.reduxSlice.actions.updateProviderConfigs({ providerConfigs }));
+    }
+
+    handleProviderSignIn = async e => {
+        const provider = e.currentTarget?.dataset?.provider;
+        if (!provider) return;
+        if (typeof chrome === 'undefined' || typeof chrome?.runtime?.sendMessage !== 'function') {
+            Toast.show({
+                label: 'Subscription sign-in is only available in the Chrome extension.',
+                variant: 'error',
+            });
+            return;
+        }
+        this.isSigningIn = true;
+        try {
+            await new Promise((resolve, reject) => {
+                chrome.runtime.sendMessage({ action: 'providerOAuthStart', provider }, response => {
+                    if (chrome.runtime.lastError) {
+                        reject(new Error(chrome.runtime.lastError.message));
+                    } else if (response?.error) {
+                        reject(new Error(response.error));
+                    } else {
+                        resolve(response);
+                    }
+                });
+            });
+            // Success arrives asynchronously via handleOAuthResultMessage once the user
+            // completes consent; keep a gentle hint here.
+            Toast.show({
+                label: `Complete sign-in to ${OAUTH_PROVIDER_LABELS[provider] || provider} in the opened window.`,
+                variant: 'info',
+            });
+        } catch (err) {
+            LOGGER.error('Provider OAuth start failed', err);
+            Toast.show({ label: `Sign-in failed: ${err.message}`, variant: 'error' });
+        } finally {
+            this.isSigningIn = false;
+        }
+    };
+
+    handleProviderDisconnect = async e => {
+        const provider = e.currentTarget?.dataset?.provider;
+        const llmProvider = OAUTH_PROVIDER_TO_LLM[provider];
+        if (!llmProvider) return;
+        try {
+            const cached = await cacheManager.loadConfig(getLlmProviderConfigCacheKeys());
+            const currentMap = resolveLlmProviderConfigMap(cached);
+            const nextMap = normalizeProviderConfigMap({
+                ...currentMap,
+                [llmProvider]: { ...currentMap[llmProvider], authMode: 'apiKey', oauth: null },
+            });
+            await cacheManager.saveConfig(buildProviderConfigCacheRecord(nextMap));
+            store.dispatch(
+                APPLICATION.reduxSlice.actions.updateProviderConfigs({ providerConfigs: nextMap })
+            );
+            Toast.show({ label: 'Signed out.', variant: 'success' });
+        } catch (err) {
+            LOGGER.error('Provider OAuth disconnect failed', err);
+            Toast.show({ label: `Sign-out failed: ${err.message}`, variant: 'error' });
+        }
+    };
+
+    get codexConnected() {
+        const config = this.providerConfigs?.openai;
+        return config?.authMode === 'oauth' && !!config?.oauth?.access;
+    }
+
+    get xaiConnected() {
+        const config = this.providerConfigs?.grok;
+        return config?.authMode === 'oauth' && !!config?.oauth?.access;
     }
 
     emitInputChange(key, value) {
