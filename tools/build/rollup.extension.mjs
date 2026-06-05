@@ -291,6 +291,7 @@ const sharedModules = [
     { name: 'shared/analytics', path: getSharedModulePath('analytics') },
     { name: 'shared/cacheManager', path: getSharedModulePath('cacheManager') },
     { name: 'shared/llm', path: getSharedModulePath('llm') },
+    { name: 'shared/oauth', path: getSharedModulePath('oauth') },
     { name: 'shared/loader', path: getSharedModulePath('loader') },
     { name: 'shared/logger', path: getSharedModulePath('logger') },
     { name: 'shared/metadataApi', path: getSharedModulePath('metadataApi') },
