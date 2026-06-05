@@ -110,7 +110,14 @@
                                     label="Sign out"
                                     variant="destructive-text"
                                     data-provider="codex"
-                                    onclick={handleProviderDisconnect}></lightning-button>
+                                    onclick={handleProviderDisconnect}
+                                    class="slds-m-right_small"></lightning-button>
+                                <lightning-button
+                                    label="Refresh models"
+                                    icon-name="utility:refresh"
+                                    variant="neutral"
+                                    disabled={isRefreshingModels}
+                                    onclick={handleRefreshModels}></lightning-button>
                             </template>
                             <template lwc:else>
                                 <lightning-button
@@ -139,36 +146,20 @@
                                     class="slds-m-top_x-small"></lightning-button>
                             </div>
                         </template>
-                        <template lwc:if={codexConnected}>
-                            <template lwc:if={codexNeedsManualModel}>
-                                <lightning-input
-                                    data-provider="codex"
-                                    label="Model"
-                                    placeholder="e.g. gpt-5.1-codex-mini"
-                                    value={codexCustomModel}
-                                    onchange={handleCustomModelChange}
-                                    variant="label-stacked"
-                                    class="slds-full-width slds-m-top_x-small"></lightning-input>
-                                <p
-                                    class="slds-text-body_small slds-text-color_weak slds-m-top_xx-small">
-                                    No models returned from your ChatGPT subscription — type a
-                                    model name to use.
-                                </p>
-                            </template>
-                            <template lwc:else>
-                                <p
-                                    class="slds-text-body_small slds-text-color_weak slds-m-top_x-small">
-                                    Models loaded from your ChatGPT subscription — pick one in the
-                                    model selector.
-                                </p>
-                            </template>
-                            <lightning-button
-                                label="Refresh models"
-                                icon-name="utility:refresh"
-                                variant="neutral"
-                                disabled={isRefreshingModels}
-                                onclick={handleRefreshModels}
-                                class="slds-m-top_x-small"></lightning-button>
+                        <template lwc:if={codexNeedsManualModel}>
+                            <lightning-input
+                                data-provider="codex"
+                                label="Model"
+                                placeholder="e.g. gpt-5.1-codex-mini"
+                                value={codexCustomModel}
+                                onchange={handleCustomModelChange}
+                                variant="label-stacked"
+                                class="slds-full-width slds-m-top_x-small"></lightning-input>
+                            <p
+                                class="slds-text-body_small slds-text-color_weak slds-m-top_xx-small">
+                                No models returned from your ChatGPT subscription — type a model
+                                name to use.
+                            </p>
                         </template>
                     </div>
                 </slds-tab>
@@ -325,7 +316,14 @@
                                     label="Sign out"
                                     variant="destructive-text"
                                     data-provider="xai"
-                                    onclick={handleProviderDisconnect}></lightning-button>
+                                    onclick={handleProviderDisconnect}
+                                    class="slds-m-right_small"></lightning-button>
+                                <lightning-button
+                                    label="Refresh models"
+                                    icon-name="utility:refresh"
+                                    variant="neutral"
+                                    disabled={isRefreshingModels}
+                                    onclick={handleRefreshModels}></lightning-button>
                             </template>
                             <template lwc:else>
                                 <lightning-button
@@ -358,36 +356,20 @@
                                     class="slds-m-top_x-small"></lightning-button>
                             </div>
                         </template>
-                        <template lwc:if={xaiConnected}>
-                            <template lwc:if={xaiNeedsManualModel}>
-                                <lightning-input
-                                    data-provider="xai"
-                                    label="Model"
-                                    placeholder="e.g. grok-4.1-fast-reasoning"
-                                    value={xaiCustomModel}
-                                    onchange={handleCustomModelChange}
-                                    variant="label-stacked"
-                                    class="slds-full-width slds-m-top_x-small"></lightning-input>
-                                <p
-                                    class="slds-text-body_small slds-text-color_weak slds-m-top_xx-small">
-                                    No models returned from your SuperGrok subscription — type a
-                                    model name to use.
-                                </p>
-                            </template>
-                            <template lwc:else>
-                                <p
-                                    class="slds-text-body_small slds-text-color_weak slds-m-top_x-small">
-                                    Models loaded from your SuperGrok subscription — pick one in the
-                                    model selector.
-                                </p>
-                            </template>
-                            <lightning-button
-                                label="Refresh models"
-                                icon-name="utility:refresh"
-                                variant="neutral"
-                                disabled={isRefreshingModels}
-                                onclick={handleRefreshModels}
-                                class="slds-m-top_x-small"></lightning-button>
+                        <template lwc:if={xaiNeedsManualModel}>
+                            <lightning-input
+                                data-provider="xai"
+                                label="Model"
+                                placeholder="e.g. grok-4.1-fast-reasoning"
+                                value={xaiCustomModel}
+                                onchange={handleCustomModelChange}
+                                variant="label-stacked"
+                                class="slds-full-width slds-m-top_x-small"></lightning-input>
+                            <p
+                                class="slds-text-body_small slds-text-color_weak slds-m-top_xx-small">
+                                No models returned from your SuperGrok subscription — type a model
+                                name to use.
+                            </p>
                         </template>
                     </div>
                 </slds-tab>
