@@ -1,6 +1,7 @@
 import { isRecord } from 'shared/utils';
 
 import {
+    CODEX_MODEL_OPTIONS,
     DEFAULT_LLM_PROVIDER,
     DEFAULT_PROVIDER_BASE_URLS,
     INTERNAL_MODEL_OPTIONS,
@@ -13,6 +14,7 @@ import {
     type LlmModelsEndpointResponse,
     type LlmProviderConfig,
     type LlmProviderConfigMap,
+    type OAuthCredentials,
 } from './constants';
 
 function getInternalModelsForProvider(provider: LlmProvider) {
@@ -47,15 +49,60 @@ export function createDefaultProviderConfigMap(): LlmProviderConfigMap {
     }, {} as LlmProviderConfigMap);
 }
 
+function normalizeAuthMode(value: unknown): LlmProviderConfig['authMode'] {
+    return value === 'oauth' ? 'oauth' : value === 'apiKey' ? 'apiKey' : undefined;
+}
+
+/** Validates and preserves an OAuth credential blob. Returns null when there is no usable
+ *  access token, so a malformed/partial blob is dropped rather than stored. */
+export function normalizeOAuthCredentials(value: unknown): OAuthCredentials | null {
+    if (!isRecord(value)) return null;
+    const access = normalizeString(value.access);
+    if (!access) return null;
+    const expires =
+        typeof value.expires === 'number' && Number.isFinite(value.expires) ? value.expires : 0;
+    const credentials: OAuthCredentials = {
+        access,
+        refresh: normalizeString(value.refresh),
+        expires,
+    };
+    const accountId = normalizeString(value.accountId);
+    if (accountId) credentials.accountId = accountId;
+    const tokenEndpoint = normalizeString(value.tokenEndpoint);
+    if (tokenEndpoint) credentials.tokenEndpoint = tokenEndpoint;
+    const tokenType = normalizeString(value.tokenType);
+    if (tokenType) credentials.tokenType = tokenType;
+    return credentials;
+}
+
 export function normalizeProviderConfig(provider: LlmProvider, config: unknown): LlmProviderConfig {
     const defaults = getDefaultProviderConfig(provider);
     const record = isRecord(config) ? config : {};
     const apiKey = normalizeString(record.apiKey);
     const baseUrl = normalizeString(record.baseUrl);
-    return {
+    const normalized: LlmProviderConfig = {
         apiKey: apiKey || null,
         baseUrl: baseUrl || defaults.baseUrl,
     };
+    // Preserve the optional fields the previous implementation silently dropped —
+    // including `useResponsesApi` (a latent bug) and the OAuth fields. Every persistence
+    // path funnels through here, so dropping these loses them on the next save/load.
+    if (typeof record.useResponsesApi === 'boolean') {
+        normalized.useResponsesApi = record.useResponsesApi;
+    }
+    const authMode = normalizeAuthMode(record.authMode);
+    if (authMode) normalized.authMode = authMode;
+    const oauth = normalizeOAuthCredentials(record.oauth);
+    if (oauth) normalized.oauth = oauth;
+    return normalized;
+}
+
+/** A provider is usable in the model picker when it has an API key, or — in OAuth mode —
+ *  a stored access token. Mirrors the credential gate used elsewhere. */
+export function hasUsableProviderCredentials(config: LlmProviderConfig | undefined): boolean {
+    if (!config) return false;
+    if (config.authMode === 'oauth') return !!config.oauth?.access;
+    return !!config.apiKey;
 }
 
 export function normalizeProviderConfigMap(configs: unknown): LlmProviderConfigMap {
@@ -221,8 +268,8 @@ export function buildAvailableAgentModelOptions({
     providerConfigs: LlmProviderConfigMap;
 }): LlmModelOption[] {
     const normalizedConfigs = normalizeProviderConfigMap(providerConfigs);
-    const configuredProviders = LLM_PROVIDERS.filter(
-        provider => !!normalizedConfigs[provider]?.apiKey
+    const configuredProviders = LLM_PROVIDERS.filter(provider =>
+        hasUsableProviderCredentials(normalizedConfigs[provider])
     );
     const shouldPrefixProviderLabel = configuredProviders.length > 1;
 
@@ -230,12 +277,17 @@ export function buildAvailableAgentModelOptions({
         const config = normalizedConfigs[provider];
         const serverModels = extractModels(availableModelsByProvider, provider);
         const isProviderInternal = isInternalProviderBaseUrl(config.baseUrl);
+        // `openai` in OAuth mode is Codex (WHAM) — surface the Codex slugs, not the
+        // standard OpenAI catalog.
+        const isCodexOAuth = provider === 'openai' && config.authMode === 'oauth';
         const models =
             serverModels.length > 0
                 ? serverModels
                 : isProviderInternal
                   ? getInternalModelsForProvider(provider)
-                  : getProviderModelOptions(provider);
+                  : isCodexOAuth
+                    ? CODEX_MODEL_OPTIONS
+                    : getProviderModelOptions(provider);
 
         return models.map(model => ({
             ...model,

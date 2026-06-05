@@ -17,6 +17,8 @@ import {
     getMaxOutputTokensForModel,
     getProviderForModel,
     buildAvailableAgentModelOptions,
+    hasUsableProviderCredentials,
+    normalizeOAuthCredentials,
     resolveAgentProviderBaseUrl,
     DEFAULT_LLM_PROVIDER,
     DEFAULT_PROVIDER_BASE_URLS,
@@ -24,6 +26,7 @@ import {
     LLM_PROVIDERS,
     OPENAI_MODEL_OPTIONS,
     ANTHROPIC_MODEL_OPTIONS,
+    CODEX_MODEL_OPTIONS,
 } from '../llm.ts';
 
 test('isLlmProvider: accepts known providers, rejects anything else', () => {
@@ -81,6 +84,87 @@ test('normalizeProviderConfig: non-object input yields defaults', () => {
     const config = normalizeProviderConfig('gemini', null);
     assert.equal(config.apiKey, null);
     assert.equal(config.baseUrl, DEFAULT_PROVIDER_BASE_URLS.gemini);
+});
+
+test('normalizeProviderConfig: preserves useResponsesApi, authMode and oauth', () => {
+    const config = normalizeProviderConfig('openai', {
+        apiKey: '',
+        baseUrl: '',
+        useResponsesApi: true,
+        authMode: 'oauth',
+        oauth: {
+            access: 'tok',
+            refresh: 'ref',
+            expires: 123,
+            accountId: 'acct',
+            tokenEndpoint: 'https://auth.x.ai/oauth2/token',
+        },
+    });
+    assert.equal(config.apiKey, null);
+    assert.equal(config.useResponsesApi, true);
+    assert.equal(config.authMode, 'oauth');
+    assert.equal(config.oauth?.access, 'tok');
+    assert.equal(config.oauth?.refresh, 'ref');
+    assert.equal(config.oauth?.expires, 123);
+    assert.equal(config.oauth?.accountId, 'acct');
+    assert.equal(config.oauth?.tokenEndpoint, 'https://auth.x.ai/oauth2/token');
+});
+
+test('normalizeProviderConfig: drops invalid authMode and access-less oauth', () => {
+    const config = normalizeProviderConfig('openai', {
+        apiKey: 'sk',
+        baseUrl: 'https://x/v1',
+        authMode: 'bogus',
+        oauth: { refresh: 'ref', expires: 1 },
+    });
+    assert.equal(config.authMode, undefined);
+    assert.equal(config.oauth, undefined);
+});
+
+test('normalizeProviderConfigMap: round-trips oauth credentials (data-loss regression)', () => {
+    const input = {
+        openai: {
+            apiKey: null,
+            baseUrl: DEFAULT_PROVIDER_BASE_URLS.openai,
+            authMode: 'oauth' as const,
+            oauth: { access: 'a', refresh: 'b', expires: 999, accountId: 'acct' },
+        },
+    };
+    // Two passes simulate save (buildProviderConfigCacheRecord) → load
+    // (resolveLlmProviderConfigMap), both of which normalize.
+    const twice = normalizeProviderConfigMap(normalizeProviderConfigMap(input));
+    assert.equal(twice.openai.authMode, 'oauth');
+    assert.equal(twice.openai.oauth?.access, 'a');
+    assert.equal(twice.openai.oauth?.accountId, 'acct');
+});
+
+test('normalizeOAuthCredentials: requires an access token', () => {
+    assert.equal(normalizeOAuthCredentials({ refresh: 'r', expires: 1 }), null);
+    assert.equal(normalizeOAuthCredentials(null), null);
+    const ok = normalizeOAuthCredentials({ access: '  tok  ', refresh: 'r', expires: 5 });
+    assert.equal(ok?.access, 'tok');
+    assert.equal(ok?.tokenType, undefined);
+});
+
+test('hasUsableProviderCredentials: oauth mode needs an access token, apiKey mode needs a key', () => {
+    assert.equal(hasUsableProviderCredentials(undefined), false);
+    assert.equal(
+        hasUsableProviderCredentials({ apiKey: 'sk', baseUrl: 'x' }),
+        true
+    );
+    assert.equal(
+        hasUsableProviderCredentials({ apiKey: null, baseUrl: 'x', authMode: 'oauth' }),
+        false
+    );
+    assert.equal(
+        hasUsableProviderCredentials({
+            apiKey: null,
+            baseUrl: 'x',
+            authMode: 'oauth',
+            oauth: { access: 'tok', refresh: 'r', expires: 1 },
+        }),
+        true
+    );
 });
 
 test('normalizeProviderConfigMap: fills missing providers with defaults, retains overrides', () => {
@@ -339,6 +423,25 @@ test('buildAvailableAgentModelOptions: server-provided catalog overrides default
     });
     assert.equal(options.length, 1);
     assert.equal(options[0].value, 'custom-model');
+});
+
+test('buildAvailableAgentModelOptions: openai OAuth (Codex) surfaces Codex slugs without an apiKey', () => {
+    const configs = createDefaultProviderConfigMap();
+    configs.openai = {
+        apiKey: null,
+        baseUrl: DEFAULT_PROVIDER_BASE_URLS.openai,
+        authMode: 'oauth',
+        oauth: { access: 'tok', refresh: 'r', expires: 1 },
+    };
+    const options = buildAvailableAgentModelOptions({ providerConfigs: configs });
+    assert.ok(options.length > 0);
+    assert.deepEqual(
+        options.map(o => o.value),
+        CODEX_MODEL_OPTIONS.map(m => m.value)
+    );
+    for (const option of options) {
+        assert.equal(option.provider, 'openai');
+    }
 });
 
 test('buildAvailableAgentModelOptions: accepts { models } catalog shape', () => {
