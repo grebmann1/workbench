@@ -18,6 +18,8 @@ import {
     getProviderForModel,
     buildAvailableAgentModelOptions,
     fetchCodexModels,
+    resolveCodexClientVersion,
+    CODEX_MODELS_CLIENT_VERSION,
     hasUsableProviderCredentials,
     normalizeOAuthCredentials,
     resolveAgentProviderBaseUrl,
@@ -149,10 +151,7 @@ test('normalizeOAuthCredentials: requires an access token', () => {
 
 test('hasUsableProviderCredentials: oauth mode needs an access token, apiKey mode needs a key', () => {
     assert.equal(hasUsableProviderCredentials(undefined), false);
-    assert.equal(
-        hasUsableProviderCredentials({ apiKey: 'sk', baseUrl: 'x' }),
-        true
-    );
+    assert.equal(hasUsableProviderCredentials({ apiKey: 'sk', baseUrl: 'x' }), true);
     assert.equal(
         hasUsableProviderCredentials({ apiKey: null, baseUrl: 'x', authMode: 'oauth' }),
         false
@@ -305,7 +304,6 @@ test('getMaxOutputTokensForModel: unknown model returns default 8192', () => {
     assert.equal(getMaxOutputTokensForModel(''), 8192);
     assert.equal(getMaxOutputTokensForModel(null), 8192);
 });
-
 
 test('getProviderForModel: exact value match returns provider', () => {
     assert.equal(getProviderForModel('claude-opus-4-6'), 'anthropic');
@@ -473,14 +471,20 @@ test('buildAvailableAgentModelOptions: Codex OAuth uses the live WHAM catalog wh
 test('fetchCodexModels: maps WHAM models[].slug to options with auth headers', async () => {
     const calls: Array<{ url: string; headers: Record<string, string> }> = [];
     const mockFetch = (async (url: string | URL, options?: RequestInit) => {
-        calls.push({ url: String(url), headers: (options?.headers ?? {}) as Record<string, string> });
+        calls.push({
+            url: String(url),
+            headers: (options?.headers ?? {}) as Record<string, string>,
+        });
         return {
             ok: true,
-            json: async () => ({ models: [{ slug: 'gpt-5.1-codex' }, { slug: 'gpt-5.1-codex-mini' }] }),
+            json: async () => ({
+                models: [{ slug: 'gpt-5.1-codex' }, { slug: 'gpt-5.1-codex-mini' }],
+            }),
         } as Response;
     }) as unknown as typeof fetch;
     const models = await fetchCodexModels(
         { access: 'tok', refresh: 'r', expires: 1, accountId: 'acct' },
+        '0.137.0',
         mockFetch
     );
     assert.deepEqual(
@@ -488,20 +492,43 @@ test('fetchCodexModels: maps WHAM models[].slug to options with auth headers', a
         ['gpt-5.1-codex', 'gpt-5.1-codex-mini']
     );
     assert.equal(models[0].provider, 'openai');
-    assert.match(calls[0].url, /backend-api\/wham\/models\?client_version=/);
+    assert.match(calls[0].url, /backend-api\/wham\/models\?client_version=0\.137\.0/);
     assert.equal(calls[0].headers.Authorization, 'Bearer tok');
     assert.equal(calls[0].headers['ChatGPT-Account-Id'], 'acct');
 });
 
 test('fetchCodexModels: falls back to data[].id and is empty without an access token', async () => {
     const mockFetch = (async () =>
-        ({ ok: true, json: async () => ({ data: [{ id: 'm1' }] }) }) as Response) as unknown as typeof fetch;
-    const fromData = await fetchCodexModels({ access: 'tok', refresh: 'r', expires: 1 }, mockFetch);
+        ({
+            ok: true,
+            json: async () => ({ data: [{ id: 'm1' }] }),
+        }) as Response) as unknown as typeof fetch;
+    const fromData = await fetchCodexModels(
+        { access: 'tok', refresh: 'r', expires: 1 },
+        '1.0.0',
+        mockFetch
+    );
     assert.deepEqual(
         fromData.map(m => m.value),
         ['m1']
     );
-    assert.deepEqual(await fetchCodexModels({ access: '', refresh: '', expires: 0 }, mockFetch), []);
+    assert.deepEqual(
+        await fetchCodexModels({ access: '', refresh: '', expires: 0 }, '1.0.0', mockFetch),
+        []
+    );
+});
+
+test('resolveCodexClientVersion: uses latest npm version, falls back to the pinned default', async () => {
+    const ok = (async (url: string | URL) => {
+        assert.match(String(url), /registry\.npmjs\.org\/@openai\/codex\/latest/);
+        return { ok: true, json: async () => ({ version: '0.140.0' }) } as Response;
+    }) as unknown as typeof fetch;
+    assert.equal(await resolveCodexClientVersion(ok), '0.140.0');
+
+    const offline = (async () => {
+        throw new Error('offline');
+    }) as unknown as typeof fetch;
+    assert.equal(await resolveCodexClientVersion(offline), CODEX_MODELS_CLIENT_VERSION);
 });
 
 test('buildAvailableAgentModelOptions: accepts { models } catalog shape', () => {
