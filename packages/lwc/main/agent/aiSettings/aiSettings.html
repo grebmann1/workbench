@@ -121,6 +121,21 @@
                                     onclick={handleProviderSignIn}></lightning-button>
                             </template>
                         </div>
+                        <template lwc:if={codexConnected}>
+                            <lightning-input
+                                data-provider="codex"
+                                label="Model"
+                                placeholder="e.g. gpt-5.1-codex-mini"
+                                value={codexCustomModel}
+                                onchange={handleCustomModelChange}
+                                variant="label-stacked"
+                                class="slds-full-width slds-m-top_x-small"></lightning-input>
+                            <p
+                                class="slds-text-body_small slds-text-color_weak slds-m-top_xx-small">
+                                Models load from your ChatGPT subscription. Type a model name if
+                                it isn't listed.
+                            </p>
+                        </template>
                     </div>
                 </slds-tab>
                 <slds-tab label="Anthropic" value="anthropic">
@@ -287,6 +302,20 @@
                                     onclick={handleProviderSignIn}></lightning-button>
                             </template>
                         </div>
+                        <template lwc:if={xaiConnected}>
+                            <lightning-input
+                                data-provider="xai"
+                                label="Model"
+                                placeholder="e.g. grok-4.1-fast-reasoning"
+                                value={xaiCustomModel}
+                                onchange={handleCustomModelChange}
+                                variant="label-stacked"
+                                class="slds-full-width slds-m-top_x-small"></lightning-input>
+                            <p
+                                class="slds-text-body_small slds-text-color_weak slds-m-top_xx-small">
+                                Type a model name if it isn't listed.
+                            </p>
+                        </template>
                     </div>
                 </slds-tab>
             </slds-tabset>

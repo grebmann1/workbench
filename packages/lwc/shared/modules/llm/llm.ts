@@ -1,7 +1,8 @@
 import { isRecord } from 'shared/utils';
 
 import {
-    CODEX_MODEL_OPTIONS,
+    CODEX_MODELS_CLIENT_VERSION,
+    CODEX_WHAM_BASE_URL,
     DEFAULT_LLM_PROVIDER,
     DEFAULT_PROVIDER_BASE_URLS,
     INTERNAL_MODEL_OPTIONS,
@@ -12,6 +13,7 @@ import {
     type LlmModelOption,
     type LlmProvider,
     type LlmModelsEndpointResponse,
+    type LlmProviderCatalog,
     type LlmProviderConfig,
     type LlmProviderConfigMap,
     type OAuthCredentials,
@@ -94,6 +96,8 @@ export function normalizeProviderConfig(provider: LlmProvider, config: unknown):
     if (authMode) normalized.authMode = authMode;
     const oauth = normalizeOAuthCredentials(record.oauth);
     if (oauth) normalized.oauth = oauth;
+    const customModel = normalizeString(record.customModel);
+    if (customModel) normalized.customModel = customModel;
     return normalized;
 }
 
@@ -227,7 +231,6 @@ export function getMaxOutputTokensForModel(
     options: LlmModelOption[] = [
         ...Object.values(PROVIDER_MODEL_OPTIONS).flat(),
         ...INTERNAL_MODEL_OPTIONS,
-        ...CODEX_MODEL_OPTIONS,
     ]
 ): number {
     const normalized = normalizeString(model);
@@ -238,10 +241,7 @@ export function getMaxOutputTokensForModel(
 
 export function getProviderForModel(
     model: unknown,
-    options: LlmModelOption[] = [
-        ...Object.values(PROVIDER_MODEL_OPTIONS).flat(),
-        ...CODEX_MODEL_OPTIONS,
-    ]
+    options: LlmModelOption[] = Object.values(PROVIDER_MODEL_OPTIONS).flat()
 ): LlmProvider {
     const normalized = normalizeString(model);
     if (!normalized) {
@@ -281,18 +281,27 @@ export function buildAvailableAgentModelOptions({
         const config = normalizedConfigs[provider];
         const serverModels = extractModels(availableModelsByProvider, provider);
         const isProviderInternal = isInternalProviderBaseUrl(config.baseUrl);
-        // `openai` in OAuth mode is Codex (WHAM) — surface the Codex slugs and ignore the
-        // server `/api/llm/models` catalog, which returns the standard OpenAI API models the
-        // WHAM runtime can't serve (the server isn't Codex-aware). Codex takes precedence over
-        // serverModels for exactly this reason.
+        // `openai` in OAuth mode is Codex (WHAM): use the live WHAM `/models` catalog
+        // (fetchLlmModelsEndpoint fetches it client-side for OAuth and overrides the openai
+        // catalog) — there is no hardcoded Codex list. Other providers keep their existing
+        // server/internal/static resolution.
         const isCodexOAuth = provider === 'openai' && config.authMode === 'oauth';
-        const models = isCodexOAuth
-            ? CODEX_MODEL_OPTIONS
+        let models = isCodexOAuth
+            ? serverModels
             : serverModels.length > 0
               ? serverModels
               : isProviderInternal
                 ? getInternalModelsForProvider(provider)
                 : getProviderModelOptions(provider);
+        // Manual fallback: a user-typed model the live catalog may not list (Codex models
+        // change often). Append it so it's selectable, if not already present.
+        const customModel = normalizeString(config.customModel);
+        if (customModel && !models.some(model => model.value === customModel)) {
+            models = [
+                ...models,
+                { label: customModel, value: customModel, provider, maxOutputTokens: 16000 },
+            ];
+        }
 
         return models.map(model => ({
             ...model,
@@ -325,6 +334,75 @@ export function resolveAgentProviderBaseUrl(provider: unknown, baseUrl: unknown)
     return effectiveBaseUrl;
 }
 
+/** Strip OAuth credentials (and the oauth auth-mode) from a config map. The Workbench server
+ *  can't use subscription tokens and they must not leave the client, so the model-catalog
+ *  request never carries them. */
+function stripOAuthFromProviderConfigs(configs: LlmProviderConfigMap): LlmProviderConfigMap {
+    return LLM_PROVIDERS.reduce((result, provider) => {
+        const { apiKey, baseUrl, useResponsesApi } = configs[provider];
+        result[provider] = { apiKey, baseUrl, ...(useResponsesApi ? { useResponsesApi } : {}) };
+        return result;
+    }, {} as LlmProviderConfigMap);
+}
+
+/** Fetch the live Codex (WHAM) model list for an OAuth-authenticated openai config. WHAM's
+ *  `/models` returns `{ models: [{ slug }] }` (slug-based, client_version required); falls back
+ *  to the standard `{ data: [{ id }] }` shape. Returns [] on any failure so callers degrade to
+ *  the static seed. Note: works from the extension (host permissions); the hosted web app would
+ *  need a server-side proxy (a documented follow-up). */
+export async function fetchCodexModels(
+    oauth: OAuthCredentials,
+    fetchImpl: typeof fetch = fetch
+): Promise<LlmModelOption[]> {
+    if (!oauth?.access) return [];
+    const headers: Record<string, string> = {
+        Authorization: `Bearer ${oauth.access}`,
+        Accept: 'application/json',
+    };
+    if (oauth.accountId) headers['ChatGPT-Account-Id'] = oauth.accountId;
+    const url = `${CODEX_WHAM_BASE_URL}/models?client_version=${encodeURIComponent(
+        CODEX_MODELS_CLIENT_VERSION
+    )}`;
+    const response = await fetchImpl(url, { headers });
+    if (!response.ok) {
+        throw new Error(`Codex /models request failed with status ${response.status}.`);
+    }
+    const data = (await response.json()) as { models?: unknown; data?: unknown };
+    const rawList = Array.isArray(data.models)
+        ? data.models
+        : Array.isArray(data.data)
+          ? data.data
+          : [];
+    const options: LlmModelOption[] = [];
+    for (const entry of rawList) {
+        if (!isRecord(entry)) continue;
+        const slug =
+            typeof entry.slug === 'string'
+                ? entry.slug
+                : typeof entry.id === 'string'
+                  ? entry.id
+                  : '';
+        if (slug) {
+            options.push({ label: slug, value: slug, provider: 'openai', maxOutputTokens: 16000 });
+        }
+    }
+    return options;
+}
+
+function emptyProviderCatalog(provider: LlmProvider): LlmProviderCatalog {
+    return { provider, status: 'missing_key', models: [], defaultModel: null, error: null };
+}
+
+function emptyProviderCatalogs(): Record<LlmProvider, LlmProviderCatalog> {
+    return LLM_PROVIDERS.reduce(
+        (catalogs, provider) => {
+            catalogs[provider] = emptyProviderCatalog(provider);
+            return catalogs;
+        },
+        {} as Record<LlmProvider, LlmProviderCatalog>
+    );
+}
+
 export async function fetchLlmModelsEndpoint({
     provider,
     providerConfigs,
@@ -332,20 +410,59 @@ export async function fetchLlmModelsEndpoint({
     provider: LlmProvider;
     providerConfigs: LlmProviderConfigMap;
 }): Promise<LlmModelsEndpointResponse> {
-    const response = await fetch(resolveWorkbenchEndpoint('/api/llm/models'), {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            provider,
-            providerConfigs: normalizeProviderConfigMap(providerConfigs),
-        }),
-    });
+    const normalizedConfigs = normalizeProviderConfigMap(providerConfigs);
+    const openaiConfig = normalizedConfigs.openai;
+    const isCodexOAuth = openaiConfig?.authMode === 'oauth' && !!openaiConfig.oauth?.access;
 
-    if (!response.ok) {
-        throw new Error(`Model catalog request failed with status ${response.status}.`);
+    let result: LlmModelsEndpointResponse;
+    try {
+        const response = await fetch(resolveWorkbenchEndpoint('/api/llm/models'), {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                provider,
+                // Never send OAuth tokens to the server; it can't use them.
+                providerConfigs: stripOAuthFromProviderConfigs(normalizedConfigs),
+            }),
+        });
+        if (!response.ok) {
+            throw new Error(`Model catalog request failed with status ${response.status}.`);
+        }
+        result = (await response.json()) as LlmModelsEndpointResponse;
+    } catch (serverError) {
+        // The Workbench server may be unreachable (e.g. an extension user signed in with their
+        // own subscription and has no server). Still serve the Codex catalog client-side;
+        // otherwise propagate so API-key providers report the failure.
+        if (!isCodexOAuth) throw serverError;
+        result = {
+            provider,
+            catalog: emptyProviderCatalog(provider),
+            catalogs: emptyProviderCatalogs(),
+        };
     }
 
-    return response.json();
+    // openai in OAuth (Codex) mode: the server can't reach WHAM, so fetch the live model list
+    // client-side and override the openai catalog. Degrade gracefully on any failure (the
+    // picker then relies on the user-typed customModel).
+    if (isCodexOAuth && openaiConfig?.oauth) {
+        try {
+            const codexModels = await fetchCodexModels(openaiConfig.oauth);
+            result.catalogs = {
+                ...result.catalogs,
+                openai: {
+                    provider: 'openai',
+                    status: codexModels.length > 0 ? 'ok' : 'missing_key',
+                    models: codexModels,
+                    defaultModel: codexModels[0]?.value ?? null,
+                    error: null,
+                },
+            };
+        } catch {
+            // Leave the openai catalog empty; the user can type a model manually.
+        }
+    }
+
+    return result;
 }
