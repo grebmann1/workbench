@@ -18,23 +18,62 @@ import { createOAuthFetch } from '../shared/oauthFetch';
 // (like the internal/bedrock runtimes) isolates the WHAM specifics from the standard openai
 // API path.
 
-/** WHAM is stateless and rejects requests unless `store:false` is sent — inject it into
- *  every JSON request body that doesn't already set it. Non-JSON bodies (e.g. the GET
- *  /models request) pass through untouched. Exported for unit testing. */
-export function codexFormatRequest(url: RequestInfo | URL, options?: RequestInit): FormattedRequest {
-    const body = options?.body;
-    if (typeof body === 'string') {
-        try {
-            const payload = JSON.parse(body);
-            if (payload && typeof payload === 'object' && payload.store === undefined) {
-                payload.store = false;
-                return { url, options: { ...options, body: JSON.stringify(payload) } };
+/** Pull the system prompt out of the Responses `input` array (the AI SDK puts it there as a
+ *  system/developer item) so it can be sent as WHAM's required top-level `instructions`. */
+function extractInstructionsFromInput(input: unknown): { instructions: string; rest: unknown } {
+    if (!Array.isArray(input)) return { instructions: '', rest: input };
+    const parts: string[] = [];
+    const rest: unknown[] = [];
+    for (const item of input) {
+        const role =
+            item && typeof item === 'object' ? (item as { role?: unknown }).role : undefined;
+        if (role === 'system' || role === 'developer') {
+            const content = (item as { content?: unknown }).content;
+            if (typeof content === 'string') {
+                parts.push(content);
+            } else if (Array.isArray(content)) {
+                for (const part of content) {
+                    const text =
+                        part && typeof part === 'object'
+                            ? (part as { text?: unknown }).text
+                            : undefined;
+                    if (typeof text === 'string') parts.push(text);
+                }
             }
-        } catch {
-            // Leave the body untouched when it isn't JSON.
+        } else {
+            rest.push(item);
         }
     }
-    return { url, options };
+    return { instructions: parts.join('\n\n'), rest };
+}
+
+/** WHAM (a) is stateless and requires `store:false`, and (b) requires a top-level
+ *  `instructions` (system prompt) — but the AI SDK puts the system message inside `input` as a
+ *  system/developer item. Inject `store:false` and lift the system message into `instructions`.
+ *  Non-JSON bodies (e.g. the GET /models request) pass through untouched. Exported for tests. */
+export function codexFormatRequest(url: RequestInfo | URL, options?: RequestInit): FormattedRequest {
+    const body = options?.body;
+    if (typeof body !== 'string') return { url, options };
+    let payload: Record<string, unknown>;
+    try {
+        const parsed = JSON.parse(body);
+        if (!parsed || typeof parsed !== 'object') return { url, options };
+        payload = parsed as Record<string, unknown>;
+    } catch {
+        return { url, options };
+    }
+    let changed = false;
+    if (payload.store === undefined) {
+        payload.store = false;
+        changed = true;
+    }
+    if (!payload.instructions) {
+        const { instructions, rest } = extractInstructionsFromInput(payload.input);
+        payload.instructions = instructions || 'You are a helpful assistant.';
+        if (instructions) payload.input = rest;
+        changed = true;
+    }
+    return changed ? { url, options: { ...options, body: JSON.stringify(payload) } } : { url, options };
 }
 
 export const codexRuntime: ProviderRuntime = {
