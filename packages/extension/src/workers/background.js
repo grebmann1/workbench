@@ -906,16 +906,24 @@ chrome.webNavigation.onBeforeNavigate.addListener(
         handleOAuthRedirect(details)
             .then(result => {
                 if (!result) return;
-                broadcastMessageToAllSidePanelInstances({
-                    action: 'broadcastMessageToSidePanel',
-                    payload: { type: 'oauth_signed_in', provider: result.provider },
-                });
+                // Universal message so any extension surface (side panel or options page)
+                // with a runtime.onMessage listener hears it; ignore "no receiver".
+                chrome.runtime
+                    .sendMessage({
+                        action: 'workbench_oauth_result',
+                        ok: true,
+                        provider: result.provider,
+                    })
+                    .catch(() => {});
             })
             .catch(error => {
-                broadcastMessageToAllSidePanelInstances({
-                    action: 'broadcastMessageToSidePanel',
-                    payload: { type: 'oauth_error', message: error?.message || 'Sign-in failed.' },
-                });
+                chrome.runtime
+                    .sendMessage({
+                        action: 'workbench_oauth_result',
+                        ok: false,
+                        message: error?.message || 'Sign-in failed.',
+                    })
+                    .catch(() => {});
             });
     },
     { url: [{ hostEquals: 'localhost' }, { hostEquals: '127.0.0.1' }] }

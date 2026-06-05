@@ -95,6 +95,33 @@
                                 class="slds-full-width"></lightning-input>
                         </div>
                     </div>
+                    <div class="slds-p-horizontal_small slds-p-bottom_small">
+                        <p
+                            class="slds-text-body_small slds-text-color_weak slds-m-bottom_x-small">
+                            Or sign in with your ChatGPT subscription (Codex) instead of an API
+                            key.
+                        </p>
+                        <div class="slds-grid slds-grid_vertical-align-center">
+                            <template lwc:if={codexConnected}>
+                                <lightning-badge
+                                    label="Connected"
+                                    class="slds-m-right_small"></lightning-badge>
+                                <lightning-button
+                                    label="Sign out"
+                                    variant="destructive-text"
+                                    data-provider="codex"
+                                    onclick={handleProviderDisconnect}></lightning-button>
+                            </template>
+                            <template lwc:else>
+                                <lightning-button
+                                    label="Sign in with ChatGPT (Codex)"
+                                    variant="brand"
+                                    data-provider="codex"
+                                    disabled={isSigningIn}
+                                    onclick={handleProviderSignIn}></lightning-button>
+                            </template>
+                        </div>
+                    </div>
                 </slds-tab>
                 <slds-tab label="Anthropic" value="anthropic">
                     <div class="slds-grid slds-wrap slds-p-around_small">
@@ -233,6 +260,32 @@
                                 value={config.grok_url}
                                 variant="label-stacked"
                                 class="slds-full-width"></lightning-input>
+                        </div>
+                    </div>
+                    <div class="slds-p-horizontal_small slds-p-bottom_small">
+                        <p
+                            class="slds-text-body_small slds-text-color_weak slds-m-bottom_x-small">
+                            Or sign in with your SuperGrok subscription instead of an API key.
+                        </p>
+                        <div class="slds-grid slds-grid_vertical-align-center">
+                            <template lwc:if={xaiConnected}>
+                                <lightning-badge
+                                    label="Connected"
+                                    class="slds-m-right_small"></lightning-badge>
+                                <lightning-button
+                                    label="Sign out"
+                                    variant="destructive-text"
+                                    data-provider="xai"
+                                    onclick={handleProviderDisconnect}></lightning-button>
+                            </template>
+                            <template lwc:else>
+                                <lightning-button
+                                    label="Sign in with xAI"
+                                    variant="brand"
+                                    data-provider="xai"
+                                    disabled={isSigningIn}
+                                    onclick={handleProviderSignIn}></lightning-button>
+                            </template>
                         </div>
                     </div>
                 </slds-tab>
