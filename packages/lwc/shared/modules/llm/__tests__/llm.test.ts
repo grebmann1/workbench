@@ -455,6 +455,28 @@ test('buildAvailableAgentModelOptions: openai OAuth (Codex) surfaces Codex slugs
     }
 });
 
+test('buildAvailableAgentModelOptions: Codex OAuth ignores a non-Codex server catalog', () => {
+    const configs = createDefaultProviderConfigMap();
+    configs.openai = {
+        apiKey: null,
+        baseUrl: DEFAULT_PROVIDER_BASE_URLS.openai,
+        authMode: 'oauth',
+        oauth: { access: 'tok', refresh: 'r', expires: 1 },
+    };
+    // The background /api/llm/models refresh supplies the standard OpenAI catalog for the
+    // 'openai' provider; the Codex (WHAM) runtime can't serve those, so they must NOT win.
+    const options = buildAvailableAgentModelOptions({
+        providerConfigs: configs,
+        availableModelsByProvider: {
+            openai: [{ label: 'gpt-4o', value: 'gpt-4o', provider: 'openai' }],
+        },
+    });
+    assert.deepEqual(
+        options.map(o => o.value),
+        CODEX_MODEL_OPTIONS.map(m => m.value)
+    );
+});
+
 test('buildAvailableAgentModelOptions: accepts { models } catalog shape', () => {
     const configs = createDefaultProviderConfigMap();
     configs.openai = { apiKey: 'sk-a', baseUrl: DEFAULT_PROVIDER_BASE_URLS.openai };

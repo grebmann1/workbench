@@ -281,17 +281,18 @@ export function buildAvailableAgentModelOptions({
         const config = normalizedConfigs[provider];
         const serverModels = extractModels(availableModelsByProvider, provider);
         const isProviderInternal = isInternalProviderBaseUrl(config.baseUrl);
-        // `openai` in OAuth mode is Codex (WHAM) — surface the Codex slugs, not the
-        // standard OpenAI catalog.
+        // `openai` in OAuth mode is Codex (WHAM) — surface the Codex slugs and ignore the
+        // server `/api/llm/models` catalog, which returns the standard OpenAI API models the
+        // WHAM runtime can't serve (the server isn't Codex-aware). Codex takes precedence over
+        // serverModels for exactly this reason.
         const isCodexOAuth = provider === 'openai' && config.authMode === 'oauth';
-        const models =
-            serverModels.length > 0
-                ? serverModels
-                : isProviderInternal
-                  ? getInternalModelsForProvider(provider)
-                  : isCodexOAuth
-                    ? CODEX_MODEL_OPTIONS
-                    : getProviderModelOptions(provider);
+        const models = isCodexOAuth
+            ? CODEX_MODEL_OPTIONS
+            : serverModels.length > 0
+              ? serverModels
+              : isProviderInternal
+                ? getInternalModelsForProvider(provider)
+                : getProviderModelOptions(provider);
 
         return models.map(model => ({
             ...model,
