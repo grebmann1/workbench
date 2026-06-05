@@ -150,6 +150,7 @@
             "illustration/illustration": ["component/illustration/illustration/illustration"],
             "shared/analytics": ["../shared/modules/analytics/analytics"],
             "shared/llm": ["../shared/modules/llm/llm"],
+            "shared/oauth": ["../shared/modules/oauth/oauth"],
             "shared/loader": ["../shared/modules/loader/loader"],
             "shared/markdown": ["../shared/modules/markdown/markdown"],
             "shared/sf": ["../shared/modules/sf/sf"],
