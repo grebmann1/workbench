@@ -93,10 +93,10 @@ export const DEFAULT_PROVIDER_BASE_URLS = {
  *  future provider-side change is a one-line edit (see roadmap compatibility note). */
 export const CODEX_WHAM_BASE_URL = 'https://chatgpt.com/backend-api/wham';
 
-/** `client_version` query param required by the WHAM `/models` endpoint. The available model
- *  list is per-account/plan and changes over time, so the picker fetches it live rather than
- *  relying on a hardcoded list. Isolated here so it's a one-line update if WHAM tightens it. */
-export const CODEX_MODELS_CLIENT_VERSION = '0.0.1';
+/** `client_version` query param required by the WHAM `/models` endpoint. WHAM gates the model
+ *  list by client version — an old value (e.g. 0.0.1) returns an empty list — so this tracks a
+ *  current Codex CLI version. Isolated here so it's a one-line bump when OpenAI moves forward. */
+export const CODEX_MODELS_CLIENT_VERSION = '0.137.0';
 
 export const INTERNAL_PROVIDER_BASE_URLS = {
     openai: 'https://eng-ai-model-gateway.sfproxy.devx-preprod.aws-esvc1-useast2.aws.sfdc.cl/v1',
