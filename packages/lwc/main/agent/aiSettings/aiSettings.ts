@@ -6,11 +6,13 @@ import {
     CACHE_CONFIG,
     buildProviderConfigCacheRecord,
     cacheManager,
+    getAiProviderFromConfig,
     getLlmProviderConfigCacheKeys,
     resolveLlmProviderConfigMap,
     saveSingleExtensionConfigToCache,
 } from 'shared/cacheManager';
 import {
+    fetchLlmModelsEndpoint,
     isInternalProviderBaseUrl,
     normalizeProviderConfigMap,
     type LlmProviderConfigMap,
@@ -74,6 +76,47 @@ export default class AiSettings extends LightningElement {
         const cached = await cacheManager.loadConfig(getLlmProviderConfigCacheKeys());
         const providerConfigs = resolveLlmProviderConfigMap(cached);
         store.dispatch(APPLICATION.reduxSlice.actions.updateProviderConfigs({ providerConfigs }));
+        // Refresh the model catalog so the live Codex/xAI models appear without a reload.
+        try {
+            const response = await fetchLlmModelsEndpoint({
+                provider: getAiProviderFromConfig(cached),
+                providerConfigs,
+            });
+            store.dispatch(
+                APPLICATION.reduxSlice.actions.updateProviderCatalogs({ catalogs: response.catalogs })
+            );
+        } catch (err) {
+            LOGGER.warn('Failed to refresh model catalog after sign-in', err);
+        }
+    }
+
+    handleCustomModelChange = async e => {
+        const provider = e.currentTarget?.dataset?.provider;
+        const llmProvider = OAUTH_PROVIDER_TO_LLM[provider];
+        if (!llmProvider) return;
+        const value = (e.detail?.value ?? '').trim();
+        try {
+            const cached = await cacheManager.loadConfig(getLlmProviderConfigCacheKeys());
+            const currentMap = resolveLlmProviderConfigMap(cached);
+            const nextMap = normalizeProviderConfigMap({
+                ...currentMap,
+                [llmProvider]: { ...currentMap[llmProvider], customModel: value },
+            });
+            await cacheManager.saveConfig(buildProviderConfigCacheRecord(nextMap));
+            store.dispatch(
+                APPLICATION.reduxSlice.actions.updateProviderConfigs({ providerConfigs: nextMap })
+            );
+        } catch (err) {
+            LOGGER.error('Failed to save custom model', err);
+        }
+    };
+
+    get codexCustomModel() {
+        return this.providerConfigs?.openai?.customModel ?? '';
+    }
+
+    get xaiCustomModel() {
+        return this.providerConfigs?.grok?.customModel ?? '';
     }
 
     handleProviderSignIn = async e => {

@@ -17,6 +17,7 @@ import {
     getMaxOutputTokensForModel,
     getProviderForModel,
     buildAvailableAgentModelOptions,
+    fetchCodexModels,
     hasUsableProviderCredentials,
     normalizeOAuthCredentials,
     resolveAgentProviderBaseUrl,
@@ -26,7 +27,6 @@ import {
     LLM_PROVIDERS,
     OPENAI_MODEL_OPTIONS,
     ANTHROPIC_MODEL_OPTIONS,
-    CODEX_MODEL_OPTIONS,
 } from '../llm.ts';
 
 test('isLlmProvider: accepts known providers, rejects anything else', () => {
@@ -306,15 +306,6 @@ test('getMaxOutputTokensForModel: unknown model returns default 8192', () => {
     assert.equal(getMaxOutputTokensForModel(null), 8192);
 });
 
-test('getMaxOutputTokensForModel: Codex-only slugs resolve their declared limit', () => {
-    // CODEX_MODEL_OPTIONS must be in the default lookup table, otherwise the
-    // codex-only slugs (absent from PROVIDER_MODEL_OPTIONS/INTERNAL) silently
-    // fall back to the 8192 default instead of 16000.
-    for (const model of CODEX_MODEL_OPTIONS) {
-        assert.equal(getMaxOutputTokensForModel(model.value), model.maxOutputTokens);
-    }
-    assert.equal(getMaxOutputTokensForModel('gpt-5.1-codex-mini'), 16000);
-});
 
 test('getProviderForModel: exact value match returns provider', () => {
     assert.equal(getProviderForModel('claude-opus-4-6'), 'anthropic');
@@ -436,7 +427,7 @@ test('buildAvailableAgentModelOptions: server-provided catalog overrides default
     assert.equal(options[0].value, 'custom-model');
 });
 
-test('buildAvailableAgentModelOptions: openai OAuth (Codex) surfaces Codex slugs without an apiKey', () => {
+test('buildAvailableAgentModelOptions: Codex OAuth is empty without a catalog, surfaces customModel', () => {
     const configs = createDefaultProviderConfigMap();
     configs.openai = {
         apiKey: null,
@@ -444,18 +435,20 @@ test('buildAvailableAgentModelOptions: openai OAuth (Codex) surfaces Codex slugs
         authMode: 'oauth',
         oauth: { access: 'tok', refresh: 'r', expires: 1 },
     };
-    const options = buildAvailableAgentModelOptions({ providerConfigs: configs });
-    assert.ok(options.length > 0);
+    // No hardcoded Codex models: with no live catalog and no manual model, the picker is empty.
+    assert.deepEqual(buildAvailableAgentModelOptions({ providerConfigs: configs }), []);
+
+    // The user-typed customModel is surfaced as a selectable option.
+    configs.openai = { ...configs.openai, customModel: 'gpt-7-codex' };
+    const withCustom = buildAvailableAgentModelOptions({ providerConfigs: configs });
     assert.deepEqual(
-        options.map(o => o.value),
-        CODEX_MODEL_OPTIONS.map(m => m.value)
+        withCustom.map(o => o.value),
+        ['gpt-7-codex']
     );
-    for (const option of options) {
-        assert.equal(option.provider, 'openai');
-    }
+    assert.equal(withCustom[0].provider, 'openai');
 });
 
-test('buildAvailableAgentModelOptions: Codex OAuth ignores a non-Codex server catalog', () => {
+test('buildAvailableAgentModelOptions: Codex OAuth uses the live WHAM catalog when present', () => {
     const configs = createDefaultProviderConfigMap();
     configs.openai = {
         apiKey: null,
@@ -463,18 +456,52 @@ test('buildAvailableAgentModelOptions: Codex OAuth ignores a non-Codex server ca
         authMode: 'oauth',
         oauth: { access: 'tok', refresh: 'r', expires: 1 },
     };
-    // The background /api/llm/models refresh supplies the standard OpenAI catalog for the
-    // 'openai' provider; the Codex (WHAM) runtime can't serve those, so they must NOT win.
+    // For OAuth, fetchLlmModelsEndpoint overrides the openai catalog with the live WHAM list,
+    // so the picker should surface exactly that (not the static seed) once it's available.
     const options = buildAvailableAgentModelOptions({
         providerConfigs: configs,
         availableModelsByProvider: {
-            openai: [{ label: 'gpt-4o', value: 'gpt-4o', provider: 'openai' }],
+            openai: [{ label: 'gpt-5.9-codex', value: 'gpt-5.9-codex', provider: 'openai' }],
         },
     });
     assert.deepEqual(
         options.map(o => o.value),
-        CODEX_MODEL_OPTIONS.map(m => m.value)
+        ['gpt-5.9-codex']
     );
+});
+
+test('fetchCodexModels: maps WHAM models[].slug to options with auth headers', async () => {
+    const calls: Array<{ url: string; headers: Record<string, string> }> = [];
+    const mockFetch = (async (url: string | URL, options?: RequestInit) => {
+        calls.push({ url: String(url), headers: (options?.headers ?? {}) as Record<string, string> });
+        return {
+            ok: true,
+            json: async () => ({ models: [{ slug: 'gpt-5.1-codex' }, { slug: 'gpt-5.1-codex-mini' }] }),
+        } as Response;
+    }) as unknown as typeof fetch;
+    const models = await fetchCodexModels(
+        { access: 'tok', refresh: 'r', expires: 1, accountId: 'acct' },
+        mockFetch
+    );
+    assert.deepEqual(
+        models.map(m => m.value),
+        ['gpt-5.1-codex', 'gpt-5.1-codex-mini']
+    );
+    assert.equal(models[0].provider, 'openai');
+    assert.match(calls[0].url, /backend-api\/wham\/models\?client_version=/);
+    assert.equal(calls[0].headers.Authorization, 'Bearer tok');
+    assert.equal(calls[0].headers['ChatGPT-Account-Id'], 'acct');
+});
+
+test('fetchCodexModels: falls back to data[].id and is empty without an access token', async () => {
+    const mockFetch = (async () =>
+        ({ ok: true, json: async () => ({ data: [{ id: 'm1' }] }) }) as Response) as unknown as typeof fetch;
+    const fromData = await fetchCodexModels({ access: 'tok', refresh: 'r', expires: 1 }, mockFetch);
+    assert.deepEqual(
+        fromData.map(m => m.value),
+        ['m1']
+    );
+    assert.deepEqual(await fetchCodexModels({ access: '', refresh: '', expires: 0 }, mockFetch), []);
 });
 
 test('buildAvailableAgentModelOptions: accepts { models } catalog shape', () => {

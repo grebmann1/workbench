@@ -40,6 +40,10 @@ export type LlmProviderConfig = {
     authMode?: 'apiKey' | 'oauth';
     /** Subscription OAuth credentials, when `authMode === 'oauth'`. */
     oauth?: OAuthCredentials | null;
+    /** A user-typed model slug, surfaced as a selectable option. The escape hatch for
+     *  Codex/OAuth, where the available models change per account/plan and over time — so the
+     *  picker shows the live `/models` list and lets the user type anything it's missing. */
+    customModel?: string;
 };
 
 export type LlmProviderConfigMap = Record<LlmProvider, LlmProviderConfig>;
@@ -89,6 +93,11 @@ export const DEFAULT_PROVIDER_BASE_URLS = {
  *  future provider-side change is a one-line edit (see roadmap compatibility note). */
 export const CODEX_WHAM_BASE_URL = 'https://chatgpt.com/backend-api/wham';
 
+/** `client_version` query param required by the WHAM `/models` endpoint. The available model
+ *  list is per-account/plan and changes over time, so the picker fetches it live rather than
+ *  relying on a hardcoded list. Isolated here so it's a one-line update if WHAM tightens it. */
+export const CODEX_MODELS_CLIENT_VERSION = '0.0.1';
+
 export const INTERNAL_PROVIDER_BASE_URLS = {
     openai: 'https://eng-ai-model-gateway.sfproxy.devx-preprod.aws-esvc1-useast2.aws.sfdc.cl/v1',
     anthropic:
@@ -121,22 +130,9 @@ export const OPENAI_MODEL_OPTIONS: LlmModelOption[] = [
     { label: 'gpt-5.4-nano', value: 'gpt-5.4-nano', provider: 'openai', maxOutputTokens: 16000 },
 ];
 
-/** Default models surfaced when the `openai` provider is in OAuth (Codex) mode. These are
- *  the WHAM slugs a ChatGPT subscription can run today (newer slugs like gpt-5.2/5.3-codex
- *  are rejected for ChatGPT accounts with "model is not supported when using Codex with a
- *  ChatGPT account"). The authoritative list is per-account/plan and comes from a live WHAM
- *  `/models` fetch (a follow-up); this seed keeps the picker usable until then. `gpt-5.1-codex-mini`
- *  is first as the safe default. Provider stays `openai` because Codex is an auth-mode on
- *  `openai`, not a separate provider. */
-export const CODEX_MODEL_OPTIONS: LlmModelOption[] = [
-    {
-        label: 'gpt-5.1-codex-mini',
-        value: 'gpt-5.1-codex-mini',
-        provider: 'openai',
-        maxOutputTokens: 16000,
-    },
-    { label: 'gpt-5.1-codex', value: 'gpt-5.1-codex', provider: 'openai', maxOutputTokens: 16000 },
-];
+// Codex (OAuth) models are NOT hardcoded — the available set is per-account/plan and changes
+// often, so the picker is sourced from the live WHAM `/models` fetch (see fetchCodexModels),
+// with a user-typed `customModel` as the manual fallback.
 
 export const INTERNAL_MODEL_OPTIONS: LlmModelOption[] = [
     { label: 'gpt-4o', value: 'gpt-4o', provider: 'openai', maxOutputTokens: 16000 },
