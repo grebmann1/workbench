@@ -18,6 +18,7 @@ import {
     getProviderForModel,
     buildAvailableAgentModelOptions,
     fetchCodexModels,
+    fetchXaiModels,
     resolveCodexClientVersion,
     CODEX_MODELS_CLIENT_VERSION,
     hasUsableProviderCredentials,
@@ -515,6 +516,88 @@ test('fetchCodexModels: falls back to data[].id and is empty without an access t
     assert.deepEqual(
         await fetchCodexModels({ access: '', refresh: '', expires: 0 }, '1.0.0', mockFetch),
         []
+    );
+});
+
+test('fetchXaiModels: maps /v1/language-models models[].id with a bearer, dedupes', async () => {
+    const calls: Array<{ url: string; headers: Record<string, string> }> = [];
+    const mockFetch = (async (url: string | URL, options?: RequestInit) => {
+        calls.push({
+            url: String(url),
+            headers: (options?.headers ?? {}) as Record<string, string>,
+        });
+        return {
+            ok: true,
+            json: async () => ({
+                models: [
+                    { id: 'grok-4.1-fast-reasoning' },
+                    { id: 'grok-code-fast-1' },
+                    { id: 'grok-4.1-fast-reasoning' }, // duplicate id is dropped
+                ],
+            }),
+        } as Response;
+    }) as unknown as typeof fetch;
+    const models = await fetchXaiModels(
+        { access: 'xtok', refresh: 'r', expires: 1 },
+        DEFAULT_PROVIDER_BASE_URLS.grok,
+        mockFetch
+    );
+    assert.deepEqual(
+        models.map(m => m.value),
+        ['grok-4.1-fast-reasoning', 'grok-code-fast-1']
+    );
+    assert.equal(models[0].provider, 'grok');
+    assert.match(calls[0].url, /api\.x\.ai\/v1\/language-models$/);
+    assert.equal(calls[0].headers.Authorization, 'Bearer xtok');
+});
+
+test('fetchXaiModels: falls back to data[].id and is empty without an access token', async () => {
+    const mockFetch = (async () =>
+        ({
+            ok: true,
+            json: async () => ({ data: [{ id: 'grok-x' }] }),
+        }) as Response) as unknown as typeof fetch;
+    const fromData = await fetchXaiModels(
+        { access: 'xtok', refresh: 'r', expires: 1 },
+        DEFAULT_PROVIDER_BASE_URLS.grok,
+        mockFetch
+    );
+    assert.deepEqual(
+        fromData.map(m => m.value),
+        ['grok-x']
+    );
+    assert.deepEqual(
+        await fetchXaiModels({ access: '', refresh: '', expires: 0 }, '', mockFetch),
+        []
+    );
+});
+
+test('buildAvailableAgentModelOptions: xAI OAuth uses the live catalog, no hardcoded fallback', () => {
+    const configs = createDefaultProviderConfigMap();
+    configs.grok = {
+        apiKey: null,
+        baseUrl: DEFAULT_PROVIDER_BASE_URLS.grok,
+        authMode: 'oauth',
+        oauth: { access: 'xtok', refresh: 'r', expires: 1 },
+    };
+    // No live catalog → empty (NOT the static GROK_MODEL_OPTIONS), surfaces customModel instead.
+    assert.deepEqual(buildAvailableAgentModelOptions({ providerConfigs: configs }), []);
+    configs.grok = { ...configs.grok, customModel: 'grok-custom' };
+    assert.deepEqual(
+        buildAvailableAgentModelOptions({ providerConfigs: configs }).map(o => o.value),
+        ['grok-custom']
+    );
+
+    // With a live catalog, the picker surfaces exactly that list.
+    const withCatalog = buildAvailableAgentModelOptions({
+        providerConfigs: configs,
+        availableModelsByProvider: {
+            grok: [{ label: 'grok-4.3-latest', value: 'grok-4.3-latest', provider: 'grok' }],
+        },
+    });
+    assert.deepEqual(
+        withCatalog.map(o => o.value),
+        ['grok-4.3-latest', 'grok-custom']
     );
 });
 

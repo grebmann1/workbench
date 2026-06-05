@@ -281,12 +281,13 @@ export function buildAvailableAgentModelOptions({
         const config = normalizedConfigs[provider];
         const serverModels = extractModels(availableModelsByProvider, provider);
         const isProviderInternal = isInternalProviderBaseUrl(config.baseUrl);
-        // `openai` in OAuth mode is Codex (WHAM): use the live WHAM `/models` catalog
-        // (fetchLlmModelsEndpoint fetches it client-side for OAuth and overrides the openai
-        // catalog) — there is no hardcoded Codex list. Other providers keep their existing
-        // server/internal/static resolution.
-        const isCodexOAuth = provider === 'openai' && config.authMode === 'oauth';
-        let models = isCodexOAuth
+        // Subscription OAuth (openai→Codex/WHAM, grok→SuperGrok): the live `/models` catalog is
+        // fetched client-side by fetchLlmModelsEndpoint and overrides the provider catalog — there
+        // is no hardcoded list, so an empty fetch falls through to the user-typed customModel
+        // rather than a stale static seed. Other providers keep server/internal/static resolution.
+        const isSubscriptionOAuth =
+            config.authMode === 'oauth' && (provider === 'openai' || provider === 'grok');
+        let models = isSubscriptionOAuth
             ? serverModels
             : serverModels.length > 0
               ? serverModels
@@ -365,51 +366,126 @@ export async function resolveCodexClientVersion(fetchImpl: typeof fetch = fetch)
     return CODEX_MODELS_CLIENT_VERSION;
 }
 
-/** Fetch the live Codex (WHAM) model list for an OAuth-authenticated openai config. WHAM's
- *  `/models` returns `{ models: [{ slug }] }` (slug-based, client_version required); falls back
- *  to the standard `{ data: [{ id }] }` shape. Returns [] on any failure so the picker degrades
- *  to the user-typed customModel. Works from the extension (host permissions); the hosted web
- *  app would need a server-side proxy (a documented follow-up). */
-export async function fetchCodexModels(
-    oauth: OAuthCredentials,
-    clientVersion: string,
-    fetchImpl: typeof fetch = fetch
-): Promise<LlmModelOption[]> {
-    if (!oauth?.access) return [];
-    const headers: Record<string, string> = {
-        Authorization: `Bearer ${oauth.access}`,
-        Accept: 'application/json',
-    };
-    if (oauth.accountId) headers['ChatGPT-Account-Id'] = oauth.accountId;
-    const url = `${CODEX_WHAM_BASE_URL}/models?client_version=${encodeURIComponent(clientVersion)}`;
-    const response = await fetchImpl(url, { headers });
-    if (!response.ok) {
-        throw new Error(`Codex /models request failed with status ${response.status}.`);
-    }
-    const data = (await response.json()) as { models?: unknown; data?: unknown };
+const SUBSCRIPTION_MODEL_MAX_OUTPUT_TOKENS = 16000;
+
+/** Parse an OpenAI-compatible model-listing response into picker options. Handles every list
+ *  shape the subscription backends return: `{ data: [{ id }] }` (OpenAI / xAI `/v1/models`),
+ *  `{ models: [{ slug }] }` (Codex WHAM), and `{ models: [{ id }] }` (xAI `/v1/language-models`).
+ *  Dedupes by id so aliased/overlapping lists don't repeat. */
+function parseModelCatalogResponse(data: unknown, provider: LlmProvider): LlmModelOption[] {
+    if (!isRecord(data)) return [];
     const rawList = Array.isArray(data.models)
         ? data.models
         : Array.isArray(data.data)
           ? data.data
           : [];
     const options: LlmModelOption[] = [];
+    const seen = new Set<string>();
     for (const entry of rawList) {
         if (!isRecord(entry)) continue;
-        const slug =
+        const id =
             typeof entry.slug === 'string'
                 ? entry.slug
                 : typeof entry.id === 'string'
                   ? entry.id
                   : '';
-        if (slug) {
-            options.push({ label: slug, value: slug, provider: 'openai', maxOutputTokens: 16000 });
+        if (id && !seen.has(id)) {
+            seen.add(id);
+            options.push({
+                label: id,
+                value: id,
+                provider,
+                maxOutputTokens: SUBSCRIPTION_MODEL_MAX_OUTPUT_TOKENS,
+            });
         }
     }
     return options;
 }
 
+/** Fetch + parse a provider's model catalog from an OpenAI-compatible `/models`-style endpoint.
+ *  Shared by the subscription-OAuth providers (Codex/WHAM, xAI/SuperGrok), where the Workbench
+ *  server can't fetch the list (it never receives the OAuth token). `bearer` + `extraHeaders`
+ *  carry the auth. Throws on a non-OK response so callers can degrade to the user-typed
+ *  customModel. Works from the extension (host permissions); the hosted web app would need a
+ *  server-side proxy (a documented follow-up). */
+async function fetchOAuthModelCatalog({
+    url,
+    bearer,
+    provider,
+    extraHeaders,
+    fetchImpl = fetch,
+}: {
+    url: string;
+    bearer: string;
+    provider: LlmProvider;
+    extraHeaders?: Record<string, string>;
+    fetchImpl?: typeof fetch;
+}): Promise<LlmModelOption[]> {
+    const headers: Record<string, string> = {
+        Authorization: `Bearer ${bearer}`,
+        Accept: 'application/json',
+        ...extraHeaders,
+    };
+    const response = await fetchImpl(url, { headers });
+    if (!response.ok) {
+        throw new Error(`Model catalog request to ${url} failed with status ${response.status}.`);
+    }
+    return parseModelCatalogResponse(await response.json(), provider);
+}
+
+/** Fetch the live Codex (WHAM) model list for an OAuth-authenticated openai config. WHAM gates
+ *  the list by `client_version` (an old value returns an empty list). Returns [] without a
+ *  token; throws on a non-OK response so the picker degrades to the user-typed customModel. */
+export async function fetchCodexModels(
+    oauth: OAuthCredentials,
+    clientVersion: string,
+    fetchImpl: typeof fetch = fetch
+): Promise<LlmModelOption[]> {
+    if (!oauth?.access) return [];
+    const url = `${CODEX_WHAM_BASE_URL}/models?client_version=${encodeURIComponent(clientVersion)}`;
+    return fetchOAuthModelCatalog({
+        url,
+        bearer: oauth.access,
+        provider: 'openai',
+        extraHeaders: oauth.accountId ? { 'ChatGPT-Account-Id': oauth.accountId } : undefined,
+        fetchImpl,
+    });
+}
+
+/** Fetch the live xAI (SuperGrok) model list for an OAuth-authenticated grok config. Uses
+ *  `/v1/language-models` — xAI's chat-model listing, which (unlike `/v1/models`) excludes the
+ *  image/video generation models that would otherwise pollute the chat picker. Returns [] without
+ *  a token; throws on a non-OK response so the picker degrades to the user-typed customModel. */
+export async function fetchXaiModels(
+    oauth: OAuthCredentials,
+    baseUrl: string,
+    fetchImpl: typeof fetch = fetch
+): Promise<LlmModelOption[]> {
+    if (!oauth?.access) return [];
+    const root = (normalizeString(baseUrl) || DEFAULT_PROVIDER_BASE_URLS.grok).replace(/\/+$/, '');
+    return fetchOAuthModelCatalog({
+        url: `${root}/language-models`,
+        bearer: oauth.access,
+        provider: 'grok',
+        fetchImpl,
+    });
+}
+
 function emptyProviderCatalog(provider: LlmProvider): LlmProviderCatalog {
     return { provider, status: 'missing_key', models: [], defaultModel: null, error: null };
+}
+
+/** Build a provider catalog from a client-side OAuth model fetch. `ok` when the fetch returned
+ *  models; `missing_key` (an empty catalog) when it didn't, so the picker falls back to the
+ *  user-typed customModel. */
+function oauthModelCatalog(provider: LlmProvider, models: LlmModelOption[]): LlmProviderCatalog {
+    return {
+        provider,
+        status: models.length > 0 ? 'ok' : 'missing_key',
+        models,
+        defaultModel: models[0]?.value ?? null,
+        error: null,
+    };
 }
 
 function emptyProviderCatalogs(): Record<LlmProvider, LlmProviderCatalog> {
@@ -432,6 +508,8 @@ export async function fetchLlmModelsEndpoint({
     const normalizedConfigs = normalizeProviderConfigMap(providerConfigs);
     const openaiConfig = normalizedConfigs.openai;
     const isCodexOAuth = openaiConfig?.authMode === 'oauth' && !!openaiConfig.oauth?.access;
+    const grokConfig = normalizedConfigs.grok;
+    const isXaiOAuth = grokConfig?.authMode === 'oauth' && !!grokConfig.oauth?.access;
 
     let result: LlmModelsEndpointResponse;
     try {
@@ -452,9 +530,9 @@ export async function fetchLlmModelsEndpoint({
         result = (await response.json()) as LlmModelsEndpointResponse;
     } catch (serverError) {
         // The Workbench server may be unreachable (e.g. an extension user signed in with their
-        // own subscription and has no server). Still serve the Codex catalog client-side;
+        // own subscription and has no server). Still serve the subscription catalog client-side;
         // otherwise propagate so API-key providers report the failure.
-        if (!isCodexOAuth) throw serverError;
+        if (!isCodexOAuth && !isXaiOAuth) throw serverError;
         result = {
             provider,
             catalog: emptyProviderCatalog(provider),
@@ -471,16 +549,24 @@ export async function fetchLlmModelsEndpoint({
             const codexModels = await fetchCodexModels(openaiConfig.oauth, clientVersion);
             result.catalogs = {
                 ...result.catalogs,
-                openai: {
-                    provider: 'openai',
-                    status: codexModels.length > 0 ? 'ok' : 'missing_key',
-                    models: codexModels,
-                    defaultModel: codexModels[0]?.value ?? null,
-                    error: null,
-                },
+                openai: oauthModelCatalog('openai', codexModels),
             };
         } catch {
             // Leave the openai catalog empty; the user can type a model manually.
+        }
+    }
+
+    // grok in OAuth (SuperGrok) mode: same story — the server has no token, so fetch xAI's live
+    // chat-model list client-side and override the grok catalog. Degrade gracefully on failure.
+    if (isXaiOAuth && grokConfig?.oauth) {
+        try {
+            const xaiModels = await fetchXaiModels(grokConfig.oauth, grokConfig.baseUrl);
+            result.catalogs = {
+                ...result.catalogs,
+                grok: oauthModelCatalog('grok', xaiModels),
+            };
+        } catch {
+            // Leave the grok catalog empty; the user can type a model manually.
         }
     }
 

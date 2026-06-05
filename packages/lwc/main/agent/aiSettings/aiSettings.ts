@@ -35,6 +35,7 @@ export default class AiSettings extends LightningElement {
     @track googleDriveConnected = false;
     @track showOnboardAiProvider = false;
     @track providerConfigs: Partial<LlmProviderConfigMap> = {};
+    @track availableModelsByProvider: Partial<Record<string, unknown[]>> = {};
     @track isSigningIn = false;
     @track isRefreshingModels = false;
     @track signingInProvider: string | null = null;
@@ -48,6 +49,7 @@ export default class AiSettings extends LightningElement {
         this.googleDriveConnected =
             !!session?.token && !!settings[CACHE_CONFIG.GOOGLE_DRIVE_CONNECTED.key];
         this.providerConfigs = application?.providerConfigs || {};
+        this.availableModelsByProvider = application?.availableModelsByProvider || {};
     }
 
     connectedCallback() {
@@ -252,6 +254,24 @@ export default class AiSettings extends LightningElement {
     get xaiConnected() {
         const config = this.providerConfigs?.grok;
         return config?.authMode === 'oauth' && !!config?.oauth?.access;
+    }
+
+    // The live `/models` fetch populated the catalog → the normal model selector covers it, so the
+    // manual Model input is only shown when the fetch returned nothing (the customModel fallback).
+    get codexHasModels() {
+        return (this.availableModelsByProvider?.openai?.length ?? 0) > 0;
+    }
+
+    get xaiHasModels() {
+        return (this.availableModelsByProvider?.grok?.length ?? 0) > 0;
+    }
+
+    get codexNeedsManualModel() {
+        return this.codexConnected && !this.codexHasModels;
+    }
+
+    get xaiNeedsManualModel() {
+        return this.xaiConnected && !this.xaiHasModels;
     }
 
     emitInputChange(key, value) {
