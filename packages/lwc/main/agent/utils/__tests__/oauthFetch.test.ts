@@ -96,6 +96,33 @@ test('createOAuthFetch: returns the 401 unchanged when there is no refresh token
     );
 });
 
+test('createOAuthFetch: replaces a pre-existing auth header instead of duplicating it', async () => {
+    // The SDK sets its own Authorization (often lowercased) from apiKey; we must emit exactly
+    // one, else fetch combines them into "Bearer a, Bearer b" and the backend can't parse it.
+    const original = globalThis.fetch;
+    let capturedHeaders: Record<string, string> = {};
+    globalThis.fetch = (async (_url: RequestInfo | URL, options?: RequestInit) => {
+        capturedHeaders = (options?.headers ?? {}) as Record<string, string>;
+        return new Response('', { status: 200 });
+    }) as typeof fetch;
+    try {
+        const fetchImpl = createOAuthFetch({
+            provider: CODEX_OAUTH,
+            credentials: { access: 'the-token', refresh: 'rt', expires: FAR_FUTURE },
+        });
+        await fetchImpl(wham(), {
+            method: 'POST',
+            body: '{}',
+            headers: { authorization: 'Bearer stale-sdk-token' },
+        });
+        const authKeys = Object.keys(capturedHeaders).filter(k => k.toLowerCase() === 'authorization');
+        assert.deepEqual(authKeys, ['Authorization']);
+        assert.equal(capturedHeaders.Authorization, 'Bearer the-token');
+    } finally {
+        globalThis.fetch = original;
+    }
+});
+
 test('createOAuthFetch: concurrent 401s share a single refresh (single-flight)', async () => {
     let apiHits = 0;
     let tokenHits = 0;
