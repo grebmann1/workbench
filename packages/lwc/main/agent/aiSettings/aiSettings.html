@@ -121,6 +121,24 @@
                                     onclick={handleProviderSignIn}></lightning-button>
                             </template>
                         </div>
+                        <template lwc:if={showCodexCodeInput}>
+                            <div class="slds-m-top_x-small">
+                                <lightning-input
+                                    label="Authorization code"
+                                    placeholder="Paste the code if the page shows one"
+                                    value={pastedCode}
+                                    onchange={handlePastedCodeChange}
+                                    variant="label-stacked"
+                                    class="slds-full-width"></lightning-input>
+                                <lightning-button
+                                    label="Submit code"
+                                    variant="brand"
+                                    data-provider="codex"
+                                    disabled={isSigningIn}
+                                    onclick={handleSubmitCode}
+                                    class="slds-m-top_x-small"></lightning-button>
+                            </div>
+                        </template>
                         <template lwc:if={codexConnected}>
                             <lightning-input
                                 data-provider="codex"
@@ -309,6 +327,28 @@
                                     onclick={handleProviderSignIn}></lightning-button>
                             </template>
                         </div>
+                        <template lwc:if={showXaiCodeInput}>
+                            <div class="slds-m-top_x-small">
+                                <p
+                                    class="slds-text-body_small slds-text-color_weak slds-m-bottom_xx-small">
+                                    xAI shows a code instead of returning automatically — copy it
+                                    and paste it here.
+                                </p>
+                                <lightning-input
+                                    label="Authorization code"
+                                    value={pastedCode}
+                                    onchange={handlePastedCodeChange}
+                                    variant="label-stacked"
+                                    class="slds-full-width"></lightning-input>
+                                <lightning-button
+                                    label="Submit code"
+                                    variant="brand"
+                                    data-provider="xai"
+                                    disabled={isSigningIn}
+                                    onclick={handleSubmitCode}
+                                    class="slds-m-top_x-small"></lightning-button>
+                            </div>
+                        </template>
                         <template lwc:if={xaiConnected}>
                             <lightning-input
                                 data-provider="xai"

@@ -37,6 +37,8 @@ export default class AiSettings extends LightningElement {
     @track providerConfigs: Partial<LlmProviderConfigMap> = {};
     @track isSigningIn = false;
     @track isRefreshingModels = false;
+    @track signingInProvider: string | null = null;
+    @track pastedCode = '';
 
     @wire(connectStore, { store })
     storeChange({ application }) {
@@ -65,6 +67,8 @@ export default class AiSettings extends LightningElement {
         if (message?.action !== 'workbench_oauth_result') return;
         this.isSigningIn = false;
         if (message.ok) {
+            this.signingInProvider = null;
+            this.pastedCode = '';
             this.reloadProviderConfigs()
                 .then(() => Toast.show({ label: 'Signed in.', variant: 'success' }))
                 .catch(err => LOGGER.error('Failed to reload provider configs', err));
@@ -72,6 +76,47 @@ export default class AiSettings extends LightningElement {
             Toast.show({ label: message.message || 'Sign-in failed.', variant: 'error' });
         }
     };
+
+    handlePastedCodeChange = e => {
+        this.pastedCode = e.detail?.value ?? '';
+    };
+
+    // Manual-paste fallback: some providers (xAI) show the authorization code instead of
+    // returning to the loopback, so the user pastes it here.
+    handleSubmitCode = async e => {
+        const provider = e.currentTarget?.dataset?.provider;
+        const code = (this.pastedCode || '').trim();
+        if (!provider || !code) {
+            Toast.show({ label: 'Paste the authorization code first.', variant: 'error' });
+            return;
+        }
+        this.isSigningIn = true;
+        try {
+            const response = (await new Promise(resolve => {
+                chrome.runtime.sendMessage(
+                    { action: 'providerOAuthSubmitCode', provider, code },
+                    resolve
+                );
+            })) as { error?: string } | undefined;
+            if (response?.error) {
+                Toast.show({ label: `Sign-in failed: ${response.error}`, variant: 'error' });
+            }
+            // Success arrives via handleOAuthResultMessage (broadcast).
+        } catch (err) {
+            LOGGER.error('Provider OAuth code submit failed', err);
+            Toast.show({ label: `Sign-in failed: ${err.message}`, variant: 'error' });
+        } finally {
+            this.isSigningIn = false;
+        }
+    };
+
+    get showCodexCodeInput() {
+        return this.signingInProvider === 'codex';
+    }
+
+    get showXaiCodeInput() {
+        return this.signingInProvider === 'xai';
+    }
 
     /** Re-fetch the live model catalog (Codex/xAI included) and push it into the store, so the
      *  picker reflects provider-side model changes (deprecations / additions) on demand. */
@@ -152,6 +197,8 @@ export default class AiSettings extends LightningElement {
             return;
         }
         this.isSigningIn = true;
+        this.pastedCode = '';
+        this.signingInProvider = provider; // reveal the manual-paste fallback
         try {
             await new Promise((resolve, reject) => {
                 chrome.runtime.sendMessage({ action: 'providerOAuthStart', provider }, response => {
@@ -167,6 +214,7 @@ export default class AiSettings extends LightningElement {
             // The popup is the user's cue; completion arrives asynchronously via
             // handleOAuthResultMessage (which shows the "Signed in" toast + connected state).
         } catch (err) {
+            this.signingInProvider = null;
             LOGGER.error('Provider OAuth start failed', err);
             Toast.show({ label: `Sign-in failed: ${err.message}`, variant: 'error' });
         } finally {
