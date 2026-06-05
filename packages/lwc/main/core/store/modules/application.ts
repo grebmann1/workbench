@@ -105,6 +105,8 @@ const applicationSlice = createSlice({
             const { connector } = action.payload;
             state.connector = connector;
             state.isLoggedIn = true;
+            state.isLoading = false;
+            state.isLoadingMessage = null;
             state.sessionHasExpired = false;
             // Save Session
             const { instanceUrl, accessToken, version, refreshToken } = connector.conn;
