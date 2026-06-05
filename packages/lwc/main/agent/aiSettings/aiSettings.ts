@@ -20,7 +20,6 @@ import LOGGER from 'shared/logger';
 // Subscription sign-in maps a UI provider id to the LLM provider whose config stores the
 // OAuth credentials (Codex is an auth-mode on `openai`, xAI on `grok`).
 const OAUTH_PROVIDER_TO_LLM = { codex: 'openai', xai: 'grok' };
-const OAUTH_PROVIDER_LABELS = { codex: 'ChatGPT (Codex)', xai: 'xAI' };
 
 const INTERNAL_PROVIDER_DOCS_URL = 'https://doc.sf-workbench.com/ai-agent/llm-provider-runtime';
 
@@ -100,12 +99,8 @@ export default class AiSettings extends LightningElement {
                     }
                 });
             });
-            // Success arrives asynchronously via handleOAuthResultMessage once the user
-            // completes consent; keep a gentle hint here.
-            Toast.show({
-                label: `Complete sign-in to ${OAUTH_PROVIDER_LABELS[provider] || provider} in the opened window.`,
-                variant: 'info',
-            });
+            // The popup is the user's cue; completion arrives asynchronously via
+            // handleOAuthResultMessage (which shows the "Signed in" toast + connected state).
         } catch (err) {
             LOGGER.error('Provider OAuth start failed', err);
             Toast.show({ label: `Sign-in failed: ${err.message}`, variant: 'error' });
