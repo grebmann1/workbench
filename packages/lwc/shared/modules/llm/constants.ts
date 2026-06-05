@@ -121,20 +121,21 @@ export const OPENAI_MODEL_OPTIONS: LlmModelOption[] = [
     { label: 'gpt-5.4-nano', value: 'gpt-5.4-nano', provider: 'openai', maxOutputTokens: 16000 },
 ];
 
-/** Models surfaced when the `openai` provider is in OAuth (Codex) mode. These are the
- *  WHAM slugs reachable with a ChatGPT subscription token; the catalog may also be
- *  refreshed live from WHAM `/models` (slug-based). Provider stays `openai` because Codex
- *  is an auth-mode on `openai`, not a separate provider. */
+/** Default models surfaced when the `openai` provider is in OAuth (Codex) mode. These are
+ *  the WHAM slugs a ChatGPT subscription can run today (newer slugs like gpt-5.2/5.3-codex
+ *  are rejected for ChatGPT accounts with "model is not supported when using Codex with a
+ *  ChatGPT account"). The authoritative list is per-account/plan and comes from a live WHAM
+ *  `/models` fetch (a follow-up); this seed keeps the picker usable until then. `gpt-5.1-codex-mini`
+ *  is first as the safe default. Provider stays `openai` because Codex is an auth-mode on
+ *  `openai`, not a separate provider. */
 export const CODEX_MODEL_OPTIONS: LlmModelOption[] = [
-    { label: 'gpt-5.1-codex', value: 'gpt-5.1-codex', provider: 'openai', maxOutputTokens: 16000 },
     {
         label: 'gpt-5.1-codex-mini',
         value: 'gpt-5.1-codex-mini',
         provider: 'openai',
         maxOutputTokens: 16000,
     },
-    { label: 'gpt-5.2-codex', value: 'gpt-5.2-codex', provider: 'openai', maxOutputTokens: 16000 },
-    { label: 'gpt-5.3-codex', value: 'gpt-5.3-codex', provider: 'openai', maxOutputTokens: 16000 },
+    { label: 'gpt-5.1-codex', value: 'gpt-5.1-codex', provider: 'openai', maxOutputTokens: 16000 },
 ];
 
 export const INTERNAL_MODEL_OPTIONS: LlmModelOption[] = [
