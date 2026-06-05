@@ -33,6 +33,7 @@ import {
     buildAvailableAgentModelOptions,
     getProviderForModel,
     getProviderLabel,
+    hasUsableProviderCredentials,
     isOpenAiCompatibleGateway,
     normalizeLlmProvider,
 } from 'shared/llm';
@@ -413,6 +414,8 @@ You have full access to the toolkit UI. All navigation and display tools work no
                 apiKey: activeProviderConfig?.apiKey ?? '',
                 baseUrl: activeProviderConfig?.baseUrl,
                 isInternal,
+                authMode: activeProviderConfig?.authMode,
+                oauth: activeProviderConfig?.oauth ?? null,
                 useResponsesApi: activeProviderConfig?.useResponsesApi ?? false,
                 selectedModel:
                     model ||
@@ -590,7 +593,13 @@ You have full access to the toolkit UI. All navigation and display tools work no
         const { settings } = await this.buildAgentExecutionContext(model);
         const activeProvider = normalizeLlmProvider(settings.provider);
         const activeProviderLabel = getProviderLabel(activeProvider);
-        const isProviderConfigured = !isEmpty(settings.apiKey);
+        // OAuth-mode providers are configured via an access token, not an API key.
+        const isProviderConfigured = hasUsableProviderCredentials({
+            apiKey: settings.apiKey || null,
+            baseUrl: settings.baseUrl ?? '',
+            authMode: settings.authMode,
+            oauth: settings.oauth,
+        });
         store.dispatch(AGENT.reduxSlice.actions.updateSelectedModel({ model }));
         store.dispatch(AGENT.reduxSlice.actions.setSelectedReasoning({ reasoning }));
         if (!isProviderConfigured) {

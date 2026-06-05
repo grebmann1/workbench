@@ -70,6 +70,7 @@ export function createProviderInstance({
     isInternal = false,
     authMode,
     oauth,
+    onTokenRefresh,
 }: {
     provider: unknown;
     apiKey?: string;
@@ -77,6 +78,7 @@ export function createProviderInstance({
     isInternal?: boolean;
     authMode?: 'apiKey' | 'oauth';
     oauth?: OAuthCredentials | null;
+    onTokenRefresh?: (credentials: OAuthCredentials) => void;
 }): ProviderInstance {
     const normalizedProvider = normalizeLlmProvider(provider);
     const runtime = selectInstanceRuntime({
@@ -85,7 +87,7 @@ export function createProviderInstance({
         isInternal,
         authMode,
     });
-    return runtime.createInstance({ apiKey, baseUrl, isInternal, authMode, oauth });
+    return runtime.createInstance({ apiKey, baseUrl, isInternal, authMode, oauth, onTokenRefresh });
 }
 
 export function resolveProviderModelInstance(

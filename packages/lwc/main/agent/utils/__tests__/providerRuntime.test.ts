@@ -144,6 +144,21 @@ test('resolveProviderModelInstance: openai + oauth resolves a Responses-API mode
     assert.equal(model.provider, 'openai.responses');
 });
 
+test('resolveProviderModelInstance: codex default callable resolves Responses without authMode', () => {
+    // Mirrors the context-compaction path, which resolves the summary model without passing
+    // authMode — the codex instance's default callable must still route to the Responses API.
+    const instance = createProviderInstance({
+        provider: 'openai',
+        authMode: 'oauth',
+        oauth: OAUTH_CREDS,
+    });
+    const model = resolveProviderModelInstance(instance, {
+        provider: 'openai',
+        modelId: 'gpt-5.1-codex',
+    }) as any;
+    assert.equal(model.provider, 'openai.responses');
+});
+
 test('createProviderInstance: grok + oauth returns a callable (bearer = access token)', () => {
     const instance = createProviderInstance({
         provider: 'grok',

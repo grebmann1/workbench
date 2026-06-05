@@ -1,6 +1,7 @@
 import { createOpenAI } from '@ai-sdk/openai';
 import type { LanguageModelV3 } from '@ai-sdk/provider';
 import { CODEX_WHAM_BASE_URL } from 'shared/llm';
+import { CODEX_OAUTH } from 'shared/oauth';
 import type {
     CreateInstanceArgs,
     ProviderInstance,
@@ -9,6 +10,7 @@ import type {
     ResolveOptionsArgs,
 } from '../types';
 import { createSanitizedFetch, type FormattedRequest } from '../shared/fetch';
+import { createOAuthFetch } from '../shared/oauthFetch';
 
 // Codex (ChatGPT subscription) runtime. Selected when the `openai` provider is in OAuth
 // mode; targets the WHAM backend, which is Responses-API only and requires `store:false`.
@@ -36,22 +38,36 @@ export function codexFormatRequest(url: RequestInfo | URL, options?: RequestInit
 }
 
 export const codexRuntime: ProviderRuntime = {
-    createInstance({ oauth }: CreateInstanceArgs): ProviderInstance {
+    createInstance({ oauth, onTokenRefresh }: CreateInstanceArgs): ProviderInstance {
         const headers: Record<string, string> = {};
         // ChatGPT-Account-Id selects the subscription account; decoded from the JWT at login.
         if (oauth?.accountId) {
             headers['ChatGPT-Account-Id'] = oauth.accountId;
         }
-        return createOpenAI({
-            // The access token is the bearer; the SDK formats `Authorization: Bearer <token>`.
+        const provider = createOpenAI({
+            // The access token seeds the bearer; createOAuthFetch keeps it fresh + injects
+            // the current token on every request and on a 401.
             apiKey: oauth?.access || '',
             baseURL: CODEX_WHAM_BASE_URL,
             headers,
-            fetch: createSanitizedFetch({ formatRequest: codexFormatRequest }),
+            fetch: oauth
+                ? createOAuthFetch({
+                      provider: CODEX_OAUTH,
+                      credentials: oauth,
+                      onTokenRefresh,
+                      formatRequest: codexFormatRequest,
+                  })
+                : createSanitizedFetch({ formatRequest: codexFormatRequest }),
         });
+        // WHAM is Responses-API only — make the *default* callable resolve Responses models so
+        // every consumer routes correctly even when it doesn't pass authMode (e.g. context
+        // compaction resolves the summary model without it).
+        const instance = ((modelId: string) => provider.responses(modelId)) as ProviderInstance;
+        instance.responses = (modelId: string) => provider.responses(modelId);
+        instance.chat = (modelId: string) => provider.chat(modelId);
+        return instance;
     },
 
-    // WHAM only speaks the Responses API.
     resolveModel(instance: ProviderInstance, { modelId }: ResolveModelArgs): LanguageModelV3 {
         return (instance.responses ?? instance)(modelId);
     },
