@@ -65,6 +65,15 @@ export function createOAuthFetch(opts: {
 
     function withAuth(options: RequestInit | undefined): RequestInit {
         const headers = toHeaderObject(options?.headers);
+        // Drop any existing auth header first. The SDK sets one from `apiKey` (often
+        // lowercased as `authorization`); if we then add `Authorization` too, the request
+        // carries two auth headers that fetch combines into an unparseable
+        // "Bearer x, Bearer y" value — which WHAM rejects with "could not parse your
+        // authentication token". We emit exactly one, with the current (possibly refreshed)
+        // token.
+        for (const key of Object.keys(headers)) {
+            if (key.toLowerCase() === 'authorization') delete headers[key];
+        }
         headers.Authorization = `Bearer ${credentials.access}`;
         return { ...options, headers };
     }
