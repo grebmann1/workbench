@@ -36,6 +36,7 @@ export default class AiSettings extends LightningElement {
     @track showOnboardAiProvider = false;
     @track providerConfigs: Partial<LlmProviderConfigMap> = {};
     @track isSigningIn = false;
+    @track isRefreshingModels = false;
 
     @wire(connectStore, { store })
     storeChange({ application }) {
@@ -72,23 +73,44 @@ export default class AiSettings extends LightningElement {
         }
     };
 
+    /** Re-fetch the live model catalog (Codex/xAI included) and push it into the store, so the
+     *  picker reflects provider-side model changes (deprecations / additions) on demand. */
+    async refreshModelCatalog() {
+        const cached = await cacheManager.loadConfig(getLlmProviderConfigCacheKeys());
+        const providerConfigs = resolveLlmProviderConfigMap(cached);
+        const response = await fetchLlmModelsEndpoint({
+            provider: getAiProviderFromConfig(cached),
+            providerConfigs,
+        });
+        store.dispatch(
+            APPLICATION.reduxSlice.actions.updateProviderCatalogs({ catalogs: response.catalogs })
+        );
+    }
+
     async reloadProviderConfigs() {
         const cached = await cacheManager.loadConfig(getLlmProviderConfigCacheKeys());
         const providerConfigs = resolveLlmProviderConfigMap(cached);
         store.dispatch(APPLICATION.reduxSlice.actions.updateProviderConfigs({ providerConfigs }));
         // Refresh the model catalog so the live Codex/xAI models appear without a reload.
         try {
-            const response = await fetchLlmModelsEndpoint({
-                provider: getAiProviderFromConfig(cached),
-                providerConfigs,
-            });
-            store.dispatch(
-                APPLICATION.reduxSlice.actions.updateProviderCatalogs({ catalogs: response.catalogs })
-            );
+            await this.refreshModelCatalog();
         } catch (err) {
             LOGGER.warn('Failed to refresh model catalog after sign-in', err);
         }
     }
+
+    handleRefreshModels = async () => {
+        this.isRefreshingModels = true;
+        try {
+            await this.refreshModelCatalog();
+            Toast.show({ label: 'Models refreshed.', variant: 'success' });
+        } catch (err) {
+            LOGGER.error('Failed to refresh models', err);
+            Toast.show({ label: `Couldn't refresh models: ${err.message}`, variant: 'error' });
+        } finally {
+            this.isRefreshingModels = false;
+        }
+    };
 
     handleCustomModelChange = async e => {
         const provider = e.currentTarget?.dataset?.provider;

@@ -135,6 +135,13 @@
                                 Models load from your ChatGPT subscription. Type a model name if
                                 it isn't listed.
                             </p>
+                            <lightning-button
+                                label="Refresh models"
+                                icon-name="utility:refresh"
+                                variant="neutral"
+                                disabled={isRefreshingModels}
+                                onclick={handleRefreshModels}
+                                class="slds-m-top_x-small"></lightning-button>
                         </template>
                     </div>
                 </slds-tab>
@@ -315,6 +322,13 @@
                                 class="slds-text-body_small slds-text-color_weak slds-m-top_xx-small">
                                 Type a model name if it isn't listed.
                             </p>
+                            <lightning-button
+                                label="Refresh models"
+                                icon-name="utility:refresh"
+                                variant="neutral"
+                                disabled={isRefreshingModels}
+                                onclick={handleRefreshModels}
+                                class="slds-m-top_x-small"></lightning-button>
                         </template>
                     </div>
                 </slds-tab>
