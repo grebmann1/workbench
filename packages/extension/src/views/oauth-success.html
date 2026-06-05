@@ -5,56 +5,50 @@
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <title>Workbench — Signed in</title>
         <style>
-            :root {
-                color-scheme: light dark;
+            html,
+            body {
+                height: 100%;
+                margin: 0;
             }
             body {
-                margin: 0;
-                min-height: 100vh;
                 display: flex;
                 align-items: center;
                 justify-content: center;
+                background: #f4f6f9;
                 font-family:
                     -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial,
                     sans-serif;
-                background: #f3f3f3;
-                color: #181818;
-            }
-            @media (prefers-color-scheme: dark) {
-                body {
-                    background: #1b1b1b;
-                    color: #f3f3f3;
-                }
-                .card {
-                    background: #2a2a2a;
-                }
             }
             .card {
-                background: #fff;
+                background: #ffffff;
+                border: 1px solid #e5e5e5;
                 border-radius: 12px;
                 padding: 40px 48px;
-                box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12);
                 text-align: center;
                 max-width: 380px;
+                box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
             }
             .check {
                 width: 56px;
                 height: 56px;
-                border-radius: 50%;
-                background: #2e844a;
-                color: #fff;
-                font-size: 32px;
                 line-height: 56px;
                 margin: 0 auto 20px;
+                border-radius: 50%;
+                background: #2e844a;
+                color: #ffffff;
+                font-size: 30px;
             }
             h1 {
-                font-size: 18px;
                 margin: 0 0 8px;
+                font-size: 18px;
+                font-weight: 600;
+                color: #181818;
             }
             p {
-                font-size: 14px;
                 margin: 0;
-                opacity: 0.75;
+                font-size: 14px;
+                line-height: 1.5;
+                color: #444444;
             }
         </style>
     </head>
