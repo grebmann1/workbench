@@ -345,13 +345,34 @@ function stripOAuthFromProviderConfigs(configs: LlmProviderConfigMap): LlmProvid
     }, {} as LlmProviderConfigMap);
 }
 
+/** The `client_version` WHAM gates its `/models` list by. Resolved from the latest published
+ *  @openai/codex release (npm) so it tracks OpenAI without manual bumps; falls back to the
+ *  pinned constant when the registry is unreachable. */
+export async function resolveCodexClientVersion(fetchImpl: typeof fetch = fetch): Promise<string> {
+    try {
+        const response = await fetchImpl('https://registry.npmjs.org/@openai/codex/latest', {
+            headers: { Accept: 'application/json' },
+        });
+        if (response.ok) {
+            const data = (await response.json()) as { version?: unknown };
+            if (typeof data.version === 'string' && data.version) {
+                return data.version;
+            }
+        }
+    } catch {
+        // Registry unreachable (e.g. offline) — fall back to the pinned default.
+    }
+    return CODEX_MODELS_CLIENT_VERSION;
+}
+
 /** Fetch the live Codex (WHAM) model list for an OAuth-authenticated openai config. WHAM's
  *  `/models` returns `{ models: [{ slug }] }` (slug-based, client_version required); falls back
- *  to the standard `{ data: [{ id }] }` shape. Returns [] on any failure so callers degrade to
- *  the static seed. Note: works from the extension (host permissions); the hosted web app would
- *  need a server-side proxy (a documented follow-up). */
+ *  to the standard `{ data: [{ id }] }` shape. Returns [] on any failure so the picker degrades
+ *  to the user-typed customModel. Works from the extension (host permissions); the hosted web
+ *  app would need a server-side proxy (a documented follow-up). */
 export async function fetchCodexModels(
     oauth: OAuthCredentials,
+    clientVersion: string,
     fetchImpl: typeof fetch = fetch
 ): Promise<LlmModelOption[]> {
     if (!oauth?.access) return [];
@@ -360,9 +381,7 @@ export async function fetchCodexModels(
         Accept: 'application/json',
     };
     if (oauth.accountId) headers['ChatGPT-Account-Id'] = oauth.accountId;
-    const url = `${CODEX_WHAM_BASE_URL}/models?client_version=${encodeURIComponent(
-        CODEX_MODELS_CLIENT_VERSION
-    )}`;
+    const url = `${CODEX_WHAM_BASE_URL}/models?client_version=${encodeURIComponent(clientVersion)}`;
     const response = await fetchImpl(url, { headers });
     if (!response.ok) {
         throw new Error(`Codex /models request failed with status ${response.status}.`);
@@ -448,7 +467,8 @@ export async function fetchLlmModelsEndpoint({
     // picker then relies on the user-typed customModel).
     if (isCodexOAuth && openaiConfig?.oauth) {
         try {
-            const codexModels = await fetchCodexModels(openaiConfig.oauth);
+            const clientVersion = await resolveCodexClientVersion();
+            const codexModels = await fetchCodexModels(openaiConfig.oauth, clientVersion);
             result.catalogs = {
                 ...result.catalogs,
                 openai: {
