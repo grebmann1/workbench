@@ -9,6 +9,24 @@ export const LLM_PROVIDERS = [
 
 export type LlmProvider = (typeof LLM_PROVIDERS)[number];
 
+/** Credentials obtained from a provider's subscription OAuth login. Stored on the
+ *  per-provider config alongside (and mutually exclusive with) an API key. The
+ *  storage trust model is identical to the existing `apiKey` field. */
+export type OAuthCredentials = {
+    /** OAuth access token; used as the bearer for provider API calls. */
+    access: string;
+    /** OAuth refresh token; used to mint a fresh access token. */
+    refresh: string;
+    /** Access-token expiry as epoch milliseconds. */
+    expires: number;
+    /** Codex only: the `ChatGPT-Account-Id` header value, decoded from the JWT. */
+    accountId?: string;
+    /** xAI only: the token endpoint resolved from OIDC discovery (for refresh). */
+    tokenEndpoint?: string;
+    /** Token type from the token response; defaults to `Bearer`. */
+    tokenType?: string;
+};
+
 export type LlmProviderConfig = {
     apiKey: string | null;
     baseUrl: string;
@@ -17,6 +35,11 @@ export type LlmProviderConfig = {
      *  (e.g. LiteLLM) routes to OpenAI's Responses API endpoint, which
      *  requires tools with a flat `name` field rather than nested `function.name`. */
     useResponsesApi?: boolean;
+    /** How this provider authenticates. `apiKey` (default) uses `apiKey`;
+     *  `oauth` uses the `oauth` credentials below (subscription sign-in). */
+    authMode?: 'apiKey' | 'oauth';
+    /** Subscription OAuth credentials, when `authMode === 'oauth'`. */
+    oauth?: OAuthCredentials | null;
 };
 
 export type LlmProviderConfigMap = Record<LlmProvider, LlmProviderConfig>;
@@ -60,6 +83,12 @@ export const DEFAULT_PROVIDER_BASE_URLS = {
     workbench: '/openai/v1',
 } satisfies Record<LlmProvider, string>;
 
+/** OpenAI ChatGPT (Codex) subscription backend, used when the `openai` provider is in
+ *  OAuth mode. This is the WHAM endpoint the Codex CLI talks to — Responses-API only,
+ *  with `store:false` and a `ChatGPT-Account-Id` header. Kept as a single constant so a
+ *  future provider-side change is a one-line edit (see roadmap compatibility note). */
+export const CODEX_WHAM_BASE_URL = 'https://chatgpt.com/backend-api/wham';
+
 export const INTERNAL_PROVIDER_BASE_URLS = {
     openai: 'https://eng-ai-model-gateway.sfproxy.devx-preprod.aws-esvc1-useast2.aws.sfdc.cl/v1',
     anthropic:
@@ -90,6 +119,22 @@ export const OPENAI_MODEL_OPTIONS: LlmModelOption[] = [
     { label: 'gpt-5.4', value: 'gpt-5.4', provider: 'openai', maxOutputTokens: 16000 },
     { label: 'gpt-5.4-mini', value: 'gpt-5.4-mini', provider: 'openai', maxOutputTokens: 16000 },
     { label: 'gpt-5.4-nano', value: 'gpt-5.4-nano', provider: 'openai', maxOutputTokens: 16000 },
+];
+
+/** Models surfaced when the `openai` provider is in OAuth (Codex) mode. These are the
+ *  WHAM slugs reachable with a ChatGPT subscription token; the catalog may also be
+ *  refreshed live from WHAM `/models` (slug-based). Provider stays `openai` because Codex
+ *  is an auth-mode on `openai`, not a separate provider. */
+export const CODEX_MODEL_OPTIONS: LlmModelOption[] = [
+    { label: 'gpt-5.1-codex', value: 'gpt-5.1-codex', provider: 'openai', maxOutputTokens: 16000 },
+    {
+        label: 'gpt-5.1-codex-mini',
+        value: 'gpt-5.1-codex-mini',
+        provider: 'openai',
+        maxOutputTokens: 16000,
+    },
+    { label: 'gpt-5.2-codex', value: 'gpt-5.2-codex', provider: 'openai', maxOutputTokens: 16000 },
+    { label: 'gpt-5.3-codex', value: 'gpt-5.3-codex', provider: 'openai', maxOutputTokens: 16000 },
 ];
 
 export const INTERNAL_MODEL_OPTIONS: LlmModelOption[] = [
