@@ -175,3 +175,46 @@ export async function handleOAuthRedirect(details) {
     }
     return { provider: binding.llmProvider, credentials };
 }
+
+/**
+ * Manual-paste fallback: exchange a user-pasted authorization code against the in-flight
+ * pending flow. Required for xAI, which delivers the code via a CORS fetch to the loopback
+ * (no browser navigation to capture) and shows the code for manual entry when that fails.
+ * Accepts a bare code, a full redirect URL, or a `?code=…&state=…` query.
+ */
+export async function submitProviderOAuthCode({ provider, code }) {
+    const stored = (await chrome.storage.session.get(PENDING_KEY))[PENDING_KEY];
+    if (!stored || stored.provider !== provider) {
+        throw new Error('No sign-in is in progress. Click Sign in again, then paste the code.');
+    }
+    const parsed = parseCallback(String(code || ''), { host: '127.0.0.1', path: '/callback' });
+    if (parsed.error) {
+        throw new Error(parsed.errorDescription || parsed.error);
+    }
+    if (!parsed.code) {
+        throw new Error("That doesn't look like an authorization code.");
+    }
+    // A pasted full URL/query carries state to validate; a bare code skips it (single-use is
+    // still enforced by consuming the pending flow on success).
+    if (parsed.state && parsed.state !== stored.state) {
+        throw new Error('Sign-in failed: state mismatch.');
+    }
+
+    const binding = PROVIDER_BINDINGS[stored.provider];
+    const cfg = binding.oauth;
+    const payload = await exchangeAuthCode({
+        tokenEndpoint: stored.tokenEndpoint,
+        clientId: cfg.clientId,
+        code: parsed.code,
+        redirectUri: stored.redirectUri,
+        verifier: stored.verifier,
+    });
+    const credentials = credentialsFromTokenPayload(payload, {
+        now: Date.now(),
+        refreshSkewMs: cfg.refreshSkewMs,
+        tokenEndpoint: stored.tokenEndpoint,
+    });
+    await persistCredentials(binding.llmProvider, credentials);
+    await chrome.storage.session.remove(PENDING_KEY);
+    return { provider: binding.llmProvider, credentials };
+}

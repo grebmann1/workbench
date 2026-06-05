@@ -31,7 +31,11 @@ import {
 import { handleVscodeBackgroundMessage, isVscodeBackgroundAction } from './vscode.js';
 import { handleMcpHttpRequest } from './shared/mcpProxy.js';
 import { handleLaunchWebAuthFlow } from './shared/oauth.js';
-import { startProviderOAuth, handleOAuthRedirect } from './shared/providerOAuth.js';
+import {
+    startProviderOAuth,
+    handleOAuthRedirect,
+    submitProviderOAuthCode,
+} from './shared/providerOAuth.js';
 
 /** Command and menu ids */
 const OVERLAY_ENABLE = 'overlay_enable';
@@ -820,6 +824,24 @@ async function handleRuntimeMessage(message, sender) {
     }
     if (message.action === 'providerOAuthStart') {
         return await startProviderOAuth({ provider: message.provider });
+    }
+    if (message.action === 'providerOAuthSubmitCode') {
+        try {
+            const result = await submitProviderOAuthCode({
+                provider: message.provider,
+                code: message.code,
+            });
+            chrome.runtime
+                .sendMessage({
+                    action: 'workbench_oauth_result',
+                    ok: true,
+                    provider: result.provider,
+                })
+                .catch(() => {});
+            return { ok: true };
+        } catch (error) {
+            return { error: error?.message || 'Sign-in failed.' };
+        }
     }
     if (isVscodeBackgroundAction(message.action)) {
         return await handleVscodeBackgroundMessage(message, {
