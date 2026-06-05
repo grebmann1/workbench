@@ -7,18 +7,23 @@ import type {
     ResolveModelArgs,
     ResolveOptionsArgs,
 } from '../types';
+import { XAI_OAUTH } from 'shared/oauth';
 import { createSanitizedFetch } from '../shared/fetch';
+import { createOAuthFetch } from '../shared/oauthFetch';
 import { resolveProviderRuntimeBaseUrl } from '../shared/urls';
 
 export const grokRuntime: ProviderRuntime = {
-    createInstance({ apiKey, baseUrl, authMode, oauth }: CreateInstanceArgs): ProviderInstance {
-        // OAuth (SuperGrok subscription) reuses the same endpoint; the access token simply
-        // replaces the API key as the bearer.
-        const bearer = authMode === 'oauth' ? oauth?.access || '' : apiKey || '';
+    createInstance({ apiKey, baseUrl, authMode, oauth, onTokenRefresh }: CreateInstanceArgs): ProviderInstance {
+        // OAuth (SuperGrok subscription) reuses the same endpoint; the access token replaces
+        // the API key as the bearer, and createOAuthFetch keeps it fresh.
+        const isOAuth = authMode === 'oauth' && !!oauth;
         return createXai({
-            apiKey: bearer,
+            apiKey: isOAuth ? oauth?.access || '' : apiKey || '',
             baseURL: resolveProviderRuntimeBaseUrl('grok', baseUrl),
-            fetch: createSanitizedFetch(),
+            fetch:
+                isOAuth && oauth
+                    ? createOAuthFetch({ provider: XAI_OAUTH, credentials: oauth, onTokenRefresh })
+                    : createSanitizedFetch(),
         });
     },
 
