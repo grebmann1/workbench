@@ -11,9 +11,12 @@ import { createSanitizedFetch } from '../shared/fetch';
 import { resolveProviderRuntimeBaseUrl } from '../shared/urls';
 
 export const grokRuntime: ProviderRuntime = {
-    createInstance({ apiKey, baseUrl }: CreateInstanceArgs): ProviderInstance {
+    createInstance({ apiKey, baseUrl, authMode, oauth }: CreateInstanceArgs): ProviderInstance {
+        // OAuth (SuperGrok subscription) reuses the same endpoint; the access token simply
+        // replaces the API key as the bearer.
+        const bearer = authMode === 'oauth' ? oauth?.access || '' : apiKey || '';
         return createXai({
-            apiKey: apiKey || '',
+            apiKey: bearer,
             baseURL: resolveProviderRuntimeBaseUrl('grok', baseUrl),
             fetch: createSanitizedFetch(),
         });

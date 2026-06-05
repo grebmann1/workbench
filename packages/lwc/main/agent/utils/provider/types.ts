@@ -1,4 +1,5 @@
 import type { LanguageModelV3 } from '@ai-sdk/provider';
+import type { OAuthCredentials } from 'shared/llm';
 import type { FormattedRequest } from './shared/fetch';
 
 type ModelResolver = (modelId: string) => LanguageModelV3;
@@ -18,12 +19,19 @@ export type CreateInstanceArgs = {
     apiKey?: string;
     baseUrl?: string;
     isInternal?: boolean;
+    /** When 'oauth', the runtime authenticates with `oauth` instead of `apiKey`. */
+    authMode?: 'apiKey' | 'oauth';
+    /** Subscription OAuth credentials, used when `authMode === 'oauth'`. */
+    oauth?: OAuthCredentials | null;
 };
 
 export type ResolveModelArgs = {
     modelId: string;
     isInternal?: boolean;
     useResponsesApi?: boolean;
+    /** Mirrors CreateInstanceArgs so model resolution can pick the same runtime
+     *  (e.g. openai + oauth → the Codex/WHAM runtime, which is Responses-only). */
+    authMode?: 'apiKey' | 'oauth';
 };
 
 export type ResolveOptionsArgs = {
