@@ -168,18 +168,39 @@ test('createProviderInstance: grok + oauth returns a callable (bearer = access t
     assert.equal(typeof instance, 'function');
 });
 
-test('codexFormatRequest: injects store:false into JSON bodies, leaves others untouched', () => {
+test('codexFormatRequest: injects store:false and lifts the system message into instructions', () => {
+    // WHAM requires top-level `instructions`; the SDK puts the system prompt in `input`.
     const out = codexFormatRequest('https://chatgpt.com/backend-api/wham/responses', {
         method: 'POST',
-        body: JSON.stringify({ model: 'gpt-5.1-codex', input: [] }),
+        body: JSON.stringify({
+            model: 'gpt-5.1-codex',
+            input: [
+                { role: 'system', content: [{ type: 'input_text', text: 'You are Codex.' }] },
+                { role: 'user', content: [{ type: 'input_text', text: 'hi' }] },
+            ],
+        }),
     });
-    assert.equal(JSON.parse(out.options?.body as string).store, false);
+    const body = JSON.parse(out.options?.body as string);
+    assert.equal(body.store, false);
+    assert.equal(body.instructions, 'You are Codex.');
+    assert.equal(body.input.length, 1);
+    assert.equal(body.input[0].role, 'user');
 
-    // An explicit store value is preserved (not overwritten).
-    const kept = codexFormatRequest('x', { body: JSON.stringify({ store: true }) });
-    assert.equal(JSON.parse(kept.options?.body as string).store, true);
+    // No system message → instructions defaulted so WHAM doesn't reject the request.
+    const noSystem = JSON.parse(
+        codexFormatRequest('x', {
+            body: JSON.stringify({ input: [{ role: 'user', content: 'hi' }] }),
+        }).options?.body as string
+    );
+    assert.ok(noSystem.instructions);
 
-    // No body / non-JSON body pass through unchanged.
+    // Existing store/instructions preserved; non-JSON / no body pass through.
+    const kept = JSON.parse(
+        codexFormatRequest('x', { body: JSON.stringify({ store: true, instructions: 'keep' }) })
+            .options?.body as string
+    );
+    assert.equal(kept.store, true);
+    assert.equal(kept.instructions, 'keep');
     assert.equal(codexFormatRequest('x', { method: 'GET' }).options?.body, undefined);
     assert.equal(codexFormatRequest('x', { body: 'not-json' }).options?.body, 'not-json');
 });
