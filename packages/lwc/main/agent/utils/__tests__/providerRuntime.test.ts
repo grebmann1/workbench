@@ -7,6 +7,14 @@ import {
     createProviderInstance,
     resolveProviderModelInstance,
 } from '../providerRuntime.ts';
+import { codexFormatRequest } from '../provider/codex/runtime.ts';
+
+const OAUTH_CREDS = {
+    access: 'tok',
+    refresh: 'ref',
+    expires: 4_102_444_800_000, // year 2100, comfortably unexpired
+    accountId: 'acct-123',
+};
 
 test('supportsReasoningProvider: true for openai, false for others', () => {
     assert.equal(supportsReasoningProvider('openai'), true);
@@ -111,6 +119,54 @@ test('createProviderInstance: internal Anthropic Bedrock uses Anthropic message 
     }) as any;
 
     assert.equal(model.provider, 'anthropic.messages');
+});
+
+test('createProviderInstance: openai + oauth selects the Codex (WHAM) runtime', () => {
+    const instance = createProviderInstance({
+        provider: 'openai',
+        authMode: 'oauth',
+        oauth: OAUTH_CREDS,
+    });
+    assert.equal(typeof instance, 'function');
+});
+
+test('resolveProviderModelInstance: openai + oauth resolves a Responses-API model', () => {
+    const instance = createProviderInstance({
+        provider: 'openai',
+        authMode: 'oauth',
+        oauth: OAUTH_CREDS,
+    });
+    const model = resolveProviderModelInstance(instance, {
+        provider: 'openai',
+        modelId: 'gpt-5.1-codex',
+        authMode: 'oauth',
+    }) as any;
+    assert.equal(model.provider, 'openai.responses');
+});
+
+test('createProviderInstance: grok + oauth returns a callable (bearer = access token)', () => {
+    const instance = createProviderInstance({
+        provider: 'grok',
+        authMode: 'oauth',
+        oauth: OAUTH_CREDS,
+    });
+    assert.equal(typeof instance, 'function');
+});
+
+test('codexFormatRequest: injects store:false into JSON bodies, leaves others untouched', () => {
+    const out = codexFormatRequest('https://chatgpt.com/backend-api/wham/responses', {
+        method: 'POST',
+        body: JSON.stringify({ model: 'gpt-5.1-codex', input: [] }),
+    });
+    assert.equal(JSON.parse(out.options?.body as string).store, false);
+
+    // An explicit store value is preserved (not overwritten).
+    const kept = codexFormatRequest('x', { body: JSON.stringify({ store: true }) });
+    assert.equal(JSON.parse(kept.options?.body as string).store, true);
+
+    // No body / non-JSON body pass through unchanged.
+    assert.equal(codexFormatRequest('x', { method: 'GET' }).options?.body, undefined);
+    assert.equal(codexFormatRequest('x', { body: 'not-json' }).options?.body, 'not-json');
 });
 
 test('createProviderInstance: internal Anthropic Bedrock targets /invoke-with-response-stream on streaming requests', async () => {
