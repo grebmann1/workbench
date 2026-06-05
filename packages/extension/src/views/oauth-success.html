@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Workbench — Signed in</title>
+        <style>
+            :root {
+                color-scheme: light dark;
+            }
+            body {
+                margin: 0;
+                min-height: 100vh;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-family:
+                    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial,
+                    sans-serif;
+                background: #f3f3f3;
+                color: #181818;
+            }
+            @media (prefers-color-scheme: dark) {
+                body {
+                    background: #1b1b1b;
+                    color: #f3f3f3;
+                }
+                .card {
+                    background: #2a2a2a;
+                }
+            }
+            .card {
+                background: #fff;
+                border-radius: 12px;
+                padding: 40px 48px;
+                box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12);
+                text-align: center;
+                max-width: 380px;
+            }
+            .check {
+                width: 56px;
+                height: 56px;
+                border-radius: 50%;
+                background: #2e844a;
+                color: #fff;
+                font-size: 32px;
+                line-height: 56px;
+                margin: 0 auto 20px;
+            }
+            h1 {
+                font-size: 18px;
+                margin: 0 0 8px;
+            }
+            p {
+                font-size: 14px;
+                margin: 0;
+                opacity: 0.75;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="card">
+            <div class="check">✓</div>
+            <h1>Signed in to Workbench</h1>
+            <p>You can close this tab and return to Workbench.</p>
+        </div>
+    </body>
+</html>
