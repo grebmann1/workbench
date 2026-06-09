@@ -1,7 +1,7 @@
 [
     {
         "version": "2.0.5",
-        "date": "June 8th, 2026",
+        "date": "June 9th, 2026",
         "sections": [
             {
                 "title": "Bug Fixes",
@@ -10,6 +10,12 @@
                         "category": "SOQL Explorer",
                         "items": [
                             "Fixed the Recent Queries / Saved Queries panel rendering as a tiny box in the bottom-right of the SOQL Explorer; the docked drawer now spans the full height of the editor again. Thanks to @Rishwanthraoneelagiri0944 for reporting (#26)."
+                        ]
+                    },
+                    {
+                        "category": "App Shell",
+                        "items": [
+                            "Fixed the loading screen lingering after a connection completed; the app now clears the loading state and message as soon as the connector is ready (#21). Thanks to @swapnilprj for the contribution (#22)."
                         ]
                     }
                 ]
