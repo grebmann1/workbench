@@ -4,7 +4,10 @@ export * from './generateTitle';
 export * from './models';
 export * from './message';
 export * from './providerRuntime';
-export * from './oauthPersist';
+// NOTE: oauthPersist is intentionally NOT re-exported here. It imports core/store, which pulls
+// the agent slice -> agent/Agent -> googleAuth (LWC @api decorators) into the graph, breaking
+// any --experimental-strip-types unit test that imports this barrel (e.g. readFileContent.test).
+// Import it from its named entry instead: `agent/utils/oauthPersist`.
 export * from './skills';
 export * from './runnerHelpers';
 
