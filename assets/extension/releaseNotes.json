@@ -1,5 +1,39 @@
 [
     {
+        "version": "2.0.5",
+        "date": "June 9th, 2026",
+        "sections": [
+            {
+                "title": "Bug Fixes",
+                "categories": [
+                    {
+                        "category": "SOQL Explorer",
+                        "items": [
+                            "Fixed the Recent Queries / Saved Queries panel rendering as a tiny box in the bottom-right of the SOQL Explorer; the docked drawer now spans the full height of the editor again. Thanks to @Rishwanthraoneelagiri0944 for reporting (#26)."
+                        ]
+                    },
+                    {
+                        "category": "App Shell",
+                        "items": [
+                            "Fixed the loading screen lingering after a connection completed; the app now clears the loading state and message as soon as the connector is ready (#21). Thanks to @swapnilprj for the contribution (#22)."
+                        ]
+                    }
+                ]
+            },
+            {
+                "title": "Release Notes",
+                "categories": [
+                    {
+                        "category": "About 2.0.4",
+                        "items": [
+                            "Workbench 2.0.4 was rolled back shortly after release because of a regression in the SOQL Explorer that caused the Recent / Saved Queries drawer to render incorrectly. 2.0.5 is rebuilt from master and ships the fix on top of the 2.0.3 baseline."
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    {
         "version": "2.0.3",
         "date": "May 30th, 2026",
         "sections": [
