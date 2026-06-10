@@ -95,41 +95,52 @@
                                 class="slds-full-width"></lightning-input>
                         </div>
                     </div>
-                    <div class="slds-p-horizontal_small slds-p-bottom_small">
-                        <p
-                            class="slds-text-body_small slds-text-color_weak slds-m-bottom_x-small">
-                            Or sign in with your ChatGPT subscription (Codex) instead of an API
-                            key.
-                        </p>
-                        <div class="slds-grid slds-grid_vertical-align-center">
-                            <template lwc:if={codexConnected}>
-                                <lightning-badge
-                                    label="Connected"
-                                    class="slds-m-right_small"></lightning-badge>
-                                <lightning-button
-                                    label="Sign out"
-                                    variant="destructive-text"
-                                    data-provider="codex"
-                                    onclick={handleProviderDisconnect}
-                                    class="slds-m-right_small"></lightning-button>
-                                <lightning-button
-                                    label="Refresh models"
-                                    icon-name="utility:refresh"
-                                    variant="neutral"
-                                    disabled={isRefreshingModels}
-                                    onclick={handleRefreshModels}></lightning-button>
-                            </template>
-                            <template lwc:else>
-                                <lightning-button
-                                    label="Sign in with ChatGPT (Codex)"
-                                    variant="brand"
-                                    data-provider="codex"
-                                    disabled={isSigningIn}
-                                    onclick={handleProviderSignIn}></lightning-button>
-                            </template>
+                    <div class="oauth-connect slds-p-horizontal_small slds-p-bottom_small">
+                        <div class="oauth-connect__divider">or</div>
+                        <div class={codexPanelClass}>
+                            <div class="oauth-connect__info">
+                                <span class="oauth-connect__title">
+                                    ChatGPT subscription (Codex)
+                                </span>
+                                <span class="oauth-connect__desc">
+                                    <template lwc:if={codexConnected}>
+                                        Signed in — models served from your ChatGPT plan.
+                                    </template>
+                                    <template lwc:else>
+                                        Sign in with your ChatGPT plan instead of an API key.
+                                    </template>
+                                </span>
+                            </div>
+                            <div class="oauth-connect__actions">
+                                <template lwc:if={codexConnected}>
+                                    <span class="oauth-status">
+                                        <span class="oauth-status__dot"></span>
+                                        Connected
+                                    </span>
+                                    <lightning-button
+                                        label="Refresh models"
+                                        icon-name="utility:refresh"
+                                        variant="neutral"
+                                        disabled={isRefreshingModels}
+                                        onclick={handleRefreshModels}></lightning-button>
+                                    <lightning-button
+                                        label="Sign out"
+                                        variant="destructive-text"
+                                        data-provider="codex"
+                                        onclick={handleProviderDisconnect}></lightning-button>
+                                </template>
+                                <template lwc:else>
+                                    <lightning-button
+                                        label="Sign in with ChatGPT"
+                                        variant="brand"
+                                        data-provider="codex"
+                                        disabled={isSigningIn}
+                                        onclick={handleProviderSignIn}></lightning-button>
+                                </template>
+                            </div>
                         </div>
                         <template lwc:if={showCodexCodeInput}>
-                            <div class="slds-m-top_x-small">
+                            <div class="oauth-connect__extra">
                                 <lightning-input
                                     label="Authorization code"
                                     placeholder="Paste the code if the page shows one"
@@ -147,19 +158,21 @@
                             </div>
                         </template>
                         <template lwc:if={codexNeedsManualModel}>
-                            <lightning-input
-                                data-provider="codex"
-                                label="Model"
-                                placeholder="e.g. gpt-5.1-codex-mini"
-                                value={codexCustomModel}
-                                onchange={handleCustomModelChange}
-                                variant="label-stacked"
-                                class="slds-full-width slds-m-top_x-small"></lightning-input>
-                            <p
-                                class="slds-text-body_small slds-text-color_weak slds-m-top_xx-small">
-                                No models returned from your ChatGPT subscription — type a model
-                                name to use.
-                            </p>
+                            <div class="oauth-connect__extra">
+                                <lightning-input
+                                    data-provider="codex"
+                                    label="Model"
+                                    placeholder="e.g. gpt-5.1-codex-mini"
+                                    value={codexCustomModel}
+                                    onchange={handleCustomModelChange}
+                                    variant="label-stacked"
+                                    class="slds-full-width"></lightning-input>
+                                <p
+                                    class="slds-text-body_small slds-text-color_weak slds-m-top_xx-small">
+                                    No models returned from your ChatGPT subscription — type a model
+                                    name to use.
+                                </p>
+                            </div>
                         </template>
                     </div>
                 </slds-tab>
@@ -302,40 +315,50 @@
                                 class="slds-full-width"></lightning-input>
                         </div>
                     </div>
-                    <div class="slds-p-horizontal_small slds-p-bottom_small">
-                        <p
-                            class="slds-text-body_small slds-text-color_weak slds-m-bottom_x-small">
-                            Or sign in with your SuperGrok subscription instead of an API key.
-                        </p>
-                        <div class="slds-grid slds-grid_vertical-align-center">
-                            <template lwc:if={xaiConnected}>
-                                <lightning-badge
-                                    label="Connected"
-                                    class="slds-m-right_small"></lightning-badge>
-                                <lightning-button
-                                    label="Sign out"
-                                    variant="destructive-text"
-                                    data-provider="xai"
-                                    onclick={handleProviderDisconnect}
-                                    class="slds-m-right_small"></lightning-button>
-                                <lightning-button
-                                    label="Refresh models"
-                                    icon-name="utility:refresh"
-                                    variant="neutral"
-                                    disabled={isRefreshingModels}
-                                    onclick={handleRefreshModels}></lightning-button>
-                            </template>
-                            <template lwc:else>
-                                <lightning-button
-                                    label="Sign in with xAI"
-                                    variant="brand"
-                                    data-provider="xai"
-                                    disabled={isSigningIn}
-                                    onclick={handleProviderSignIn}></lightning-button>
-                            </template>
+                    <div class="oauth-connect slds-p-horizontal_small slds-p-bottom_small">
+                        <div class="oauth-connect__divider">or</div>
+                        <div class={xaiPanelClass}>
+                            <div class="oauth-connect__info">
+                                <span class="oauth-connect__title">SuperGrok subscription</span>
+                                <span class="oauth-connect__desc">
+                                    <template lwc:if={xaiConnected}>
+                                        Signed in — models served from your SuperGrok plan.
+                                    </template>
+                                    <template lwc:else>
+                                        Sign in with your SuperGrok plan instead of an API key.
+                                    </template>
+                                </span>
+                            </div>
+                            <div class="oauth-connect__actions">
+                                <template lwc:if={xaiConnected}>
+                                    <span class="oauth-status">
+                                        <span class="oauth-status__dot"></span>
+                                        Connected
+                                    </span>
+                                    <lightning-button
+                                        label="Refresh models"
+                                        icon-name="utility:refresh"
+                                        variant="neutral"
+                                        disabled={isRefreshingModels}
+                                        onclick={handleRefreshModels}></lightning-button>
+                                    <lightning-button
+                                        label="Sign out"
+                                        variant="destructive-text"
+                                        data-provider="xai"
+                                        onclick={handleProviderDisconnect}></lightning-button>
+                                </template>
+                                <template lwc:else>
+                                    <lightning-button
+                                        label="Sign in with xAI"
+                                        variant="brand"
+                                        data-provider="xai"
+                                        disabled={isSigningIn}
+                                        onclick={handleProviderSignIn}></lightning-button>
+                                </template>
+                            </div>
                         </div>
                         <template lwc:if={showXaiCodeInput}>
-                            <div class="slds-m-top_x-small">
+                            <div class="oauth-connect__extra">
                                 <p
                                     class="slds-text-body_small slds-text-color_weak slds-m-bottom_xx-small">
                                     xAI shows a code instead of returning automatically — copy it
@@ -357,19 +380,21 @@
                             </div>
                         </template>
                         <template lwc:if={xaiNeedsManualModel}>
-                            <lightning-input
-                                data-provider="xai"
-                                label="Model"
-                                placeholder="e.g. grok-4.1-fast-reasoning"
-                                value={xaiCustomModel}
-                                onchange={handleCustomModelChange}
-                                variant="label-stacked"
-                                class="slds-full-width slds-m-top_x-small"></lightning-input>
-                            <p
-                                class="slds-text-body_small slds-text-color_weak slds-m-top_xx-small">
-                                No models returned from your SuperGrok subscription — type a model
-                                name to use.
-                            </p>
+                            <div class="oauth-connect__extra">
+                                <lightning-input
+                                    data-provider="xai"
+                                    label="Model"
+                                    placeholder="e.g. grok-4.1-fast-reasoning"
+                                    value={xaiCustomModel}
+                                    onchange={handleCustomModelChange}
+                                    variant="label-stacked"
+                                    class="slds-full-width"></lightning-input>
+                                <p
+                                    class="slds-text-body_small slds-text-color_weak slds-m-top_xx-small">
+                                    No models returned from your SuperGrok subscription — type a
+                                    model name to use.
+                                </p>
+                            </div>
                         </template>
                     </div>
                 </slds-tab>

@@ -265,6 +265,10 @@ export default class AiSettings extends LightningElement {
             // API-key catalog repopulates. The agent app's storeChange then auto-corrects the
             // selected model off the now-unavailable Codex/Grok model.
             await this.reloadProviderConfigs();
+            // Tell the host panel to re-read the cache, so its in-memory config snapshot drops the
+            // OAuth blob too. Without this, a subsequent Save rebuilds the provider map from the
+            // host's stale snapshot and resurrects the connection.
+            this.dispatchEvent(new CustomEvent('setupcomplete', { bubbles: true, composed: true }));
             Toast.show({ label: 'Signed out.', variant: 'success' });
         } catch (err) {
             LOGGER.error('Provider OAuth disconnect failed', err);
