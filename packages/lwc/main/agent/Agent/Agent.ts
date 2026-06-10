@@ -37,9 +37,9 @@ import {
     formatSkillsForPrompt,
     resolveProviderModelInstance,
     resolveProviderOptions,
+    persistRefreshedOAuthCredentials,
     type ProviderInstance,
 } from 'agent/utils';
-import { persistRefreshedOAuthCredentials } from 'agent/utils/oauthPersist';
 import { stepCountIs, streamText, tool as createAiSdkTool } from 'ai';
 import type { ModelMessage, ToolModelMessage, ToolResultPart, ToolSet } from 'ai';
 import { getIndexedDbFileSystem } from 'core/fs';

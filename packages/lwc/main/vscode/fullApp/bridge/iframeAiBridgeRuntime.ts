@@ -2,10 +2,10 @@
 import {
     createProviderInstance,
     getReasoningConfigFromSelection,
+    persistRefreshedOAuthCredentials,
     resolveProviderModelInstance,
     resolveProviderOptions,
 } from 'agent/utils';
-import { persistRefreshedOAuthCredentials } from 'agent/utils/oauthPersist';
 import { jsonSchema, streamText, tool as createAiSdkTool } from 'ai';
 import {
     getAiProviderFromConfig,
