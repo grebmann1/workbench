@@ -13,6 +13,7 @@ import {
 } from 'shared/cacheManager';
 import {
     fetchLlmModelsEndpoint,
+    fetchSubscriptionModels,
     isInternalProviderBaseUrl,
     normalizeProviderConfigMap,
     type LlmProviderConfigMap,
@@ -36,6 +37,7 @@ export default class AiSettings extends LightningElement {
     @track showOnboardAiProvider = false;
     @track providerConfigs: Partial<LlmProviderConfigMap> = {};
     @track availableModelsByProvider: Partial<Record<string, unknown[]>> = {};
+    @track subscriptionModelsByProvider: { openai?: unknown[]; grok?: unknown[] } = {};
     @track isSigningIn = false;
     @track isRefreshingModels = false;
     @track signingInProvider: string | null = null;
@@ -50,6 +52,7 @@ export default class AiSettings extends LightningElement {
             !!session?.token && !!settings[CACHE_CONFIG.GOOGLE_DRIVE_CONNECTED.key];
         this.providerConfigs = application?.providerConfigs || {};
         this.availableModelsByProvider = application?.availableModelsByProvider || {};
+        this.subscriptionModelsByProvider = application?.subscriptionModelsByProvider || {};
     }
 
     connectedCallback() {
@@ -125,12 +128,25 @@ export default class AiSettings extends LightningElement {
     async refreshModelCatalog() {
         const cached = await cacheManager.loadConfig(getLlmProviderConfigCacheKeys());
         const providerConfigs = resolveLlmProviderConfigMap(cached);
-        const response = await fetchLlmModelsEndpoint({
-            provider: getAiProviderFromConfig(cached),
-            providerConfigs,
-        });
+        // Server catalog and subscription (OAuth) catalog are independent: a server failure must
+        // not skip the subscription refresh (OAuth-only users have no server). Fetch the server
+        // catalog in its own try/catch, then always refresh the subscription models.
+        try {
+            const response = await fetchLlmModelsEndpoint({
+                provider: getAiProviderFromConfig(cached),
+                providerConfigs,
+            });
+            store.dispatch(
+                APPLICATION.reduxSlice.actions.updateProviderCatalogs({
+                    catalogs: response.catalogs,
+                })
+            );
+        } catch (err) {
+            LOGGER.warn('Failed to refresh server model catalog', err);
+        }
+        const subscriptionModels = await fetchSubscriptionModels(providerConfigs);
         store.dispatch(
-            APPLICATION.reduxSlice.actions.updateProviderCatalogs({ catalogs: response.catalogs })
+            APPLICATION.reduxSlice.actions.updateSubscriptionModels({ models: subscriptionModels })
         );
     }
 
@@ -231,14 +247,24 @@ export default class AiSettings extends LightningElement {
         try {
             const cached = await cacheManager.loadConfig(getLlmProviderConfigCacheKeys());
             const currentMap = resolveLlmProviderConfigMap(cached);
+            // Drop the OAuth credentials AND the Codex/Grok-specific customModel — otherwise a
+            // subscription-only model name would linger in the picker once we're back in API-key
+            // mode and could keep the user pinned to an unavailable model.
             const nextMap = normalizeProviderConfigMap({
                 ...currentMap,
-                [llmProvider]: { ...currentMap[llmProvider], authMode: 'apiKey', oauth: null },
+                [llmProvider]: {
+                    ...currentMap[llmProvider],
+                    authMode: 'apiKey',
+                    oauth: null,
+                    customModel: '',
+                },
             });
             await cacheManager.saveConfig(buildProviderConfigCacheRecord(nextMap));
-            store.dispatch(
-                APPLICATION.reduxSlice.actions.updateProviderConfigs({ providerConfigs: nextMap })
-            );
+            // Mirror sign-in: refresh both catalogs so the now-stale subscription slot is cleared
+            // (the subscription refetch returns [] for the disconnected provider) and the server /
+            // API-key catalog repopulates. The agent app's storeChange then auto-corrects the
+            // selected model off the now-unavailable Codex/Grok model.
+            await this.reloadProviderConfigs();
             Toast.show({ label: 'Signed out.', variant: 'success' });
         } catch (err) {
             LOGGER.error('Provider OAuth disconnect failed', err);
@@ -256,14 +282,15 @@ export default class AiSettings extends LightningElement {
         return config?.authMode === 'oauth' && !!config?.oauth?.access;
     }
 
-    // The live `/models` fetch populated the catalog → the normal model selector covers it, so the
-    // manual Model input is only shown when the fetch returned nothing (the customModel fallback).
+    // The live `/models` fetch populated the subscription catalog → the normal model selector
+    // covers it, so the manual Model input is only shown when the fetch returned nothing (the
+    // customModel fallback). Reads the dedicated subscription slot, not the server catalog.
     get codexHasModels() {
-        return (this.availableModelsByProvider?.openai?.length ?? 0) > 0;
+        return (this.subscriptionModelsByProvider?.openai?.length ?? 0) > 0;
     }
 
     get xaiHasModels() {
-        return (this.availableModelsByProvider?.grok?.length ?? 0) > 0;
+        return (this.subscriptionModelsByProvider?.grok?.length ?? 0) > 0;
     }
 
     get codexNeedsManualModel() {
@@ -272,6 +299,14 @@ export default class AiSettings extends LightningElement {
 
     get xaiNeedsManualModel() {
         return this.xaiConnected && !this.xaiHasModels;
+    }
+
+    get codexPanelClass() {
+        return this.codexConnected ? 'oauth-connect__panel is-connected' : 'oauth-connect__panel';
+    }
+
+    get xaiPanelClass() {
+        return this.xaiConnected ? 'oauth-connect__panel is-connected' : 'oauth-connect__panel';
     }
 
     emitInputChange(key, value) {

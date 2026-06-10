@@ -19,6 +19,7 @@ import {
     buildAvailableAgentModelOptions,
     fetchCodexModels,
     fetchXaiModels,
+    fetchSubscriptionModels,
     resolveCodexClientVersion,
     CODEX_MODELS_CLIENT_VERSION,
     hasUsableProviderCredentials,
@@ -455,17 +456,96 @@ test('buildAvailableAgentModelOptions: Codex OAuth uses the live WHAM catalog wh
         authMode: 'oauth',
         oauth: { access: 'tok', refresh: 'r', expires: 1 },
     };
-    // For OAuth, fetchLlmModelsEndpoint overrides the openai catalog with the live WHAM list,
-    // so the picker should surface exactly that (not the static seed) once it's available.
+    // For OAuth, the live WHAM list lands in the dedicated subscriptionModelsByProvider slot
+    // (NOT availableModelsByProvider), so the picker should surface exactly that.
     const options = buildAvailableAgentModelOptions({
         providerConfigs: configs,
-        availableModelsByProvider: {
+        subscriptionModelsByProvider: {
             openai: [{ label: 'gpt-5.9-codex', value: 'gpt-5.9-codex', provider: 'openai' }],
         },
     });
     assert.deepEqual(
         options.map(o => o.value),
         ['gpt-5.9-codex']
+    );
+});
+
+test('buildAvailableAgentModelOptions: OAuth ignores the server catalog slot, reads only subscription', () => {
+    const configs = createDefaultProviderConfigMap();
+    configs.openai = {
+        apiKey: null,
+        baseUrl: DEFAULT_PROVIDER_BASE_URLS.openai,
+        authMode: 'oauth',
+        oauth: { access: 'tok', refresh: 'r', expires: 1 },
+    };
+    // A stale value in availableModelsByProvider.openai must NOT leak into an OAuth picker —
+    // the two slots are isolated.
+    const options = buildAvailableAgentModelOptions({
+        providerConfigs: configs,
+        availableModelsByProvider: {
+            openai: [{ label: 'stale', value: 'stale', provider: 'openai' }],
+        },
+        subscriptionModelsByProvider: {
+            openai: [{ label: 'gpt-live', value: 'gpt-live', provider: 'openai' }],
+        },
+    });
+    assert.deepEqual(
+        options.map(o => o.value),
+        ['gpt-live']
+    );
+});
+
+test('buildAvailableAgentModelOptions: union of server (api-key) and subscription (oauth) providers', () => {
+    const configs = createDefaultProviderConfigMap();
+    configs.anthropic = { apiKey: 'sk-a', baseUrl: DEFAULT_PROVIDER_BASE_URLS.anthropic };
+    configs.openai = {
+        apiKey: null,
+        baseUrl: DEFAULT_PROVIDER_BASE_URLS.openai,
+        authMode: 'oauth',
+        oauth: { access: 'tok', refresh: 'r', expires: 1 },
+    };
+    const options = buildAvailableAgentModelOptions({
+        providerConfigs: configs,
+        availableModelsByProvider: {
+            anthropic: [{ label: 'claude-x', value: 'claude-x', provider: 'anthropic' }],
+        },
+        subscriptionModelsByProvider: {
+            openai: [{ label: 'gpt-live', value: 'gpt-live', provider: 'openai' }],
+        },
+    });
+    const values = options.map(o => o.value);
+    assert.ok(values.includes('claude-x'));
+    assert.ok(values.includes('gpt-live'));
+});
+
+test('buildAvailableAgentModelOptions: after disconnect (apiKey mode) a stale subscription slot is ignored', () => {
+    // Post-disconnect openai is back in API-key mode. Even if the subscription slot still holds
+    // the old Codex models (before the refetch clears it), the gate is off so they must NOT leak;
+    // openai resolves to its API-key/server/static catalog instead — the user is never stuck on a
+    // Codex model.
+    const configs = createDefaultProviderConfigMap();
+    configs.openai = {
+        apiKey: 'sk-openai',
+        baseUrl: DEFAULT_PROVIDER_BASE_URLS.openai,
+        authMode: 'apiKey',
+    };
+    // Use a sentinel that exists ONLY in the subscription slot (not in the static OpenAI catalog)
+    // so we can prove the slot is ignored rather than coincidentally matching a static entry.
+    const options = buildAvailableAgentModelOptions({
+        providerConfigs: configs,
+        subscriptionModelsByProvider: {
+            openai: [{ label: 'codex-private-x', value: 'codex-private-x', provider: 'openai' }],
+        },
+    });
+    const values = options.map(o => o.value);
+    assert.ok(
+        !values.includes('codex-private-x'),
+        'stale subscription-only model must not leak after disconnect'
+    );
+    // Falls back to the static OpenAI catalog (no server models passed).
+    assert.deepEqual(
+        values,
+        OPENAI_MODEL_OPTIONS.map(m => m.value)
     );
 });
 
@@ -588,10 +668,10 @@ test('buildAvailableAgentModelOptions: xAI OAuth uses the live catalog, no hardc
         ['grok-custom']
     );
 
-    // With a live catalog, the picker surfaces exactly that list.
+    // With a live catalog (in the dedicated subscription slot), the picker surfaces that list.
     const withCatalog = buildAvailableAgentModelOptions({
         providerConfigs: configs,
-        availableModelsByProvider: {
+        subscriptionModelsByProvider: {
             grok: [{ label: 'grok-4.3-latest', value: 'grok-4.3-latest', provider: 'grok' }],
         },
     });
@@ -599,6 +679,97 @@ test('buildAvailableAgentModelOptions: xAI OAuth uses the live catalog, no hardc
         withCatalog.map(o => o.value),
         ['grok-4.3-latest', 'grok-custom']
     );
+});
+
+test('fetchSubscriptionModels: fetches Codex + xAI for connected OAuth providers', async () => {
+    const configs = createDefaultProviderConfigMap();
+    configs.openai = {
+        apiKey: null,
+        baseUrl: DEFAULT_PROVIDER_BASE_URLS.openai,
+        authMode: 'oauth',
+        oauth: { access: 'tok', refresh: 'r', expires: 1 },
+    };
+    configs.grok = {
+        apiKey: null,
+        baseUrl: DEFAULT_PROVIDER_BASE_URLS.grok,
+        authMode: 'oauth',
+        oauth: { access: 'xtok', refresh: 'r', expires: 1 },
+    };
+    const mockFetch = (async (url: string | URL) => {
+        const u = String(url);
+        if (/registry\.npmjs\.org/.test(u)) {
+            return { ok: true, json: async () => ({ version: '0.140.0' }) } as Response;
+        }
+        if (/wham\/models/.test(u)) {
+            return {
+                ok: true,
+                json: async () => ({ models: [{ slug: 'gpt-codex' }] }),
+            } as Response;
+        }
+        if (/language-models/.test(u)) {
+            return { ok: true, json: async () => ({ models: [{ id: 'grok-live' }] }) } as Response;
+        }
+        throw new Error(`unexpected url ${u}`);
+    }) as unknown as typeof fetch;
+
+    const result = await fetchSubscriptionModels(configs, mockFetch);
+    assert.deepEqual(
+        result.openai.map(m => m.value),
+        ['gpt-codex']
+    );
+    assert.deepEqual(
+        result.grok.map(m => m.value),
+        ['grok-live']
+    );
+});
+
+test('fetchSubscriptionModels: degrades to [] when a provider fetch fails, never throws', async () => {
+    const configs = createDefaultProviderConfigMap();
+    configs.openai = {
+        apiKey: null,
+        baseUrl: DEFAULT_PROVIDER_BASE_URLS.openai,
+        authMode: 'oauth',
+        oauth: { access: 'tok', refresh: 'r', expires: 1 },
+    };
+    configs.grok = {
+        apiKey: null,
+        baseUrl: DEFAULT_PROVIDER_BASE_URLS.grok,
+        authMode: 'oauth',
+        oauth: { access: 'xtok', refresh: 'r', expires: 1 },
+    };
+    const mockFetch = (async (url: string | URL) => {
+        const u = String(url);
+        if (/registry\.npmjs\.org/.test(u)) {
+            return { ok: true, json: async () => ({ version: '0.140.0' }) } as Response;
+        }
+        if (/wham\/models/.test(u)) {
+            return { ok: false, status: 500, json: async () => ({}) } as Response;
+        }
+        if (/language-models/.test(u)) {
+            return { ok: true, json: async () => ({ models: [{ id: 'grok-live' }] }) } as Response;
+        }
+        throw new Error(`unexpected url ${u}`);
+    }) as unknown as typeof fetch;
+
+    const result = await fetchSubscriptionModels(configs, mockFetch);
+    assert.deepEqual(result.openai, []); // WHAM 500 → empty, no throw
+    assert.deepEqual(
+        result.grok.map(m => m.value),
+        ['grok-live']
+    );
+});
+
+test('fetchSubscriptionModels: no OAuth providers → empty, makes no fetch calls', async () => {
+    const configs = createDefaultProviderConfigMap();
+    configs.openai = { apiKey: 'sk-a', baseUrl: DEFAULT_PROVIDER_BASE_URLS.openai };
+    let calls = 0;
+    const mockFetch = (async () => {
+        calls += 1;
+        return { ok: true, json: async () => ({}) } as Response;
+    }) as unknown as typeof fetch;
+    const result = await fetchSubscriptionModels(configs, mockFetch);
+    assert.deepEqual(result, { openai: [], grok: [] });
+    assert.equal(calls, 0);
 });
 
 test('resolveCodexClientVersion: uses latest npm version, falls back to the pinned default', async () => {

@@ -13,7 +13,6 @@ import {
     type LlmModelOption,
     type LlmProvider,
     type LlmModelsEndpointResponse,
-    type LlmProviderCatalog,
     type LlmProviderConfig,
     type LlmProviderConfigMap,
     type OAuthCredentials,
@@ -264,11 +263,13 @@ export function getProviderForModel(
 
 export function buildAvailableAgentModelOptions({
     availableModelsByProvider,
+    subscriptionModelsByProvider,
     providerConfigs,
 }: {
     availableModelsByProvider?:
         | Partial<Record<LlmProvider, LlmModelOption[] | { models?: LlmModelOption[] }>>
         | undefined;
+    subscriptionModelsByProvider?: { openai?: LlmModelOption[]; grok?: LlmModelOption[] };
     providerConfigs: LlmProviderConfigMap;
 }): LlmModelOption[] {
     const normalizedConfigs = normalizeProviderConfigMap(providerConfigs);
@@ -282,13 +283,20 @@ export function buildAvailableAgentModelOptions({
         const serverModels = extractModels(availableModelsByProvider, provider);
         const isProviderInternal = isInternalProviderBaseUrl(config.baseUrl);
         // Subscription OAuth (openai→Codex/WHAM, grok→SuperGrok): the live `/models` catalog is
-        // fetched client-side by fetchLlmModelsEndpoint and overrides the provider catalog — there
-        // is no hardcoded list, so an empty fetch falls through to the user-typed customModel
-        // rather than a stale static seed. Other providers keep server/internal/static resolution.
+        // fetched client-side (fetchSubscriptionModels) into a SEPARATE slot so it can never
+        // overwrite the server catalog. There is no hardcoded list, so an empty fetch falls through
+        // to the user-typed customModel rather than a stale static seed. Other providers keep
+        // server/internal/static resolution.
         const isSubscriptionOAuth =
             config.authMode === 'oauth' && (provider === 'openai' || provider === 'grok');
+        const subscriptionModels =
+            provider === 'openai'
+                ? (subscriptionModelsByProvider?.openai ?? [])
+                : provider === 'grok'
+                  ? (subscriptionModelsByProvider?.grok ?? [])
+                  : [];
         let models = isSubscriptionOAuth
-            ? serverModels
+            ? subscriptionModels
             : serverModels.length > 0
               ? serverModels
               : isProviderInternal
@@ -471,33 +479,52 @@ export async function fetchXaiModels(
     });
 }
 
-function emptyProviderCatalog(provider: LlmProvider): LlmProviderCatalog {
-    return { provider, status: 'missing_key', models: [], defaultModel: null, error: null };
+/** Fetch the live subscription (OAuth) model catalogs for the connected providers. Codex
+ *  (openai→WHAM) and xAI/SuperGrok (grok→`/language-models`) are fetched client-side because the
+ *  Workbench server never receives the OAuth token. Kept SEPARATE from `fetchLlmModelsEndpoint`
+ *  and the shared `availableModelsByProvider` catalog: a subscription fetch must never be able to
+ *  overwrite the server-driven catalog. Each provider degrades to `[]` on failure (the picker then
+ *  falls back to the user-typed customModel). Never throws and never dispatches — the caller owns
+ *  persistence/dispatch, keeping this module pure. */
+export async function fetchSubscriptionModels(
+    providerConfigs: LlmProviderConfigMap,
+    fetchImpl: typeof fetch = fetch
+): Promise<{ openai: LlmModelOption[]; grok: LlmModelOption[] }> {
+    const configs = normalizeProviderConfigMap(providerConfigs);
+    const openaiConfig = configs.openai;
+    const grokConfig = configs.grok;
+    const isCodexOAuth = openaiConfig?.authMode === 'oauth' && !!openaiConfig.oauth?.access;
+    const isXaiOAuth = grokConfig?.authMode === 'oauth' && !!grokConfig.oauth?.access;
+
+    const [openai, grok] = await Promise.all([
+        (async () => {
+            if (!isCodexOAuth || !openaiConfig.oauth) return [];
+            try {
+                const clientVersion = await resolveCodexClientVersion(fetchImpl);
+                return await fetchCodexModels(openaiConfig.oauth, clientVersion, fetchImpl);
+            } catch {
+                // Degrade to the user-typed customModel.
+                return [];
+            }
+        })(),
+        (async () => {
+            if (!isXaiOAuth || !grokConfig.oauth) return [];
+            try {
+                return await fetchXaiModels(grokConfig.oauth, grokConfig.baseUrl, fetchImpl);
+            } catch {
+                // Degrade to the user-typed customModel.
+                return [];
+            }
+        })(),
+    ]);
+
+    return { openai, grok };
 }
 
-/** Build a provider catalog from a client-side OAuth model fetch. `ok` when the fetch returned
- *  models; `missing_key` (an empty catalog) when it didn't, so the picker falls back to the
- *  user-typed customModel. */
-function oauthModelCatalog(provider: LlmProvider, models: LlmModelOption[]): LlmProviderCatalog {
-    return {
-        provider,
-        status: models.length > 0 ? 'ok' : 'missing_key',
-        models,
-        defaultModel: models[0]?.value ?? null,
-        error: null,
-    };
-}
-
-function emptyProviderCatalogs(): Record<LlmProvider, LlmProviderCatalog> {
-    return LLM_PROVIDERS.reduce(
-        (catalogs, provider) => {
-            catalogs[provider] = emptyProviderCatalog(provider);
-            return catalogs;
-        },
-        {} as Record<LlmProvider, LlmProviderCatalog>
-    );
-}
-
+/** Fetch the server-driven model catalog (all providers). OAuth tokens are stripped from the body
+ *  because the server can't use them. Subscription (OAuth) models are NOT fetched here — see
+ *  `fetchSubscriptionModels`. Throws on an unreachable server / non-OK response so callers leave
+ *  the existing catalog untouched rather than wiping it. */
 export async function fetchLlmModelsEndpoint({
     provider,
     providerConfigs,
@@ -506,69 +533,21 @@ export async function fetchLlmModelsEndpoint({
     providerConfigs: LlmProviderConfigMap;
 }): Promise<LlmModelsEndpointResponse> {
     const normalizedConfigs = normalizeProviderConfigMap(providerConfigs);
-    const openaiConfig = normalizedConfigs.openai;
-    const isCodexOAuth = openaiConfig?.authMode === 'oauth' && !!openaiConfig.oauth?.access;
-    const grokConfig = normalizedConfigs.grok;
-    const isXaiOAuth = grokConfig?.authMode === 'oauth' && !!grokConfig.oauth?.access;
-
-    let result: LlmModelsEndpointResponse;
-    try {
-        const response = await fetch(resolveWorkbenchEndpoint('/api/llm/models'), {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                provider,
-                // Never send OAuth tokens to the server; it can't use them.
-                providerConfigs: stripOAuthFromProviderConfigs(normalizedConfigs),
-            }),
-        });
-        if (!response.ok) {
-            throw new Error(`Model catalog request failed with status ${response.status}.`);
-        }
-        result = (await response.json()) as LlmModelsEndpointResponse;
-    } catch (serverError) {
-        // The Workbench server may be unreachable (e.g. an extension user signed in with their
-        // own subscription and has no server). Still serve the subscription catalog client-side;
-        // otherwise propagate so API-key providers report the failure.
-        if (!isCodexOAuth && !isXaiOAuth) throw serverError;
-        result = {
+    const response = await fetch(resolveWorkbenchEndpoint('/api/llm/models'), {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
             provider,
-            catalog: emptyProviderCatalog(provider),
-            catalogs: emptyProviderCatalogs(),
-        };
+            // Never send OAuth tokens to the server; it can't use them.
+            providerConfigs: stripOAuthFromProviderConfigs(normalizedConfigs),
+        }),
+    });
+
+    if (!response.ok) {
+        throw new Error(`Model catalog request failed with status ${response.status}.`);
     }
 
-    // openai in OAuth (Codex) mode: the server can't reach WHAM, so fetch the live model list
-    // client-side and override the openai catalog. Degrade gracefully on any failure (the
-    // picker then relies on the user-typed customModel).
-    if (isCodexOAuth && openaiConfig?.oauth) {
-        try {
-            const clientVersion = await resolveCodexClientVersion();
-            const codexModels = await fetchCodexModels(openaiConfig.oauth, clientVersion);
-            result.catalogs = {
-                ...result.catalogs,
-                openai: oauthModelCatalog('openai', codexModels),
-            };
-        } catch {
-            // Leave the openai catalog empty; the user can type a model manually.
-        }
-    }
-
-    // grok in OAuth (SuperGrok) mode: same story — the server has no token, so fetch xAI's live
-    // chat-model list client-side and override the grok catalog. Degrade gracefully on failure.
-    if (isXaiOAuth && grokConfig?.oauth) {
-        try {
-            const xaiModels = await fetchXaiModels(grokConfig.oauth, grokConfig.baseUrl);
-            result.catalogs = {
-                ...result.catalogs,
-                grok: oauthModelCatalog('grok', xaiModels),
-            };
-        } catch {
-            // Leave the grok catalog empty; the user can type a model manually.
-        }
-    }
-
-    return result;
+    return response.json();
 }

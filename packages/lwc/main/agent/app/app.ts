@@ -140,6 +140,7 @@ export default class App extends ToolkitElement {
         );
         const nextAvailableModels = buildAvailableAgentModelOptions({
             availableModelsByProvider: application?.availableModelsByProvider,
+            subscriptionModelsByProvider: application?.subscriptionModelsByProvider,
             providerConfigs: application?.providerConfigs,
         }).map(model => ({
             label: model.label,

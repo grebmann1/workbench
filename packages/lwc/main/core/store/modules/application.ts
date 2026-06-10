@@ -39,6 +39,10 @@ type ApplicationState = {
             error?: string | null;
         }
     >;
+    /** Live subscription (OAuth) models — Codex (openai) and xAI/SuperGrok (grok) — fetched
+     *  client-side and kept SEPARATE from availableModelsByProvider so a subscription fetch can
+     *  never overwrite the server-driven catalog. Memory-only (not persisted). */
+    subscriptionModelsByProvider: { openai: LlmModelOption[]; grok: LlmModelOption[] };
     openaiKey: string | null;
     openaiUrl: string;
     mistralKey: string | null;
@@ -78,6 +82,7 @@ const initialState: ApplicationState = {
         grok: { status: 'missing_key', error: null },
         workbench: { status: 'missing_key', error: null },
     },
+    subscriptionModelsByProvider: { openai: [], grok: [] },
     openaiKey: null,
     openaiUrl: createDefaultProviderConfigMap().openai.baseUrl,
     mistralKey: null,
@@ -167,6 +172,18 @@ const applicationSlice = createSlice({
                     status: catalog.status,
                     error: catalog.error ?? null,
                 };
+            }
+        },
+        /** Writes ONLY the subscription (OAuth) model slots (openai/grok). Deliberately never
+         *  touches availableModelsByProvider / modelCatalogStatusByProvider — the isolation that
+         *  prevents a subscription fetch from wiping the server-driven catalog. */
+        updateSubscriptionModels: (state, action) => {
+            const models = action.payload?.models || {};
+            if (Array.isArray(models.openai)) {
+                state.subscriptionModelsByProvider.openai = models.openai;
+            }
+            if (Array.isArray(models.grok)) {
+                state.subscriptionModelsByProvider.grok = models.grok;
             }
         },
         /** Merges a partial settings patch into `state.settings`.
