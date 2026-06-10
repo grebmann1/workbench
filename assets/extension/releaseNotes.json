@@ -1,5 +1,22 @@
 [
     {
+        "version": "2.0.6",
+        "date": "TBD — release candidate",
+        "sections": [
+            {
+                "title": "Highlights",
+                "categories": [
+                    {
+                        "category": "Pending",
+                        "items": [
+                            "Release candidate scaffold. Populate this entry as 2.0.6 work merges in (e.g. subscription OAuth sign-in for ChatGPT / xAI)."
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    {
         "version": "2.0.5",
         "date": "June 9th, 2026",
         "sections": [

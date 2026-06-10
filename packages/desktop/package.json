@@ -1,6 +1,6 @@
 {
     "name": "@workbench/desktop",
-    "version": "2.0.5",
+    "version": "2.0.6",
     "private": true,
     "description": "Electron desktop shell for Workbench",
     "productName": "Workbench Desktop",
