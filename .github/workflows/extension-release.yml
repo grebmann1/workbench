@@ -70,6 +70,28 @@ jobs:
                   if-no-files-found: error
                   retention-days: 30
 
+            # Pushes to a release-candidate branch refresh a rolling GitHub pre-release
+            # (tag v<version>-rc) with the freshly built zip attached, so testers always have a
+            # stable download link without digging into workflow artifacts. The tag is reused per
+            # version, so each push updates the same pre-release in place. No Chrome Web Store.
+            - name: Publish RC pre-release
+              if: startsWith(github.ref, 'refs/heads/release-candidate/')
+              uses: softprops/action-gh-release@v2
+              with:
+                  tag_name: v${{ steps.version.outputs.value }}-rc
+                  name: v${{ steps.version.outputs.value }} (release candidate)
+                  prerelease: true
+                  files: workbench-extension-${{ steps.version.outputs.value }}.zip
+                  target_commitish: ${{ github.sha }}
+                  body: |
+                      Automated release-candidate build of the Workbench Chrome extension.
+
+                      - Version: `${{ steps.version.outputs.value }}`
+                      - Source branch: `${{ github.ref_name }}`
+                      - Commit: ${{ github.sha }}
+
+                      Unpacked/zipped extension for testing only — not published to the Chrome Web Store.
+
             - name: Upload to Chrome Web Store (draft, no publish)
               if: startsWith(github.ref, 'refs/tags/extension-v')
               uses: mnao305/chrome-extension-upload@v5.0.0
