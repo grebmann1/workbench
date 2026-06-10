@@ -10,7 +10,10 @@ test('PROVIDER_BINDINGS: codex maps to openai, xai maps to grok', () => {
 
 test('isLoopbackRedirect: matches origin + path, ignores the query', () => {
     const redirect = 'http://localhost:1455/auth/callback';
-    assert.equal(isLoopbackRedirect('http://localhost:1455/auth/callback?code=a&state=b', redirect), true);
+    assert.equal(
+        isLoopbackRedirect('http://localhost:1455/auth/callback?code=a&state=b', redirect),
+        true
+    );
     assert.equal(isLoopbackRedirect('http://localhost:1455/auth/callback', redirect), true);
     assert.equal(isLoopbackRedirect('http://localhost:1456/auth/callback', redirect), false);
     assert.equal(isLoopbackRedirect('http://localhost:1455/other', redirect), false);

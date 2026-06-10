@@ -51,7 +51,10 @@ function extractInstructionsFromInput(input: unknown): { instructions: string; r
  *  `instructions` (system prompt) — but the AI SDK puts the system message inside `input` as a
  *  system/developer item. Inject `store:false` and lift the system message into `instructions`.
  *  Non-JSON bodies (e.g. the GET /models request) pass through untouched. Exported for tests. */
-export function codexFormatRequest(url: RequestInfo | URL, options?: RequestInit): FormattedRequest {
+export function codexFormatRequest(
+    url: RequestInfo | URL,
+    options?: RequestInit
+): FormattedRequest {
     const body = options?.body;
     if (typeof body !== 'string') return { url, options };
     let payload: Record<string, unknown>;
@@ -78,7 +81,9 @@ export function codexFormatRequest(url: RequestInfo | URL, options?: RequestInit
         delete payload.max_output_tokens;
         changed = true;
     }
-    return changed ? { url, options: { ...options, body: JSON.stringify(payload) } } : { url, options };
+    return changed
+        ? { url, options: { ...options, body: JSON.stringify(payload) } }
+        : { url, options };
 }
 
 export const codexRuntime: ProviderRuntime = {

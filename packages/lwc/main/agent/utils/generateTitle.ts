@@ -24,8 +24,15 @@ export async function generateConversationTitle(
     },
     firstMessage: string
 ): Promise<string> {
-    const { provider, apiKey, baseUrl, isInternal = false, selectedModel, authMode, oauth } =
-        settings;
+    const {
+        provider,
+        apiKey,
+        baseUrl,
+        isInternal = false,
+        selectedModel,
+        authMode,
+        oauth,
+    } = settings;
     const modelId = getSummaryModelForAgentProvider(provider, selectedModel, isInternal);
     const providerInstance = createProviderInstance({
         provider,

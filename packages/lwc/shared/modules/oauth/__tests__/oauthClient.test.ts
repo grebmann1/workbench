@@ -174,7 +174,10 @@ test('createPendingFlowStore: single-use take, TTL, unknown state', () => {
 });
 
 test('validateXaiEndpoint: pins https on x.ai / *.x.ai', () => {
-    assert.equal(validateXaiEndpoint('https://auth.x.ai/oauth2/auth'), 'https://auth.x.ai/oauth2/auth');
+    assert.equal(
+        validateXaiEndpoint('https://auth.x.ai/oauth2/auth'),
+        'https://auth.x.ai/oauth2/auth'
+    );
     assert.equal(validateXaiEndpoint('https://x.ai/token'), 'https://x.ai/token');
     assert.throws(() => validateXaiEndpoint('http://auth.x.ai/x')); // not https
     assert.throws(() => validateXaiEndpoint('https://evil.com/x'));

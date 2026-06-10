@@ -115,7 +115,9 @@ test('createOAuthFetch: replaces a pre-existing auth header instead of duplicati
             body: '{}',
             headers: { authorization: 'Bearer stale-sdk-token' },
         });
-        const authKeys = Object.keys(capturedHeaders).filter(k => k.toLowerCase() === 'authorization');
+        const authKeys = Object.keys(capturedHeaders).filter(
+            k => k.toLowerCase() === 'authorization'
+        );
         assert.deepEqual(authKeys, ['Authorization']);
         assert.equal(capturedHeaders.Authorization, 'Bearer the-token');
     } finally {

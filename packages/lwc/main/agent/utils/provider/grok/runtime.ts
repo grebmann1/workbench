@@ -13,7 +13,13 @@ import { createOAuthFetch } from '../shared/oauthFetch';
 import { resolveProviderRuntimeBaseUrl } from '../shared/urls';
 
 export const grokRuntime: ProviderRuntime = {
-    createInstance({ apiKey, baseUrl, authMode, oauth, onTokenRefresh }: CreateInstanceArgs): ProviderInstance {
+    createInstance({
+        apiKey,
+        baseUrl,
+        authMode,
+        oauth,
+        onTokenRefresh,
+    }: CreateInstanceArgs): ProviderInstance {
         // OAuth (SuperGrok subscription) reuses the same endpoint; the access token replaces
         // the API key as the bearer, and createOAuthFetch keeps it fresh.
         const isOAuth = authMode === 'oauth' && !!oauth;

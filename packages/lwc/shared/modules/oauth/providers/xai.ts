@@ -56,7 +56,9 @@ export async function xaiDiscovery(fetchImpl: typeof fetch = fetch): Promise<Xai
     }
     const data = (await response.json()) as Partial<XaiDiscovery>;
     if (!data.authorization_endpoint || !data.token_endpoint) {
-        throw new Error('xAI OAuth discovery response did not include authorization/token endpoints');
+        throw new Error(
+            'xAI OAuth discovery response did not include authorization/token endpoints'
+        );
     }
     return {
         authorization_endpoint: validateXaiEndpoint(data.authorization_endpoint),

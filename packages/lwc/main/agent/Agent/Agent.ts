@@ -377,10 +377,9 @@ export class Agent {
                           // Fire-and-forget: the in-memory token already keeps this run going;
                           // persistence just keeps the next run + a rotated refresh token fresh.
                           persistRefreshedOAuthCredentials(provider, credentials).catch(error => {
-                              LOGGER.warn(
-                                  '[agent:oauth] failed to persist refreshed credentials',
-                                  { error }
-                              );
+                              LOGGER.warn('[agent:oauth] failed to persist refreshed credentials', {
+                                  error,
+                              });
                           });
                       }
                     : undefined,
