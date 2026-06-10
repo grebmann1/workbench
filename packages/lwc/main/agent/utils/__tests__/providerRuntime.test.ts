@@ -7,6 +7,14 @@ import {
     createProviderInstance,
     resolveProviderModelInstance,
 } from '../providerRuntime.ts';
+import { codexFormatRequest } from '../provider/codex/runtime.ts';
+
+const OAUTH_CREDS = {
+    access: 'tok',
+    refresh: 'ref',
+    expires: 4_102_444_800_000, // year 2100, comfortably unexpired
+    accountId: 'acct-123',
+};
 
 test('supportsReasoningProvider: true for openai, false for others', () => {
     assert.equal(supportsReasoningProvider('openai'), true);
@@ -111,6 +119,92 @@ test('createProviderInstance: internal Anthropic Bedrock uses Anthropic message 
     }) as any;
 
     assert.equal(model.provider, 'anthropic.messages');
+});
+
+test('createProviderInstance: openai + oauth selects the Codex (WHAM) runtime', () => {
+    const instance = createProviderInstance({
+        provider: 'openai',
+        authMode: 'oauth',
+        oauth: OAUTH_CREDS,
+    });
+    assert.equal(typeof instance, 'function');
+});
+
+test('resolveProviderModelInstance: openai + oauth resolves a Responses-API model', () => {
+    const instance = createProviderInstance({
+        provider: 'openai',
+        authMode: 'oauth',
+        oauth: OAUTH_CREDS,
+    });
+    const model = resolveProviderModelInstance(instance, {
+        provider: 'openai',
+        modelId: 'gpt-5.1-codex',
+        authMode: 'oauth',
+    }) as any;
+    assert.equal(model.provider, 'openai.responses');
+});
+
+test('resolveProviderModelInstance: codex default callable resolves Responses without authMode', () => {
+    // Mirrors the context-compaction path, which resolves the summary model without passing
+    // authMode — the codex instance's default callable must still route to the Responses API.
+    const instance = createProviderInstance({
+        provider: 'openai',
+        authMode: 'oauth',
+        oauth: OAUTH_CREDS,
+    });
+    const model = resolveProviderModelInstance(instance, {
+        provider: 'openai',
+        modelId: 'gpt-5.1-codex',
+    }) as any;
+    assert.equal(model.provider, 'openai.responses');
+});
+
+test('createProviderInstance: grok + oauth returns a callable (bearer = access token)', () => {
+    const instance = createProviderInstance({
+        provider: 'grok',
+        authMode: 'oauth',
+        oauth: OAUTH_CREDS,
+    });
+    assert.equal(typeof instance, 'function');
+});
+
+test('codexFormatRequest: injects store:false and lifts the system message into instructions', () => {
+    // WHAM requires top-level `instructions`; the SDK puts the system prompt in `input`.
+    const out = codexFormatRequest('https://chatgpt.com/backend-api/wham/responses', {
+        method: 'POST',
+        body: JSON.stringify({
+            model: 'gpt-5.1-codex',
+            max_output_tokens: 16000,
+            input: [
+                { role: 'system', content: [{ type: 'input_text', text: 'You are Codex.' }] },
+                { role: 'user', content: [{ type: 'input_text', text: 'hi' }] },
+            ],
+        }),
+    });
+    const body = JSON.parse(out.options?.body as string);
+    assert.equal(body.store, false);
+    assert.equal(body.instructions, 'You are Codex.');
+    assert.equal(body.max_output_tokens, undefined); // WHAM rejects it
+    assert.equal(body.input.length, 1);
+    assert.equal(body.input[0].role, 'user');
+
+    // No system message → instructions defaulted so WHAM doesn't reject the request.
+    const noSystem = JSON.parse(
+        codexFormatRequest('x', {
+            body: JSON.stringify({ input: [{ role: 'user', content: 'hi' }] }),
+        }).options?.body as string
+    );
+    assert.ok(noSystem.instructions);
+
+    // Existing store/instructions preserved; non-JSON / no body pass through.
+    const kept = JSON.parse(
+        codexFormatRequest('x', { body: JSON.stringify({ store: true, instructions: 'keep' }) })
+            .options?.body as string
+    );
+    assert.equal(kept.store, true);
+    assert.equal(kept.instructions, 'keep');
+    assert.equal(codexFormatRequest('x', { method: 'GET' }).options?.body, undefined);
+    assert.equal(codexFormatRequest('x', { body: 'not-json' }).options?.body, 'not-json');
 });
 
 test('createProviderInstance: internal Anthropic Bedrock targets /invoke-with-response-stream on streaming requests', async () => {

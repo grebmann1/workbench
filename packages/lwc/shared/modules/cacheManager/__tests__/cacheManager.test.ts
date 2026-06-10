@@ -151,6 +151,31 @@ test('buildProviderConfigCacheRecord: emits canonical + legacy flat keys', () =>
     assert.deepEqual(canonical.openai, { apiKey: 'sk-a', baseUrl: 'https://proxy/v1' });
 });
 
+test('build → resolve round-trip preserves authMode + oauth (data-loss regression)', () => {
+    // Exercises the REAL save (buildProviderConfigCacheRecord) → load
+    // (resolveLlmProviderConfigMap) path, not just normalize, so a regression
+    // in either function that drops the OAuth blob is caught.
+    const map = getDefaultLlmProviderConfigMap();
+    map.openai = {
+        apiKey: null,
+        baseUrl: DEFAULT_PROVIDER_BASE_URLS.openai,
+        authMode: 'oauth',
+        oauth: {
+            access: 'tok',
+            refresh: 'ref',
+            expires: 999,
+            accountId: 'acct',
+            tokenEndpoint: 'https://auth.x.ai/oauth2/token',
+        },
+    };
+    const restored = resolveLlmProviderConfigMap(buildProviderConfigCacheRecord(map));
+    assert.equal(restored.openai.authMode, 'oauth');
+    assert.equal(restored.openai.oauth?.access, 'tok');
+    assert.equal(restored.openai.oauth?.refresh, 'ref');
+    assert.equal(restored.openai.oauth?.accountId, 'acct');
+    assert.equal(restored.openai.oauth?.tokenEndpoint, 'https://auth.x.ai/oauth2/token');
+});
+
 test('getAiProviderFromConfig: picks stored provider if valid, else default', () => {
     assert.equal(getAiProviderFromConfig({ ai_provider: 'anthropic' }), 'anthropic');
     assert.equal(getAiProviderFromConfig({ ai_provider: 'nonsense' }), DEFAULT_LLM_PROVIDER);

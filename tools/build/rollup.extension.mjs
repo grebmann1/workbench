@@ -291,6 +291,7 @@ const sharedModules = [
     { name: 'shared/analytics', path: getSharedModulePath('analytics') },
     { name: 'shared/cacheManager', path: getSharedModulePath('cacheManager') },
     { name: 'shared/llm', path: getSharedModulePath('llm') },
+    { name: 'shared/oauth', path: getSharedModulePath('oauth') },
     { name: 'shared/loader', path: getSharedModulePath('loader') },
     { name: 'shared/logger', path: getSharedModulePath('logger') },
     { name: 'shared/metadataApi', path: getSharedModulePath('metadataApi') },
@@ -861,6 +862,7 @@ export default (args) => {
         [
             { name: 'shared/cacheManager', path: r('../../packages/lwc/shared/dist/modules/cacheManager/cacheManager.js') },
             { name: 'shared/llm', path: r('../../packages/lwc/shared/dist/modules/llm/llm.js') },
+            { name: 'shared/oauth', path: r('../../packages/lwc/shared/dist/modules/oauth/oauth.js') },
             { name: 'shared/logger', path: r('../../packages/lwc/shared/dist/modules/logger/logger.js') },
             { name: 'shared/utils', path: r('../../packages/lwc/shared/dist/modules/utils/utils.js') },
         ]

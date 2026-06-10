@@ -171,6 +171,72 @@ test('application: updateProviderCatalogs records models + status', async () => 
     }
 });
 
+test('application: updateProviderCatalogs with a partial map leaves other providers intact', async () => {
+    installStorage();
+    try {
+        const { reduxSlice } = await import('../application.ts');
+        const r = reduxSlice.reducer;
+        // Seed anthropic + mistral.
+        let s = r(
+            undefined,
+            reduxSlice.actions.updateProviderCatalogs({
+                catalogs: {
+                    anthropic: { status: 'ready', models: [{ label: 'a', value: 'a' }] },
+                    mistral: { status: 'ready', models: [{ label: 'm', value: 'm' }] },
+                },
+            })
+        );
+        // A refresh that only carries anthropic must NOT wipe mistral (regression guard).
+        s = r(
+            s,
+            reduxSlice.actions.updateProviderCatalogs({
+                catalogs: {
+                    anthropic: { status: 'ready', models: [{ label: 'a2', value: 'a2' }] },
+                },
+            })
+        );
+        assert.equal(s.availableModelsByProvider.anthropic[0].value, 'a2');
+        assert.equal(s.availableModelsByProvider.mistral.length, 1);
+        assert.equal(s.availableModelsByProvider.mistral[0].value, 'm');
+    } finally {
+        removeStorage();
+    }
+});
+
+test('application: updateSubscriptionModels writes only openai/grok, never the server catalog', async () => {
+    installStorage();
+    try {
+        const { reduxSlice } = await import('../application.ts');
+        const r = reduxSlice.reducer;
+        // Seed the server catalog for anthropic.
+        let s = r(
+            undefined,
+            reduxSlice.actions.updateProviderCatalogs({
+                catalogs: {
+                    anthropic: { status: 'ready', models: [{ label: 'a', value: 'a' }] },
+                },
+            })
+        );
+        s = r(
+            s,
+            reduxSlice.actions.updateSubscriptionModels({
+                models: {
+                    openai: [{ label: 'gpt-live', value: 'gpt-live', provider: 'openai' }],
+                    grok: [{ label: 'grok-live', value: 'grok-live', provider: 'grok' }],
+                },
+            })
+        );
+        assert.equal(s.subscriptionModelsByProvider.openai[0].value, 'gpt-live');
+        assert.equal(s.subscriptionModelsByProvider.grok[0].value, 'grok-live');
+        // Server catalog untouched; subscription write never created an openai/grok server slot.
+        assert.equal(s.availableModelsByProvider.anthropic[0].value, 'a');
+        assert.equal(s.availableModelsByProvider.openai.length, 0);
+        assert.equal(s.availableModelsByProvider.grok.length, 0);
+    } finally {
+        removeStorage();
+    }
+});
+
 test('application: updateSettings merges partial into settings', async () => {
     installStorage();
     try {

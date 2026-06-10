@@ -1,4 +1,4 @@
-import { generateText, type ModelMessage } from 'ai';
+import { streamText, type ModelMessage } from 'ai';
 
 import { resolveProviderModelInstance, type ProviderInstance } from '../utils/providerRuntime.ts';
 
@@ -575,9 +575,9 @@ async function summarizeConversation(
         request.temperature = 0.2;
     }
 
-    const { text } = await generateText(request);
-
-    return text.trim();
+    // streamText (not generateText): WHAM (Codex) only supports streaming.
+    const result = streamText(request);
+    return (await result.text).trim();
 }
 
 /**

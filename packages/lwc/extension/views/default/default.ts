@@ -11,6 +11,7 @@ import {
 import {
     buildAvailableAgentModelOptions,
     fetchLlmModelsEndpoint,
+    fetchSubscriptionModels,
     getProviderForModel,
     normalizeModelSelection,
 } from 'shared/llm';
@@ -139,39 +140,51 @@ export default class Default extends LightningElement {
     };
 
     refreshLlmCatalog = async (aiProvider, providerConfigs) => {
+        // Server catalog and subscription (OAuth) catalog are fetched independently: a server
+        // failure must not skip the subscription fetch (OAuth-only users have no server), so the
+        // server portion gets its own try/catch and we always go on to fetch subscription models.
+        let serverCatalogs;
         try {
             const response = await fetchLlmModelsEndpoint({
                 provider: aiProvider,
                 providerConfigs,
             });
+            serverCatalogs = response.catalogs;
             store.dispatch(
                 APPLICATION.reduxSlice.actions.updateProviderCatalogs({
-                    catalogs: response.catalogs,
+                    catalogs: serverCatalogs,
                 })
             );
-            const availableModels = buildAvailableAgentModelOptions({
-                availableModelsByProvider: response.catalogs,
-                providerConfigs,
-            });
-            if (availableModels.length > 0) {
-                const currentModel = store.getState()?.agent?.selectedModel;
-                const normalizedModel = normalizeModelSelection(currentModel, availableModels);
-                if (normalizedModel && normalizedModel !== currentModel) {
-                    store.dispatch(
-                        AGENT.reduxSlice.actions.updateSelectedModel({ model: normalizedModel })
-                    );
-                }
-                const resolvedProvider = getProviderForModel(normalizedModel, availableModels);
-                if (resolvedProvider !== aiProvider) {
-                    store.dispatch(
-                        APPLICATION.reduxSlice.actions.updateAiProvider({
-                            aiProvider: resolvedProvider,
-                        })
-                    );
-                }
-            }
         } catch (error) {
             LOGGER.warn('loadFromCache - failed to refresh LLM catalog', error);
+        }
+
+        const subscriptionModels = await fetchSubscriptionModels(providerConfigs);
+        store.dispatch(
+            APPLICATION.reduxSlice.actions.updateSubscriptionModels({ models: subscriptionModels })
+        );
+
+        const availableModels = buildAvailableAgentModelOptions({
+            availableModelsByProvider: serverCatalogs,
+            subscriptionModelsByProvider: subscriptionModels,
+            providerConfigs,
+        });
+        if (availableModels.length > 0) {
+            const currentModel = store.getState()?.agent?.selectedModel;
+            const normalizedModel = normalizeModelSelection(currentModel, availableModels);
+            if (normalizedModel && normalizedModel !== currentModel) {
+                store.dispatch(
+                    AGENT.reduxSlice.actions.updateSelectedModel({ model: normalizedModel })
+                );
+            }
+            const resolvedProvider = getProviderForModel(normalizedModel, availableModels);
+            if (resolvedProvider !== aiProvider) {
+                store.dispatch(
+                    APPLICATION.reduxSlice.actions.updateAiProvider({
+                        aiProvider: resolvedProvider,
+                    })
+                );
+            }
         }
     };
 

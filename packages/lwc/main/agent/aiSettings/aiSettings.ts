@@ -2,9 +2,27 @@ import { GOOGLE_DRIVE_SCOPES } from 'agent/googleAuth';
 import { store, APPLICATION, connectStore } from 'core/store';
 import Toast from 'lightning/toast';
 import { api, LightningElement, track, wire } from 'lwc';
-import { CACHE_CONFIG, saveSingleExtensionConfigToCache } from 'shared/cacheManager';
-import { isInternalProviderBaseUrl } from 'shared/llm';
+import {
+    CACHE_CONFIG,
+    buildProviderConfigCacheRecord,
+    cacheManager,
+    getAiProviderFromConfig,
+    getLlmProviderConfigCacheKeys,
+    resolveLlmProviderConfigMap,
+    saveSingleExtensionConfigToCache,
+} from 'shared/cacheManager';
+import {
+    fetchLlmModelsEndpoint,
+    fetchSubscriptionModels,
+    isInternalProviderBaseUrl,
+    normalizeProviderConfigMap,
+    type LlmProviderConfigMap,
+} from 'shared/llm';
 import LOGGER from 'shared/logger';
+
+// Subscription sign-in maps a UI provider id to the LLM provider whose config stores the
+// OAuth credentials (Codex is an auth-mode on `openai`, xAI on `grok`).
+const OAUTH_PROVIDER_TO_LLM = { codex: 'openai', xai: 'grok' };
 
 const INTERNAL_PROVIDER_DOCS_URL = 'https://doc.sf-workbench.com/ai-agent/llm-provider-runtime';
 
@@ -17,6 +35,13 @@ export default class AiSettings extends LightningElement {
     @track googleUser = null;
     @track googleDriveConnected = false;
     @track showOnboardAiProvider = false;
+    @track providerConfigs: Partial<LlmProviderConfigMap> = {};
+    @track availableModelsByProvider: Partial<Record<string, unknown[]>> = {};
+    @track subscriptionModelsByProvider: { openai?: unknown[]; grok?: unknown[] } = {};
+    @track isSigningIn = false;
+    @track isRefreshingModels = false;
+    @track signingInProvider: string | null = null;
+    @track pastedCode = '';
 
     @wire(connectStore, { store })
     storeChange({ application }) {
@@ -25,6 +50,267 @@ export default class AiSettings extends LightningElement {
         this.googleUser = session;
         this.googleDriveConnected =
             !!session?.token && !!settings[CACHE_CONFIG.GOOGLE_DRIVE_CONNECTED.key];
+        this.providerConfigs = application?.providerConfigs || {};
+        this.availableModelsByProvider = application?.availableModelsByProvider || {};
+        this.subscriptionModelsByProvider = application?.subscriptionModelsByProvider || {};
+    }
+
+    connectedCallback() {
+        if (typeof chrome !== 'undefined' && chrome?.runtime?.onMessage) {
+            chrome.runtime.onMessage.addListener(this.handleOAuthResultMessage);
+        }
+    }
+
+    disconnectedCallback() {
+        if (typeof chrome !== 'undefined' && chrome?.runtime?.onMessage) {
+            chrome.runtime.onMessage.removeListener(this.handleOAuthResultMessage);
+        }
+    }
+
+    // Completion of an extension OAuth sign-in is delivered by the background worker.
+    handleOAuthResultMessage = message => {
+        if (message?.action !== 'workbench_oauth_result') return;
+        this.isSigningIn = false;
+        if (message.ok) {
+            this.signingInProvider = null;
+            this.pastedCode = '';
+            this.reloadProviderConfigs()
+                .then(() => Toast.show({ label: 'Signed in.', variant: 'success' }))
+                .catch(err => LOGGER.error('Failed to reload provider configs', err));
+        } else {
+            Toast.show({ label: message.message || 'Sign-in failed.', variant: 'error' });
+        }
+    };
+
+    handlePastedCodeChange = e => {
+        this.pastedCode = e.detail?.value ?? '';
+    };
+
+    // Manual-paste fallback: some providers (xAI) show the authorization code instead of
+    // returning to the loopback, so the user pastes it here.
+    handleSubmitCode = async e => {
+        const provider = e.currentTarget?.dataset?.provider;
+        const code = (this.pastedCode || '').trim();
+        if (!provider || !code) {
+            Toast.show({ label: 'Paste the authorization code first.', variant: 'error' });
+            return;
+        }
+        this.isSigningIn = true;
+        try {
+            const response = (await new Promise(resolve => {
+                chrome.runtime.sendMessage(
+                    { action: 'providerOAuthSubmitCode', provider, code },
+                    resolve
+                );
+            })) as { error?: string } | undefined;
+            if (response?.error) {
+                Toast.show({ label: `Sign-in failed: ${response.error}`, variant: 'error' });
+            }
+            // Success arrives via handleOAuthResultMessage (broadcast).
+        } catch (err) {
+            LOGGER.error('Provider OAuth code submit failed', err);
+            Toast.show({ label: `Sign-in failed: ${err.message}`, variant: 'error' });
+        } finally {
+            this.isSigningIn = false;
+        }
+    };
+
+    get showCodexCodeInput() {
+        return this.signingInProvider === 'codex';
+    }
+
+    get showXaiCodeInput() {
+        return this.signingInProvider === 'xai';
+    }
+
+    /** Re-fetch the live model catalog (Codex/xAI included) and push it into the store, so the
+     *  picker reflects provider-side model changes (deprecations / additions) on demand. */
+    async refreshModelCatalog() {
+        const cached = await cacheManager.loadConfig(getLlmProviderConfigCacheKeys());
+        const providerConfigs = resolveLlmProviderConfigMap(cached);
+        // Server catalog and subscription (OAuth) catalog are independent: a server failure must
+        // not skip the subscription refresh (OAuth-only users have no server). Fetch the server
+        // catalog in its own try/catch, then always refresh the subscription models.
+        try {
+            const response = await fetchLlmModelsEndpoint({
+                provider: getAiProviderFromConfig(cached),
+                providerConfigs,
+            });
+            store.dispatch(
+                APPLICATION.reduxSlice.actions.updateProviderCatalogs({
+                    catalogs: response.catalogs,
+                })
+            );
+        } catch (err) {
+            LOGGER.warn('Failed to refresh server model catalog', err);
+        }
+        const subscriptionModels = await fetchSubscriptionModels(providerConfigs);
+        store.dispatch(
+            APPLICATION.reduxSlice.actions.updateSubscriptionModels({ models: subscriptionModels })
+        );
+    }
+
+    async reloadProviderConfigs() {
+        const cached = await cacheManager.loadConfig(getLlmProviderConfigCacheKeys());
+        const providerConfigs = resolveLlmProviderConfigMap(cached);
+        store.dispatch(APPLICATION.reduxSlice.actions.updateProviderConfigs({ providerConfigs }));
+        // Refresh the model catalog so the live Codex/xAI models appear without a reload.
+        try {
+            await this.refreshModelCatalog();
+        } catch (err) {
+            LOGGER.warn('Failed to refresh model catalog after sign-in', err);
+        }
+    }
+
+    handleRefreshModels = async () => {
+        this.isRefreshingModels = true;
+        try {
+            await this.refreshModelCatalog();
+            Toast.show({ label: 'Models refreshed.', variant: 'success' });
+        } catch (err) {
+            LOGGER.error('Failed to refresh models', err);
+            Toast.show({ label: `Couldn't refresh models: ${err.message}`, variant: 'error' });
+        } finally {
+            this.isRefreshingModels = false;
+        }
+    };
+
+    handleCustomModelChange = async e => {
+        const provider = e.currentTarget?.dataset?.provider;
+        const llmProvider = OAUTH_PROVIDER_TO_LLM[provider];
+        if (!llmProvider) return;
+        const value = (e.detail?.value ?? '').trim();
+        try {
+            const cached = await cacheManager.loadConfig(getLlmProviderConfigCacheKeys());
+            const currentMap = resolveLlmProviderConfigMap(cached);
+            const nextMap = normalizeProviderConfigMap({
+                ...currentMap,
+                [llmProvider]: { ...currentMap[llmProvider], customModel: value },
+            });
+            await cacheManager.saveConfig(buildProviderConfigCacheRecord(nextMap));
+            store.dispatch(
+                APPLICATION.reduxSlice.actions.updateProviderConfigs({ providerConfigs: nextMap })
+            );
+        } catch (err) {
+            LOGGER.error('Failed to save custom model', err);
+        }
+    };
+
+    get codexCustomModel() {
+        return this.providerConfigs?.openai?.customModel ?? '';
+    }
+
+    get xaiCustomModel() {
+        return this.providerConfigs?.grok?.customModel ?? '';
+    }
+
+    handleProviderSignIn = async e => {
+        const provider = e.currentTarget?.dataset?.provider;
+        if (!provider) return;
+        if (typeof chrome === 'undefined' || typeof chrome?.runtime?.sendMessage !== 'function') {
+            Toast.show({
+                label: 'Subscription sign-in is only available in the Chrome extension.',
+                variant: 'error',
+            });
+            return;
+        }
+        this.isSigningIn = true;
+        this.pastedCode = '';
+        this.signingInProvider = provider; // reveal the manual-paste fallback
+        try {
+            await new Promise((resolve, reject) => {
+                chrome.runtime.sendMessage({ action: 'providerOAuthStart', provider }, response => {
+                    if (chrome.runtime.lastError) {
+                        reject(new Error(chrome.runtime.lastError.message));
+                    } else if (response?.error) {
+                        reject(new Error(response.error));
+                    } else {
+                        resolve(response);
+                    }
+                });
+            });
+            // The popup is the user's cue; completion arrives asynchronously via
+            // handleOAuthResultMessage (which shows the "Signed in" toast + connected state).
+        } catch (err) {
+            this.signingInProvider = null;
+            LOGGER.error('Provider OAuth start failed', err);
+            Toast.show({ label: `Sign-in failed: ${err.message}`, variant: 'error' });
+        } finally {
+            this.isSigningIn = false;
+        }
+    };
+
+    handleProviderDisconnect = async e => {
+        const provider = e.currentTarget?.dataset?.provider;
+        const llmProvider = OAUTH_PROVIDER_TO_LLM[provider];
+        if (!llmProvider) return;
+        try {
+            const cached = await cacheManager.loadConfig(getLlmProviderConfigCacheKeys());
+            const currentMap = resolveLlmProviderConfigMap(cached);
+            // Drop the OAuth credentials AND the Codex/Grok-specific customModel — otherwise a
+            // subscription-only model name would linger in the picker once we're back in API-key
+            // mode and could keep the user pinned to an unavailable model.
+            const nextMap = normalizeProviderConfigMap({
+                ...currentMap,
+                [llmProvider]: {
+                    ...currentMap[llmProvider],
+                    authMode: 'apiKey',
+                    oauth: null,
+                    customModel: '',
+                },
+            });
+            await cacheManager.saveConfig(buildProviderConfigCacheRecord(nextMap));
+            // Mirror sign-in: refresh both catalogs so the now-stale subscription slot is cleared
+            // (the subscription refetch returns [] for the disconnected provider) and the server /
+            // API-key catalog repopulates. The agent app's storeChange then auto-corrects the
+            // selected model off the now-unavailable Codex/Grok model.
+            await this.reloadProviderConfigs();
+            // Tell the host panel to re-read the cache, so its in-memory config snapshot drops the
+            // OAuth blob too. Without this, a subsequent Save rebuilds the provider map from the
+            // host's stale snapshot and resurrects the connection.
+            this.dispatchEvent(new CustomEvent('setupcomplete', { bubbles: true, composed: true }));
+            Toast.show({ label: 'Signed out.', variant: 'success' });
+        } catch (err) {
+            LOGGER.error('Provider OAuth disconnect failed', err);
+            Toast.show({ label: `Sign-out failed: ${err.message}`, variant: 'error' });
+        }
+    };
+
+    get codexConnected() {
+        const config = this.providerConfigs?.openai;
+        return config?.authMode === 'oauth' && !!config?.oauth?.access;
+    }
+
+    get xaiConnected() {
+        const config = this.providerConfigs?.grok;
+        return config?.authMode === 'oauth' && !!config?.oauth?.access;
+    }
+
+    // The live `/models` fetch populated the subscription catalog → the normal model selector
+    // covers it, so the manual Model input is only shown when the fetch returned nothing (the
+    // customModel fallback). Reads the dedicated subscription slot, not the server catalog.
+    get codexHasModels() {
+        return (this.subscriptionModelsByProvider?.openai?.length ?? 0) > 0;
+    }
+
+    get xaiHasModels() {
+        return (this.subscriptionModelsByProvider?.grok?.length ?? 0) > 0;
+    }
+
+    get codexNeedsManualModel() {
+        return this.codexConnected && !this.codexHasModels;
+    }
+
+    get xaiNeedsManualModel() {
+        return this.xaiConnected && !this.xaiHasModels;
+    }
+
+    get codexPanelClass() {
+        return this.codexConnected ? 'oauth-connect__panel is-connected' : 'oauth-connect__panel';
+    }
+
+    get xaiPanelClass() {
+        return this.xaiConnected ? 'oauth-connect__panel is-connected' : 'oauth-connect__panel';
     }
 
     emitInputChange(key, value) {
