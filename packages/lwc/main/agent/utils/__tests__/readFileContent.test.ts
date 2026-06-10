@@ -29,7 +29,7 @@ Object.defineProperty(globalThis, 'FileReader', {
     configurable: true,
 });
 
-const { readFileContent } = await import('../utils.ts');
+const { readFileContent } = await import('../readFileContent.ts');
 
 function makeFile(opts: { name: string; type: string; size: number; content?: string }): FileLike {
     return {
