@@ -5,6 +5,11 @@ on:
     push:
         tags:
             - 'extension-v*'
+        branches:
+            # Pushing to a release-candidate branch auto-builds the extension zip as a
+            # workflow artifact for testing. The Chrome Web Store upload stays gated on an
+            # `extension-v*` tag (see the upload step's `if:`), so RC pushes never publish.
+            - 'release-candidate/**'
 
 permissions:
     contents: write
