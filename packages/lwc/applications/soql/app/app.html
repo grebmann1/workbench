@@ -125,10 +125,29 @@
                 </div>
 
                 <template lwc:if={isMetaDisplayed}>
-                    <p slot="meta" class="slds-page-header__meta-text">
-                        {totalRecordsFormatted} {sobjectPlurialLabel} • Queried
-                        {_responseCreatedDateFormatted}
-                    </p>
+                    <div slot="meta" class="slds-flex-row slds-grid_vertical-align-center">
+                        <p class="slds-page-header__meta-text">
+                            <template lwc:if={hasMoreRecords}>
+                                {loadedRecordsFormatted} of {totalRecordsFormatted}
+                            </template>
+                            <template lwc:else>{totalRecordsFormatted}</template>
+                            {sobjectPlurialLabel} • Queried {_responseCreatedDateFormatted}
+                        </p>
+                        <template lwc:if={isLoadMoreDisplayed}>
+                            <lightning-button-group class="slds-p-left_small">
+                                <lightning-button
+                                    label={loadMoreLabel}
+                                    icon-name="utility:chevrondown"
+                                    onclick={handleLoadMore}
+                                    disabled={isLoadMoreDisabled}></lightning-button>
+                                <lightning-button
+                                    label="Load all"
+                                    title="Fetch every remaining record"
+                                    onclick={handleLoadAll}
+                                    disabled={isLoadMoreDisabled}></lightning-button>
+                            </lightning-button-group>
+                        </template>
+                    </div>
                 </template>
             </builder-header>
             <!-- Left Panel -->

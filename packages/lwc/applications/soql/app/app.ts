@@ -149,6 +149,7 @@ export default class App extends ToolkitElement {
     _responseRows: Array<Record<string, any>> | null = null;
     _sobject: Record<string, any> | null = null;
     _interval: ReturnType<typeof setInterval> | null = null;
+    _isFetchingMore = false;
 
     // Aborting
     _abortingMap: Record<string, any> = {};
@@ -299,6 +300,7 @@ export default class App extends ToolkitElement {
                 this._responseCreatedDate = queryState.createdDate;
                 this._responseNextRecordsUrl = queryState.data.nextRecordsUrl;
                 this._responseRows = queryState.data.records;
+                this._isFetchingMore = queryState.isFetchingMore === true;
                 this._abortingMap[ui.currentTab.id] = null; // Reset the abortingMap
                 this._displayStopButton = false;
                 this._sobject = getDescribeByName({
@@ -346,6 +348,7 @@ export default class App extends ToolkitElement {
         this._responseNextRecordsUrl = null;
         this._responseRows = null;
         this._sobject = null;
+        this._isFetchingMore = false;
     };
 
     formatDate = () => {
@@ -474,6 +477,22 @@ export default class App extends ToolkitElement {
         if (queryPromise) {
             queryPromise.abort();
         }
+    };
+
+    handleLoadMore = () => this._loadMore(false);
+
+    handleLoadAll = () => this._loadMore(true);
+
+    _loadMore = (loadAll: boolean) => {
+        if (this._isFetchingMore || !this._responseNextRecordsUrl) return;
+        const { ui } = store.getState() as any;
+        store.dispatch(
+            QUERY.loadMoreRecords({
+                connector: this.connector,
+                tabId: ui.currentTab.id,
+                loadAll,
+            }) as any
+        );
     };
 
     handleSaveClick = () => {
@@ -993,6 +1012,37 @@ export default class App extends ToolkitElement {
 
     get totalRecordsFormatted() {
         return shortFormatter.format(this.totalRecords);
+    }
+
+    get loadedRecords() {
+        return this._responseRows?.length || 0;
+    }
+
+    get loadedRecordsFormatted() {
+        return shortFormatter.format(this.loadedRecords);
+    }
+
+    // True when Salesforce returned a cursor (more than the loaded records exist).
+    get hasMoreRecords() {
+        return isNotUndefinedOrNull(this._responseNextRecordsUrl);
+    }
+
+    // Show the pagination footer only when there is something more to load
+    // or a load-more fetch is in flight.
+    get isLoadMoreDisplayed() {
+        return (
+            isNotUndefinedOrNull(this._response) && (this.hasMoreRecords || this._isFetchingMore)
+        );
+    }
+
+    get isLoadMoreDisabled() {
+        return this._isFetchingMore || !this.hasMoreRecords;
+    }
+
+    get loadMoreLabel() {
+        return this._isFetchingMore
+            ? `Loading… ${this.loadedRecordsFormatted}/${this.totalRecordsFormatted}`
+            : `Load more (${this.loadedRecordsFormatted} of ${this.totalRecordsFormatted})`;
     }
 
     get sobjectPlurialLabel() {
