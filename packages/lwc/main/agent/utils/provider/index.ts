@@ -1,4 +1,4 @@
-import { normalizeLlmProvider, type LlmProvider } from 'shared/llm';
+import { normalizeLlmProvider, type LlmProvider, type OAuthCredentials } from 'shared/llm';
 import type {
     ProviderInstance,
     ProviderReasoningConfig,
@@ -14,6 +14,7 @@ import { grokRuntime } from './grok/runtime';
 import { mistralRuntime } from './mistral/runtime';
 import { workbenchRuntime } from './workbench/runtime';
 import { internalRuntime } from './internal/runtime';
+import { codexRuntime } from './codex/runtime';
 
 export type { ProviderInstance, ProviderReasoningConfig } from './types';
 
@@ -31,21 +32,27 @@ const PROVIDER_RUNTIMES: Record<LlmProvider, ProviderRuntime> = {
  *
  * Precedence mirrors the original monolithic router exactly:
  *   1. Anthropic + baseUrl ending in `/bedrock` → anthropic runtime (bedrock path).
- *   2. isInternal + gemini → gemini runtime (native Google SDK, internal mode).
- *   3. isInternal → internal runtime (OpenAI SDK routed to `/responses`).
- *   4. Otherwise → the provider's native runtime.
+ *   2. openai + oauth → codex runtime (ChatGPT subscription / WHAM backend).
+ *   3. isInternal + gemini → gemini runtime (native Google SDK, internal mode).
+ *   4. isInternal → internal runtime (OpenAI SDK routed to `/responses`).
+ *   5. Otherwise → the provider's native runtime.
  */
 function selectInstanceRuntime({
     provider,
     baseUrl,
     isInternal,
+    authMode,
 }: {
     provider: LlmProvider;
     baseUrl?: string;
     isInternal?: boolean;
+    authMode?: 'apiKey' | 'oauth';
 }): ProviderRuntime {
     if (isAnthropicBedrockGateway(provider, baseUrl)) {
         return anthropicRuntime;
+    }
+    if (provider === 'openai' && authMode === 'oauth') {
+        return codexRuntime;
     }
     if (isInternal && provider === 'gemini') {
         return geminiRuntime;
@@ -61,19 +68,26 @@ export function createProviderInstance({
     apiKey,
     baseUrl,
     isInternal = false,
+    authMode,
+    oauth,
+    onTokenRefresh,
 }: {
     provider: unknown;
     apiKey?: string;
     baseUrl?: string;
     isInternal?: boolean;
+    authMode?: 'apiKey' | 'oauth';
+    oauth?: OAuthCredentials | null;
+    onTokenRefresh?: (credentials: OAuthCredentials) => void;
 }): ProviderInstance {
     const normalizedProvider = normalizeLlmProvider(provider);
     const runtime = selectInstanceRuntime({
         provider: normalizedProvider,
         baseUrl,
         isInternal,
+        authMode,
     });
-    return runtime.createInstance({ apiKey, baseUrl, isInternal });
+    return runtime.createInstance({ apiKey, baseUrl, isInternal, authMode, oauth, onTokenRefresh });
 }
 
 export function resolveProviderModelInstance(
@@ -83,15 +97,18 @@ export function resolveProviderModelInstance(
         modelId,
         isInternal = false,
         useResponsesApi = false,
+        authMode,
     }: ResolveModelArgs & { provider: unknown }
 ) {
     const normalizedProvider = normalizeLlmProvider(provider);
     // Note: runtime selection here doesn't re-check baseUrl, since the caller already
-    // used it to build `providerInstance`. We only need provider + isInternal to pick
-    // the right call shape (.chat() vs direct call vs .responses()).
+    // used it to build `providerInstance`. We need provider + isInternal + authMode to pick
+    // the right call shape (.chat() vs direct call vs .responses()) — openai + oauth (Codex)
+    // is Responses-only, so authMode must be threaded through here too.
     const runtime = selectInstanceRuntime({
         provider: normalizedProvider,
         isInternal,
+        authMode,
     });
     return runtime.resolveModel(providerInstance, { modelId, isInternal, useResponsesApi });
 }

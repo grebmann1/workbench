@@ -1,4 +1,5 @@
-import { generateText } from 'ai';
+import { streamText } from 'ai';
+import type { OAuthCredentials } from 'shared/llm';
 import LOGGER from 'shared/logger';
 
 import { getSummaryModelForAgentProvider } from './models';
@@ -18,17 +19,39 @@ export async function generateConversationTitle(
         baseUrl?: string;
         isInternal?: boolean;
         selectedModel?: string;
+        authMode?: 'apiKey' | 'oauth';
+        oauth?: OAuthCredentials | null;
     },
     firstMessage: string
 ): Promise<string> {
-    const { provider, apiKey, baseUrl, isInternal = false, selectedModel } = settings;
+    const {
+        provider,
+        apiKey,
+        baseUrl,
+        isInternal = false,
+        selectedModel,
+        authMode,
+        oauth,
+    } = settings;
     const modelId = getSummaryModelForAgentProvider(provider, selectedModel, isInternal);
-    const providerInstance = createProviderInstance({ provider, apiKey, baseUrl, isInternal });
+    const providerInstance = createProviderInstance({
+        provider,
+        apiKey,
+        baseUrl,
+        isInternal,
+        authMode,
+        oauth,
+    });
 
     LOGGER.debug('[generateTitle] Generating title with model:', modelId);
 
     const request = {
-        model: resolveProviderModelInstance(providerInstance, { provider, modelId, isInternal }),
+        model: resolveProviderModelInstance(providerInstance, {
+            provider,
+            modelId,
+            isInternal,
+            authMode,
+        }),
         prompt: `${TITLE_PROMPT}${firstMessage}`,
         maxRetries: 0,
         maxOutputTokens: 20,
@@ -44,9 +67,10 @@ export async function generateConversationTitle(
         request.temperature = 0.5;
     }
 
-    const { text } = await generateText(request);
-
-    const title = text.trim();
+    // streamText (not generateText): WHAM only supports streaming ("Stream must be set to
+    // true"). For non-streaming providers this still resolves the full text.
+    const result = streamText(request);
+    const title = (await result.text).trim();
     LOGGER.debug('[generateTitle] Generated title:', title);
     return title;
 }

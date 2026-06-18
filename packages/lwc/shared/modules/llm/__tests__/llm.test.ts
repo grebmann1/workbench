@@ -17,6 +17,13 @@ import {
     getMaxOutputTokensForModel,
     getProviderForModel,
     buildAvailableAgentModelOptions,
+    fetchCodexModels,
+    fetchXaiModels,
+    fetchSubscriptionModels,
+    resolveCodexClientVersion,
+    CODEX_MODELS_CLIENT_VERSION,
+    hasUsableProviderCredentials,
+    normalizeOAuthCredentials,
     resolveAgentProviderBaseUrl,
     DEFAULT_LLM_PROVIDER,
     DEFAULT_PROVIDER_BASE_URLS,
@@ -81,6 +88,85 @@ test('normalizeProviderConfig: non-object input yields defaults', () => {
     const config = normalizeProviderConfig('gemini', null);
     assert.equal(config.apiKey, null);
     assert.equal(config.baseUrl, DEFAULT_PROVIDER_BASE_URLS.gemini);
+});
+
+test('normalizeProviderConfig: preserves useResponsesApi, authMode and oauth', () => {
+    const config = normalizeProviderConfig('openai', {
+        apiKey: '',
+        baseUrl: '',
+        useResponsesApi: true,
+        authMode: 'oauth',
+        oauth: {
+            access: 'tok',
+            refresh: 'ref',
+            expires: 123,
+            accountId: 'acct',
+            tokenEndpoint: 'https://auth.x.ai/oauth2/token',
+        },
+    });
+    assert.equal(config.apiKey, null);
+    assert.equal(config.useResponsesApi, true);
+    assert.equal(config.authMode, 'oauth');
+    assert.equal(config.oauth?.access, 'tok');
+    assert.equal(config.oauth?.refresh, 'ref');
+    assert.equal(config.oauth?.expires, 123);
+    assert.equal(config.oauth?.accountId, 'acct');
+    assert.equal(config.oauth?.tokenEndpoint, 'https://auth.x.ai/oauth2/token');
+});
+
+test('normalizeProviderConfig: drops invalid authMode and access-less oauth', () => {
+    const config = normalizeProviderConfig('openai', {
+        apiKey: 'sk',
+        baseUrl: 'https://x/v1',
+        authMode: 'bogus',
+        oauth: { refresh: 'ref', expires: 1 },
+    });
+    assert.equal(config.authMode, undefined);
+    assert.equal(config.oauth, undefined);
+});
+
+test('normalizeProviderConfigMap: is idempotent on oauth credentials', () => {
+    const input = {
+        openai: {
+            apiKey: null,
+            baseUrl: DEFAULT_PROVIDER_BASE_URLS.openai,
+            authMode: 'oauth' as const,
+            oauth: { access: 'a', refresh: 'b', expires: 999, accountId: 'acct' },
+        },
+    };
+    // Normalizing an already-normalized map must not drop the oauth blob. The
+    // full save→load round-trip through buildProviderConfigCacheRecord /
+    // resolveLlmProviderConfigMap is covered in cacheManager.test.ts.
+    const twice = normalizeProviderConfigMap(normalizeProviderConfigMap(input));
+    assert.equal(twice.openai.authMode, 'oauth');
+    assert.equal(twice.openai.oauth?.access, 'a');
+    assert.equal(twice.openai.oauth?.accountId, 'acct');
+});
+
+test('normalizeOAuthCredentials: requires an access token', () => {
+    assert.equal(normalizeOAuthCredentials({ refresh: 'r', expires: 1 }), null);
+    assert.equal(normalizeOAuthCredentials(null), null);
+    const ok = normalizeOAuthCredentials({ access: '  tok  ', refresh: 'r', expires: 5 });
+    assert.equal(ok?.access, 'tok');
+    assert.equal(ok?.tokenType, undefined);
+});
+
+test('hasUsableProviderCredentials: oauth mode needs an access token, apiKey mode needs a key', () => {
+    assert.equal(hasUsableProviderCredentials(undefined), false);
+    assert.equal(hasUsableProviderCredentials({ apiKey: 'sk', baseUrl: 'x' }), true);
+    assert.equal(
+        hasUsableProviderCredentials({ apiKey: null, baseUrl: 'x', authMode: 'oauth' }),
+        false
+    );
+    assert.equal(
+        hasUsableProviderCredentials({
+            apiKey: null,
+            baseUrl: 'x',
+            authMode: 'oauth',
+            oauth: { access: 'tok', refresh: 'r', expires: 1 },
+        }),
+        true
+    );
 });
 
 test('normalizeProviderConfigMap: fills missing providers with defaults, retains overrides', () => {
@@ -339,6 +425,364 @@ test('buildAvailableAgentModelOptions: server-provided catalog overrides default
     });
     assert.equal(options.length, 1);
     assert.equal(options[0].value, 'custom-model');
+});
+
+test('buildAvailableAgentModelOptions: Codex OAuth is empty without a catalog, surfaces customModel', () => {
+    const configs = createDefaultProviderConfigMap();
+    configs.openai = {
+        apiKey: null,
+        baseUrl: DEFAULT_PROVIDER_BASE_URLS.openai,
+        authMode: 'oauth',
+        oauth: { access: 'tok', refresh: 'r', expires: 1 },
+    };
+    // No hardcoded Codex models: with no live catalog and no manual model, the picker is empty.
+    assert.deepEqual(buildAvailableAgentModelOptions({ providerConfigs: configs }), []);
+
+    // The user-typed customModel is surfaced as a selectable option.
+    configs.openai = { ...configs.openai, customModel: 'gpt-7-codex' };
+    const withCustom = buildAvailableAgentModelOptions({ providerConfigs: configs });
+    assert.deepEqual(
+        withCustom.map(o => o.value),
+        ['gpt-7-codex']
+    );
+    assert.equal(withCustom[0].provider, 'openai');
+});
+
+test('buildAvailableAgentModelOptions: Codex OAuth uses the live WHAM catalog when present', () => {
+    const configs = createDefaultProviderConfigMap();
+    configs.openai = {
+        apiKey: null,
+        baseUrl: DEFAULT_PROVIDER_BASE_URLS.openai,
+        authMode: 'oauth',
+        oauth: { access: 'tok', refresh: 'r', expires: 1 },
+    };
+    // For OAuth, the live WHAM list lands in the dedicated subscriptionModelsByProvider slot
+    // (NOT availableModelsByProvider), so the picker should surface exactly that.
+    const options = buildAvailableAgentModelOptions({
+        providerConfigs: configs,
+        subscriptionModelsByProvider: {
+            openai: [{ label: 'gpt-5.9-codex', value: 'gpt-5.9-codex', provider: 'openai' }],
+        },
+    });
+    assert.deepEqual(
+        options.map(o => o.value),
+        ['gpt-5.9-codex']
+    );
+});
+
+test('buildAvailableAgentModelOptions: OAuth ignores the server catalog slot, reads only subscription', () => {
+    const configs = createDefaultProviderConfigMap();
+    configs.openai = {
+        apiKey: null,
+        baseUrl: DEFAULT_PROVIDER_BASE_URLS.openai,
+        authMode: 'oauth',
+        oauth: { access: 'tok', refresh: 'r', expires: 1 },
+    };
+    // A stale value in availableModelsByProvider.openai must NOT leak into an OAuth picker —
+    // the two slots are isolated.
+    const options = buildAvailableAgentModelOptions({
+        providerConfigs: configs,
+        availableModelsByProvider: {
+            openai: [{ label: 'stale', value: 'stale', provider: 'openai' }],
+        },
+        subscriptionModelsByProvider: {
+            openai: [{ label: 'gpt-live', value: 'gpt-live', provider: 'openai' }],
+        },
+    });
+    assert.deepEqual(
+        options.map(o => o.value),
+        ['gpt-live']
+    );
+});
+
+test('buildAvailableAgentModelOptions: union of server (api-key) and subscription (oauth) providers', () => {
+    const configs = createDefaultProviderConfigMap();
+    configs.anthropic = { apiKey: 'sk-a', baseUrl: DEFAULT_PROVIDER_BASE_URLS.anthropic };
+    configs.openai = {
+        apiKey: null,
+        baseUrl: DEFAULT_PROVIDER_BASE_URLS.openai,
+        authMode: 'oauth',
+        oauth: { access: 'tok', refresh: 'r', expires: 1 },
+    };
+    const options = buildAvailableAgentModelOptions({
+        providerConfigs: configs,
+        availableModelsByProvider: {
+            anthropic: [{ label: 'claude-x', value: 'claude-x', provider: 'anthropic' }],
+        },
+        subscriptionModelsByProvider: {
+            openai: [{ label: 'gpt-live', value: 'gpt-live', provider: 'openai' }],
+        },
+    });
+    const values = options.map(o => o.value);
+    assert.ok(values.includes('claude-x'));
+    assert.ok(values.includes('gpt-live'));
+});
+
+test('buildAvailableAgentModelOptions: after disconnect (apiKey mode) a stale subscription slot is ignored', () => {
+    // Post-disconnect openai is back in API-key mode. Even if the subscription slot still holds
+    // the old Codex models (before the refetch clears it), the gate is off so they must NOT leak;
+    // openai resolves to its API-key/server/static catalog instead — the user is never stuck on a
+    // Codex model.
+    const configs = createDefaultProviderConfigMap();
+    configs.openai = {
+        apiKey: 'sk-openai',
+        baseUrl: DEFAULT_PROVIDER_BASE_URLS.openai,
+        authMode: 'apiKey',
+    };
+    // Use a sentinel that exists ONLY in the subscription slot (not in the static OpenAI catalog)
+    // so we can prove the slot is ignored rather than coincidentally matching a static entry.
+    const options = buildAvailableAgentModelOptions({
+        providerConfigs: configs,
+        subscriptionModelsByProvider: {
+            openai: [{ label: 'codex-private-x', value: 'codex-private-x', provider: 'openai' }],
+        },
+    });
+    const values = options.map(o => o.value);
+    assert.ok(
+        !values.includes('codex-private-x'),
+        'stale subscription-only model must not leak after disconnect'
+    );
+    // Falls back to the static OpenAI catalog (no server models passed).
+    assert.deepEqual(
+        values,
+        OPENAI_MODEL_OPTIONS.map(m => m.value)
+    );
+});
+
+test('fetchCodexModels: maps WHAM models[].slug to options with auth headers', async () => {
+    const calls: Array<{ url: string; headers: Record<string, string> }> = [];
+    const mockFetch = (async (url: string | URL, options?: RequestInit) => {
+        calls.push({
+            url: String(url),
+            headers: (options?.headers ?? {}) as Record<string, string>,
+        });
+        return {
+            ok: true,
+            json: async () => ({
+                models: [{ slug: 'gpt-5.1-codex' }, { slug: 'gpt-5.1-codex-mini' }],
+            }),
+        } as Response;
+    }) as unknown as typeof fetch;
+    const models = await fetchCodexModels(
+        { access: 'tok', refresh: 'r', expires: 1, accountId: 'acct' },
+        '0.137.0',
+        mockFetch
+    );
+    assert.deepEqual(
+        models.map(m => m.value),
+        ['gpt-5.1-codex', 'gpt-5.1-codex-mini']
+    );
+    assert.equal(models[0].provider, 'openai');
+    assert.match(calls[0].url, /backend-api\/wham\/models\?client_version=0\.137\.0/);
+    assert.equal(calls[0].headers.Authorization, 'Bearer tok');
+    assert.equal(calls[0].headers['ChatGPT-Account-Id'], 'acct');
+});
+
+test('fetchCodexModels: falls back to data[].id and is empty without an access token', async () => {
+    const mockFetch = (async () =>
+        ({
+            ok: true,
+            json: async () => ({ data: [{ id: 'm1' }] }),
+        }) as Response) as unknown as typeof fetch;
+    const fromData = await fetchCodexModels(
+        { access: 'tok', refresh: 'r', expires: 1 },
+        '1.0.0',
+        mockFetch
+    );
+    assert.deepEqual(
+        fromData.map(m => m.value),
+        ['m1']
+    );
+    assert.deepEqual(
+        await fetchCodexModels({ access: '', refresh: '', expires: 0 }, '1.0.0', mockFetch),
+        []
+    );
+});
+
+test('fetchXaiModels: maps /v1/language-models models[].id with a bearer, dedupes', async () => {
+    const calls: Array<{ url: string; headers: Record<string, string> }> = [];
+    const mockFetch = (async (url: string | URL, options?: RequestInit) => {
+        calls.push({
+            url: String(url),
+            headers: (options?.headers ?? {}) as Record<string, string>,
+        });
+        return {
+            ok: true,
+            json: async () => ({
+                models: [
+                    { id: 'grok-4.1-fast-reasoning' },
+                    { id: 'grok-code-fast-1' },
+                    { id: 'grok-4.1-fast-reasoning' }, // duplicate id is dropped
+                ],
+            }),
+        } as Response;
+    }) as unknown as typeof fetch;
+    const models = await fetchXaiModels(
+        { access: 'xtok', refresh: 'r', expires: 1 },
+        DEFAULT_PROVIDER_BASE_URLS.grok,
+        mockFetch
+    );
+    assert.deepEqual(
+        models.map(m => m.value),
+        ['grok-4.1-fast-reasoning', 'grok-code-fast-1']
+    );
+    assert.equal(models[0].provider, 'grok');
+    assert.match(calls[0].url, /api\.x\.ai\/v1\/language-models$/);
+    assert.equal(calls[0].headers.Authorization, 'Bearer xtok');
+});
+
+test('fetchXaiModels: falls back to data[].id and is empty without an access token', async () => {
+    const mockFetch = (async () =>
+        ({
+            ok: true,
+            json: async () => ({ data: [{ id: 'grok-x' }] }),
+        }) as Response) as unknown as typeof fetch;
+    const fromData = await fetchXaiModels(
+        { access: 'xtok', refresh: 'r', expires: 1 },
+        DEFAULT_PROVIDER_BASE_URLS.grok,
+        mockFetch
+    );
+    assert.deepEqual(
+        fromData.map(m => m.value),
+        ['grok-x']
+    );
+    assert.deepEqual(
+        await fetchXaiModels({ access: '', refresh: '', expires: 0 }, '', mockFetch),
+        []
+    );
+});
+
+test('buildAvailableAgentModelOptions: xAI OAuth uses the live catalog, no hardcoded fallback', () => {
+    const configs = createDefaultProviderConfigMap();
+    configs.grok = {
+        apiKey: null,
+        baseUrl: DEFAULT_PROVIDER_BASE_URLS.grok,
+        authMode: 'oauth',
+        oauth: { access: 'xtok', refresh: 'r', expires: 1 },
+    };
+    // No live catalog → empty (NOT the static GROK_MODEL_OPTIONS), surfaces customModel instead.
+    assert.deepEqual(buildAvailableAgentModelOptions({ providerConfigs: configs }), []);
+    configs.grok = { ...configs.grok, customModel: 'grok-custom' };
+    assert.deepEqual(
+        buildAvailableAgentModelOptions({ providerConfigs: configs }).map(o => o.value),
+        ['grok-custom']
+    );
+
+    // With a live catalog (in the dedicated subscription slot), the picker surfaces that list.
+    const withCatalog = buildAvailableAgentModelOptions({
+        providerConfigs: configs,
+        subscriptionModelsByProvider: {
+            grok: [{ label: 'grok-4.3-latest', value: 'grok-4.3-latest', provider: 'grok' }],
+        },
+    });
+    assert.deepEqual(
+        withCatalog.map(o => o.value),
+        ['grok-4.3-latest', 'grok-custom']
+    );
+});
+
+test('fetchSubscriptionModels: fetches Codex + xAI for connected OAuth providers', async () => {
+    const configs = createDefaultProviderConfigMap();
+    configs.openai = {
+        apiKey: null,
+        baseUrl: DEFAULT_PROVIDER_BASE_URLS.openai,
+        authMode: 'oauth',
+        oauth: { access: 'tok', refresh: 'r', expires: 1 },
+    };
+    configs.grok = {
+        apiKey: null,
+        baseUrl: DEFAULT_PROVIDER_BASE_URLS.grok,
+        authMode: 'oauth',
+        oauth: { access: 'xtok', refresh: 'r', expires: 1 },
+    };
+    const mockFetch = (async (url: string | URL) => {
+        const u = String(url);
+        if (/registry\.npmjs\.org/.test(u)) {
+            return { ok: true, json: async () => ({ version: '0.140.0' }) } as Response;
+        }
+        if (/wham\/models/.test(u)) {
+            return {
+                ok: true,
+                json: async () => ({ models: [{ slug: 'gpt-codex' }] }),
+            } as Response;
+        }
+        if (/language-models/.test(u)) {
+            return { ok: true, json: async () => ({ models: [{ id: 'grok-live' }] }) } as Response;
+        }
+        throw new Error(`unexpected url ${u}`);
+    }) as unknown as typeof fetch;
+
+    const result = await fetchSubscriptionModels(configs, mockFetch);
+    assert.deepEqual(
+        result.openai.map(m => m.value),
+        ['gpt-codex']
+    );
+    assert.deepEqual(
+        result.grok.map(m => m.value),
+        ['grok-live']
+    );
+});
+
+test('fetchSubscriptionModels: degrades to [] when a provider fetch fails, never throws', async () => {
+    const configs = createDefaultProviderConfigMap();
+    configs.openai = {
+        apiKey: null,
+        baseUrl: DEFAULT_PROVIDER_BASE_URLS.openai,
+        authMode: 'oauth',
+        oauth: { access: 'tok', refresh: 'r', expires: 1 },
+    };
+    configs.grok = {
+        apiKey: null,
+        baseUrl: DEFAULT_PROVIDER_BASE_URLS.grok,
+        authMode: 'oauth',
+        oauth: { access: 'xtok', refresh: 'r', expires: 1 },
+    };
+    const mockFetch = (async (url: string | URL) => {
+        const u = String(url);
+        if (/registry\.npmjs\.org/.test(u)) {
+            return { ok: true, json: async () => ({ version: '0.140.0' }) } as Response;
+        }
+        if (/wham\/models/.test(u)) {
+            return { ok: false, status: 500, json: async () => ({}) } as Response;
+        }
+        if (/language-models/.test(u)) {
+            return { ok: true, json: async () => ({ models: [{ id: 'grok-live' }] }) } as Response;
+        }
+        throw new Error(`unexpected url ${u}`);
+    }) as unknown as typeof fetch;
+
+    const result = await fetchSubscriptionModels(configs, mockFetch);
+    assert.deepEqual(result.openai, []); // WHAM 500 → empty, no throw
+    assert.deepEqual(
+        result.grok.map(m => m.value),
+        ['grok-live']
+    );
+});
+
+test('fetchSubscriptionModels: no OAuth providers → empty, makes no fetch calls', async () => {
+    const configs = createDefaultProviderConfigMap();
+    configs.openai = { apiKey: 'sk-a', baseUrl: DEFAULT_PROVIDER_BASE_URLS.openai };
+    let calls = 0;
+    const mockFetch = (async () => {
+        calls += 1;
+        return { ok: true, json: async () => ({}) } as Response;
+    }) as unknown as typeof fetch;
+    const result = await fetchSubscriptionModels(configs, mockFetch);
+    assert.deepEqual(result, { openai: [], grok: [] });
+    assert.equal(calls, 0);
+});
+
+test('resolveCodexClientVersion: uses latest npm version, falls back to the pinned default', async () => {
+    const ok = (async (url: string | URL) => {
+        assert.match(String(url), /registry\.npmjs\.org\/@openai\/codex\/latest/);
+        return { ok: true, json: async () => ({ version: '0.140.0' }) } as Response;
+    }) as unknown as typeof fetch;
+    assert.equal(await resolveCodexClientVersion(ok), '0.140.0');
+
+    const offline = (async () => {
+        throw new Error('offline');
+    }) as unknown as typeof fetch;
+    assert.equal(await resolveCodexClientVersion(offline), CODEX_MODELS_CLIENT_VERSION);
 });
 
 test('buildAvailableAgentModelOptions: accepts { models } catalog shape', () => {

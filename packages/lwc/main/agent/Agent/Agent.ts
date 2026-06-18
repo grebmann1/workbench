@@ -37,13 +37,19 @@ import {
     formatSkillsForPrompt,
     resolveProviderModelInstance,
     resolveProviderOptions,
+    persistRefreshedOAuthCredentials,
     type ProviderInstance,
 } from 'agent/utils';
 import { stepCountIs, streamText, tool as createAiSdkTool } from 'ai';
 import type { ModelMessage, ToolModelMessage, ToolResultPart, ToolSet } from 'ai';
 import { getIndexedDbFileSystem } from 'core/fs';
 import { store, AGENT } from 'core/store';
-import { DEFAULT_LLM_PROVIDER, normalizeLlmProvider, getMaxOutputTokensForModel } from 'shared/llm';
+import {
+    DEFAULT_LLM_PROVIDER,
+    normalizeLlmProvider,
+    getMaxOutputTokensForModel,
+    type OAuthCredentials,
+} from 'shared/llm';
 import LOGGER from 'shared/logger';
 import { guid } from 'shared/utils';
 import { z } from 'zod';
@@ -133,6 +139,8 @@ type AgentSettings = {
     isStoreEnabled?: boolean;
     isInternal?: boolean;
     useResponsesApi?: boolean;
+    authMode?: 'apiKey' | 'oauth';
+    oauth?: OAuthCredentials | null;
     extraTools?: Array<{
         name: string;
         description?: string;
@@ -242,6 +250,7 @@ export class Agent {
     private planContext: string | null = null;
     private isInternal: boolean;
     private useResponsesApi: boolean;
+    private authMode?: 'apiKey' | 'oauth';
     private mcpToolset: McpToolset | null;
     private subagentStatusListeners = new Set<(status: SubagentStatus | null) => void>();
     private _lastContextStats: {
@@ -269,6 +278,7 @@ export class Agent {
         isStoreEnabled,
         isInternal,
         useResponsesApi,
+        authMode,
         mcpToolset,
         store,
     }: {
@@ -287,6 +297,7 @@ export class Agent {
         isStoreEnabled: boolean;
         isInternal?: boolean;
         useResponsesApi?: boolean;
+        authMode?: 'apiKey' | 'oauth';
         mcpToolset?: McpToolset | null;
         store: Store;
     }) {
@@ -305,6 +316,7 @@ export class Agent {
         this.isStoreEnabled = isStoreEnabled;
         this.isInternal = !!isInternal;
         this.useResponsesApi = !!useResponsesApi;
+        this.authMode = authMode;
         this.mcpToolset = mcpToolset || null;
         this.store = store;
     }
@@ -357,6 +369,20 @@ export class Agent {
             apiKey: settings.apiKey,
             baseUrl: settings.baseUrl,
             isInternal: !!settings.isInternal,
+            authMode: settings.authMode,
+            oauth: settings.oauth,
+            onTokenRefresh:
+                settings.authMode === 'oauth'
+                    ? credentials => {
+                          // Fire-and-forget: the in-memory token already keeps this run going;
+                          // persistence just keeps the next run + a rotated refresh token fresh.
+                          persistRefreshedOAuthCredentials(provider, credentials).catch(error => {
+                              LOGGER.warn('[agent:oauth] failed to persist refreshed credentials', {
+                                  error,
+                              });
+                          });
+                      }
+                    : undefined,
         });
         const summaryModel = getSummaryModelForAgentProvider(
             provider,
@@ -380,6 +406,7 @@ export class Agent {
             isStoreEnabled: settings.isStoreEnabled || false,
             isInternal: settings.isInternal,
             useResponsesApi: settings.useResponsesApi,
+            authMode: settings.authMode,
             mcpToolset,
             store: store,
         });
@@ -639,6 +666,7 @@ export class Agent {
                             modelId: this.model,
                             isInternal: this.isInternal,
                             useResponsesApi: this.useResponsesApi,
+                            authMode: this.authMode,
                         }),
                         system: systemText,
                         messages: this.messages,

@@ -76,7 +76,8 @@
         "unlimitedStorage",
         "activeTab",
         "scripting",
-        "debugger"
+        "debugger",
+        "webNavigation"
     ],
     "incognito": "spanning",
     "externally_connectable": {

@@ -4,6 +4,8 @@ import type { ConnectorLike } from 'host-api/connector';
 import { ERROR, DOCUMENT } from 'host-api/store';
 import { lowerCaseKey } from 'host-api/utils';
 
+import { mergeQueryPage } from './queryPagination';
+
 export const queryAdapter = createEntityAdapter<any>();
 
 // Thunks using createAsyncThunk
@@ -78,6 +80,56 @@ export const executeQueryIncognito = createAsyncThunk(
             getStore()?.dispatch(
                 ERROR.reduxSlice.actions.addError({
                     message: 'Error executing query',
+                    details: err.message,
+                })
+            );
+            throw err;
+        }
+    }
+);
+
+/**
+ * Fetch additional records for an already-executed query via Salesforce
+ * `queryMore` (the `nextRecordsUrl` cursor jsforce returns on the first page).
+ *
+ * The merged result is written back to the store on every page through the
+ * `loadMorePage` action, so the table grows reactively as pages arrive. With
+ * `loadAll: true` it walks the cursor to the end (a single SOQL run can return
+ * far more than the initial 2,000 records); otherwise it fetches one page.
+ */
+export const loadMoreRecords = createAsyncThunk(
+    'queries/loadMoreRecords',
+    async (
+        {
+            connector,
+            tabId,
+            loadAll,
+        }: {
+            connector: ConnectorLike;
+            tabId: string;
+            loadAll?: boolean;
+        },
+        { dispatch, getState, signal }
+    ) => {
+        const conn = connector.conn;
+        let cursor: string | null | undefined = querySelectors.selectById(
+            getState() as any,
+            lowerCaseKey(tabId)
+        )?.data?.nextRecordsUrl;
+
+        try {
+            while (cursor) {
+                if (signal.aborted) break;
+                const page: any = await conn.request({ method: 'GET', url: cursor });
+                dispatch(queriesSlice.actions.loadMorePage({ tabId, page }));
+                cursor = page?.nextRecordsUrl ?? null;
+                if (!loadAll) break;
+            }
+            return { tabId };
+        } catch (err) {
+            getStore()?.dispatch(
+                ERROR.reduxSlice.actions.addError({
+                    message: 'Error loading more records',
                     details: err.message,
                 })
             );
@@ -165,6 +217,18 @@ const queriesSlice = createSlice({
                 },
             });
         },
+        loadMorePage: (state, action) => {
+            // Append a fetched `queryMore` page to the tab's current result set.
+            const { tabId, page } = action.payload;
+            const existingRecord = queryAdapter
+                .getSelectors()
+                .selectById(state, lowerCaseKey(tabId));
+            if (!existingRecord?.data) return;
+            queryAdapter.upsertOne(state, {
+                ...existingRecord,
+                data: mergeQueryPage(existingRecord.data, page),
+            });
+        },
         clearQueryError: (state, action) => {
             const { tabId } = action.payload;
             queryAdapter.upsertOne(state, {
@@ -205,6 +269,27 @@ const queriesSlice = createSlice({
                     id: lowerCaseKey(tabId),
                     isFetching: false,
                     error,
+                });
+            })
+            .addCase(loadMoreRecords.pending, (state, action) => {
+                const { tabId } = action.meta.arg;
+                queryAdapter.upsertOne(state, {
+                    id: lowerCaseKey(tabId),
+                    isFetchingMore: true,
+                });
+            })
+            .addCase(loadMoreRecords.fulfilled, (state, action) => {
+                const { tabId } = action.meta.arg;
+                queryAdapter.upsertOne(state, {
+                    id: lowerCaseKey(tabId),
+                    isFetchingMore: false,
+                });
+            })
+            .addCase(loadMoreRecords.rejected, (state, action) => {
+                const { tabId } = action.meta.arg;
+                queryAdapter.upsertOne(state, {
+                    id: lowerCaseKey(tabId),
+                    isFetchingMore: false,
                 });
             })
             .addCase(explainQuery.pending, (state, action) => {
