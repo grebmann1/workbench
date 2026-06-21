@@ -1,15 +1,24 @@
 [
     {
         "version": "2.0.6",
-        "date": "TBD — release candidate",
+        "date": "June 18th, 2026",
         "sections": [
             {
-                "title": "Highlights",
+                "title": "Enhancements",
                 "categories": [
                     {
-                        "category": "Pending",
+                        "category": "AI Agent — Subscription Sign-In",
                         "items": [
-                            "Release candidate scaffold. Populate this entry as 2.0.6 work merges in (e.g. subscription OAuth sign-in for ChatGPT / xAI)."
+                            "Added subscription OAuth sign-in so you can connect AI providers with your existing ChatGPT (OpenAI / Codex) or xAI (Grok) subscription instead of pasting an API key.",
+                            "Codex (WHAM) models now appear in the model picker when the OpenAI provider is in OAuth mode.",
+                            "OAuth credentials now round-trip reliably through every provider save/load path, fixing config fields (including the model picker gate) being silently dropped."
+                        ]
+                    },
+                    {
+                        "category": "SOQL Explorer",
+                        "items": [
+                            "Added Load More and Load All so you can browse query results past the 2,000-record cap; the results grid now grows progressively as additional pages load.",
+                            "Added a \"{loaded} of {total}\" indicator in the results header so you can see how much of the result set is loaded."
                         ]
                     }
                 ]
