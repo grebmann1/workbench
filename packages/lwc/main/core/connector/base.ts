@@ -400,6 +400,25 @@ export const normalizeConfiguration = (rawData, byPassValidation = false) => {
     };
 };
 
+/**
+ * Recover the 15-char OrgId from a Salesforce session/access token.
+ *
+ * Salesforce session tokens are shaped `<15-char-OrgId>!<signature>` (the
+ * leading segment is the case-sensitive 15-char Organization Id, always
+ * prefixed `00D`). `conn.identity()` normally exposes `organization_id`, but
+ * for some orgs the identity payload omits it, leaving `configuration.orgId`
+ * empty even though the org is otherwise fully usable (the Company Information
+ * screen still resolves the Id via a direct `SELECT Id FROM Organization`).
+ * This derives the Id from the token as a no-extra-request fallback.
+ */
+export const deriveOrgIdFromToken = (token?: unknown): string | undefined => {
+    if (!token || typeof token !== 'string') {
+        return undefined;
+    }
+    const prefix = token.split('!')[0];
+    return /^00D[A-Za-z0-9]{12}$/.test(prefix) ? prefix : undefined;
+};
+
 export const extractConfigurationValuesFromConnection = connection => {
     return {
         sessionId: connection.sessionId || connection.accessToken,

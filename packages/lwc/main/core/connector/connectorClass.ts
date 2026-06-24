@@ -10,6 +10,7 @@ import {
     extractConfigurationValuesFromConnection,
     inferSandboxValue,
     normalizeOrganizationType,
+    deriveOrgIdFromToken,
 } from './base';
 import type { ConnectionLike, ConnectorConfiguration } from './connector';
 import { OAUTH_TYPES } from './credentialStrategies/oauthTypes';
@@ -240,7 +241,12 @@ export class Connector {
             // Enrich Configuration
             Object.assign(this.configuration, {
                 username: identity?.username || this.configuration.username,
-                orgId: identity?.organization_id || this.configuration.orgId,
+                orgId:
+                    identity?.organization_id ||
+                    this.configuration.orgId ||
+                    deriveOrgIdFromToken(
+                        this.conn?.accessToken || this.configuration.sessionId
+                    ),
                 userInfo: identity || this.configuration.userInfo,
                 organizationType: organizationType || this.configuration.organizationType,
                 orgType: organizationType || this.configuration.orgType,

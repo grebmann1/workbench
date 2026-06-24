@@ -19,6 +19,7 @@ const {
     extractConfigurationValuesFromConnection,
     buildConnectionFromConnector,
     normalizeConnection,
+    deriveOrgIdFromToken,
 } = base as any;
 const { OAUTH_TYPES } = await import('../credentialStrategies/oauthTypes.ts');
 const { PLATFORM } = await import('../platform.ts');
@@ -222,4 +223,24 @@ test('normalizeConnection: Electron uses the same-origin desktop proxy', () => {
         { isProxyDisabled: true }
     );
     assert.equal(disabledParams.proxyUrl, null);
+});
+
+test('deriveOrgIdFromToken: recovers the 15-char OrgId prefix from a session token', () => {
+    assert.equal(
+        deriveOrgIdFromToken('00DHr0000074EN7!ARYAQCGAQu93mkYW9TORwVuqSqLUWIg'),
+        '00DHr0000074EN7'
+    );
+});
+
+test('deriveOrgIdFromToken: returns undefined for tokens without an Org-shaped prefix', () => {
+    assert.equal(deriveOrgIdFromToken('not-a-real-token'), undefined);
+    assert.equal(deriveOrgIdFromToken('ABC123!signature'), undefined);
+    assert.equal(deriveOrgIdFromToken('00Dshort!signature'), undefined);
+});
+
+test('deriveOrgIdFromToken: handles null / undefined / non-string / empty input', () => {
+    assert.equal(deriveOrgIdFromToken(null), undefined);
+    assert.equal(deriveOrgIdFromToken(undefined), undefined);
+    assert.equal(deriveOrgIdFromToken(123 as any), undefined);
+    assert.equal(deriveOrgIdFromToken(''), undefined);
 });
