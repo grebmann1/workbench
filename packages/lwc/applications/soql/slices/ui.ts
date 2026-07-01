@@ -14,6 +14,7 @@ import {
 } from './queryFieldSelection';
 
 import * as QUERY from './query';
+import { stripSoqlComments } from './stripSoqlComments';
 
 const queryFilesSelectors = DOCUMENT.queryFileAdapter.getSelectors(s => s);
 
@@ -153,7 +154,8 @@ function updateSOQL(state, soql) {
         state.query = undefined;
         state.soql = soql;
     } else {
-        const q = isQueryValid(soql) ? parseQuery(soql) : state.query;
+        const soqlForParser = stripSoqlComments(soql);
+        const q = isQueryValid(soqlForParser) ? parseQuery(soqlForParser) : state.query;
         state.selectedSObject = q ? q.sObject : undefined;
         state.query = q;
         state.soql = soql;
