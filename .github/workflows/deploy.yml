@@ -46,6 +46,11 @@ jobs:
         env:
             HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
             APP: ${{ inputs.app }}
+            # GA4 measurement ID for the web SPA + docs build. Public value (also
+            # hardcoded in the extension/desktop bundles). apps/ui also has it in
+            # .env.prod; the docs build (Docusaurus) reads process.env directly and
+            # ignores .env files, so it must be exported here.
+            VITE_GA_MEASUREMENT_ID: G-J8XPLSRY91
         steps:
             - uses: actions/checkout@v4
               with:
