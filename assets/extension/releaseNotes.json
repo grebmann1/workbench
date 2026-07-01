@@ -23,6 +23,12 @@
                         "items": [
                             "Derive the Org Id from the session token when the identity response omits organization_id, so org-scoped links and features keep working on those connections."
                         ]
+                    },
+                    {
+                        "category": "SOQL Explorer",
+                        "items": [
+                            "Fixed full-line SOQL comments (`#` and `--`) so they are ignored at execution time and no longer break query parsing. Commented queries now keep object detection in sync, so the left object/fields panel updates correctly while you type."
+                        ]
                     }
                 ]
             },

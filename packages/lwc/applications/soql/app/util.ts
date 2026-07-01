@@ -1,6 +1,7 @@
 import { store } from 'host-api/store';
 import LightningConfirm from 'lightning/confirm';
 import { UI } from 'soql/slices';
+import { isSoqlCommentLine } from '../slices/stripSoqlComments';
 
 export const escapeCsvValue = (separator: string, value: unknown) => {
     if (value == null) return ''; // Handle null or undefined values
@@ -48,6 +49,9 @@ export const formatQueryWithComment = (query: string) => {
     return query
         .split('\n')
         .map(line => {
+            if (isSoqlCommentLine(line)) {
+                return '';
+            }
             const commentIndex = line.indexOf('//');
             if (commentIndex !== -1) {
                 // Include everything before `//`, excluding the comment

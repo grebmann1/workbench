@@ -4,7 +4,7 @@
         "active": true,
         "variant": "brand",
         "title": "Workbench 2.0.7 is here",
-        "message": "Workbench 2.0.7 fixes stale value cells in the Record Explorer after saving, blank fields in the Current User panel on some orgs, and Org Id detection on connections whose identity omits it — plus the AI Agent button now shows for any provider with usable credentials.",
+        "message": "Workbench 2.0.7 fixes stale value cells in the Record Explorer after saving, blank fields in the Current User panel on some orgs, Org Id detection on connections whose identity omits it, and SOQL Explorer line comments (`#` / `--`) so commented queries execute and keep object parsing in sync — plus the AI Agent button now shows for any provider with usable credentials.",
         "linkLabel": "View release notes",
         "linkUrl": "https://www.sf-workbench.com/app?applicationName=release",
         "startsAt": "2026-07-01T00:00:00Z",

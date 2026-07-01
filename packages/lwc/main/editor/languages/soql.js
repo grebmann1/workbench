@@ -377,6 +377,7 @@ export const language = {
     builtinFunctions: ['AVG', 'COUNT', 'CUBE', 'FORMAT', 'GROUPING', 'MAX', 'MIN', 'SUM', 'UPDATE'],
     tokenizer: {
         root: [
+            [/^\s*(#|--).*$/, 'comment'],
             {
                 include: '@comments',
             },
