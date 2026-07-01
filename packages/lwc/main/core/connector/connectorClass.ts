@@ -244,9 +244,7 @@ export class Connector {
                 orgId:
                     identity?.organization_id ||
                     this.configuration.orgId ||
-                    deriveOrgIdFromToken(
-                        this.conn?.accessToken || this.configuration.sessionId
-                    ),
+                    deriveOrgIdFromToken(this.conn?.accessToken || this.configuration.sessionId),
                 userInfo: identity || this.configuration.userInfo,
                 organizationType: organizationType || this.configuration.organizationType,
                 orgType: organizationType || this.configuration.orgType,
