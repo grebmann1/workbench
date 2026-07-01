@@ -5,6 +5,7 @@ import { ERROR, DOCUMENT } from 'host-api/store';
 import { lowerCaseKey } from 'host-api/utils';
 
 import { mergeQueryPage } from './queryPagination';
+import { stripSoqlComments } from './stripSoqlComments';
 
 export const queryAdapter = createEntityAdapter<any>();
 
@@ -32,8 +33,11 @@ export const executeQuery = createAsyncThunk(
         { dispatch }
     ) => {
         try {
+            // Strip full-line `#` / `--` comments just before the wire; the raw
+            // text (with comments) is what we persist to history below.
+            const executableSoql = stripSoqlComments(soql);
             const _conn = useToolingApi ? connector.conn.tooling : connector.conn;
-            const res = await _conn.query(soql).scanAll(includeDeletedRecords || false);
+            const res = await _conn.query(executableSoql).scanAll(includeDeletedRecords || false);
             dispatch(
                 DOCUMENT.reduxSlices.RECENT.actions.saveQuery({
                     soql: rawSoql ?? soql,
@@ -73,8 +77,9 @@ export const executeQueryIncognito = createAsyncThunk(
         { dispatch }
     ) => {
         try {
+            const executableSoql = stripSoqlComments(soql);
             const _conn = useToolingApi ? connector.conn.tooling : connector.conn;
-            const res = await _conn.query(soql).scanAll(includeDeletedRecords || false);
+            const res = await _conn.query(executableSoql).scanAll(includeDeletedRecords || false);
             return { data: res, soql };
         } catch (err) {
             getStore()?.dispatch(
@@ -150,8 +155,9 @@ export const explainQuery = createAsyncThunk(
         { dispatch }
     ) => {
         try {
+            const executableSoql = stripSoqlComments(soql);
             const _conn = useToolingApi ? connector.conn.tooling : connector.conn;
-            const query = _conn.query(soql);
+            const query = _conn.query(executableSoql);
             const res = await query.explain();
             return { data: res, soql, alias: connector.configuration.alias, tabId };
         } catch (err) {

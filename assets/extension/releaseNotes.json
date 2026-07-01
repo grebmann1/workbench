@@ -1,15 +1,76 @@
 [
     {
-        "version": "2.0.6",
-        "date": "TBD — release candidate",
+        "version": "2.0.7",
+        "date": "July 1st, 2026",
         "sections": [
             {
-                "title": "Highlights",
+                "title": "Bug Fixes",
                 "categories": [
                     {
-                        "category": "Pending",
+                        "category": "Record Explorer",
                         "items": [
-                            "Release candidate scaffold. Populate this entry as 2.0.6 work merges in (e.g. subscription OAuth sign-in for ChatGPT / xAI)."
+                            "Fixed a field value cell sometimes showing the stale value after a successful inline save; the cell now repaints when its record value changes."
+                        ]
+                    },
+                    {
+                        "category": "Current User",
+                        "items": [
+                            "Fixed the Current User panel showing blank fields in some orgs; the user lookup now resolves the user id from either identity shape (user_id or id), so OAuth/session and Login As connections populate correctly."
+                        ]
+                    },
+                    {
+                        "category": "Connector",
+                        "items": [
+                            "Derive the Org Id from the session token when the identity response omits organization_id, so org-scoped links and features keep working on those connections."
+                        ]
+                    },
+                    {
+                        "category": "SOQL Explorer",
+                        "items": [
+                            "Fixed full-line SOQL comments (`#` and `--`) so they are ignored at execution time and no longer break query parsing. Commented queries now keep object detection in sync, so the left object/fields panel updates correctly while you type."
+                        ]
+                    }
+                ]
+            },
+            {
+                "title": "Enhancements",
+                "categories": [
+                    {
+                        "category": "AI Agent",
+                        "items": [
+                            "The Agent button now appears whenever any AI provider has usable credentials — an API key or a subscription (OAuth) sign-in — instead of only when an OpenAI key was set."
+                        ]
+                    },
+                    {
+                        "category": "Overlay",
+                        "items": [
+                            "Refined the object type badges (Query / Create / Update) with a softer, higher-contrast style for better legibility."
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "version": "2.0.6",
+        "date": "June 18th, 2026",
+        "sections": [
+            {
+                "title": "Enhancements",
+                "categories": [
+                    {
+                        "category": "AI Agent — Subscription Sign-In",
+                        "items": [
+                            "Added subscription OAuth sign-in so you can connect AI providers with your existing ChatGPT (OpenAI / Codex) or xAI (Grok) subscription instead of pasting an API key.",
+                            "Codex (WHAM) models now appear in the model picker when the OpenAI provider is in OAuth mode.",
+                            "OAuth credentials now round-trip reliably through every provider save/load path, fixing config fields (including the model picker gate) being silently dropped."
+                        ]
+                    },
+                    {
+                        "category": "SOQL Explorer",
+                        "items": [
+                            "Added Load More and Load All so you can browse query results past the 2,000-record cap; the results grid now grows progressively as additional pages load.",
+                            "Added a \"{loaded} of {total}\" indicator in the results header so you can see how much of the result set is loaded."
                         ]
                     }
                 ]

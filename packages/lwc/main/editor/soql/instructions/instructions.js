@@ -25,6 +25,10 @@ export default `
    - Use selective filters indexed in Salesforce (e.g., 'Id', 'Name', 'CreatedDate') for large datasets.
    - Avoid filtering on non-indexed fields in large objects without careful consideration.
 
+7. **Comment Out Lines**:
+   - Start a line with '#' or '--' (as its first non-whitespace characters) to comment it out. The line stays in the editor but is stripped before the query is sent to Salesforce.
+   - Only full-line comments are removed — a '#' or '--' that appears after other tokens, or inside a quoted string literal, is left as-is.
+
 ---
 
 ## Example Queries
@@ -75,6 +79,17 @@ FROM Account
 WHERE BillingCountry = 'United States'
 ORDER BY Name ASC
 LIMIT 50
+'''
+
+---
+
+### Example 5: Query with Line Comments
+**Prompt:** Retrieve account names while keeping notes in the editor that are not sent to Salesforce.
+**SOQL Query:**
+'''sql
+# this line is ignored
+-- so is this one
+SELECT Id, Name FROM Account WHERE Name = 'a -- not a comment'
 '''
 
 `;
