@@ -27,16 +27,19 @@ const config: Config = {
                 theme: {
                     customCss: './src/css/custom.css',
                 },
+                // GA4 must be configured as a preset option (not in themeConfig) since
+                // Docusaurus 3.x — see https://github.com/facebook/docusaurus/pull/5832.
+                // Spread-omitted when the env var is unset so analytics stays disabled.
+                ...(process.env.VITE_GA_MEASUREMENT_ID && {
+                    gtag: {
+                        trackingID: process.env.VITE_GA_MEASUREMENT_ID,
+                        anonymizeIP: true,
+                    },
+                }),
             } satisfies Preset.Options,
         ],
     ],
     themeConfig: {
-        ...(process.env.VITE_GA_MEASUREMENT_ID && {
-            gtag: {
-                trackingID: process.env.VITE_GA_MEASUREMENT_ID,
-                anonymizeIP: true,
-            },
-        }),
         navbar: {
             title: 'Workbench Docs',
             items: [

@@ -11,7 +11,7 @@
 # so cross-app links resolve correctly in dev and prod builds.
 !/apps/ui/.env
 !/apps/ui/.env.development
-!/apps/ui/.env.production
+!/apps/ui/.env.prod
 .sfdx
 .DS_Store
 **/.cursor/*

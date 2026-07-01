@@ -10,7 +10,22 @@ import {
 } from 'shared/utils';
 
 export default class RecordExplorerRow extends ToolkitElement {
-    @api item: Record<string, any> | null = null;
+    _item: Record<string, any> | null = null;
+
+    @api get item(): Record<string, any> | null {
+        return this._item;
+    }
+
+    set item(value: Record<string, any> | null) {
+        this._item = value;
+        // Value/field/type cells are manual DOM (lwc:dom="manual"), so a new
+        // item reference (e.g. fresh record after save → refreshData) must force
+        // a repaint — mirrors the filter/isLabelDisplayed/isInfoDisplayed setters.
+        if (this.hasRendered) {
+            this.renderRow();
+        }
+    }
+
     @api isLoading = false;
     @api isVisible = false;
     @api currentOrigin: string | null = null;

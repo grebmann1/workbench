@@ -91,30 +91,37 @@
 
 .object-badges {
     display: flex;
-    gap: 0.25rem;
+    gap: 0.1875rem;
 }
 
 .object-badge {
-    width: 18px;
-    height: 18px;
+    width: 16px;
+    height: 16px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     border-radius: 0.25rem;
     font-size: 10px;
-    font-weight: 700;
-    color: #ffffff;
+    font-weight: 600;
     line-height: 1;
+    border: 1px solid transparent;
+    letter-spacing: 0.02em;
 }
 
 .object-badge--q {
-    background: #0176d3;
+    color: #0b5cab;
+    background: #eaf3fc;
+    border-color: #cfe3f7;
 }
 
 .object-badge--c {
-    background: #2e844a;
+    color: #1b6b39;
+    background: #ebf6ee;
+    border-color: #cce8d5;
 }
 
 .object-badge--u {
-    background: #fe9339;
+    color: #a85b15;
+    background: #fdf1e3;
+    border-color: #f6dcbd;
 }

@@ -121,6 +121,14 @@ export default class Me extends ToolkitElement {
 
     load_myUserInformation = async (): Promise<void> => {
         if (isUndefinedOrNull(this.connector?.conn?.userInfo)) return;
+        // `conn.userInfo` has two possible shapes depending on how the connector
+        // was enriched: jsforce-native `{ id: <userId>, ... }`, or the reconciled
+        // identity response where `.id` is the identity URL and the user id lives
+        // in `.user_id`. Prefer `user_id` so the SOQL lookup below resolves in
+        // both cases (mirrors extractConfigurationValuesFromConnection in base.ts).
+        const userInfo = this.connector.conn.userInfo as Record<string, any>;
+        const userId = userInfo.user_id || userInfo.id;
+        if (isEmpty(userId)) return;
         const fields = [
             'Id',
             'LastName',
@@ -135,7 +143,7 @@ export default class Me extends ToolkitElement {
         ];
         const exceptionFields = ['CurrencyIsoCode'];
         const query = (fields: string[]): string =>
-            `SELECT ${fields.join(',')} FROM User WHERE id = '${this.connector.conn.userInfo.id}'`;
+            `SELECT ${fields.join(',')} FROM User WHERE id = '${userId}'`;
         let _user = await runSilent(async () => {
             return (await this.connector.conn.query(query([].concat(fields, exceptionFields))))
                 .records[0];
@@ -281,7 +289,8 @@ export default class Me extends ToolkitElement {
     }
 
     get goToMyUserUrl() {
-        const userId = this.connector?.conn?.userInfo?.id;
+        const userInfo = this.connector?.conn?.userInfo as Record<string, any> | undefined;
+        const userId = userInfo?.user_id || userInfo?.id;
         return `/lightning/setup/ManageUsers/page?address=${encodeURIComponent(
             `/${userId}?noredirect=1&isUserEntityOverride=1`
         )}`;
