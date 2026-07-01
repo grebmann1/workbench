@@ -1,13 +1,13 @@
 {
     "announcement": {
-        "id": "2026-06-18-2-0-6",
+        "id": "2026-07-01-2-0-7",
         "active": true,
         "variant": "brand",
-        "title": "Workbench 2.0.6 is here",
-        "message": "Workbench 2.0.6 adds subscription sign-in for AI providers — connect with your ChatGPT (OpenAI / Codex) or xAI (Grok) subscription instead of an API key — plus Load More / Load All in the SOQL Explorer to browse query results past the 2,000-record cap.",
+        "title": "Workbench 2.0.7 is here",
+        "message": "Workbench 2.0.7 fixes stale value cells in the Record Explorer after saving, blank fields in the Current User panel on some orgs, and Org Id detection on connections whose identity omits it — plus the AI Agent button now shows for any provider with usable credentials.",
         "linkLabel": "View release notes",
         "linkUrl": "https://www.sf-workbench.com/app?applicationName=release",
-        "startsAt": "2026-06-18T00:00:00Z",
+        "startsAt": "2026-07-01T00:00:00Z",
         "endsAt": "2026-12-31T23:59:59Z"
     }
 }

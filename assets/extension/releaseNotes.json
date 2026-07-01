@@ -1,15 +1,44 @@
 [
     {
         "version": "2.0.7",
-        "date": "TBD — release candidate",
+        "date": "July 1st, 2026",
         "sections": [
             {
-                "title": "Highlights",
+                "title": "Bug Fixes",
                 "categories": [
                     {
-                        "category": "Pending",
+                        "category": "Record Explorer",
                         "items": [
-                            "Release candidate scaffold. Populate this entry as 2.0.7 work merges in."
+                            "Fixed a field value cell sometimes showing the stale value after a successful inline save; the cell now repaints when its record value changes."
+                        ]
+                    },
+                    {
+                        "category": "Current User",
+                        "items": [
+                            "Fixed the Current User panel showing blank fields in some orgs; the user lookup now resolves the user id from either identity shape (user_id or id), so OAuth/session and Login As connections populate correctly."
+                        ]
+                    },
+                    {
+                        "category": "Connector",
+                        "items": [
+                            "Derive the Org Id from the session token when the identity response omits organization_id, so org-scoped links and features keep working on those connections."
+                        ]
+                    }
+                ]
+            },
+            {
+                "title": "Enhancements",
+                "categories": [
+                    {
+                        "category": "AI Agent",
+                        "items": [
+                            "The Agent button now appears whenever any AI provider has usable credentials — an API key or a subscription (OAuth) sign-in — instead of only when an OpenAI key was set."
+                        ]
+                    },
+                    {
+                        "category": "Overlay",
+                        "items": [
+                            "Refined the object type badges (Query / Create / Update) with a softer, higher-contrast style for better legibility."
                         ]
                     }
                 ]
