@@ -25,6 +25,16 @@ const SOBJECT = {
     contact: 'Contact',
 };
 
+// On the Chrome extension the connector talks to Salesforce directly (no proxy),
+// so record GETs are subject to the browser HTTP cache and a read-after-write can
+// return the stale pre-edit response (the classic "only refreshes with DevTools
+// open" symptom). The proxy transport used by web/electron already cache-busts;
+// these headers give the direct path the same guarantee.
+const NO_CACHE_HEADERS = {
+    'Cache-Control': 'no-cache',
+    Pragma: 'no-cache',
+};
+
 export default class RecordExplorer extends ToolkitElement {
     @wire(NavigationContext)
     navContext;
@@ -104,12 +114,16 @@ export default class RecordExplorer extends ToolkitElement {
             // Get Metadata (Step 3) // Should be optimized to save 1 API Call [Caching]
             var [metadata, record] = await Promise.all([
                 this.connector.conn.sobject(this.sobjectName).describe$(),
-                this.connector.conn.sobject(this.sobjectName).retrieve(this.recordId),
+                this.connector.conn
+                    .sobject(this.sobjectName)
+                    .retrieve(this.recordId, { headers: NO_CACHE_HEADERS }),
             ]);
             if (isUndefinedOrNull(metadata)) {
                 var [metadata, record] = await Promise.all([
                     this.connector.conn.tooling.sobject(this.sobjectName).describe$(),
-                    this.connector.conn.tooling.sobject(this.sobjectName).retrieve(this.recordId),
+                    this.connector.conn.tooling
+                        .sobject(this.sobjectName)
+                        .retrieve(this.recordId, { headers: NO_CACHE_HEADERS }),
                 ]);
                 this.metadata = metadata;
                 this.record = record;
@@ -144,7 +158,7 @@ export default class RecordExplorer extends ToolkitElement {
             if (this.record.RecordTypeId) {
                 this.recordType = await this.connector.conn
                     .sobject('RecordType')
-                    .retrieve(this.record.RecordTypeId);
+                    .retrieve(this.record.RecordTypeId, { headers: NO_CACHE_HEADERS });
             }
 
             this.dispatchEvent(
@@ -194,7 +208,9 @@ export default class RecordExplorer extends ToolkitElement {
                     : this.connector.conn;
                 const [metadata, record] = await Promise.all([
                     _connector.sobject(this.sobjectName).describe$(), // Refresh Metadata
-                    _connector.sobject(this.sobjectName).retrieve(this.recordId),
+                    _connector
+                        .sobject(this.sobjectName)
+                        .retrieve(this.recordId, { headers: NO_CACHE_HEADERS }),
                 ]);
                 this.metadata = metadata;
                 this.record = record;
