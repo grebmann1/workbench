@@ -665,6 +665,19 @@ export default class Overlay extends ToolkitElement {
         return undefined;
     };
 
+    // Accepts a raw user id or a Salesforce identity URL
+    // (e.g. `https://login.salesforce.com/id/00D.../005...`) and returns the
+    // trailing 15/18-char User Id so the SOQL `WHERE Id = ...` lookup resolves.
+    normalizeUserId = value => {
+        if (this.isBlankValue(value)) return undefined;
+        const raw = String(value).trim();
+        if (raw.includes('/')) {
+            const last = raw.split('/').filter(Boolean).pop();
+            if (/^005[A-Za-z0-9]{12,15}$/.test(last)) return last;
+        }
+        return raw;
+    };
+
     loadOrgAndUserInfo = async () => {
         try {
             if (!this.connector?.conn || !window.defaultStore) return;
@@ -694,12 +707,19 @@ export default class Overlay extends ToolkitElement {
             );
             const orgInfo = orgResult?.records?.[0] || {};
 
-            // Current user
-            const userId =
+            // Current user.
+            // `conn.userInfo` has two shapes: jsforce-native `{ id: <userId> }`,
+            // or the reconciled identity response where `.id` is the identity URL
+            // and the user id lives in `.user_id`. Prefer `user_id` in both the
+            // configuration and connection copies (mirrors org/me.ts), then fall
+            // back to `.id` — normalized in case it is an identity URL.
+            const userId = this.normalizeUserId(
                 this.connector?.configuration?.userInfo?.user_id ||
-                this.connector?.conn?.userInfo?.id ||
-                this.getUserIdFromPageContext() ||
-                (await this.getUserIdFromChatterMe());
+                    this.connector?.conn?.userInfo?.user_id ||
+                    this.connector?.conn?.userInfo?.id ||
+                    this.getUserIdFromPageContext() ||
+                    (await this.getUserIdFromChatterMe())
+            );
 
             let orgUser;
             if (!this.isBlankValue(userId)) {
