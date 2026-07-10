@@ -150,6 +150,32 @@
                 </div>
             </template>
             <template lwc:elseif={isUsernamePassword}>
+                <!-- OrgFarm OAuth Username-Password flow hint -->
+                <template lwc:if={showUnPwFlowHint}>
+                    <div class="slds-grid slds-wrap slds-m-bottom_x-small">
+                        <div class="slds-col slds-size_1-of-1 slds-p-horizontal_xx-small">
+                            <slds-information-block
+                                title="Enable Username-Password login"
+                                variant="warning">
+                                <p>
+                                    OrgFarm orgs ship with the OAuth Username-Password flow
+                                    disabled. Turn on
+                                    <span class="slds-text-title_bold">
+                                        Allow OAuth Username-Password Flows
+                                    </span>
+                                    under
+                                    <a
+                                        href={unPwFlowSetupUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer">
+                                        Setup &rsaquo; OAuth and OpenID Connect Settings
+                                    </a>
+                                    , then log in here.
+                                </p>
+                            </slds-information-block>
+                        </div>
+                    </div>
+                </template>
                 <!-- Username/Password -->
                 <div class="slds-grid slds-wrap">
                     <div
