@@ -665,6 +665,23 @@ export default class Overlay extends ToolkitElement {
         return undefined;
     };
 
+    // The overlay builds its own connector with `isEnrichDisabled: true`
+    // (see getSessionId), so `_enrichConnector` never runs and
+    // `conn.userInfo` is never populated. `conn.identity()` is the canonical
+    // session-based lookup (same call the enrich path uses) and returns
+    // `{ user_id, id, username, ... }`.
+    getUserIdFromIdentity = async () => {
+        try {
+            if (typeof this.connector?.conn?.identity !== 'function') return undefined;
+            const identity = await this.connector.conn.identity();
+            const id = identity?.user_id || identity?.id;
+            if (!this.isBlankValue(id)) return id;
+        } catch (e) {
+            // ignore
+        }
+        return undefined;
+    };
+
     // Accepts a raw user id or a Salesforce identity URL
     // (e.g. `https://login.salesforce.com/id/00D.../005...`) and returns the
     // trailing 15/18-char User Id so the SOQL `WHERE Id = ...` lookup resolves.
@@ -691,12 +708,18 @@ export default class Overlay extends ToolkitElement {
             const last = await window.defaultStore.getItem(`${ORG_CACHE_LAST_KEY}-${domainKey}`);
             if (!this._forceOrgRefresh && cached && expiry && Date.now() < parseInt(expiry)) {
                 const parsed = JSON.parse(cached);
-                this.orgInfo = parsed?.orgInfo;
-                this.orgUser = parsed?.orgUser;
-                this.orgRefreshDate = last;
-                this.header_formatDate();
-                this.isFetchingOrgInfo = false;
-                return parsed;
+                // Only trust the cache if it actually resolved a user. Older
+                // builds persisted `{ orgUser: undefined }` (user id could not
+                // be resolved), which would otherwise stay sticky for an hour
+                // and keep the USER card blank. Fall through to re-resolve.
+                if (!this.isBlankValue(parsed?.orgUser?.Id)) {
+                    this.orgInfo = parsed?.orgInfo;
+                    this.orgUser = parsed?.orgUser;
+                    this.orgRefreshDate = last;
+                    this.header_formatDate();
+                    this.isFetchingOrgInfo = false;
+                    return parsed;
+                }
             }
 
             this._forceOrgRefresh = false;
@@ -707,17 +730,18 @@ export default class Overlay extends ToolkitElement {
             );
             const orgInfo = orgResult?.records?.[0] || {};
 
-            // Current user.
-            // `conn.userInfo` has two shapes: jsforce-native `{ id: <userId> }`,
-            // or the reconciled identity response where `.id` is the identity URL
-            // and the user id lives in `.user_id`. Prefer `user_id` in both the
-            // configuration and connection copies (mirrors org/me.ts), then fall
-            // back to `.id` — normalized in case it is an identity URL.
+            // Current user. The overlay's connector is built with
+            // `isEnrichDisabled: true`, so `conn.userInfo`/`configuration.userInfo`
+            // are usually absent here — `getUserIdFromIdentity` (a `conn.identity()`
+            // call) is the reliable session-based source. The `userInfo` reads are
+            // kept first for the enriched case (prefer `user_id` over `id`, mirroring
+            // org/me.ts), and normalizeUserId guards against an identity-URL `id`.
             const userId = this.normalizeUserId(
                 this.connector?.configuration?.userInfo?.user_id ||
                     this.connector?.conn?.userInfo?.user_id ||
                     this.connector?.conn?.userInfo?.id ||
                     this.getUserIdFromPageContext() ||
+                    (await this.getUserIdFromIdentity()) ||
                     (await this.getUserIdFromChatterMe())
             );
 
@@ -734,15 +758,20 @@ export default class Overlay extends ToolkitElement {
             this.orgUser = orgUser;
 
             const now = Date.now();
-            window.defaultStore.setItem(
-                `${ORG_CACHE_KEY}-${domainKey}`,
-                JSON.stringify({ orgInfo, orgUser })
-            );
-            window.defaultStore.setItem(
-                `${ORG_CACHE_EXPIRY_KEY}-${domainKey}`,
-                (now + ORG_CACHE_DURATION).toString()
-            );
-            window.defaultStore.setItem(`${ORG_CACHE_LAST_KEY}-${domainKey}`, now.toString());
+            // Only persist once the user resolved, so a transient failure to
+            // resolve the user id doesn't get cached and mask the USER card for
+            // a full hour. The org info still displays this session regardless.
+            if (!this.isBlankValue(orgUser?.Id)) {
+                window.defaultStore.setItem(
+                    `${ORG_CACHE_KEY}-${domainKey}`,
+                    JSON.stringify({ orgInfo, orgUser })
+                );
+                window.defaultStore.setItem(
+                    `${ORG_CACHE_EXPIRY_KEY}-${domainKey}`,
+                    (now + ORG_CACHE_DURATION).toString()
+                );
+                window.defaultStore.setItem(`${ORG_CACHE_LAST_KEY}-${domainKey}`, now.toString());
+            }
             this.orgRefreshDate = now;
             this.header_formatDate();
             this.isFetchingOrgInfo = false;
