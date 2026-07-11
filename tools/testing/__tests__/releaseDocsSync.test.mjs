@@ -38,14 +38,19 @@ test('docs/release: README, docs, and release metadata stay version-synced', () 
     );
 
     const releaseNotes = JSON.parse(readRepoFile('assets/extension/releaseNotes.json'));
-    assert.ok(Array.isArray(releaseNotes) && releaseNotes.length > 0, 'releaseNotes.json must be non-empty');
+    assert.ok(
+        Array.isArray(releaseNotes) && releaseNotes.length > 0,
+        'releaseNotes.json must be non-empty'
+    );
     assert.equal(
         String(releaseNotes[0]?.version),
         expectedVersion,
         'Top releaseNotes.json entry must match package.json version'
     );
 
-    const announcement = JSON.parse(readRepoFile('assets/server/data/announcements.json'))?.announcement;
+    const announcement = JSON.parse(
+        readRepoFile('assets/server/data/announcements.json')
+    )?.announcement;
     assert.ok(announcement, 'announcements.json must contain an announcement payload');
     assert.match(
         String(announcement.title || ''),
