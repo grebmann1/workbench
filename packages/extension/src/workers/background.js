@@ -176,6 +176,11 @@ async function findExistingSession({ alias, instanceUrl } = {}) {
 /** Runtime connection state shared across ports and windows. */
 const _lastSidePanelOptionsByTabId = new Map(); // tabId -> { ts }
 const openedSidePanelTabIds = new Set();
+// Tabs whose content-script injection is currently in flight. Prevents a second
+// onUpdated `complete` event from injecting inject_salesforce.js again before the
+// first injection has set window.__SF_TOOLKIT_SCRIPT_INJECTED (which would throw
+// "Identifier 'sOt' has already been declared" from re-running the bundle).
+const injectingTabIds = new Set();
 const injectedConnections = new Set();
 const sidePanelConnections = new Set();
 const sidePanelTabIdByPort = new Map();
@@ -518,6 +523,12 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
 });
 
 function injectToolkit(tabId) {
+    // Guard against concurrent injections: onUpdated can fire `complete` multiple
+    // times before the async injection chain below sets the injected flag. Without
+    // this, inject_salesforce.js gets executed twice in the same context and throws
+    // "Identifier '…' has already been declared".
+    if (injectingTabIds.has(tabId)) return;
+    injectingTabIds.add(tabId);
     // Inject CSS files first
     chrome.scripting.insertCSS(
         {
@@ -530,6 +541,10 @@ function injectToolkit(tabId) {
             ],
         },
         () => {
+            if (chrome.runtime.lastError) {
+                injectingTabIds.delete(tabId);
+                return;
+            }
             // Then inject the JS content script, and set the injected flag
             chrome.scripting.executeScript(
                 {
@@ -537,12 +552,21 @@ function injectToolkit(tabId) {
                     files: ['scripts/inject_salesforce.js'],
                 },
                 () => {
-                    chrome.scripting.executeScript({
-                        target: { tabId: tabId },
-                        func: () => {
-                            window.__SF_TOOLKIT_SCRIPT_INJECTED = true;
+                    if (chrome.runtime.lastError) {
+                        injectingTabIds.delete(tabId);
+                        return;
+                    }
+                    chrome.scripting.executeScript(
+                        {
+                            target: { tabId: tabId },
+                            func: () => {
+                                window.__SF_TOOLKIT_SCRIPT_INJECTED = true;
+                            },
                         },
-                    });
+                        () => {
+                            injectingTabIds.delete(tabId);
+                        }
+                    );
                 }
             );
         }
@@ -581,6 +605,9 @@ async function handleTabActivated({ tabId }) {
 
 async function handleTabUpdated(tabId, info, tab) {
     if (!tab.url || info.status !== 'complete') return;
+    // Skip if an injection for this tab is already in flight (the injected flag is
+    // set only at the end of injectToolkit's async chain).
+    if (injectingTabIds.has(tabId)) return;
     if (await shouldInjectScriptAsync(tab.url)) {
         chrome.scripting.executeScript(
             {
@@ -915,6 +942,7 @@ chrome.tabs.onActivated.addListener(handleTabActivated);
 chrome.tabs.onRemoved.addListener(tabId => {
     openedSidePanelTabIds.delete(tabId);
     _lastSidePanelOptionsByTabId.delete(tabId);
+    injectingTabIds.delete(tabId);
 });
 chrome.tabs.onUpdated.addListener(handleTabUpdated);
 chrome.runtime.onMessage.addListener(wrapAsyncFunction(handleRuntimeMessage));
