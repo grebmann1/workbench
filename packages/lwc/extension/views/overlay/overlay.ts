@@ -556,10 +556,17 @@ export default class Overlay extends ToolkitElement {
         this.clearOverlayError();
         this.isLoading = true;
         void this.loadShortcutKeys();
-        Promise.all([this.loadCachedData(), this.loadOrgAndUserInfo()])
-            .then(async results => {
+
+        // The metadata spinner (`isLoading`) must track ONLY the metadata load.
+        // Org/user info has its own `isFetchingOrgInfo` spinner and is resolved
+        // independently — coupling the two via Promise.all meant a slow or
+        // hanging org/user lookup (e.g. `conn.identity()`) would keep the
+        // "Fetching Metadata" spinner up forever even after metadata loaded,
+        // and a single rejection would blank out the already-loaded metadata.
+        this.loadCachedData()
+            .then(data => {
                 this.isLoading = false;
-                this.cachedData = results?.[0] || {};
+                this.cachedData = data || {};
                 this.manualSearch();
                 void this.ensureUsersLoaded();
             })
@@ -578,6 +585,10 @@ export default class Overlay extends ToolkitElement {
                 this.manualSearch();
                 void this.ensureUsersLoaded();
             });
+
+        // Fire-and-forget: never blocks the metadata spinner. loadOrgAndUserInfo
+        // is self-contained (own try/catch + `isFetchingOrgInfo`).
+        void this.loadOrgAndUserInfo();
     };
 
     ensureUsersLoaded = async () => {
@@ -673,7 +684,12 @@ export default class Overlay extends ToolkitElement {
     getUserIdFromIdentity = async () => {
         try {
             if (typeof this.connector?.conn?.identity !== 'function') return undefined;
-            const identity = await this.connector.conn.identity();
+            // jsforce `identity()` is a raw GET with no timeout. Race it so a
+            // stalled identity endpoint can't hang the org/user resolution.
+            const identity = await Promise.race([
+                this.connector.conn.identity(),
+                new Promise(resolve => setTimeout(() => resolve(undefined), 8000)),
+            ]);
             const id = identity?.user_id || identity?.id;
             if (!this.isBlankValue(id)) return id;
         } catch (e) {
