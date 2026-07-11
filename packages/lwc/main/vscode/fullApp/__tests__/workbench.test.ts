@@ -91,11 +91,25 @@ test('isAuthError: returns true for "(401)" substring in message', () => {
     assert.equal(isAuthError({ message: 'Error (401) upstream' }), true);
 });
 
+test('isAuthError: detects INVALID_SESSION_ID on errorCode (jsforce shape)', () => {
+    // jsforce stamps the marker on errorCode, with a human message that lacks
+    // the exact token — this is the real expired-session envelope.
+    assert.equal(
+        isAuthError({ errorCode: 'INVALID_SESSION_ID', message: 'Session expired or invalid' }),
+        true
+    );
+});
+
+test('isAuthError: detects INVALID_SESSION_ID on error name', () => {
+    assert.equal(isAuthError({ name: 'INVALID_SESSION_ID', message: 'nope' }), true);
+});
+
 test('isAuthError: returns false for unrelated errors', () => {
     assert.equal(isAuthError({ status: 500, message: 'boom' }), false);
     assert.equal(isAuthError(null), false);
     assert.equal(isAuthError(undefined), false);
     assert.equal(isAuthError({}), false);
+    assert.equal(isAuthError({ errorCode: 'REQUIRED_FIELD_MISSING' }), false);
 });
 
 // ── hasUsableConnection ──────────────────────────────────────────────────────

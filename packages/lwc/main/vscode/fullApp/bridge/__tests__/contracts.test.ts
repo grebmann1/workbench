@@ -153,6 +153,22 @@ test('toIframeJsforceBridgeError: Error instance with empty message falls back',
     assert.equal(out.message, 'Bridge operation failed.');
 });
 
+test('toIframeJsforceBridgeError: preserves status + errorCode across the port hop', () => {
+    const out = toIframeJsforceBridgeError({
+        code: 'EJSFORCE',
+        message: 'Session expired or invalid',
+        status: 401,
+        errorCode: 'INVALID_SESSION_ID',
+    });
+    assert.equal(out.status, 401);
+    assert.equal(out.errorCode, 'INVALID_SESSION_ID');
+});
+
+test('toIframeJsforceBridgeError: omits status/errorCode when absent (stays minimal)', () => {
+    const out = toIframeJsforceBridgeError({ code: 'ENOPE', message: 'nope' });
+    assert.deepEqual(out, { code: 'ENOPE', message: 'nope' });
+});
+
 // ── AI bridge ────────────────────────────────────────────────────────────────
 
 test('isIframeAiBridgeEnvelope: true for matching envelope', () => {
