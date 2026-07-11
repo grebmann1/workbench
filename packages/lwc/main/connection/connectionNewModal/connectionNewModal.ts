@@ -14,12 +14,6 @@ import type { ConnectorLike } from 'core/connector';
 import { setDesktopStoredOrg } from 'core/desktopBridge';
 import LOGGER from 'shared/logger';
 import { isEmpty, isNotUndefinedOrNull, isElectronApp, checkIfPresent } from 'shared/utils';
-import {
-    isOrgFarmString,
-    isOrgFarmConnection,
-    shouldShowUnPwFlowHint,
-    buildUnPwFlowSetupUrl,
-} from './orgFarmUnPwFlow';
 
 const domainOptions = [
     { id: 'prod', label: 'login.salesforce.com', value: 'login.salesforce.com' },
@@ -40,6 +34,9 @@ const ORGFARM_CATEGORY = {
 };
 
 const ORGFARM_PASSWORD = 'orgfarm1234';
+
+const isOrgFarmString = value =>
+    typeof value === 'string' && value.toLowerCase().includes(ORGFARM_CATEGORY.id);
 
 // Supports:
 // - orgfarm-023232023
@@ -540,26 +537,5 @@ export default class ConnectionNewModal extends LightningModal {
         return `https://${
             this.selectedDomain === 'custom' ? this.customDomain : this.selectedDomain
         }`;
-    }
-
-    get isOrgFarmConnection() {
-        return isOrgFarmConnection({
-            username: this.username,
-            customDomain: this.customDomain,
-            name: this.name,
-            categoryId: this.selectedCategory?.[0]?.id,
-            categoryTitle: this.selectedCategory?.[0]?.title,
-        });
-    }
-
-    get showUnPwFlowHint() {
-        return shouldShowUnPwFlowHint({
-            isUsernamePassword: this.isUsernamePassword,
-            isOrgFarm: this.isOrgFarmConnection,
-        });
-    }
-
-    get unPwFlowSetupUrl() {
-        return buildUnPwFlowSetupUrl(this.loginUrl);
     }
 }

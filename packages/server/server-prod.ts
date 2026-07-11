@@ -8,7 +8,6 @@ import qs from 'qs';
 import announcements from './modules/announcements';
 import { initDocumentationIndex, searchDocumentation } from './modules/documentationSearch';
 import llmModels from './modules/llmModels';
-import oauthPassword from './modules/oauthPassword';
 import openaiProxy from './modules/openaiProxy';
 import proxy from './modules/proxy';
 
@@ -56,8 +55,6 @@ app.all('/proxy{/*splat}', proxy({ enableCORS: true }));
 openaiProxy(app);
 llmModels(app);
 announcements(app);
-/* OAuth 2.0 Username-Password flow broker (replaces retiring SOAP login) */
-oauthPassword(app);
 
 app.get('/version', (_req, res) => {
     res.json({ version: process.env.npm_package_version });
