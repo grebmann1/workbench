@@ -184,29 +184,36 @@ export function createMetadataRetrieveRuntime({
             }
         );
         const startedAt = Date.now();
-        let lastStatus = '';
+        let lastMessage = '';
         const status = await vscode.window.withProgress(
             {
                 location: vscode.ProgressLocation.Notification,
                 title: title || 'Retrieving via Metadata API...',
-                cancellable: false,
+                cancellable: true,
             },
-            async progress => {
+            async (progress, token) => {
                 for (;;) {
+                    if (token?.isCancellationRequested) {
+                        return { cancelled: true };
+                    }
                     // eslint-disable-next-line no-await-in-loop
                     const nextStatus = await withMetadataApiClientAuthed(
                         effectiveConn || conn,
                         async client => await client.checkRetrieveStatus(id, { includeZip: true })
                     );
-                    const message =
+                    const elapsedSeconds = Math.floor((Date.now() - startedAt) / 1000);
+                    const stateLabel =
                         nextStatus.status ||
                         (nextStatus.done
                             ? nextStatus.success
                                 ? 'Succeeded'
                                 : 'Failed'
                             : 'In progress');
-                    if (message && message !== lastStatus) {
-                        lastStatus = message;
+                    // Elapsed time reassures the user that a slow retrieve is
+                    // still working — and that Cancel is available if it stalls.
+                    const message = `${stateLabel} — ${elapsedSeconds}s elapsed`;
+                    if (message !== lastMessage) {
+                        lastMessage = message;
                         progress.report({ message });
                     }
                     if (nextStatus.done) {
@@ -217,9 +224,17 @@ export function createMetadataRetrieveRuntime({
                     }
                     // eslint-disable-next-line no-await-in-loop
                     await new Promise(resolve => setTimeout(resolve, 2000));
+                    if (token?.isCancellationRequested) {
+                        return { cancelled: true };
+                    }
                 }
             }
         );
+        if (status?.cancelled) {
+            // Signal cancellation with a sentinel the callers translate into a
+            // gentle "cancelled" notice rather than an error toast.
+            return { writtenPaths: [], cancelled: true };
+        }
         if (!status.success) {
             throw new Error(
                 status.errorMessage || `Retrieve failed: ${status.status || 'Unknown error'}`

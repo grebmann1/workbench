@@ -867,6 +867,10 @@ export function registerMetadataApiCommands({ connectionRuntime, context, deploy
                 const result = await retrieveRuntime.retrieveViaMetadataApi(conn, manifest, {
                     title: 'Retrieving manifest via Metadata API...',
                 });
+                if (result.cancelled) {
+                    await vscode.window.showInformationMessage('Retrieve cancelled.');
+                    return;
+                }
                 deployTools.invalidateToolingMap();
                 try {
                     await vscode.commands.executeCommand('salesforceMetadata.refreshProject');
@@ -955,6 +959,10 @@ export function registerMetadataApiCommands({ connectionRuntime, context, deploy
         const result = await retrieveRuntime.retrieveViaMetadataApi(conn, manifest, {
             title: 'Retrieving via Metadata API...',
         });
+        if (result.cancelled) {
+            await vscode.window.showInformationMessage('Retrieve cancelled.');
+            return;
+        }
         deployTools.invalidateToolingMap();
         try {
             await vscode.commands.executeCommand('salesforceMetadata.refreshProject');
@@ -1066,6 +1074,10 @@ export function registerMetadataApiCommands({ connectionRuntime, context, deploy
                   title: `Retrieving ${typePick.label} via Metadata API...`,
               });
         const result = await runtime;
+        if ('cancelled' in result && result.cancelled) {
+            await vscode.window.showInformationMessage('Retrieve cancelled.');
+            return;
+        }
         deployTools.invalidateToolingMap();
         try {
             await vscode.commands.executeCommand('salesforceMetadata.refreshProject');

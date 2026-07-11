@@ -137,6 +137,15 @@ test('isIframeJsforceBridgeMethod: accepts known SOQL/metadata methods', () => {
     assert.equal(isIframeJsforceBridgeMethod('bogus.method'), false);
 });
 
+test('isIframeJsforceBridgeMethod: accepts split retrieve start/status methods', () => {
+    // The split methods keep each bridge hop short so a long retrieve never
+    // trips the client request timeout; both must be recognized.
+    assert.equal(isIframeJsforceBridgeMethod('metadata.retrieveStart'), true);
+    assert.equal(isIframeJsforceBridgeMethod('metadata.checkRetrieveStatus'), true);
+    assert.ok(IFRAME_JSFORCE_BRIDGE_METHODS.includes('metadata.retrieveStart'));
+    assert.ok(IFRAME_JSFORCE_BRIDGE_METHODS.includes('metadata.checkRetrieveStatus'));
+});
+
 test('toIframeJsforceBridgeError: Error instance with empty message falls back', () => {
     const err = new Error('');
     const out = toIframeJsforceBridgeError(err);

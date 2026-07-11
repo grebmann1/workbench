@@ -46,6 +46,10 @@ export function createOrgBrowserRetrieveService({
                   title: title || 'Retrieving selected metadata via Metadata API...',
               });
 
+        if (result.cancelled) {
+            return result;
+        }
+
         if (openFirstFile && result.writtenPaths?.length && vscode.window?.showTextDocument) {
             try {
                 await vscode.window.showTextDocument(vscode.Uri.file(result.writtenPaths[0]));

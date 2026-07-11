@@ -28,6 +28,8 @@ export const IFRAME_JSFORCE_BRIDGE_METHODS = [
     'metadata.listTypes',
     'metadata.list',
     'metadata.retrieveViaMetadataApi',
+    'metadata.retrieveStart',
+    'metadata.checkRetrieveStatus',
     'metadata.retrieveToolingTypes',
     'schema.describeCustomObject',
     'metadata.deployViaToolingApi',

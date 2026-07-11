@@ -445,6 +445,10 @@ class IframeJsforceBridgeRuntime {
                 return await this.listMetadata(args);
             case 'metadata.retrieveViaMetadataApi':
                 return await this.retrieveViaMetadataApi(args);
+            case 'metadata.retrieveStart':
+                return await this.retrieveStart(args);
+            case 'metadata.checkRetrieveStatus':
+                return await this.checkRetrieveStatus(args);
             case 'metadata.retrieveToolingTypes':
                 return await this.retrieveToolingTypes(args);
             case 'schema.describeCustomObject':
@@ -870,7 +874,7 @@ class IframeJsforceBridgeRuntime {
             );
     }
 
-    private async retrieveViaMetadataApi(args: Record<string, unknown>) {
+    private normalizeRetrieveTypesMap(args: Record<string, unknown>) {
         const metadataTypes = toMetadataTypesMap(args.typesMap || args.types);
         if (!metadataTypes.size) {
             const fallbackType = String(args.type || '').trim();
@@ -882,16 +886,20 @@ class IframeJsforceBridgeRuntime {
                 );
             }
         }
+        return metadataTypes;
+    }
+
+    // Kicks off an async Metadata API retrieve and returns its job id immediately.
+    // Splitting start from polling keeps every bridge request short-lived, so the
+    // client-side request timeout never fights a long-running retrieve.
+    private async retrieveStart(args: Record<string, unknown>) {
+        const metadataTypes = this.normalizeRetrieveTypesMap(args);
         if (!metadataTypes.size) {
             throw {
                 code: 'EINVAL',
-                message: 'metadata.retrieveViaMetadataApi requires a non-empty types map.',
+                message: 'metadata.retrieveStart requires a non-empty types map.',
             };
         }
-
-        const includeZip = args.includeZip !== false;
-        const timeoutMs = normalizeTimeoutMs(args.timeoutMs, DEFAULT_METADATA_RETRIEVE_TIMEOUT_MS);
-        const pollIntervalMs = normalizePollInterval(args.pollIntervalMs);
 
         const retrieveStart = await this.withMetadataApiClientAuthed(
             async (client, connection) =>
@@ -909,18 +917,51 @@ class IframeJsforceBridgeRuntime {
                 message: 'Metadata retrieve did not return an async id.',
             };
         }
+        return { id: retrieveId };
+    }
+
+    // Polls a single retrieve status tick. The VS Code side owns the poll loop
+    // (and its cancellable progress notification); this just does one hop.
+    private async checkRetrieveStatus(args: Record<string, unknown>) {
+        const retrieveId = String(args.id || '').trim();
+        if (!retrieveId) {
+            throw {
+                code: 'EINVAL',
+                message: 'metadata.checkRetrieveStatus requires a retrieve id.',
+            };
+        }
+        const includeZip = args.includeZip !== false;
+        const latestStatus = await this.withMetadataApiClientAuthed(
+            async client => await client.checkRetrieveStatus(retrieveId, { includeZip })
+        );
+        return {
+            id: retrieveId,
+            ...sanitizeMetadataRetrieveStatus(latestStatus, includeZip),
+        };
+    }
+
+    // Legacy single-shot retrieve: starts and fully polls on the host side. Kept
+    // for back-compat, but prefer retrieveStart + checkRetrieveStatus so progress
+    // and cancellation live on the VS Code side.
+    private async retrieveViaMetadataApi(args: Record<string, unknown>) {
+        const metadataTypes = this.normalizeRetrieveTypesMap(args);
+        if (!metadataTypes.size) {
+            throw {
+                code: 'EINVAL',
+                message: 'metadata.retrieveViaMetadataApi requires a non-empty types map.',
+            };
+        }
+
+        const includeZip = args.includeZip !== false;
+        const timeoutMs = normalizeTimeoutMs(args.timeoutMs, DEFAULT_METADATA_RETRIEVE_TIMEOUT_MS);
+        const pollIntervalMs = normalizePollInterval(args.pollIntervalMs);
+
+        const { id: retrieveId } = await this.retrieveStart(args);
 
         const startedAt = Date.now();
-        let latestStatus = null;
         for (;;) {
             // eslint-disable-next-line no-await-in-loop
-            latestStatus = await this.withMetadataApiClientAuthed(
-                async client =>
-                    await client.checkRetrieveStatus(retrieveId, {
-                        includeZip,
-                    })
-            );
-            const status = sanitizeMetadataRetrieveStatus(latestStatus, includeZip);
+            const status = await this.checkRetrieveStatus({ id: retrieveId, includeZip });
             if (status.done) {
                 if (!status.success) {
                     throw {
@@ -929,10 +970,7 @@ class IframeJsforceBridgeRuntime {
                             status.errorMessage || `Metadata retrieve failed: ${status.status}`,
                     };
                 }
-                return {
-                    id: retrieveId,
-                    ...status,
-                };
+                return status;
             }
             if (Date.now() - startedAt > timeoutMs) {
                 throw {
