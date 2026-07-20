@@ -1,5 +1,43 @@
 [
     {
+        "version": "2.0.8",
+        "date": "July 15th, 2026",
+        "sections": [
+            {
+                "title": "Bug Fixes",
+                "categories": [
+                    {
+                        "category": "Overlay",
+                        "items": [
+                            "Fixed the 'Fetching Metadata' spinner spinning forever when the user/org lookup stalled; the metadata spinner now tracks only the metadata load, while org/user info resolves independently with its own spinner and an 8s timeout.",
+                            "Fixed the Current User card staying blank on connections built without enrichment; the user is now resolved via the identity endpoint, and blank user lookups are no longer cached for the full cache hour.",
+                            "Fixed the org/user lookup failing when the identity response returns the user id as an identity URL (or in user_id); the id is now normalized from either shape."
+                        ]
+                    },
+                    {
+                        "category": "Connector",
+                        "items": [
+                            "Fixed stale reads on the Chrome extension where Salesforce GETs were served from the browser HTTP cache — read-after-write refreshes and async status-polling loops (bulk jobs, Apex deploy) now bypass the cache. Web and Electron targets were unaffected."
+                        ]
+                    },
+                    {
+                        "category": "Record Explorer",
+                        "items": [
+                            "Fixed the picklist edit dropdown being clipped when the record list was filtered or short; the menu now renders fully instead of being cut off below the last row."
+                        ]
+                    },
+                    {
+                        "category": "VS Code",
+                        "items": [
+                            "Fixed expired-session errors not being detected across the iframe bridge; the session status and error code are now preserved so re-authentication is triggered correctly.",
+                            "Fixed long Metadata API retrieves timing out; retrieve is now split into start/poll steps with a cancellable progress notification and elapsed-time display."
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    {
         "version": "2.0.7",
         "date": "July 1st, 2026",
         "sections": [
