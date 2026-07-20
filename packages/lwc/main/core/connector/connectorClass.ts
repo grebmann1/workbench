@@ -11,10 +11,11 @@ import {
     inferSandboxValue,
     normalizeOrganizationType,
     deriveOrgIdFromToken,
+    applyChromeCacheBusting,
 } from './base';
 import type { ConnectionLike, ConnectorConfiguration } from './connector';
 import { OAUTH_TYPES } from './credentialStrategies/oauthTypes';
-import { getConfiguration } from './platformService';
+import { getConfiguration, getCurrentPlatform } from './platformService';
 import { saveConfiguration } from './web';
 
 export class Connector {
@@ -28,6 +29,11 @@ export class Connector {
         LOGGER.debug('Connector -->', this.configuration, this.conn);
         LOGGER.debug('Connector --> Add listeners');
         if (conn) {
+            // On the Chrome extension jsforce talks to Salesforce directly (no
+            // cache-busting proxy), so GETs are served from the browser HTTP
+            // cache — stale read-after-write data and hung status-polling loops.
+            // Wrap the transport once so every GET bypasses the cache.
+            applyChromeCacheBusting(conn, getCurrentPlatform());
             this.addListeners(conn);
         }
     }

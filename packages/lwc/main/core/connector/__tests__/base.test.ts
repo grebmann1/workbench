@@ -20,6 +20,7 @@ const {
     buildConnectionFromConnector,
     normalizeConnection,
     deriveOrgIdFromToken,
+    applyChromeCacheBusting,
 } = base as any;
 const { OAUTH_TYPES } = await import('../credentialStrategies/oauthTypes.ts');
 const { PLATFORM } = await import('../platform.ts');
@@ -243,4 +244,71 @@ test('deriveOrgIdFromToken: handles null / undefined / non-string / empty input'
     assert.equal(deriveOrgIdFromToken(undefined), undefined);
     assert.equal(deriveOrgIdFromToken(123 as any), undefined);
     assert.equal(deriveOrgIdFromToken(''), undefined);
+});
+
+const makeFakeConn = () => {
+    const calls: Array<{ method?: string; url: string }> = [];
+    return {
+        calls,
+        _transport: {
+            httpRequest(req: { method?: string; url: string }) {
+                calls.push({ method: req.method, url: req.url });
+                return Promise.resolve({ req });
+            },
+        },
+    };
+};
+
+test('applyChromeCacheBusting: appends a cache-buster to GETs on Chrome', async () => {
+    const conn = makeFakeConn();
+    applyChromeCacheBusting(conn, PLATFORM.CHROME);
+    await conn._transport.httpRequest({
+        method: 'GET',
+        url: '/services/data/v60.0/sobjects/Account/001',
+    });
+    assert.match(conn.calls[0].url, /\?_=\d+\.\d+$/);
+});
+
+test('applyChromeCacheBusting: uses & when the URL already has a query string', async () => {
+    const conn = makeFakeConn();
+    applyChromeCacheBusting(conn, PLATFORM.CHROME);
+    await conn._transport.httpRequest({
+        method: 'GET',
+        url: '/services/data/v60.0/query?q=SELECT+Id',
+    });
+    assert.match(conn.calls[0].url, /\?q=SELECT\+Id&_=\d+\.\d+$/);
+});
+
+test('applyChromeCacheBusting: treats a missing method as GET', async () => {
+    const conn = makeFakeConn();
+    applyChromeCacheBusting(conn, PLATFORM.CHROME);
+    await conn._transport.httpRequest({ url: '/services/data/' });
+    assert.match(conn.calls[0].url, /\?_=\d+\.\d+$/);
+});
+
+test('applyChromeCacheBusting: leaves non-GET requests untouched', async () => {
+    const conn = makeFakeConn();
+    applyChromeCacheBusting(conn, PLATFORM.CHROME);
+    const url = '/services/data/v60.0/sobjects/Account/001';
+    await conn._transport.httpRequest({ method: 'PATCH', url });
+    assert.equal(conn.calls[0].url, url);
+});
+
+test('applyChromeCacheBusting: is a no-op on web and electron', async () => {
+    for (const platform of [PLATFORM.WEB, PLATFORM.ELECTRON]) {
+        const conn = makeFakeConn();
+        applyChromeCacheBusting(conn, platform);
+        const url = '/services/data/v60.0/sobjects/Account/001';
+        await conn._transport.httpRequest({ method: 'GET', url });
+        assert.equal(conn.calls[0].url, url);
+    }
+});
+
+test('applyChromeCacheBusting: does not double-wrap the same transport', async () => {
+    const conn = makeFakeConn();
+    applyChromeCacheBusting(conn, PLATFORM.CHROME);
+    applyChromeCacheBusting(conn, PLATFORM.CHROME);
+    await conn._transport.httpRequest({ method: 'GET', url: '/services/data/' });
+    // A single `_=` cache-buster, not two.
+    assert.equal((conn.calls[0].url.match(/_=/g) || []).length, 1);
 });

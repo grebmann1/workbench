@@ -174,12 +174,35 @@ export class IframeJsforceBridgeClient {
         pollIntervalMs?: number;
         includeZip?: boolean;
     }) {
-        return await this.request('metadata.retrieveViaMetadataApi', {
-            types,
-            timeoutMs,
-            pollIntervalMs,
-            includeZip,
-        });
+        // Legacy single-shot path: the host polls to completion, so the bridge
+        // request must be allowed to outlast the whole retrieve (default 10 min
+        // host cap + headroom) rather than the 15s default.
+        const requestTimeout = timeoutMs ? timeoutMs + 60_000 : 12 * 60 * 1000;
+        return await this.request(
+            'metadata.retrieveViaMetadataApi',
+            {
+                types,
+                timeoutMs,
+                pollIntervalMs,
+                includeZip,
+            },
+            { timeoutMs: requestTimeout }
+        );
+    }
+
+    async retrieveStart({ types }: { types: Record<string, string[]> }) {
+        return (await this.request('metadata.retrieveStart', { types })) as { id: string };
+    }
+
+    async checkRetrieveStatus({ id, includeZip = true }: { id: string; includeZip?: boolean }) {
+        return (await this.request('metadata.checkRetrieveStatus', { id, includeZip })) as {
+            id: string;
+            done: boolean;
+            success: boolean;
+            status: string;
+            errorMessage: string;
+            zipFile: string;
+        };
     }
 
     async retrieveToolingTypes({ types }: { types: Record<string, string[]> }) {

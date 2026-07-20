@@ -137,11 +137,36 @@ test('isIframeJsforceBridgeMethod: accepts known SOQL/metadata methods', () => {
     assert.equal(isIframeJsforceBridgeMethod('bogus.method'), false);
 });
 
+test('isIframeJsforceBridgeMethod: accepts split retrieve start/status methods', () => {
+    // The split methods keep each bridge hop short so a long retrieve never
+    // trips the client request timeout; both must be recognized.
+    assert.equal(isIframeJsforceBridgeMethod('metadata.retrieveStart'), true);
+    assert.equal(isIframeJsforceBridgeMethod('metadata.checkRetrieveStatus'), true);
+    assert.ok(IFRAME_JSFORCE_BRIDGE_METHODS.includes('metadata.retrieveStart'));
+    assert.ok(IFRAME_JSFORCE_BRIDGE_METHODS.includes('metadata.checkRetrieveStatus'));
+});
+
 test('toIframeJsforceBridgeError: Error instance with empty message falls back', () => {
     const err = new Error('');
     const out = toIframeJsforceBridgeError(err);
     assert.equal(out.code, 'EUNKNOWN');
     assert.equal(out.message, 'Bridge operation failed.');
+});
+
+test('toIframeJsforceBridgeError: preserves status + errorCode across the port hop', () => {
+    const out = toIframeJsforceBridgeError({
+        code: 'EJSFORCE',
+        message: 'Session expired or invalid',
+        status: 401,
+        errorCode: 'INVALID_SESSION_ID',
+    });
+    assert.equal(out.status, 401);
+    assert.equal(out.errorCode, 'INVALID_SESSION_ID');
+});
+
+test('toIframeJsforceBridgeError: omits status/errorCode when absent (stays minimal)', () => {
+    const out = toIframeJsforceBridgeError({ code: 'ENOPE', message: 'nope' });
+    assert.deepEqual(out, { code: 'ENOPE', message: 'nope' });
 });
 
 // ── AI bridge ────────────────────────────────────────────────────────────────

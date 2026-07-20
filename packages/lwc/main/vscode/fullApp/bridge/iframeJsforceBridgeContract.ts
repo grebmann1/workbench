@@ -28,6 +28,8 @@ export const IFRAME_JSFORCE_BRIDGE_METHODS = [
     'metadata.listTypes',
     'metadata.list',
     'metadata.retrieveViaMetadataApi',
+    'metadata.retrieveStart',
+    'metadata.checkRetrieveStatus',
     'metadata.retrieveToolingTypes',
     'schema.describeCustomObject',
     'metadata.deployViaToolingApi',
@@ -40,6 +42,11 @@ export type IframeJsforceBridgeMethod = (typeof IFRAME_JSFORCE_BRIDGE_METHODS)[n
 export type IframeJsforceBridgeError = {
     code: string;
     message: string;
+    // Preserved so auth-error detection survives the port hop: jsforce carries
+    // the expired-session signal on `status` (401) and `errorCode`
+    // (INVALID_SESSION_ID), which flattening would otherwise drop.
+    status?: number;
+    errorCode?: string;
 };
 
 export type IframeJsforceBridgeHostEvent = {
@@ -81,7 +88,14 @@ export function toIframeJsforceBridgeError(
             typeof error.message === 'string' && error.message.trim()
                 ? error.message
                 : fallbackMessage;
-        return { code, message };
+        const normalized: IframeJsforceBridgeError = { code, message };
+        if (typeof error.status === 'number') {
+            normalized.status = error.status;
+        }
+        if (typeof error.errorCode === 'string' && error.errorCode.trim()) {
+            normalized.errorCode = error.errorCode;
+        }
+        return normalized;
     }
     if (error instanceof Error) {
         return {

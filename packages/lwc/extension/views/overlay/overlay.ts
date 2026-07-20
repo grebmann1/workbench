@@ -160,13 +160,6 @@ export default class Overlay extends ToolkitElement {
 
     connectedCallback() {
         const lf = window.localforage || window.localForage;
-        try {
-            // eslint-disable-next-line no-console
-            console.log('[SF-TOOLKIT][Overlay] connectedCallback', {
-                hasLocalForage: !!lf,
-                hasCreateInstance: typeof lf?.createInstance === 'function',
-            });
-        } catch (e) {}
         window.jsforce = jsforce;
         window.defaultStore = window.defaultStore || lf.createInstance({ name: 'defaultStore' });
         this.getSessionId();
@@ -556,10 +549,17 @@ export default class Overlay extends ToolkitElement {
         this.clearOverlayError();
         this.isLoading = true;
         void this.loadShortcutKeys();
-        Promise.all([this.loadCachedData(), this.loadOrgAndUserInfo()])
-            .then(async results => {
+
+        // The metadata spinner (`isLoading`) must track ONLY the metadata load.
+        // Org/user info has its own `isFetchingOrgInfo` spinner and is resolved
+        // independently — coupling the two via Promise.all meant a slow or
+        // hanging org/user lookup (e.g. `conn.identity()`) would keep the
+        // "Fetching Metadata" spinner up forever even after metadata loaded,
+        // and a single rejection would blank out the already-loaded metadata.
+        this.loadCachedData()
+            .then(data => {
                 this.isLoading = false;
-                this.cachedData = results?.[0] || {};
+                this.cachedData = data || {};
                 this.manualSearch();
                 void this.ensureUsersLoaded();
             })
@@ -578,6 +578,10 @@ export default class Overlay extends ToolkitElement {
                 this.manualSearch();
                 void this.ensureUsersLoaded();
             });
+
+        // Fire-and-forget: never blocks the metadata spinner. loadOrgAndUserInfo
+        // is self-contained (own try/catch + `isFetchingOrgInfo`).
+        void this.loadOrgAndUserInfo();
     };
 
     ensureUsersLoaded = async () => {
@@ -665,6 +669,41 @@ export default class Overlay extends ToolkitElement {
         return undefined;
     };
 
+    // The overlay builds its own connector with `isEnrichDisabled: true`
+    // (see getSessionId), so `_enrichConnector` never runs and
+    // `conn.userInfo` is never populated. `conn.identity()` is the canonical
+    // session-based lookup (same call the enrich path uses) and returns
+    // `{ user_id, id, username, ... }`.
+    getUserIdFromIdentity = async () => {
+        try {
+            if (typeof this.connector?.conn?.identity !== 'function') return undefined;
+            // jsforce `identity()` is a raw GET with no timeout. Race it so a
+            // stalled identity endpoint can't hang the org/user resolution.
+            const identity = await Promise.race([
+                this.connector.conn.identity(),
+                new Promise(resolve => setTimeout(() => resolve(undefined), 8000)),
+            ]);
+            const id = identity?.user_id || identity?.id;
+            if (!this.isBlankValue(id)) return id;
+        } catch (e) {
+            // ignore
+        }
+        return undefined;
+    };
+
+    // Accepts a raw user id or a Salesforce identity URL
+    // (e.g. `https://login.salesforce.com/id/00D.../005...`) and returns the
+    // trailing 15/18-char User Id so the SOQL `WHERE Id = ...` lookup resolves.
+    normalizeUserId = value => {
+        if (this.isBlankValue(value)) return undefined;
+        const raw = String(value).trim();
+        if (raw.includes('/')) {
+            const last = raw.split('/').filter(Boolean).pop();
+            if (/^005[A-Za-z0-9]{12,15}$/.test(last)) return last;
+        }
+        return raw;
+    };
+
     loadOrgAndUserInfo = async () => {
         try {
             if (!this.connector?.conn || !window.defaultStore) return;
@@ -678,12 +717,18 @@ export default class Overlay extends ToolkitElement {
             const last = await window.defaultStore.getItem(`${ORG_CACHE_LAST_KEY}-${domainKey}`);
             if (!this._forceOrgRefresh && cached && expiry && Date.now() < parseInt(expiry)) {
                 const parsed = JSON.parse(cached);
-                this.orgInfo = parsed?.orgInfo;
-                this.orgUser = parsed?.orgUser;
-                this.orgRefreshDate = last;
-                this.header_formatDate();
-                this.isFetchingOrgInfo = false;
-                return parsed;
+                // Only trust the cache if it actually resolved a user. Older
+                // builds persisted `{ orgUser: undefined }` (user id could not
+                // be resolved), which would otherwise stay sticky for an hour
+                // and keep the USER card blank. Fall through to re-resolve.
+                if (!this.isBlankValue(parsed?.orgUser?.Id)) {
+                    this.orgInfo = parsed?.orgInfo;
+                    this.orgUser = parsed?.orgUser;
+                    this.orgRefreshDate = last;
+                    this.header_formatDate();
+                    this.isFetchingOrgInfo = false;
+                    return parsed;
+                }
             }
 
             this._forceOrgRefresh = false;
@@ -694,19 +739,51 @@ export default class Overlay extends ToolkitElement {
             );
             const orgInfo = orgResult?.records?.[0] || {};
 
-            // Current user
-            const userId =
+            // Current user. The overlay's connector is built with
+            // `isEnrichDisabled: true`, so `conn.userInfo`/`configuration.userInfo`
+            // are usually absent here — `getUserIdFromIdentity` (a `conn.identity()`
+            // call) is the reliable session-based source. The `userInfo` reads are
+            // kept first for the enriched case (prefer `user_id` over `id`, mirroring
+            // org/me.ts), and normalizeUserId guards against an identity-URL `id`.
+            const userId = this.normalizeUserId(
                 this.connector?.configuration?.userInfo?.user_id ||
-                this.connector?.conn?.userInfo?.id ||
-                this.getUserIdFromPageContext() ||
-                (await this.getUserIdFromChatterMe());
+                    this.connector?.conn?.userInfo?.user_id ||
+                    this.connector?.conn?.userInfo?.id ||
+                    this.getUserIdFromPageContext() ||
+                    (await this.getUserIdFromIdentity()) ||
+                    (await this.getUserIdFromChatterMe())
+            );
 
             let orgUser;
             if (!this.isBlankValue(userId)) {
                 const escapedId = String(userId).replace(/'/g, "\\'");
-                const userResult = await this.connector.conn.query(
-                    `SELECT Id, Username, Email, Name FROM User WHERE Id = '${escapedId}' LIMIT 1`
-                );
+                // Mirror org/me.ts: fetch the full user field set, with a
+                // fallback query that drops CurrencyIsoCode for orgs where the
+                // field isn't available (e.g. single-currency orgs).
+                const fields = [
+                    'Id',
+                    'LastName',
+                    'FirstName',
+                    'Username',
+                    'Email',
+                    'FederationIdentifier',
+                    'CompanyName',
+                    'Name',
+                    'IsActive',
+                    'LanguageLocaleKey',
+                ];
+                const exceptionFields = ['CurrencyIsoCode'];
+                const query = queryFields =>
+                    `SELECT ${queryFields.join(',')} FROM User WHERE Id = '${escapedId}' LIMIT 1`;
+                let userResult;
+                try {
+                    userResult = await this.connector.conn.query(
+                        query([].concat(fields, exceptionFields))
+                    );
+                } catch (e) {
+                    // Retry without CurrencyIsoCode for orgs where it isn't available.
+                    userResult = await this.connector.conn.query(query(fields));
+                }
                 orgUser = userResult?.records?.[0];
             }
 
@@ -714,15 +791,20 @@ export default class Overlay extends ToolkitElement {
             this.orgUser = orgUser;
 
             const now = Date.now();
-            window.defaultStore.setItem(
-                `${ORG_CACHE_KEY}-${domainKey}`,
-                JSON.stringify({ orgInfo, orgUser })
-            );
-            window.defaultStore.setItem(
-                `${ORG_CACHE_EXPIRY_KEY}-${domainKey}`,
-                (now + ORG_CACHE_DURATION).toString()
-            );
-            window.defaultStore.setItem(`${ORG_CACHE_LAST_KEY}-${domainKey}`, now.toString());
+            // Only persist once the user resolved, so a transient failure to
+            // resolve the user id doesn't get cached and mask the USER card for
+            // a full hour. The org info still displays this session regardless.
+            if (!this.isBlankValue(orgUser?.Id)) {
+                window.defaultStore.setItem(
+                    `${ORG_CACHE_KEY}-${domainKey}`,
+                    JSON.stringify({ orgInfo, orgUser })
+                );
+                window.defaultStore.setItem(
+                    `${ORG_CACHE_EXPIRY_KEY}-${domainKey}`,
+                    (now + ORG_CACHE_DURATION).toString()
+                );
+                window.defaultStore.setItem(`${ORG_CACHE_LAST_KEY}-${domainKey}`, now.toString());
+            }
             this.orgRefreshDate = now;
             this.header_formatDate();
             this.isFetchingOrgInfo = false;

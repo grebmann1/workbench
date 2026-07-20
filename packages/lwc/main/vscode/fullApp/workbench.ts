@@ -301,14 +301,22 @@ export function buildWorkbenchConnection(
     };
 }
 
-export function isAuthError(err: { status?: number; message?: string } | null | undefined) {
+export function isAuthError(
+    err: { status?: number; message?: string; errorCode?: string; name?: string } | null | undefined
+) {
     const status = err?.status;
     if (status === 401) return true;
-    const msg = String(err?.message || '').toUpperCase();
+    // jsforce stamps the session marker on `errorCode`/`name`, not always the
+    // human message — and the iframe bridge historically flattened those away,
+    // so inspect every field an expired-session error can arrive on.
+    const haystack = [err?.errorCode, err?.name, err?.message]
+        .filter((part): part is string => typeof part === 'string' && !!part)
+        .join(' ')
+        .toUpperCase();
     return (
-        msg.includes('INVALID_SESSION_ID') ||
-        msg.includes('INVALID_SESSION') ||
-        msg.includes('(401)')
+        haystack.includes('INVALID_SESSION_ID') ||
+        haystack.includes('INVALID_SESSION') ||
+        haystack.includes('(401)')
     );
 }
 

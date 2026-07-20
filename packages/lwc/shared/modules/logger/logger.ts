@@ -1,6 +1,22 @@
+// NOTE: reference the bare `process.env.NODE_ENV` token (no optional chaining)
+// so the bundler's `replace` plugin can statically inline it to a string
+// literal at build time. Optional chaining (`process.env?.NODE_ENV`) breaks
+// that literal match, leaving `process` referenced at runtime — where it is
+// undefined in the browser extension, so the whole guard collapsed to `false`
+// and every log printed in production. The try/catch keeps us safe in any
+// environment where the token was not replaced and `process` is undefined.
+const resolveIsProduction = (): boolean => {
+    try {
+        // Non-null assertion is erased by tsc, so emitted JS keeps the clean
+        // `process.env.NODE_ENV` literal the bundler's replace plugin matches.
+        return process.env!.NODE_ENV === 'production';
+    } catch {
+        return false;
+    }
+};
+
 class Logger {
-    readonly isProduction =
-        typeof process !== 'undefined' && process.env?.NODE_ENV === 'production';
+    readonly isProduction = resolveIsProduction();
 
     private readonly colors = {
         reset: '\x1b[0m',

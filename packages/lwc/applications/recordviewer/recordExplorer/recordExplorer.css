@@ -7,7 +7,12 @@
 .tableFixHead table {
     border-collapse: inherit;
     width: 100%;
-    overflow: clip;
+    /* Do NOT clip the table box: the picklist edit control renders a
+       lightning-combobox whose dropdown is absolutely positioned and is not
+       portaled out of the DOM. When the list is filtered/short the table box
+       shrinks, and `overflow: clip` here cut off the dropdown opening below the
+       last row. The outer `.full-page-body` still provides the scroll bounds. */
+    overflow: visible;
 }
 
 .field-column {

@@ -40,6 +40,15 @@ type BridgeClient = {
     pollIntervalMs?: number
     includeZip?: boolean
   }) => Promise<any>
+  retrieveStart: (args: { types: Record<string, string[]> }) => Promise<{ id: string }>
+  checkRetrieveStatus: (args: { id: string; includeZip?: boolean }) => Promise<{
+    id: string
+    done: boolean
+    success: boolean
+    status: string
+    errorMessage: string
+    zipFile: string
+  }>
   retrieveToolingTypes: (args: {
     types: Record<string, string[]>
   }) => Promise<any>
@@ -256,6 +265,19 @@ function createMockBridgeClient(workspaceRoot: string): BridgeClient {
         zipFile: mockZip
       }
     },
+    async retrieveStart() {
+      return { id: `mock-retrieve-${Date.now()}` }
+    },
+    async checkRetrieveStatus({ includeZip = true } = {}) {
+      return {
+        id: `mock-retrieve-${Date.now()}`,
+        done: true,
+        success: true,
+        status: 'Succeeded',
+        errorMessage: '',
+        zipFile: includeZip ? mockZip : ''
+      }
+    },
     async retrieveToolingTypes() {
       return { unsupportedTypes: [], types: {} }
     },
@@ -352,7 +374,6 @@ export async function createBridgeConnectionContext({
   workspaceRoot?: string
 } = {}): Promise<BridgeConnectionContext> {
   const connectionRecord = createDefaultConnectionRecord(normalizeApiVersion(apiVersion), workspaceRoot)
-  const retrieveStatusById = new Map<string, Record<string, unknown>>()
   const deployStatusById = new Map<string, Record<string, unknown>>()
   const fallbackZip = buildMockZipBase64()
 
@@ -611,35 +632,28 @@ export async function createBridgeConnectionContext({
       },
       async retrieve(request: Record<string, unknown>) {
         const client = await resolveBridgeClient()
-        const response = await client.retrieveViaMetadataApi({
-          types: buildMetadataTypesFromRetrieveRequest(request),
-          includeZip: true
+        // Start the async retrieve only. The caller's poll loop drives
+        // checkRetrieveStatus, so each bridge hop stays short and progress /
+        // cancellation live on the VS Code side.
+        const response = await client.retrieveStart({
+          types: buildMetadataTypesFromRetrieveRequest(request)
         })
-        const id = asString(response.id) || `retrieve-${Date.now()}`
-        retrieveStatusById.set(id, {
-          id,
-          done: true,
-          success: response.success !== false,
-          status: asString(response.status) || 'Succeeded',
-          zipFile: asString(response.zipFile) || fallbackZip,
-          errorMessage: asString(response.errorMessage)
-        })
+        const id = asString(response?.id) || `retrieve-${Date.now()}`
         return { id }
       },
       async checkRetrieveStatus(id: string, includeZip = true) {
-        const status = retrieveStatusById.get(String(id))
-        if (!status) {
-          return {
-            done: true,
-            success: false,
-            status: 'Unknown',
-            zipFile: includeZip ? '' : undefined,
-            errorMessage: `Unknown retrieve id: ${id}`
-          }
-        }
+        const client = await resolveBridgeClient()
+        const status = await client.checkRetrieveStatus({
+          id: String(id),
+          includeZip
+        })
         return {
-          ...status,
-          zipFile: includeZip ? status.zipFile : undefined
+          id: asString(status?.id) || String(id),
+          done: status?.done !== false,
+          success: status?.success !== false,
+          status: asString(status?.status) || 'Succeeded',
+          errorMessage: asString(status?.errorMessage),
+          zipFile: includeZip ? asString(status?.zipFile) || fallbackZip : undefined
         }
       },
       async deploy(zipB64: string, options: { checkOnly?: boolean } = {}) {

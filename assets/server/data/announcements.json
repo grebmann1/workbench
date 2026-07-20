@@ -1,13 +1,13 @@
 {
     "announcement": {
-        "id": "2026-07-01-2-0-7",
+        "id": "2026-07-15-2-0-8",
         "active": true,
         "variant": "brand",
-        "title": "Workbench 2.0.7 is here",
-        "message": "Workbench 2.0.7 fixes stale value cells in the Record Explorer after saving, blank fields in the Current User panel on some orgs, Org Id detection on connections whose identity omits it, and SOQL Explorer line comments (`#` / `--`) so commented queries execute and keep object parsing in sync — plus the AI Agent button now shows for any provider with usable credentials.",
+        "title": "Workbench 2.0.8 is here",
+        "message": "Workbench 2.0.8 fixes the overlay metadata spinner hanging on a stalled user/org lookup, the blank Current User card on non-enriched connections, stale Chrome reads after saving (record refreshes and async job polling now bypass the browser cache), a clipped picklist dropdown in the filtered Record Explorer, and two VS Code issues — undetected expired sessions across the iframe bridge and long Metadata API retrieves timing out (now cancellable).",
         "linkLabel": "View release notes",
         "linkUrl": "https://www.sf-workbench.com/app?applicationName=release",
-        "startsAt": "2026-07-01T00:00:00Z",
+        "startsAt": "2026-07-15T00:00:00Z",
         "endsAt": "2026-12-31T23:59:59Z"
     }
 }

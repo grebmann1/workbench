@@ -252,6 +252,44 @@ export function normalizeOrganizationType({
     return '';
 }
 
+/**
+ * Force the browser to bypass its HTTP cache for every jsforce GET on the
+ * Chrome extension.
+ *
+ * On Chrome the connector talks to Salesforce directly (no proxy — see
+ * `normalizeConnection` below, where `proxyUrl` is null for PLATFORM.CHROME),
+ * so GET responses (record `retrieve`, SOQL `query`, raw `request`, async job
+ * status polling, …) are served from the browser HTTP cache. That makes
+ * read-after-write flows return stale data and, worse, makes status-polling
+ * loops (bulk jobs, Apex deploy) spin forever on a cached response — the
+ * classic "only refreshes with DevTools open" symptom.
+ *
+ * The proxy transport used by the web/electron targets already appends a
+ * cache-busting query param to every request (jsforce `XdProxyTransport`). This
+ * gives the direct Chrome transport the same guarantee by wrapping the single
+ * chokepoint all requests flow through — `conn._transport.httpRequest` — and
+ * appending the same style of cache-buster to GETs only. Idempotent, and a
+ * no-op on every platform except Chrome.
+ */
+export const applyChromeCacheBusting = (conn, platform) => {
+    if (platform !== PLATFORM.CHROME) return conn;
+    const transport = conn?._transport;
+    if (!transport || typeof transport.httpRequest !== 'function') return conn;
+    if (transport._workbenchCacheBusting) return conn;
+    transport._workbenchCacheBusting = true;
+
+    const originalHttpRequest = transport.httpRequest.bind(transport);
+    transport.httpRequest = (req, options = {}) => {
+        const method = (req?.method || 'GET').toUpperCase();
+        if (method === 'GET' && typeof req?.url === 'string') {
+            const nocache = `${Date.now()}.${String(Math.random()).substring(2)}`;
+            req.url += `${req.url.includes('?') ? '&' : '?'}_=${nocache}`;
+        }
+        return originalHttpRequest(req, options);
+    };
+    return conn;
+};
+
 export const normalizeConnection = (credentialType, rawData, platform, extra = {}) => {
     const getProxyUrl = () => {
         if (extra.isProxyDisabled || platform === PLATFORM.CHROME) {
