@@ -3,7 +3,18 @@ import logger from 'shared/middleware';
 
 import application from './modules/application/reducers';
 
-const isProd = typeof process !== 'undefined' && process.env?.NODE_ENV === 'production';
+// Reference the bare `process.env.NODE_ENV` token (no optional chaining) so the
+// bundler's `replace` plugin can inline it to a literal at build time; the
+// try/catch guards environments where `process` is genuinely undefined.
+const resolveIsProd = (): boolean => {
+    try {
+        return process.env!.NODE_ENV === 'production';
+    } catch {
+        return false;
+    }
+};
+
+const isProd = resolveIsProd();
 
 export const store = configureStore({
     reducer: {

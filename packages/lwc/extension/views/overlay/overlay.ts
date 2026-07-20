@@ -160,13 +160,6 @@ export default class Overlay extends ToolkitElement {
 
     connectedCallback() {
         const lf = window.localforage || window.localForage;
-        try {
-            // eslint-disable-next-line no-console
-            console.log('[SF-TOOLKIT][Overlay] connectedCallback', {
-                hasLocalForage: !!lf,
-                hasCreateInstance: typeof lf?.createInstance === 'function',
-            });
-        } catch (e) {}
         window.jsforce = jsforce;
         window.defaultStore = window.defaultStore || lf.createInstance({ name: 'defaultStore' });
         this.getSessionId();
@@ -764,9 +757,33 @@ export default class Overlay extends ToolkitElement {
             let orgUser;
             if (!this.isBlankValue(userId)) {
                 const escapedId = String(userId).replace(/'/g, "\\'");
-                const userResult = await this.connector.conn.query(
-                    `SELECT Id, Username, Email, Name FROM User WHERE Id = '${escapedId}' LIMIT 1`
-                );
+                // Mirror org/me.ts: fetch the full user field set, with a
+                // fallback query that drops CurrencyIsoCode for orgs where the
+                // field isn't available (e.g. single-currency orgs).
+                const fields = [
+                    'Id',
+                    'LastName',
+                    'FirstName',
+                    'Username',
+                    'Email',
+                    'FederationIdentifier',
+                    'CompanyName',
+                    'Name',
+                    'IsActive',
+                    'LanguageLocaleKey',
+                ];
+                const exceptionFields = ['CurrencyIsoCode'];
+                const query = queryFields =>
+                    `SELECT ${queryFields.join(',')} FROM User WHERE Id = '${escapedId}' LIMIT 1`;
+                let userResult;
+                try {
+                    userResult = await this.connector.conn.query(
+                        query([].concat(fields, exceptionFields))
+                    );
+                } catch (e) {
+                    // Retry without CurrencyIsoCode for orgs where it isn't available.
+                    userResult = await this.connector.conn.query(query(fields));
+                }
                 orgUser = userResult?.records?.[0];
             }
 
