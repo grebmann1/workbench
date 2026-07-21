@@ -150,8 +150,10 @@
                     </div>
                 </div>
 
-                <!-- Detail sections -->
+                <!-- Detail Tabs -->
                 <div class="slds-m-top_small">
+                    <lightning-tabset variant="scoped" active-tab-value={detailTab}>
+                        <lightning-tab label="Schema" value="schema" onactive={handleDetailTabActive}>
                     <!-- Available APIs -->
                     <section class={availableApisSectionClass}>
                         <h3 class="slds-section__title">
@@ -667,6 +669,20 @@
                             </div>
                         </div>
                     </section>
+                        </lightning-tab>
+
+                        <lightning-tab label="Blueprint" value="blueprint" onactive={handleDetailTabActive}>
+                            <object-blueprint
+                                lwc:ref="blueprintView"
+                                object-name={activeObjectName}></object-blueprint>
+                        </lightning-tab>
+
+                        <lightning-tab label="Limits" value="limits" onactive={handleDetailTabActive}>
+                            <object-blueprint-limits
+                                lwc:ref="limitsView"
+                                object-name={activeObjectName}></object-blueprint-limits>
+                        </lightning-tab>
+                    </lightning-tabset>
                 </div>
             </div>
         </article>

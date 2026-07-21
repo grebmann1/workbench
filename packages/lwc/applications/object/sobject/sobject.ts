@@ -27,6 +27,7 @@ export default class Sobject extends ToolkitElement {
     @track relationshipSearch = '';
     @track expandedFieldKey: string | null = null;
     relationshipTab = 'lookups';
+    @track detailTab = 'schema';
 
     openSections = {
         availableApis: true,
@@ -95,6 +96,19 @@ export default class Sobject extends ToolkitElement {
         const value = e.target?.value;
         if (!isEmpty(value)) {
             this.relationshipTab = value;
+        }
+    };
+
+    handleDetailTabActive = (e: any): void => {
+        const value = e.target?.value;
+        if (!isEmpty(value)) {
+            this.detailTab = value;
+            if (value === 'blueprint' && this.refs?.blueprintView) {
+                (this.refs.blueprintView as any).activate?.();
+            }
+            if (value === 'limits' && this.refs?.limitsView) {
+                (this.refs.limitsView as any).activate?.();
+            }
         }
     };
 
@@ -184,6 +198,7 @@ export default class Sobject extends ToolkitElement {
         this.fieldSearch = '';
         this.relationshipSearch = '';
         this.relationshipTab = 'lookups';
+        this.detailTab = 'schema';
         this.openSections = {
             availableApis: true,
             relationships: true,
@@ -551,6 +566,10 @@ export default class Sobject extends ToolkitElement {
 
     get listViewsUrl() {
         return `/lightning/setup/ObjectManager/${this.selectedDetails.name}/ListViews/view`;
+    }
+
+    get activeObjectName(): string | null {
+        return this.selectedDetails?.name || null;
     }
 
     get mermaidClass() {
