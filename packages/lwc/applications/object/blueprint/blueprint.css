@@ -1,0 +1,195 @@
+.blueprint-root {
+    display: block;
+    padding: 0.25rem;
+}
+
+.blueprint-toolbar__summary-row {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.blueprint-toolbar__summary-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    border: 1px solid var(--slds-g-color-border-base-1, #dddbda);
+    border-radius: 999px;
+    padding: 0.125rem 0.5rem;
+    background: var(--slds-g-color-neutral-base-100, #fff);
+}
+
+.blueprint-toolbar__summary-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 0.5rem;
+    flex-wrap: nowrap;
+}
+
+@media (min-width: 64rem) {
+    .blueprint-toolbar__summary-actions {
+        justify-content: flex-end;
+    }
+}
+
+/* ─── Group accordion header ──────────────────── */
+.slds-section__title-action {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    background: var(--slds-g-color-neutral-base-95, #f3f3f3);
+    border: 1px solid var(--slds-g-color-border-base-1, #c9c9c9);
+    border-radius: 0.25rem;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: var(--slds-g-color-neutral-base-10, #181818);
+}
+.slds-section__title-action:hover {
+    background: var(--slds-g-color-neutral-base-90, #e5e5e5);
+}
+.slds-section__title-action .slds-badge {
+    font-weight: 600;
+    min-width: 1.5rem;
+    text-align: center;
+}
+
+/* Accordion open / close */
+.slds-section .slds-section__content {
+    display: none;
+}
+.slds-section.slds-is-open .slds-section__content {
+    display: block;
+}
+
+/* ─── Category sub-accordion header ──────────── */
+.category-title-action {
+    background: var(--slds-g-color-neutral-base-100, #fff);
+    border: 1px solid var(--slds-g-color-border-base-1, #e5e5e5);
+    font-weight: 500;
+    font-size: 0.8125rem;
+    padding: 0.35rem 0.6rem;
+    color: var(--slds-g-color-neutral-base-20, #333);
+}
+.category-title-action:hover {
+    background: var(--slds-g-color-neutral-base-97, #f7f7f7);
+}
+/* ─── Status pills (active / inactive) ───────── */
+.status-pill {
+    display: inline-block;
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 0.1rem 0.5rem;
+    border-radius: 1rem;
+    white-space: nowrap;
+    line-height: 1.4;
+}
+.pill-active {
+    background: #e8f5e9;
+    color: #2e7d32;
+    border: 1px solid #c8e6c9;
+}
+.pill-inactive {
+    background: #fce4ec;
+    color: #c62828;
+    border: 1px solid #f8bbd0;
+}
+.pill-neutral {
+    background: #f5f5f5;
+    color: #616161;
+    border: 1px solid #e0e0e0;
+}
+
+/* ─── Data table tweaks ───────────────────────── */
+.data-table-wrapper {
+    overflow-x: auto;
+    margin-bottom: 0.5rem;
+}
+.data-table-wrapper .slds-table {
+    font-size: 0.8125rem;
+    table-layout: fixed;
+    width: 100%;
+}
+.data-table-wrapper th,
+.data-table-wrapper td {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding: 0.25rem 0.5rem;
+}
+
+.col-name {
+    width: 28%;
+}
+.col-status {
+    width: 7rem;
+}
+.col-description {
+    width: 42%;
+}
+.col-modified {
+    width: 8rem;
+}
+.col-actions {
+    width: 3rem;
+    text-align: center;
+}
+
+/* Allow description/info text to wrap */
+.data-table-wrapper td.col-description,
+.data-table-wrapper th.col-description {
+    white-space: pre-line;
+    word-break: break-word;
+}
+
+/* Name column wrapping for fixed-layout tables */
+.data-table-wrapper td.col-name {
+    white-space: normal;
+    word-break: break-word;
+}
+
+/* Row name cell with label + API name */
+.name-cell {
+    display: flex;
+    flex-direction: column;
+}
+.row-api-name {
+    gap: 0.25rem;
+}
+.api-name-row {
+    gap: 0.25rem;
+    margin-top: 0.1rem;
+}
+.api-name-text {
+    font-size: 0.7rem;
+    color: var(--slds-g-color-neutral-base-50, #747474);
+    font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+}
+.copy-btn {
+    opacity: 0;
+    transition: opacity 0.15s;
+}
+tr:hover .copy-btn {
+    opacity: 1;
+}
+
+.section-loader-overlay {
+    min-height: 4rem;
+    padding: 0.5rem 0;
+    overflow: hidden;
+}
+
+/* Badge color helpers */
+.badge-green {
+    --sds-c-badge-color-background: #2e7d32;
+    --sds-c-badge-text-color: #fff;
+}
+.badge-amber {
+    --sds-c-badge-color-background: #ff8f00;
+    --sds-c-badge-text-color: #fff;
+}
+.badge-grey {
+    --sds-c-badge-color-background: #757575;
+    --sds-c-badge-text-color: #fff;
+}

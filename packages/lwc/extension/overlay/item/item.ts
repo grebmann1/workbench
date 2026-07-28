@@ -2,6 +2,8 @@ import ToolkitElement from 'core/toolkitElement';
 import { api } from 'lwc';
 import { TYPE } from 'overlay/utils';
 import {
+    getSetupEntityPagePath,
+    getFlowBuilderPath,
     isEmpty,
     getObjectDocLink,
     getObjectFieldsSetupLink,
@@ -142,11 +144,17 @@ export default class Item extends ToolkitElement {
             case TYPE.DEV_LINK:
                 return this.item?.link || '#';
             case TYPE.PROFILE:
-                return `/lightning/setup/EnhancedProfiles/page?address=%2F${this.item?.id}`;
+                return getSetupEntityPagePath({
+                    setupEntity: 'EnhancedProfiles',
+                    id: this.item?.id,
+                });
             case TYPE.PERMISSION_SET:
-                return `/lightning/setup/PermSets/page?address=%2F${this.item?.id}`;
+                return getSetupEntityPagePath({ setupEntity: 'PermSets', id: this.item?.id });
             case TYPE.PERMISSION_SET_GROUP:
-                return `/lightning/setup/PermSetGroups/page?address=%2F${this.item?.id}`;
+                return getSetupEntityPagePath({
+                    setupEntity: 'PermSetGroups',
+                    id: this.item?.id,
+                });
             case TYPE.USER: {
                 const targetUrl = encodeURIComponent(
                     `/${this.item?.id}?noredirect=1&isUserEntityOverride=1`
@@ -154,15 +162,17 @@ export default class Item extends ToolkitElement {
                 return `/lightning/setup/ManageUsers/page?address=${targetUrl}`;
             }
             case TYPE.APEX_TRIGGER:
-                return `/lightning/setup/ApexTriggers/page?address=%2F${this.item?.id}`;
+                return getSetupEntityPagePath({ setupEntity: 'ApexTriggers', id: this.item?.id });
             case TYPE.APEX_CLASS:
-                return `/lightning/setup/ApexClasses/page?address=%2F${this.item?.id}`;
+                return getSetupEntityPagePath({ setupEntity: 'ApexClasses', id: this.item?.id });
             case TYPE.AGENTFORCE:
                 return `/lightning/setup/EinsteinCopilot/${this.item?.id}/edit`;
             case TYPE.FLOW:
-                return `/builder_platform_interaction/flowBuilder.app?isFromAloha=true&flowDefId=${
-                    this.item?.id
-                }&flowId=${this.item?.activeVersionId || this.item?.latestVersionId}`;
+                return getFlowBuilderPath({
+                    flowDefId: this.item?.id,
+                    activeVersionId: this.item?.activeVersionId,
+                    latestVersionId: this.item?.latestVersionId,
+                });
             default:
                 return '#';
         }

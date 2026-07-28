@@ -1,4 +1,5 @@
 import type { JobsTab } from './types';
+import { getSetupNodeHomePath } from 'shared/utils';
 
 export const JOB_TABS: Array<{ value: JobsTab; label: string; setupLabel: string }> = [
     { value: 'scheduled', label: 'Scheduled', setupLabel: 'Scheduled Jobs' },
@@ -15,11 +16,11 @@ export const AUTO_REFRESH_OPTIONS = [
 ];
 
 export const SETUP_LINKS = [
-    { label: 'Apex Jobs', url: '/lightning/setup/AsyncApexJobs/home' },
-    { label: 'Apex Flex Queue', url: '/lightning/setup/ApexFlexQueue/home' },
-    { label: 'Bulk Data Load Jobs', url: '/lightning/setup/AsyncApiJobStatus/home' },
-    { label: 'Scheduled Jobs', url: '/lightning/setup/ScheduledJobs/home' },
-    { label: 'Background Jobs', url: '/lightning/setup/ParallelJobsStatus/home' },
+    { label: 'Apex Jobs', url: getSetupNodeHomePath({ setupNode: 'AsyncApexJobs' }) },
+    { label: 'Apex Flex Queue', url: getSetupNodeHomePath({ setupNode: 'ApexFlexQueue' }) },
+    { label: 'Bulk Data Load Jobs', url: getSetupNodeHomePath({ setupNode: 'AsyncApiJobStatus' }) },
+    { label: 'Scheduled Jobs', url: getSetupNodeHomePath({ setupNode: 'ScheduledJobs' }) },
+    { label: 'Background Jobs', url: getSetupNodeHomePath({ setupNode: 'ParallelJobsStatus' }) },
 ];
 
 export const FILTER_ALL = 'all';

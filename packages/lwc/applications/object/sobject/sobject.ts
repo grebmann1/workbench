@@ -27,6 +27,8 @@ export default class Sobject extends ToolkitElement {
     @track relationshipSearch = '';
     @track expandedFieldKey: string | null = null;
     relationshipTab = 'lookups';
+    @track detailTab = 'schema';
+    pendingDetailActivation: 'blueprint' | 'limits' | null = null;
 
     openSections = {
         availableApis: true,
@@ -60,6 +62,10 @@ export default class Sobject extends ToolkitElement {
 
     connectedCallback() {
         this.loadFromCache();
+    }
+
+    renderedCallback() {
+        this.flushPendingDetailActivation();
     }
 
     /** Events */
@@ -97,6 +103,41 @@ export default class Sobject extends ToolkitElement {
             this.relationshipTab = value;
         }
     };
+
+    handleDetailTabActive = (e: any): void => {
+        const value = e.target?.value;
+        if (!isEmpty(value)) {
+            this.detailTab = value;
+            this.scheduleDetailActivation(value);
+        }
+    };
+
+    scheduleDetailActivation(value: string): void {
+        if (value !== 'blueprint' && value !== 'limits') {
+            this.pendingDetailActivation = null;
+            return;
+        }
+        this.pendingDetailActivation = value;
+        Promise.resolve().then(() => this.flushPendingDetailActivation());
+    }
+
+    flushPendingDetailActivation(): void {
+        if (this.pendingDetailActivation === 'blueprint') {
+            const view = this.refs?.blueprintView as any;
+            if (view?.activate) {
+                view.activate();
+                this.pendingDetailActivation = null;
+            }
+            return;
+        }
+        if (this.pendingDetailActivation === 'limits') {
+            const view = this.refs?.limitsView as any;
+            if (view?.activate) {
+                view.activate();
+                this.pendingDetailActivation = null;
+            }
+        }
+    }
 
     handleToggleSection = (e: any): void => {
         const section = e.currentTarget?.dataset?.section;
@@ -184,6 +225,8 @@ export default class Sobject extends ToolkitElement {
         this.fieldSearch = '';
         this.relationshipSearch = '';
         this.relationshipTab = 'lookups';
+        this.detailTab = 'schema';
+        this.pendingDetailActivation = null;
         this.openSections = {
             availableApis: true,
             relationships: true,
@@ -551,6 +594,10 @@ export default class Sobject extends ToolkitElement {
 
     get listViewsUrl() {
         return `/lightning/setup/ObjectManager/${this.selectedDetails.name}/ListViews/view`;
+    }
+
+    get activeObjectName(): string | null {
+        return this.selectedDetails?.name || null;
     }
 
     get mermaidClass() {

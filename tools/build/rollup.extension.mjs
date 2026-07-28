@@ -1,10 +1,11 @@
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 
 import { transformSync } from '@babel/core';
 import syntaxDecorators from '@babel/plugin-syntax-decorators';
 import transformTypescript from '@babel/plugin-transform-typescript';
-import lwcPlugin from '@lwc/rollup-plugin';
+import lwc from '@lwc/rollup-plugin';
 import alias from '@rollup/plugin-alias';
 import cjs from '@rollup/plugin-commonjs';
 import resolve from '@rollup/plugin-node-resolve';
@@ -14,18 +15,12 @@ import dotenv from 'dotenv';
 import copy from 'rollup-plugin-copy';
 import nodePolyfills from 'rollup-plugin-polyfill-node';
 
-import * as data from '../../package.json';
-
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const getIsProduction = (args) => (args?.NODE_ENV || process.env.NODE_ENV) === 'production';
 const r = (...args) => path.resolve(__dirname, ...args);
+const data = JSON.parse(fs.readFileSync(r('../../package.json'), 'utf8'));
 const envFile = process.env.NODE_ENV === 'production' ? '.env.prod' : '.env.dev';
 dotenv.config({ path: r(`../../${envFile}`) });
-const lwc = typeof lwcPlugin === 'function' ? lwcPlugin : lwcPlugin?.default;
-if (typeof lwc !== 'function') {
-    throw new TypeError(
-        '@lwc/rollup-plugin export is not callable. Verify package version and Rollup CJS config interop.'
-    );
-}
 
 // Some UMD/CJS deps (e.g. `sax`) rely on top-level `this` to attach globals.
 // In ESM bundles Rollup rewrites top-level `this` to `undefined` by default, which can break them.

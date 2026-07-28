@@ -1,4 +1,5 @@
 import path from 'path';
+import { fileURLToPath } from 'url';
 
 import { transformSync } from '@babel/core';
 import syntaxDecorators from '@babel/plugin-syntax-decorators';
@@ -10,6 +11,8 @@ import inject from '@rollup/plugin-inject';
 import json from '@rollup/plugin-json';
 import resolve from '@rollup/plugin-node-resolve';
 import nodePolyfills from 'rollup-plugin-polyfill-node';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const stripTypescript = () => ({
     name: 'strip-typescript',
