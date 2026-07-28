@@ -5,7 +5,7 @@ import { fileURLToPath } from 'url';
 import { transformSync } from '@babel/core';
 import syntaxDecorators from '@babel/plugin-syntax-decorators';
 import transformTypescript from '@babel/plugin-transform-typescript';
-import lwc from '@lwc/rollup-plugin';
+import lwcImport from '@lwc/rollup-plugin';
 import alias from '@rollup/plugin-alias';
 import cjs from '@rollup/plugin-commonjs';
 import resolve from '@rollup/plugin-node-resolve';
@@ -16,6 +16,7 @@ import copy from 'rollup-plugin-copy';
 import nodePolyfills from 'rollup-plugin-polyfill-node';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const lwc = typeof lwcImport === 'function' ? lwcImport : lwcImport?.default;
 const getIsProduction = (args) => (args?.NODE_ENV || process.env.NODE_ENV) === 'production';
 const r = (...args) => path.resolve(__dirname, ...args);
 const data = JSON.parse(fs.readFileSync(r('../../package.json'), 'utf8'));
