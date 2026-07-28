@@ -108,6 +108,13 @@ export {
     getObjectListLink,
     getRecordTypesLink,
     getObjectDocLink,
+    getSetupEntityPagePath,
+    getSetupNodeHomePath,
+    getObjectManagerSectionPath,
+    getObjectManagerRecordPath,
+    getObjectListViewPath,
+    getAppBuilderPagePath,
+    getFlowBuilderPath,
 } from './salesforceLinks';
 
 // Miscellaneous utilities

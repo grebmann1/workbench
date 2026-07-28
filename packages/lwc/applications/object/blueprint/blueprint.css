@@ -3,6 +3,35 @@
     padding: 0.25rem;
 }
 
+.blueprint-toolbar__summary-row {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.blueprint-toolbar__summary-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    border: 1px solid var(--slds-g-color-border-base-1, #dddbda);
+    border-radius: 999px;
+    padding: 0.125rem 0.5rem;
+    background: var(--slds-g-color-neutral-base-100, #fff);
+}
+
+.blueprint-toolbar__summary-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 0.5rem;
+    flex-wrap: nowrap;
+}
+
+@media (min-width: 64rem) {
+    .blueprint-toolbar__summary-actions {
+        justify-content: flex-end;
+    }
+}
+
 /* ─── Group accordion header ──────────────────── */
 .slds-section__title-action {
     display: flex;
@@ -90,11 +119,22 @@
     padding: 0.25rem 0.5rem;
 }
 
-.col-name { width: 28%; }
-.col-status { width: 7rem; }
-.col-description { width: 42%; }
-.col-modified { width: 8rem; }
-.col-actions { width: 3rem; text-align: center; }
+.col-name {
+    width: 28%;
+}
+.col-status {
+    width: 7rem;
+}
+.col-description {
+    width: 42%;
+}
+.col-modified {
+    width: 8rem;
+}
+.col-actions {
+    width: 3rem;
+    text-align: center;
+}
 
 /* Allow description/info text to wrap */
 .data-table-wrapper td.col-description,
@@ -134,7 +174,22 @@ tr:hover .copy-btn {
     opacity: 1;
 }
 
+.section-loader-overlay {
+    min-height: 4rem;
+    padding: 0.5rem 0;
+    overflow: hidden;
+}
+
 /* Badge color helpers */
-.badge-green { --sds-c-badge-color-background: #2e7d32; --sds-c-badge-text-color: #fff; }
-.badge-amber { --sds-c-badge-color-background: #ff8f00; --sds-c-badge-text-color: #fff; }
-.badge-grey  { --sds-c-badge-color-background: #757575; --sds-c-badge-text-color: #fff; }
+.badge-green {
+    --sds-c-badge-color-background: #2e7d32;
+    --sds-c-badge-text-color: #fff;
+}
+.badge-amber {
+    --sds-c-badge-color-background: #ff8f00;
+    --sds-c-badge-text-color: #fff;
+}
+.badge-grey {
+    --sds-c-badge-color-background: #757575;
+    --sds-c-badge-text-color: #fff;
+}

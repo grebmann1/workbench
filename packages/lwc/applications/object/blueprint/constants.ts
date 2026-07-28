@@ -1,6 +1,15 @@
 /**
  * Category definitions, group mappings, and URL builders for Object Blueprint.
  */
+import {
+    getAppBuilderPagePath,
+    getFlowBuilderPath,
+    getObjectListViewPath,
+    getObjectManagerRecordPath,
+    getObjectManagerSectionPath,
+    getSetupEntityPagePath,
+    getSetupNodeHomePath,
+} from 'shared/utils';
 
 export interface BlueprintItem {
     key: string;
@@ -141,82 +150,109 @@ export const STATUS_BADGE_CLASS: Record<string, string> = {
     Tracked: 'badge-green',
 };
 
-export function buildSetupUrl(
+export function buildBlueprintSetupUrl(
     categoryKey: string,
     recordId: string,
     objectApiName: string
 ): string {
     switch (categoryKey) {
         case 'validationRules':
-            return `/lightning/setup/ObjectManager/${objectApiName}/ValidationRules/${recordId}/view`;
+            return getObjectManagerRecordPath({
+                objectApiName,
+                section: 'ValidationRules',
+                recordId,
+            });
         case 'apexTriggers':
-            return `/lightning/setup/ApexTriggers/page?address=%2F${recordId}`;
+            return getSetupEntityPagePath({ setupEntity: 'ApexTriggers', id: recordId });
         case 'approvalProcesses':
-            return `/lightning/setup/ApprovalProcesses/page?address=%2F${recordId}`;
+            return getSetupEntityPagePath({ setupEntity: 'ApprovalProcesses', id: recordId });
         case 'duplicateRules':
-            return `/lightning/setup/DuplicateRules/page?address=%2F${recordId}`;
+            return getSetupEntityPagePath({ setupEntity: 'DuplicateRules', id: recordId });
         case 'matchingRules':
-            return `/lightning/setup/MatchingRules/page?address=%2F${recordId}`;
+            return getSetupEntityPagePath({ setupEntity: 'MatchingRules', id: recordId });
         case 'salesPath':
             return '/lightning/setup/PathAssistantSetupHome/page';
         case 'assignmentRules':
             return objectApiName === 'Case'
-                ? '/lightning/setup/CaseRules/home'
-                : '/lightning/setup/LeadRules/home';
+                ? getSetupNodeHomePath({ setupNode: 'CaseRules' })
+                : getSetupNodeHomePath({ setupNode: 'LeadRules' });
         case 'owdSharing':
         case 'ownerSharingRules':
         case 'criteriaSharingRules':
-            return '/lightning/setup/SecuritySharing/home';
+            return getSetupNodeHomePath({ setupNode: 'SecuritySharing' });
         case 'queues':
             return `/lightning/setup/Queues/page?address=%2Fp%2Fown%2FQueue%2Fd%3Fid%3D${recordId}`;
         case 'profilePermissions':
-            return `/lightning/setup/EnhancedProfiles/page?address=%2F${recordId}`;
+            return getSetupEntityPagePath({ setupEntity: 'EnhancedProfiles', id: recordId });
         case 'permSetAccess':
-            return `/lightning/setup/PermSets/page?address=%2F${recordId}`;
+            return getSetupEntityPagePath({ setupEntity: 'PermSets', id: recordId });
         case 'recordTypes':
-            return `/lightning/setup/ObjectManager/${objectApiName}/RecordTypes/${recordId}/view`;
+            return getObjectManagerRecordPath({
+                objectApiName,
+                section: 'RecordTypes',
+                recordId,
+            });
         case 'pageLayouts':
-            return `/lightning/setup/ObjectManager/${objectApiName}/PageLayouts/${recordId}/view`;
+            return getObjectManagerRecordPath({
+                objectApiName,
+                section: 'PageLayouts',
+                recordId,
+            });
         case 'compactLayouts':
-            return `/lightning/setup/ObjectManager/${objectApiName}/CompactLayouts/${recordId}/view`;
+            return getObjectManagerRecordPath({
+                objectApiName,
+                section: 'CompactLayouts',
+                recordId,
+            });
         case 'lightningPages':
-            return `/visualEditor/appBuilder.app?pageId=${recordId}`;
+            return getAppBuilderPagePath({ pageId: recordId });
         case 'layoutAssignments':
-            return `/lightning/setup/ObjectManager/${objectApiName}/PageLayouts/view`;
+            return getObjectManagerSectionPath({ objectApiName, section: 'PageLayouts' });
         case 'flexiPageAssignments':
             return recordId
-                ? `/visualEditor/appBuilder.app?pageId=${recordId}`
-                : `/lightning/setup/ObjectManager/${objectApiName}/LightningPages/view`;
+                ? getAppBuilderPagePath({ pageId: recordId })
+                : getObjectManagerSectionPath({ objectApiName, section: 'LightningPages' });
         case 'quickActions':
-            return `/lightning/setup/ObjectManager/${objectApiName}/ButtonsLinksActions/${recordId}/view`;
+            return getObjectManagerRecordPath({
+                objectApiName,
+                section: 'ButtonsLinksActions',
+                recordId,
+            });
         case 'customButtons':
-            return `/lightning/setup/ObjectManager/${objectApiName}/ButtonsLinksActions/${recordId}/view`;
+            return getObjectManagerRecordPath({
+                objectApiName,
+                section: 'ButtonsLinksActions',
+                recordId,
+            });
         case 'listViews':
-            return `/lightning/o/${objectApiName}/list?filterName=${recordId}`;
+            return getObjectListViewPath({ objectApiName, filterName: recordId });
         case 'formulaFields':
         case 'rollupSummaries':
             return recordId
-                ? `/lightning/setup/ObjectManager/${objectApiName}/FieldsAndRelationships/${recordId}/view`
-                : `/lightning/setup/ObjectManager/${objectApiName}/FieldsAndRelationships/view`;
+                ? getObjectManagerRecordPath({
+                      objectApiName,
+                      section: 'FieldsAndRelationships',
+                      recordId,
+                  })
+                : getObjectManagerSectionPath({ objectApiName, section: 'FieldsAndRelationships' });
         case 'fieldSets':
             return recordId
-                ? `/lightning/setup/ObjectManager/${objectApiName}/FieldSets/${recordId}/view`
-                : `/lightning/setup/ObjectManager/${objectApiName}/FieldSets/view`;
+                ? getObjectManagerRecordPath({ objectApiName, section: 'FieldSets', recordId })
+                : getObjectManagerSectionPath({ objectApiName, section: 'FieldSets' });
         case 'apexClasses':
-            return `/lightning/setup/ApexClasses/page?address=%2F${recordId}`;
+            return getSetupEntityPagePath({ setupEntity: 'ApexClasses', id: recordId });
         case 'scheduledJobs':
-            return '/lightning/setup/ScheduledJobs/home';
+            return getSetupNodeHomePath({ setupNode: 'ScheduledJobs' });
         default:
             return '';
     }
 }
 
-export function buildFlowUrl(
+export function buildBlueprintFlowUrl(
     activeVersionId: string | null,
     latestVersionId: string | null
 ): string {
-    const versionId = activeVersionId || latestVersionId;
-    return versionId ? `/builder_platform_interaction/flowBuilder.app?flowId=${versionId}` : '';
+    return getFlowBuilderPath({ activeVersionId, latestVersionId });
 }
 
 export function formatDateString(raw: string | null | undefined): string {

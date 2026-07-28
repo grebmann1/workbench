@@ -1,69 +1,104 @@
 <template>
     <div class="limits-root">
-        <!-- Loading -->
-        <template lwc:if={isLoading}>
-            <div class="slds-align_absolute-center slds-p-around_large">
-                <slds-spinner
-                    message="Loading limits..."
-                    alternative-text="Loading"
-                    size="small"></slds-spinner>
+        <!-- Toolbar -->
+        <template lwc:if={hasLoadedData}>
+            <div class="slds-m-bottom_small">
+                <div
+                    class="limits-toolbar__summary-row slds-grid slds-grid_align-end slds-grid_vertical-align-center slds-m-bottom_x-small">
+                    <div class="limits-toolbar__summary-pill">
+                        <span class="slds-text-body_small slds-text-color_weak">{summaryText}</span>
+                        <lightning-button-icon
+                            icon-name="utility:refresh"
+                            variant="bare"
+                            alternative-text="Refresh limits data"
+                            title="Refresh limits data"
+                            onclick={handleRefresh}></lightning-button-icon>
+                    </div>
+                </div>
             </div>
         </template>
 
-        <template lwc:else>
-            <!-- Toolbar -->
-            <template lwc:if={hasLimits}>
-                <div class="slds-grid slds-grid_align-end slds-m-bottom_small">
-                    <lightning-button-icon
-                        icon-name="utility:refresh"
-                        variant="bare"
-                        alternative-text="Refresh"
-                        title="Refresh"
-                        onclick={handleRefresh}></lightning-button-icon>
-                </div>
-            </template>
-
-            <!-- Limit groups -->
-            <template for:each={limitGroups} for:item="group">
-                <section key={group.key} class="slds-section slds-is-open slds-m-bottom_small">
-                    <h3 class="slds-section__title">
-                        <span class="slds-button slds-section__title-action">
-                            <span class="slds-truncate" title={group.label}>{group.label}</span>
-                        </span>
-                    </h3>
+        <!-- Limit groups -->
+        <template for:each={limitGroups} for:item="group">
+            <section key={group.key} class={group.sectionClass}>
+                <h3 class="slds-section__title">
+                    <button
+                        class="slds-button slds-section__title-action"
+                        data-group={group.key}
+                        onclick={handleToggleGroup}
+                        aria-expanded={group.isOpen}>
+                        <lightning-icon
+                            icon-name={group.chevronIcon}
+                            size="xx-small"
+                            class="slds-m-right_x-small"></lightning-icon>
+                        <span class="slds-truncate" title={group.label}>{group.label}</span>
+                    </button>
+                </h3>
+                <template lwc:if={group.isOpen}>
                     <div class="slds-section__content slds-p-horizontal_small slds-p-bottom_small">
-                        <div class="slds-grid slds-wrap slds-gutters_small">
-                            <template for:each={group.items} for:item="item">
-                                <div key={item.key} class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-3 slds-m-bottom_small">
-                                    <div class="limit-card">
-                                        <div class="limit-card__header slds-grid slds-grid_vertical-align-center">
-                                            <lightning-icon
-                                                icon-name={item.icon}
-                                                size="xx-small"
-                                                class="slds-m-right_x-small"></lightning-icon>
-                                            <span class="limit-card__label slds-truncate">{item.label}</span>
-                                        </div>
-                                        <div class="limit-card__body">
-                                            <div class="limit-bar-track">
-                                                <div class={item.barClass} style={item.barStyle}></div>
+                        <template lwc:if={group.isLoading}>
+                            <div class="section-loader-overlay slds-is-relative">
+                                <slds-spinner
+                                    message={group.loadingMessage}
+                                    alternative-text="Loading limits section"
+                                    size="small"></slds-spinner>
+                            </div>
+                        </template>
+                        <template lwc:elseif={group.error}>
+                            <div
+                                class="slds-text-color_error slds-p-vertical_x-small slds-text-body_small">
+                                {group.error}
+                            </div>
+                        </template>
+                        <template lwc:elseif={group.items.length}>
+                            <div class="slds-grid slds-wrap slds-gutters_small">
+                                <template for:each={group.items} for:item="item">
+                                    <div
+                                        key={item.key}
+                                        class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-3 slds-m-bottom_small">
+                                        <div class="limit-card">
+                                            <div
+                                                class="limit-card__header slds-grid slds-grid_vertical-align-center">
+                                                <lightning-icon
+                                                    icon-name={item.icon}
+                                                    size="xx-small"
+                                                    class="slds-m-right_x-small"></lightning-icon>
+                                                <span class="limit-card__label slds-truncate">
+                                                    {item.label}
+                                                </span>
                                             </div>
-                                            <div class="limit-card__values">
-                                                <span class="slds-text-body_small">{item.percentageLabel}</span>
+                                            <div class="limit-card__body">
+                                                <div class="limit-bar-track">
+                                                    <div
+                                                        class={item.barClass}
+                                                        style={item.barStyle}></div>
+                                                </div>
+                                                <div class="limit-card__values">
+                                                    <span class="slds-text-body_small">
+                                                        {item.percentageLabel}
+                                                    </span>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
-                            </template>
-                        </div>
+                                </template>
+                            </div>
+                        </template>
+                        <template lwc:else>
+                            <div
+                                class="slds-text-color_weak slds-p-vertical_x-small slds-text-body_small">
+                                No limits data available for this section.
+                            </div>
+                        </template>
                     </div>
-                </section>
-            </template>
+                </template>
+            </section>
+        </template>
 
-            <template lwc:if={noLimits}>
-                <div class="slds-text-color_weak slds-text-align_center slds-p-around_large">
-                    No limits data available for this object.
-                </div>
-            </template>
+        <template lwc:if={noLimits}>
+            <div class="slds-text-color_weak slds-text-align_center slds-p-around_large">
+                No limits data available for this object.
+            </div>
         </template>
     </div>
 </template>

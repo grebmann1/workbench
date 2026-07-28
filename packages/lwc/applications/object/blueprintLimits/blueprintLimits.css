@@ -6,6 +6,20 @@
     padding: 0.25rem;
 }
 
+.limits-toolbar__summary-row {
+    width: 100%;
+}
+
+.limits-toolbar__summary-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    border: 1px solid var(--slds-g-color-border-base-1, #dddbda);
+    border-radius: 999px;
+    padding: 0.125rem 0.5rem;
+    background: var(--slds-g-color-neutral-base-100, #fff);
+}
+
 .limits-root .slds-section__title-action {
     width: 100%;
     justify-content: flex-start;
@@ -65,4 +79,10 @@
 
 .bar-critical {
     background: #c0392b;
+}
+
+.section-loader-overlay {
+    min-height: 4rem;
+    padding: 0.5rem 0;
+    overflow: hidden;
 }

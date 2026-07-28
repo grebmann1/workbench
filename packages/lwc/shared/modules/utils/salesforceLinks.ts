@@ -32,6 +32,48 @@ type RecordTypesParams = {
     durableId?: string | null;
 };
 
+type SetupEntityPathParams = {
+    host?: string;
+    setupEntity: string;
+    id: string;
+};
+
+type SetupNodeHomePathParams = {
+    host?: string;
+    setupNode: string;
+};
+
+type ObjectManagerSectionPathParams = {
+    host?: string;
+    objectApiName: string;
+    section: string;
+};
+
+type ObjectManagerRecordPathParams = {
+    host?: string;
+    objectApiName: string;
+    section: string;
+    recordId: string;
+};
+
+type ObjectListViewPathParams = {
+    host?: string;
+    objectApiName: string;
+    filterName: string;
+};
+
+type AppBuilderPagePathParams = {
+    host?: string;
+    pageId: string;
+};
+
+type FlowBuilderPathParams = {
+    host?: string;
+    flowDefId?: string | null;
+    activeVersionId?: string | null;
+    latestVersionId?: string | null;
+};
+
 export function getObjectSetupLink({
     host,
     sobjectName,
@@ -128,4 +170,71 @@ export function getObjectDocLink(sobjectName: string, isUsingToolingApi: boolean
         return `https://developer.salesforce.com/docs/atlas.en-us.api_tooling.meta/api_tooling/tooling_api_objects_${sobjectName.toLowerCase()}.htm`;
     }
     return `https://developer.salesforce.com/docs/atlas.en-us.object_reference.meta/object_reference/sforce_api_objects_${sobjectName.toLowerCase()}.htm`;
+}
+
+function withHost(host: string | undefined, path: string): string {
+    return `${host || ''}${path}`;
+}
+
+export function getSetupEntityPagePath({ host, setupEntity, id }: SetupEntityPathParams): string {
+    return withHost(
+        host,
+        `/lightning/setup/${setupEntity}/page?address=%2F${encodeURIComponent(id)}`
+    );
+}
+
+export function getSetupNodeHomePath({ host, setupNode }: SetupNodeHomePathParams): string {
+    return withHost(host, `/lightning/setup/${setupNode}/home`);
+}
+
+export function getObjectManagerSectionPath({
+    host,
+    objectApiName,
+    section,
+}: ObjectManagerSectionPathParams): string {
+    return withHost(host, `/lightning/setup/ObjectManager/${objectApiName}/${section}/view`);
+}
+
+export function getObjectManagerRecordPath({
+    host,
+    objectApiName,
+    section,
+    recordId,
+}: ObjectManagerRecordPathParams): string {
+    return withHost(
+        host,
+        `/lightning/setup/ObjectManager/${objectApiName}/${section}/${recordId}/view`
+    );
+}
+
+export function getObjectListViewPath({
+    host,
+    objectApiName,
+    filterName,
+}: ObjectListViewPathParams): string {
+    return withHost(
+        host,
+        `/lightning/o/${objectApiName}/list?filterName=${encodeURIComponent(filterName)}`
+    );
+}
+
+export function getAppBuilderPagePath({ host, pageId }: AppBuilderPagePathParams): string {
+    return withHost(host, `/visualEditor/appBuilder.app?pageId=${encodeURIComponent(pageId)}`);
+}
+
+export function getFlowBuilderPath({
+    host,
+    flowDefId,
+    activeVersionId,
+    latestVersionId,
+}: FlowBuilderPathParams): string {
+    const flowId = activeVersionId || latestVersionId;
+    if (isEmpty(flowId)) {
+        return '';
+    }
+    const encodedFlowId = encodeURIComponent(String(flowId));
+    const query = flowDefId
+        ? `?isFromAloha=true&flowDefId=${encodeURIComponent(flowDefId)}&flowId=${encodedFlowId}`
+        : `?flowId=${encodedFlowId}`;
+    return withHost(host, `/builder_platform_interaction/flowBuilder.app${query}`);
 }

@@ -1,3 +1,5 @@
+import { getSetupEntityPagePath } from '../utils/salesforceLinks';
+
 // setupUrl.ts
 // Module: shared/sf/setupUrl
 //
@@ -99,7 +101,11 @@ export function buildSetupUrl(orgInstanceUrl: string, target: SetupTarget): stri
             assertValidName(target.name, 'ApexClass');
             // TODO: verify URL pattern — name-based Setup-list URL. Existing
             // codebase uses id-based form; name-based is acceptable for v1.
-            return `${baseUrl}/lightning/setup/ApexClasses/page?address=%2F${encodeURIComponent(target.name)}`;
+            return getSetupEntityPagePath({
+                host: baseUrl,
+                setupEntity: 'ApexClasses',
+                id: target.name,
+            });
         }
         case 'BotDefinition': {
             assertValidId(target.id, 'BotDefinition');

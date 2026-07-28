@@ -2,224 +2,291 @@
     <div class="blueprint-root">
         <!-- Toolbar -->
         <template lwc:if={hasData}>
-            <div class="blueprint-toolbar slds-grid slds-gutters_x-small slds-grid_vertical-align-end slds-wrap slds-m-bottom_small">
-                <div class="slds-col slds-size_1-of-1 slds-medium-size_4-of-12">
-                    <lightning-input
-                        type="search"
-                        label=""
-                        placeholder="Filter by name..."
-                        variant="label-hidden"
-                        value={searchTerm}
-                        onchange={handleSearchChange}></lightning-input>
+            <div class="blueprint-toolbar slds-m-bottom_small">
+                <div class="blueprint-toolbar__summary-row slds-m-bottom_x-small">
+                    <div class="blueprint-toolbar__summary-pill">
+                        <span class="slds-text-body_small slds-text-color_weak">{summaryText}</span>
+                        <lightning-button-icon
+                            icon-name="utility:refresh"
+                            variant="bare"
+                            alternative-text="Refresh blueprint data"
+                            title="Refresh blueprint data"
+                            onclick={handleRefresh}></lightning-button-icon>
+                    </div>
                 </div>
-                <div class="slds-col slds-size_1-of-1 slds-medium-size_4-of-12">
-                    <lightning-button-group>
-                        <lightning-button
-                            label="All"
-                            variant={allVariant}
-                            onclick={handleToggleActiveOnly}></lightning-button>
-                        <lightning-button
-                            label="Active Only"
-                            variant={activeOnlyVariant}
-                            onclick={handleToggleActiveOnly}></lightning-button>
-                    </lightning-button-group>
+                <div
+                    class="slds-grid slds-gutters_x-small slds-grid_vertical-align-center slds-wrap">
+                    <div class="slds-col slds-size_1-of-1 slds-large-size_5-of-12">
+                        <lightning-input
+                            type="search"
+                            label=""
+                            placeholder="Filter by name..."
+                            variant="label-hidden"
+                            value={searchTerm}
+                            onchange={handleSearchChange}></lightning-input>
+                    </div>
+                    <div class="slds-col slds-size_1-of-1 slds-large-size_3-of-12">
+                        <lightning-button-group>
+                            <lightning-button
+                                label="All"
+                                variant={allVariant}
+                                onclick={handleToggleActiveOnly}></lightning-button>
+                            <lightning-button
+                                label="Active Only"
+                                variant={activeOnlyVariant}
+                                onclick={handleToggleActiveOnly}></lightning-button>
+                        </lightning-button-group>
+                    </div>
+                    <div
+                        class="slds-col slds-size_1-of-1 slds-large-size_4-of-12 blueprint-toolbar__summary-actions">
+                        <lightning-button-group>
+                            <lightning-button
+                                label="Expand"
+                                icon-name="utility:expand_alt"
+                                icon-position="left"
+                                variant="neutral"
+                                title="Expand all groups and categories"
+                                onclick={handleExpandAll}></lightning-button>
+                            <lightning-button
+                                label="Collapse"
+                                icon-name="utility:contract_alt"
+                                icon-position="left"
+                                variant="neutral"
+                                title="Collapse all groups and categories"
+                                onclick={handleCollapseAll}></lightning-button>
+                        </lightning-button-group>
+                    </div>
                 </div>
-                <div class="slds-col slds-size_1-of-1 slds-medium-size_4-of-12 slds-text-align_right">
-                    <span class="slds-text-body_small slds-text-color_weak slds-m-right_small">{summaryText}</span>
-                    <lightning-button-icon
-                        icon-name="utility:refresh"
-                        variant="bare"
-                        alternative-text="Refresh"
-                        title="Refresh"
-                        onclick={handleRefresh}></lightning-button-icon>
-                </div>
-            </div>
-        </template>
-
-        <!-- Loading -->
-        <template lwc:if={isLoading}>
-            <div class="slds-align_absolute-center slds-p-around_large">
-                <slds-spinner
-                    message="Loading blueprint..."
-                    alternative-text="Loading"
-                    size="small"></slds-spinner>
             </div>
         </template>
 
         <!-- Groups (Accordion) -->
-        <template lwc:else>
-            <template for:each={groups} for:item="group">
-                <section key={group.key} class={group.sectionClass}>
-                    <h3 class="slds-section__title">
-                        <button
-                            class="slds-button slds-section__title-action"
-                            data-group={group.key}
-                            onclick={handleToggleGroup}
-                            aria-expanded={group.isOpen}>
-                            <lightning-icon
-                                icon-name={group.chevronIcon}
-                                size="xx-small"
-                                class="slds-m-right_x-small"></lightning-icon>
-                            <span class="slds-truncate" title={group.label}>{group.label}</span>
-                            <span class="slds-badge slds-m-left_x-small">{group.totalCount}</span>
-                        </button>
-                    </h3>
-                    <template lwc:if={group.isOpen}>
-                        <div class="slds-section__content slds-p-horizontal_small slds-p-bottom_small">
-                            <template for:each={group.categories} for:item="cat">
-                                <section key={cat.key} class={cat._sectionClass}>
-                                    <h4 class="slds-section__title">
-                                        <button
-                                            class="slds-button slds-section__title-action category-title-action"
-                                            data-category={cat.key}
-                                            onclick={handleToggleCategory}
-                                            aria-expanded={cat._isOpen}>
-                                            <lightning-icon
-                                                icon-name={cat._chevronIcon}
-                                                size="xx-small"
-                                                class="slds-m-right_x-small"></lightning-icon>
-                                            <lightning-icon
-                                                icon-name={cat.icon}
-                                                size="xx-small"
-                                                class="slds-m-right_x-small"></lightning-icon>
-                                            <span class="slds-truncate" title={cat.label}>{cat.label}</span>
-                                            <template lwc:if={cat._hasActive}>
-                                                <span class="status-pill pill-active slds-m-left_x-small">{cat._activeLabel}</span>
-                                            </template>
-                                            <template lwc:if={cat._hasInactive}>
-                                                <span class="status-pill pill-inactive slds-m-left_xx-small">{cat._inactiveLabel}</span>
-                                            </template>
-                                        </button>
-                                    </h4>
-                                    <template lwc:if={cat._isOpen}>
-                                        <div class="slds-section__content slds-p-horizontal_small slds-p-bottom_x-small">
-                                            <!-- Category loading -->
-                                            <template lwc:if={cat.isLoading}>
-                                                <div class="slds-p-around_small slds-text-color_weak">Loading...</div>
-                                            </template>
+        <template for:each={groups} for:item="group">
+            <section key={group.key} class={group.sectionClass}>
+                <h3 class="slds-section__title">
+                    <button
+                        class="slds-button slds-section__title-action"
+                        data-group={group.key}
+                        onclick={handleToggleGroup}
+                        aria-expanded={group.isOpen}>
+                        <lightning-icon
+                            icon-name={group.chevronIcon}
+                            size="xx-small"
+                            class="slds-m-right_x-small"></lightning-icon>
+                        <span class="slds-truncate" title={group.label}>{group.label}</span>
+                        <span class="slds-badge slds-m-left_x-small">{group.totalCount}</span>
+                    </button>
+                </h3>
+                <template lwc:if={group.isOpen}>
+                    <div class="slds-section__content slds-p-horizontal_small slds-p-bottom_small">
+                        <template for:each={group.categories} for:item="cat">
+                            <section key={cat.key} class={cat._sectionClass}>
+                                <h4 class="slds-section__title">
+                                    <button
+                                        class="slds-button slds-section__title-action category-title-action"
+                                        data-category={cat.key}
+                                        onclick={handleToggleCategory}
+                                        aria-expanded={cat._isOpen}>
+                                        <lightning-icon
+                                            icon-name={cat._chevronIcon}
+                                            size="xx-small"
+                                            class="slds-m-right_x-small"></lightning-icon>
+                                        <lightning-icon
+                                            icon-name={cat.icon}
+                                            size="xx-small"
+                                            class="slds-m-right_x-small"></lightning-icon>
+                                        <span class="slds-truncate" title={cat.label}>
+                                            {cat.label}
+                                        </span>
+                                        <template lwc:if={cat._hasActive}>
+                                            <span
+                                                class="status-pill pill-active slds-m-left_x-small">
+                                                {cat._activeLabel}
+                                            </span>
+                                        </template>
+                                        <template lwc:if={cat._hasInactive}>
+                                            <span
+                                                class="status-pill pill-inactive slds-m-left_xx-small">
+                                                {cat._inactiveLabel}
+                                            </span>
+                                        </template>
+                                    </button>
+                                </h4>
+                                <template lwc:if={cat._isOpen}>
+                                    <div
+                                        class="slds-section__content slds-p-horizontal_small slds-p-bottom_x-small">
+                                        <!-- Category loading -->
+                                        <template lwc:if={cat.isLoading}>
+                                            <div class="section-loader-overlay slds-is-relative">
+                                                <slds-spinner
+                                                    message={cat._loadingMessage}
+                                                    alternative-text="Loading blueprint section"
+                                                    size="small"></slds-spinner>
+                                            </div>
+                                        </template>
 
-                                            <!-- Category error -->
-                                            <template lwc:elseif={cat.error}>
-                                                <div class="slds-text-color_error slds-p-vertical_x-small slds-text-body_small">
-                                                    {cat.error}
-                                                </div>
-                                            </template>
+                                        <!-- Category error -->
+                                        <template lwc:elseif={cat.error}>
+                                            <div
+                                                class="slds-text-color_error slds-p-vertical_x-small slds-text-body_small">
+                                                {cat.error}
+                                            </div>
+                                        </template>
 
-                                            <!-- Has items -->
-                                            <template lwc:elseif={cat._hasItems}>
-                                                <div class="data-table-wrapper">
-                                                    <table class="slds-table slds-table_cell-buffer slds-table_bordered slds-table_col-bordered slds-table_striped">
-                                                        <thead>
-                                                            <tr class="slds-line-height_reset">
-                                                                <th scope="col" class="col-name">
-                                                                    <div class="slds-truncate" title="Name">Name</div>
-                                                                </th>
-                                                                <th scope="col" class="col-status">
-                                                                    <div class="slds-truncate" title="Status">Status</div>
-                                                                </th>
-                                                                <th scope="col" class="col-description">
-                                                                    <div class="slds-truncate" title="Info">Info</div>
-                                                                </th>
-                                                                <th scope="col" class="col-modified">
-                                                                    <div class="slds-truncate" title="Modified">Modified</div>
-                                                                </th>
-                                                                <th scope="col" class="col-actions">
-                                                                    <div class="slds-truncate" title="Actions"></div>
-                                                                </th>
-                                                            </tr>
-                                                        </thead>
-                                                        <tbody>
-                                                            <template for:each={cat.items} for:item="item">
-                                                                <tr key={item.key}>
-                                                                    <td class="col-name">
-                                                                        <div class="name-cell">
-                                                                            <div class="slds-grid slds-grid_vertical-align-center row-api-name">
-                                                                                <span class="slds-truncate" title={item.name}>
-                                                                                    {item.name}
+                                        <!-- Has items -->
+                                        <template lwc:elseif={cat._hasItems}>
+                                            <div class="data-table-wrapper">
+                                                <table
+                                                    class="slds-table slds-table_cell-buffer slds-table_bordered slds-table_col-bordered slds-table_striped">
+                                                    <thead>
+                                                        <tr class="slds-line-height_reset">
+                                                            <th scope="col" class="col-name">
+                                                                <div
+                                                                    class="slds-truncate"
+                                                                    title="Name">
+                                                                    Name
+                                                                </div>
+                                                            </th>
+                                                            <th scope="col" class="col-status">
+                                                                <div
+                                                                    class="slds-truncate"
+                                                                    title="Status">
+                                                                    Status
+                                                                </div>
+                                                            </th>
+                                                            <th scope="col" class="col-description">
+                                                                <div
+                                                                    class="slds-truncate"
+                                                                    title="Info">
+                                                                    Info
+                                                                </div>
+                                                            </th>
+                                                            <th scope="col" class="col-modified">
+                                                                <div
+                                                                    class="slds-truncate"
+                                                                    title="Modified">
+                                                                    Modified
+                                                                </div>
+                                                            </th>
+                                                            <th scope="col" class="col-actions">
+                                                                <div
+                                                                    class="slds-truncate"
+                                                                    title="Actions"></div>
+                                                            </th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        <template
+                                                            for:each={cat.items}
+                                                            for:item="item">
+                                                            <tr key={item.key}>
+                                                                <td class="col-name">
+                                                                    <div class="name-cell">
+                                                                        <div
+                                                                            class="slds-grid slds-grid_vertical-align-center row-api-name">
+                                                                            <span
+                                                                                class="slds-truncate"
+                                                                                title={item.name}>
+                                                                                {item.name}
+                                                                            </span>
+                                                                            <lightning-button-icon
+                                                                                icon-name="utility:copy"
+                                                                                variant="bare"
+                                                                                size="small"
+                                                                                class="copy-btn"
+                                                                                alternative-text="Copy name"
+                                                                                title="Copy name"
+                                                                                data-value={item.name}
+                                                                                onclick={handleCopyValue}></lightning-button-icon>
+                                                                        </div>
+                                                                        <template
+                                                                            lwc:if={item._showApiName}>
+                                                                            <div
+                                                                                class="slds-grid slds-grid_vertical-align-center api-name-row">
+                                                                                <span
+                                                                                    class="api-name-text slds-truncate"
+                                                                                    title={item.apiName}>
+                                                                                    {item.apiName}
                                                                                 </span>
                                                                                 <lightning-button-icon
                                                                                     icon-name="utility:copy"
                                                                                     variant="bare"
                                                                                     size="small"
                                                                                     class="copy-btn"
-                                                                                    alternative-text="Copy name"
-                                                                                    title="Copy name"
-                                                                                    data-value={item.name}
+                                                                                    alternative-text="Copy API name"
+                                                                                    title="Copy API name"
+                                                                                    data-value={item.apiName}
                                                                                     onclick={handleCopyValue}></lightning-button-icon>
                                                                             </div>
-                                                                            <template lwc:if={item._showApiName}>
-                                                                                <div class="slds-grid slds-grid_vertical-align-center api-name-row">
-                                                                                    <span class="api-name-text slds-truncate" title={item.apiName}>
-                                                                                        {item.apiName}
-                                                                                    </span>
-                                                                                    <lightning-button-icon
-                                                                                        icon-name="utility:copy"
-                                                                                        variant="bare"
-                                                                                        size="small"
-                                                                                        class="copy-btn"
-                                                                                        alternative-text="Copy API name"
-                                                                                        title="Copy API name"
-                                                                                        data-value={item.apiName}
-                                                                                        onclick={handleCopyValue}></lightning-button-icon>
-                                                                                </div>
-                                                                            </template>
-                                                                        </div>
-                                                                    </td>
-                                                                    <td class="col-status">
-                                                                        <span class={item._statusPillClass}>{item.status}</span>
-                                                                    </td>
-                                                                    <td class="col-description">
-                                                                        <template lwc:if={item.additionalInfo}>
-                                                                            <strong class="slds-m-right_xx-small">{item.additionalInfo}</strong>
                                                                         </template>
-                                                                        {item.description}
-                                                                    </td>
-                                                                    <td class="col-modified">
-                                                                        <template lwc:if={item.lastModifiedDate}>
-                                                                            <span class="slds-text-body_small slds-text-color_weak" title={item.lastModifiedBy}>
-                                                                                {item.lastModifiedDate}
-                                                                            </span>
-                                                                        </template>
-                                                                    </td>
-                                                                    <td class="col-actions">
-                                                                        <template lwc:if={item.setupUrl}>
-                                                                            <lightning-button-icon
-                                                                                icon-name="utility:new_window"
-                                                                                variant="bare"
-                                                                                size="small"
-                                                                                alternative-text="Open in Setup"
-                                                                                title="Open in Setup"
-                                                                                data-url={item.setupUrl}
-                                                                                onclick={goToUrl}></lightning-button-icon>
-                                                                        </template>
-                                                                    </td>
-                                                                </tr>
-                                                            </template>
-                                                        </tbody>
-                                                    </table>
-                                                </div>
-                                            </template>
+                                                                    </div>
+                                                                </td>
+                                                                <td class="col-status">
+                                                                    <span
+                                                                        class={item._statusPillClass}>
+                                                                        {item.status}
+                                                                    </span>
+                                                                </td>
+                                                                <td class="col-description">
+                                                                    <template
+                                                                        lwc:if={item.additionalInfo}>
+                                                                        <strong
+                                                                            class="slds-m-right_xx-small">
+                                                                            {item.additionalInfo}
+                                                                        </strong>
+                                                                    </template>
+                                                                    {item.description}
+                                                                </td>
+                                                                <td class="col-modified">
+                                                                    <template
+                                                                        lwc:if={item.lastModifiedDate}>
+                                                                        <span
+                                                                            class="slds-text-body_small slds-text-color_weak"
+                                                                            title={item.lastModifiedBy}>
+                                                                            {item.lastModifiedDate}
+                                                                        </span>
+                                                                    </template>
+                                                                </td>
+                                                                <td class="col-actions">
+                                                                    <template
+                                                                        lwc:if={item.setupUrl}>
+                                                                        <lightning-button-icon
+                                                                            icon-name="utility:new_window"
+                                                                            variant="bare"
+                                                                            size="small"
+                                                                            alternative-text="Open in Setup"
+                                                                            title="Open in Setup"
+                                                                            data-url={item.setupUrl}
+                                                                            onclick={goToUrl}></lightning-button-icon>
+                                                                    </template>
+                                                                </td>
+                                                            </tr>
+                                                        </template>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </template>
 
-                                            <!-- No items -->
-                                            <template lwc:else>
-                                                <div class="slds-text-color_weak slds-p-vertical_x-small slds-text-body_small">
-                                                    No {cat.label} found.
-                                                </div>
-                                            </template>
-                                        </div>
-                                    </template>
-                                </section>
-                            </template>
-                        </div>
-                    </template>
-                </section>
-            </template>
+                                        <!-- No items -->
+                                        <template lwc:else>
+                                            <div
+                                                class="slds-text-color_weak slds-p-vertical_x-small slds-text-body_small">
+                                                No {cat.label} found.
+                                            </div>
+                                        </template>
+                                    </div>
+                                </template>
+                            </section>
+                        </template>
+                    </div>
+                </template>
+            </section>
+        </template>
 
-            <template lwc:if={noData}>
-                <div class="slds-text-color_weak slds-text-align_center slds-p-around_large">
-                    No metadata found for this object.
-                </div>
-            </template>
+        <template lwc:if={noData}>
+            <div class="slds-text-color_weak slds-text-align_center slds-p-around_large">
+                No metadata found for this object.
+            </div>
         </template>
     </div>
 </template>

@@ -8,8 +8,8 @@ import {
     GROUPS,
     CATEGORIES,
     STATUS_BADGE_CLASS,
-    buildSetupUrl,
-    buildFlowUrl,
+    buildBlueprintSetupUrl,
+    buildBlueprintFlowUrl,
     formatDateString,
     safeString,
     safeBool,
@@ -25,8 +25,9 @@ export default class Blueprint extends ToolkitElement {
     @track activeOnly = false;
     @track openGroups: Record<string, boolean> = {};
     @track openCategories: Record<string, boolean> = {};
-    @track isLoading = false;
     _hasLoaded = false;
+    _loadedCategories: Set<string> = new Set();
+    _requestToken = 0;
 
     @api
     get objectName(): string | null {
@@ -38,7 +39,10 @@ export default class Blueprint extends ToolkitElement {
         this._objectName = value;
         if (changed && !isEmpty(value)) {
             this._hasLoaded = false;
-            this.loadBlueprint();
+            this._requestToken += 1;
+            this._loadedCategories = new Set();
+            this._categories = new Map();
+            this.openCategories = {};
         }
     }
 
@@ -46,7 +50,8 @@ export default class Blueprint extends ToolkitElement {
     @api
     activate(): void {
         if (!this._hasLoaded && !isEmpty(this._objectName)) {
-            this.loadBlueprint();
+            this.initializeBlueprint();
+            this.loadAllCategories();
         }
     }
 
@@ -60,9 +65,44 @@ export default class Blueprint extends ToolkitElement {
         this.activeOnly = !this.activeOnly;
     };
 
+    handleExpandAll = (): void => {
+        const categoriesOpenByData: Record<string, boolean> = {};
+        for (const category of CATEGORIES) {
+            const existing = this._categories.get(category.key);
+            const hasItems = (existing?.items?.length || 0) > 0;
+            categoriesOpenByData[category.key] = hasItems;
+        }
+
+        const groupsOpenByData: Record<string, boolean> = {};
+        for (const group of GROUPS) {
+            groupsOpenByData[group.key] = CATEGORIES.some(category => {
+                if (category.group !== group.key) return false;
+                return categoriesOpenByData[category.key] === true;
+            });
+        }
+
+        this.openGroups = groupsOpenByData;
+        this.openCategories = categoriesOpenByData;
+    };
+
+    handleCollapseAll = (): void => {
+        const allGroupsClosed: Record<string, boolean> = {};
+        for (const group of GROUPS) {
+            allGroupsClosed[group.key] = false;
+        }
+        const allCategoriesClosed: Record<string, boolean> = {};
+        for (const category of CATEGORIES) {
+            allCategoriesClosed[category.key] = false;
+        }
+        this.openGroups = allGroupsClosed;
+        this.openCategories = allCategoriesClosed;
+    };
+
     handleRefresh = (): void => {
-        this._hasLoaded = false;
-        this.loadBlueprint();
+        this._requestToken += 1;
+        this._loadedCategories = new Set();
+        this.initializeBlueprint();
+        this.loadAllCategories();
     };
 
     handleToggleGroup = (e: any): void => {
@@ -81,10 +121,14 @@ export default class Blueprint extends ToolkitElement {
     handleToggleCategory = (e: any): void => {
         const catKey = e.currentTarget?.dataset?.category;
         if (!catKey) return;
+        const shouldOpen = !this.isCategoryOpen(catKey);
         this.openCategories = {
             ...this.openCategories,
-            [catKey]: !this.isCategoryOpen(catKey),
+            [catKey]: shouldOpen,
         };
+        if (shouldOpen) {
+            this.loadCategory(catKey);
+        }
     };
 
     isCategoryOpen(catKey: string): boolean {
@@ -109,9 +153,8 @@ export default class Blueprint extends ToolkitElement {
 
     /** Data Loading */
 
-    loadBlueprint = async (): Promise<void> => {
+    initializeBlueprint = (): void => {
         if (isEmpty(this._objectName)) return;
-        this.isLoading = true;
         this._hasLoaded = true;
 
         const freshCategories = new Map<string, BlueprintCategory>();
@@ -123,80 +166,95 @@ export default class Blueprint extends ToolkitElement {
                 group: cat.group,
                 items: [],
                 error: '',
-                isLoading: true,
+                isLoading: false,
             });
         }
         this._categories = freshCategories;
+    };
 
+    private loadAllCategories(): void {
+        for (const category of CATEGORIES) {
+            this.loadCategory(category.key);
+        }
+    }
+
+    private getCategoryFetcher(
+        conn: any,
+        obj: string
+    ): Record<string, () => Promise<BlueprintItem[]>> {
+        return {
+            validationRules: () => this.fetchValidationRules(conn, obj),
+            apexTriggers: () => this.fetchApexTriggers(conn, obj),
+            recordTriggeredFlows: () => this.fetchRecordTriggeredFlows(conn, obj),
+            approvalProcesses: () => this.fetchApprovalProcesses(conn, obj),
+            assignmentRules: () => this.fetchAssignmentRules(conn, obj),
+            salesPath: () => this.fetchSalesPath(conn, obj),
+            duplicateRules: () => this.fetchDuplicateRules(conn, obj),
+            matchingRules: () => this.fetchMatchingRules(conn, obj),
+            owdSharing: () => this.fetchOwdSharing(conn, obj),
+            ownerSharingRules: () => this.fetchOwnerSharingRules(conn, obj),
+            criteriaSharingRules: () => this.fetchCriteriaSharingRules(conn, obj),
+            queues: () => this.fetchQueues(conn, obj),
+            profilePermissions: () => this.fetchProfilePermissions(conn, obj),
+            permSetAccess: () => this.fetchPermSetAccess(conn, obj),
+            recordTypes: () => this.fetchRecordTypes(conn, obj),
+            pageLayouts: () => this.fetchPageLayouts(conn, obj),
+            compactLayouts: () => this.fetchCompactLayouts(conn, obj),
+            lightningPages: () => this.fetchLightningPages(conn, obj),
+            layoutAssignments: () => this.fetchLayoutAssignments(conn, obj),
+            flexiPageAssignments: () => this.fetchFlexiPageAssignments(conn, obj),
+            quickActions: () => this.fetchQuickActions(conn, obj),
+            listViews: () => this.fetchListViews(conn, obj),
+            customButtons: () => this.fetchCustomButtons(conn, obj),
+            formulaFields: () => this.fetchFormulaFields(conn, obj),
+            rollupSummaries: () => this.fetchRollupSummaries(conn, obj),
+            fieldSets: () => this.fetchFieldSets(conn, obj),
+            apexClasses: () => this.fetchApexClasses(conn, obj),
+            scheduledJobs: () => this.fetchScheduledJobs(conn, obj),
+        };
+    }
+
+    private updateCategory(
+        catKey: string,
+        updates: Partial<BlueprintCategory> | ((cat: BlueprintCategory) => BlueprintCategory)
+    ): void {
+        const current = this._categories.get(catKey);
+        if (!current) return;
+        const updatedCategory =
+            typeof updates === 'function' ? updates(current) : { ...current, ...updates };
+        const updated = new Map(this._categories);
+        updated.set(catKey, updatedCategory);
+        this._categories = updated;
+    }
+
+    private loadCategory = async (catKey: string): Promise<void> => {
+        if (isEmpty(this._objectName) || this._loadedCategories.has(catKey)) return;
+        const category = this._categories.get(catKey);
+        if (!category || category.isLoading) return;
+        const objectName = String(this._objectName);
+        const requestToken = this._requestToken;
+        this.updateCategory(catKey, { isLoading: true, error: '' });
         try {
             await ensureSessionClientCallOption(this.connector);
             const conn = this.connector.conn;
-            const obj = this._objectName;
-
-            const fetchers: Array<{ key: string; fn: () => Promise<BlueprintItem[]> }> = [
-                { key: 'validationRules', fn: () => this.fetchValidationRules(conn, obj) },
-                { key: 'apexTriggers', fn: () => this.fetchApexTriggers(conn, obj) },
-                {
-                    key: 'recordTriggeredFlows',
-                    fn: () => this.fetchRecordTriggeredFlows(conn, obj),
-                },
-                { key: 'approvalProcesses', fn: () => this.fetchApprovalProcesses(conn, obj) },
-                { key: 'assignmentRules', fn: () => this.fetchAssignmentRules(conn, obj) },
-                { key: 'salesPath', fn: () => this.fetchSalesPath(conn, obj) },
-                { key: 'duplicateRules', fn: () => this.fetchDuplicateRules(conn, obj) },
-                { key: 'matchingRules', fn: () => this.fetchMatchingRules(conn, obj) },
-                { key: 'owdSharing', fn: () => this.fetchOwdSharing(conn, obj) },
-                {
-                    key: 'ownerSharingRules',
-                    fn: () => this.fetchOwnerSharingRules(conn, obj),
-                },
-                {
-                    key: 'criteriaSharingRules',
-                    fn: () => this.fetchCriteriaSharingRules(conn, obj),
-                },
-                { key: 'queues', fn: () => this.fetchQueues(conn, obj) },
-                { key: 'profilePermissions', fn: () => this.fetchProfilePermissions(conn, obj) },
-                { key: 'permSetAccess', fn: () => this.fetchPermSetAccess(conn, obj) },
-                { key: 'recordTypes', fn: () => this.fetchRecordTypes(conn, obj) },
-                { key: 'pageLayouts', fn: () => this.fetchPageLayouts(conn, obj) },
-                { key: 'compactLayouts', fn: () => this.fetchCompactLayouts(conn, obj) },
-                { key: 'lightningPages', fn: () => this.fetchLightningPages(conn, obj) },
-                { key: 'layoutAssignments', fn: () => this.fetchLayoutAssignments(conn, obj) },
-                {
-                    key: 'flexiPageAssignments',
-                    fn: () => this.fetchFlexiPageAssignments(conn, obj),
-                },
-                { key: 'quickActions', fn: () => this.fetchQuickActions(conn, obj) },
-                { key: 'listViews', fn: () => this.fetchListViews(conn, obj) },
-                { key: 'customButtons', fn: () => this.fetchCustomButtons(conn, obj) },
-                { key: 'formulaFields', fn: () => this.fetchFormulaFields(conn, obj) },
-                { key: 'rollupSummaries', fn: () => this.fetchRollupSummaries(conn, obj) },
-                { key: 'fieldSets', fn: () => this.fetchFieldSets(conn, obj) },
-                { key: 'apexClasses', fn: () => this.fetchApexClasses(conn, obj) },
-                { key: 'scheduledJobs', fn: () => this.fetchScheduledJobs(conn, obj) },
-            ];
-
-            const results = await Promise.allSettled(fetchers.map(f => f.fn()));
-
-            const updated = new Map(this._categories);
-            results.forEach((result, idx) => {
-                const catKey = fetchers[idx].key;
-                const cat = updated.get(catKey);
-                if (!cat) return;
-                if (result.status === 'fulfilled') {
-                    cat.items = result.value;
-                    cat.error = '';
-                } else {
-                    cat.items = [];
-                    cat.error = result.reason?.message || 'Failed to load';
-                }
-                cat.isLoading = false;
-            });
-            this._categories = updated;
+            const fetchers = this.getCategoryFetcher(conn, objectName);
+            const fetchCategory = fetchers[catKey];
+            if (!fetchCategory) {
+                this.updateCategory(catKey, { isLoading: false, error: 'Category not supported' });
+                return;
+            }
+            const items = await fetchCategory();
+            if (requestToken !== this._requestToken) return;
+            this._loadedCategories.add(catKey);
+            this.updateCategory(catKey, { items, error: '', isLoading: false });
         } catch (e: any) {
-            console.error('Blueprint load error:', e);
+            if (requestToken !== this._requestToken) return;
+            this.updateCategory(catKey, {
+                items: [],
+                error: e?.message || 'Failed to load',
+                isLoading: false,
+            });
         }
-        this.isLoading = false;
     };
 
     /** Tooling API Fetchers */
@@ -257,7 +315,7 @@ export default class Blueprint extends ToolkitElement {
                 status: safeBool(r.Active) ? 'Active' : 'Inactive',
                 description: descParts.join(' -- '),
                 additionalInfo: errorMsg ? 'Error Msg:' : '',
-                setupUrl: buildSetupUrl('validationRules', safeString(r.Id), obj),
+                setupUrl: buildBlueprintSetupUrl('validationRules', safeString(r.Id), obj),
                 lastModifiedDate: formatDateString(safeString(r.LastModifiedDate)),
                 lastModifiedBy: safeString(r.LastModifiedBy?.Name),
                 category: 'validationRules',
@@ -289,7 +347,7 @@ export default class Blueprint extends ToolkitElement {
                 status: safeString(r.Status) || 'Active',
                 description: '',
                 additionalInfo: events.join(', '),
-                setupUrl: buildSetupUrl('apexTriggers', safeString(r.Id), obj),
+                setupUrl: buildBlueprintSetupUrl('apexTriggers', safeString(r.Id), obj),
                 lastModifiedDate: formatDateString(safeString(r.LastModifiedDate)),
                 lastModifiedBy: safeString(r.LastModifiedBy?.Name),
                 category: 'apexTriggers',
@@ -314,7 +372,7 @@ export default class Blueprint extends ToolkitElement {
             status: safeBool(r.IsActive) ? 'Active' : 'Inactive',
             description: safeString(r.Description),
             additionalInfo: safeString(r.RecordTriggerType),
-            setupUrl: buildFlowUrl(r.ActiveVersionId, r.LatestVersionId),
+            setupUrl: buildBlueprintFlowUrl(r.ActiveVersionId, r.LatestVersionId),
             lastModifiedDate: formatDateString(safeString(r.LastModifiedDate)),
             lastModifiedBy: safeString(r.LastModifiedBy),
             category: 'recordTriggeredFlows',
@@ -335,7 +393,7 @@ export default class Blueprint extends ToolkitElement {
             status: safeString(r.State) || 'Active',
             description: safeString(r.Description),
             additionalInfo: '',
-            setupUrl: buildSetupUrl('approvalProcesses', safeString(r.Id), obj),
+            setupUrl: buildBlueprintSetupUrl('approvalProcesses', safeString(r.Id), obj),
             lastModifiedDate: formatDateString(safeString(r.LastModifiedDate)),
             lastModifiedBy: safeString(r.LastModifiedBy?.Name),
             category: 'approvalProcesses',
@@ -355,7 +413,7 @@ export default class Blueprint extends ToolkitElement {
             status: safeBool(r.Active) ? 'Active' : 'Inactive',
             description: '',
             additionalInfo: '',
-            setupUrl: buildSetupUrl('assignmentRules', safeString(r.Id), obj),
+            setupUrl: buildBlueprintSetupUrl('assignmentRules', safeString(r.Id), obj),
             lastModifiedDate: '',
             lastModifiedBy: '',
             category: 'assignmentRules',
@@ -376,7 +434,7 @@ export default class Blueprint extends ToolkitElement {
             status: safeBool(r.IsActive) ? 'Active' : 'Inactive',
             description: '',
             additionalInfo: '',
-            setupUrl: buildSetupUrl('salesPath', safeString(r.Id), obj),
+            setupUrl: buildBlueprintSetupUrl('salesPath', safeString(r.Id), obj),
             lastModifiedDate: formatDateString(safeString(r.LastModifiedDate)),
             lastModifiedBy: safeString(r.LastModifiedBy?.Name),
             category: 'salesPath',
@@ -423,7 +481,7 @@ export default class Blueprint extends ToolkitElement {
                 status: safeBool(r.IsActive) ? 'Active' : 'Inactive',
                 description: desc,
                 additionalInfo: actionInfo,
-                setupUrl: buildSetupUrl('duplicateRules', safeString(r.Id), obj),
+                setupUrl: buildBlueprintSetupUrl('duplicateRules', safeString(r.Id), obj),
                 lastModifiedDate: formatDateString(safeString(r.LastModifiedDate)),
                 lastModifiedBy: safeString(r.LastModifiedBy?.Name),
                 category: 'duplicateRules',
@@ -445,7 +503,7 @@ export default class Blueprint extends ToolkitElement {
             status: safeString(r.RuleStatus) || 'Active',
             description: safeString(r.Description),
             additionalInfo: '',
-            setupUrl: buildSetupUrl('matchingRules', safeString(r.Id), obj),
+            setupUrl: buildBlueprintSetupUrl('matchingRules', safeString(r.Id), obj),
             lastModifiedDate: formatDateString(safeString(r.LastModifiedDate)),
             lastModifiedBy: safeString(r.LastModifiedBy?.Name),
             category: 'matchingRules',
@@ -485,7 +543,7 @@ export default class Blueprint extends ToolkitElement {
                 status: hasAccess ? 'Active' : 'No Access',
                 description: '',
                 additionalInfo: hasAccess ? this.formatCrudString(perm) : '',
-                setupUrl: buildSetupUrl('profilePermissions', profileId, obj),
+                setupUrl: buildBlueprintSetupUrl('profilePermissions', profileId, obj),
                 lastModifiedDate: '',
                 lastModifiedBy: '',
                 category: 'profilePermissions',
@@ -511,7 +569,7 @@ export default class Blueprint extends ToolkitElement {
                 status: 'Active',
                 description: '',
                 additionalInfo: this.formatCrudString(r),
-                setupUrl: buildSetupUrl('permSetAccess', parentId, obj),
+                setupUrl: buildBlueprintSetupUrl('permSetAccess', parentId, obj),
                 lastModifiedDate: '',
                 lastModifiedBy: '',
                 category: 'permSetAccess',
@@ -546,7 +604,7 @@ export default class Blueprint extends ToolkitElement {
                 status: 'Active',
                 description: `Internal: ${safeString(r.InternalSharingModel)} | External: ${safeString(r.ExternalSharingModel)}`,
                 additionalInfo: '',
-                setupUrl: buildSetupUrl('owdSharing', '', obj),
+                setupUrl: buildBlueprintSetupUrl('owdSharing', '', obj),
                 lastModifiedDate: '',
                 lastModifiedBy: '',
                 category: 'owdSharing',
@@ -608,7 +666,7 @@ export default class Blueprint extends ToolkitElement {
                 status: 'Active',
                 description: sharedTo,
                 additionalInfo: accessLevel ? `Access: ${accessLevel}` : '',
-                setupUrl: buildSetupUrl('ownerSharingRules', '', obj),
+                setupUrl: buildBlueprintSetupUrl('ownerSharingRules', '', obj),
                 lastModifiedDate: '',
                 lastModifiedBy: '',
                 category: 'ownerSharingRules',
@@ -634,7 +692,7 @@ export default class Blueprint extends ToolkitElement {
                 status: 'Active',
                 description: sharedTo,
                 additionalInfo: accessLevel ? `Access: ${accessLevel}` : '',
-                setupUrl: buildSetupUrl('criteriaSharingRules', '', obj),
+                setupUrl: buildBlueprintSetupUrl('criteriaSharingRules', '', obj),
                 lastModifiedDate: '',
                 lastModifiedBy: '',
                 category: 'criteriaSharingRules',
@@ -784,7 +842,7 @@ export default class Blueprint extends ToolkitElement {
                 status: 'Active',
                 description: descParts.join('\n'),
                 additionalInfo: countParts.join(', ') || 'No members',
-                setupUrl: buildSetupUrl('queues', queueId, obj),
+                setupUrl: buildBlueprintSetupUrl('queues', queueId, obj),
                 lastModifiedDate: '',
                 lastModifiedBy: '',
                 category: 'queues',
@@ -808,7 +866,7 @@ export default class Blueprint extends ToolkitElement {
             status: safeBool(r.IsActive) ? 'Active' : 'Inactive',
             description: safeString(r.Description),
             additionalInfo: '',
-            setupUrl: buildSetupUrl('recordTypes', safeString(r.Id), obj),
+            setupUrl: buildBlueprintSetupUrl('recordTypes', safeString(r.Id), obj),
             lastModifiedDate: formatDateString(safeString(r.LastModifiedDate)),
             lastModifiedBy: safeString(r.LastModifiedBy?.Name),
             category: 'recordTypes',
@@ -828,7 +886,7 @@ export default class Blueprint extends ToolkitElement {
             status: 'Active',
             description: '',
             additionalInfo: '',
-            setupUrl: buildSetupUrl('pageLayouts', safeString(r.Id), obj),
+            setupUrl: buildBlueprintSetupUrl('pageLayouts', safeString(r.Id), obj),
             lastModifiedDate: '',
             lastModifiedBy: '',
             category: 'pageLayouts',
@@ -848,7 +906,7 @@ export default class Blueprint extends ToolkitElement {
             status: 'Active',
             description: '',
             additionalInfo: '',
-            setupUrl: buildSetupUrl('compactLayouts', safeString(r.Id), obj),
+            setupUrl: buildBlueprintSetupUrl('compactLayouts', safeString(r.Id), obj),
             lastModifiedDate: '',
             lastModifiedBy: '',
             category: 'compactLayouts',
@@ -868,7 +926,7 @@ export default class Blueprint extends ToolkitElement {
             status: 'Active',
             description: safeString(r.Description),
             additionalInfo: '',
-            setupUrl: buildSetupUrl('lightningPages', safeString(r.Id), obj),
+            setupUrl: buildBlueprintSetupUrl('lightningPages', safeString(r.Id), obj),
             lastModifiedDate: '',
             lastModifiedBy: '',
             category: 'lightningPages',
@@ -909,7 +967,7 @@ export default class Blueprint extends ToolkitElement {
                 status: 'Active',
                 description: lines.join('\n'),
                 additionalInfo: `${totalProfiles} profiles, ${rtCount} record type${rtCount > 1 ? 's' : ''}`,
-                setupUrl: buildSetupUrl('layoutAssignments', '', obj),
+                setupUrl: buildBlueprintSetupUrl('layoutAssignments', '', obj),
                 lastModifiedDate: '',
                 lastModifiedBy: '',
                 category: 'layoutAssignments',
@@ -1008,7 +1066,7 @@ export default class Blueprint extends ToolkitElement {
                     status: 'Active',
                     description: appParts.join('\n') + rtSuffix,
                     additionalInfo: `${ovs.length} assignments across ${appCount} app${appCount > 1 ? 's' : ''}`,
-                    setupUrl: buildSetupUrl('flexiPageAssignments', pageId, obj),
+                    setupUrl: buildBlueprintSetupUrl('flexiPageAssignments', pageId, obj),
                     lastModifiedDate: '',
                     lastModifiedBy: '',
                     category: 'flexiPageAssignments',
@@ -1023,7 +1081,7 @@ export default class Blueprint extends ToolkitElement {
             status: 'Active',
             description: '',
             additionalInfo: 'Org Default',
-            setupUrl: buildSetupUrl('flexiPageAssignments', safeString(r.Id), obj),
+            setupUrl: buildBlueprintSetupUrl('flexiPageAssignments', safeString(r.Id), obj),
             lastModifiedDate: '',
             lastModifiedBy: '',
             category: 'flexiPageAssignments',
@@ -1043,7 +1101,7 @@ export default class Blueprint extends ToolkitElement {
             status: 'Active',
             description: '',
             additionalInfo: safeString(r.Type),
-            setupUrl: buildSetupUrl('quickActions', safeString(r.Id), obj),
+            setupUrl: buildBlueprintSetupUrl('quickActions', safeString(r.Id), obj),
             lastModifiedDate: '',
             lastModifiedBy: '',
             category: 'quickActions',
@@ -1126,7 +1184,7 @@ export default class Blueprint extends ToolkitElement {
                 status: 'Active',
                 description: filterInfo,
                 additionalInfo: filterInfo ? 'Filters' : '',
-                setupUrl: buildSetupUrl('listViews', safeString(r.Id), obj),
+                setupUrl: buildBlueprintSetupUrl('listViews', safeString(r.Id), obj),
                 lastModifiedDate: formatDateString(safeString(r.LastModifiedDate)),
                 lastModifiedBy: safeString(r.LastModifiedBy?.Name),
                 category: 'listViews',
@@ -1148,7 +1206,7 @@ export default class Blueprint extends ToolkitElement {
             status: 'Active',
             description: '',
             additionalInfo: `${safeString(r.DisplayType)} / ${safeString(r.LinkType)}`,
-            setupUrl: buildSetupUrl('customButtons', safeString(r.Id), obj),
+            setupUrl: buildBlueprintSetupUrl('customButtons', safeString(r.Id), obj),
             lastModifiedDate: formatDateString(safeString(r.LastModifiedDate)),
             lastModifiedBy: safeString(r.LastModifiedBy?.Name),
             category: 'customButtons',
@@ -1175,7 +1233,7 @@ export default class Blueprint extends ToolkitElement {
                 status: 'Active',
                 description: '',
                 additionalInfo: safeString(r.DataType),
-                setupUrl: buildSetupUrl('formulaFields', fieldId, obj),
+                setupUrl: buildBlueprintSetupUrl('formulaFields', fieldId, obj),
                 lastModifiedDate: '',
                 lastModifiedBy: '',
                 category: 'formulaFields',
@@ -1201,7 +1259,7 @@ export default class Blueprint extends ToolkitElement {
                 status: 'Active',
                 description: '',
                 additionalInfo: safeString(r.DataType),
-                setupUrl: buildSetupUrl('rollupSummaries', fieldId, obj),
+                setupUrl: buildBlueprintSetupUrl('rollupSummaries', fieldId, obj),
                 lastModifiedDate: '',
                 lastModifiedBy: '',
                 category: 'rollupSummaries',
@@ -1222,7 +1280,7 @@ export default class Blueprint extends ToolkitElement {
             status: 'Active',
             description: safeString(r.Description),
             additionalInfo: '',
-            setupUrl: buildSetupUrl('fieldSets', safeString(r.Id), obj),
+            setupUrl: buildBlueprintSetupUrl('fieldSets', safeString(r.Id), obj),
             lastModifiedDate: '',
             lastModifiedBy: '',
             category: 'fieldSets',
@@ -1245,7 +1303,7 @@ export default class Blueprint extends ToolkitElement {
             status: safeString(r.Status) || 'Active',
             description: '',
             additionalInfo: '',
-            setupUrl: buildSetupUrl('apexClasses', safeString(r.Id), obj),
+            setupUrl: buildBlueprintSetupUrl('apexClasses', safeString(r.Id), obj),
             lastModifiedDate: formatDateString(safeString(r.LastModifiedDate)),
             lastModifiedBy: safeString(r.LastModifiedBy?.Name),
             category: 'apexClasses',
@@ -1271,7 +1329,7 @@ export default class Blueprint extends ToolkitElement {
                 status: safeBool(r.IsActive) ? 'Active' : 'Inactive',
                 description: '',
                 additionalInfo: 'Scheduled Flow',
-                setupUrl: buildFlowUrl(r.ActiveVersionId, r.LatestVersionId),
+                setupUrl: buildBlueprintFlowUrl(r.ActiveVersionId, r.LatestVersionId),
                 lastModifiedDate: formatDateString(safeString(r.LastModifiedDate)),
                 lastModifiedBy: safeString(r.LastModifiedBy),
                 category: 'scheduledJobs',
@@ -1316,7 +1374,7 @@ export default class Blueprint extends ToolkitElement {
                         status: safeString(r.State) || 'Active',
                         description: safeString(r.CronExpression),
                         additionalInfo: infoParts.join('\n'),
-                        setupUrl: buildSetupUrl('scheduledJobs', safeString(r.Id), obj),
+                        setupUrl: buildBlueprintSetupUrl('scheduledJobs', safeString(r.Id), obj),
                         lastModifiedDate: formatDateString(safeString(r.CreatedDate)),
                         lastModifiedBy: '',
                         category: 'scheduledJobs',
@@ -1385,6 +1443,7 @@ export default class Blueprint extends ToolkitElement {
                     _activeLabel: `${activeCount} active`,
                     _inactiveLabel: `${inactiveCount} inactive`,
                     _isOpen: isCatOpen,
+                    _loadingMessage: `Loading ${c.label}...`,
                     _sectionClass: `slds-section${isCatOpen ? ' slds-is-open' : ''} slds-m-bottom_xx-small`,
                     _chevronIcon: isCatOpen ? 'utility:chevrondown' : 'utility:chevronright',
                 };
@@ -1425,10 +1484,13 @@ export default class Blueprint extends ToolkitElement {
     }
 
     get hasData(): boolean {
-        return this.totalItemCount > 0;
+        return this._categories.size > 0;
     }
 
     get noData(): boolean {
+        if (!this._hasLoaded || this._loadedCategories.size === 0) {
+            return false;
+        }
         return this.totalItemCount === 0;
     }
 

@@ -20,6 +20,13 @@ interface LimitGroup {
     key: string;
     label: string;
     items: LimitItem[];
+    isOpen: boolean;
+    isLoading: boolean;
+    error: string;
+    hasLoaded: boolean;
+    sectionClass?: string;
+    chevronIcon?: string;
+    loadingMessage?: string;
 }
 
 const LIMIT_THRESHOLDS = { warning: 70, critical: 90 };
@@ -52,9 +59,9 @@ function makeLimit(
 
 export default class BlueprintLimits extends ToolkitElement {
     _objectName: string | null = null;
-    @track limits: LimitItem[] = [];
-    @track isLoading = false;
+    @track groupState: LimitGroup[] = [];
     _hasLoaded = false;
+    _requestToken = 0;
 
     @api
     get objectName(): string | null {
@@ -66,72 +73,139 @@ export default class BlueprintLimits extends ToolkitElement {
         this._objectName = value;
         if (changed && !isEmpty(value)) {
             this._hasLoaded = false;
-            this.loadLimits();
+            this._requestToken += 1;
+            this.groupState = [];
         }
     }
 
     @api
     activate(): void {
         if (!this._hasLoaded && !isEmpty(this._objectName)) {
-            this.loadLimits();
+            this.initializeGroups();
+            this.loadOpenGroups();
         }
     }
 
     handleRefresh = (): void => {
-        this._hasLoaded = false;
-        this.loadLimits();
+        this._requestToken += 1;
+        this.initializeGroups();
+        this.loadOpenGroups();
     };
 
-    loadLimits = async (): Promise<void> => {
+    handleToggleGroup = (e: any): void => {
+        const groupKey = e.currentTarget?.dataset?.group;
+        if (!groupKey) return;
+        const group = this.groupState.find(item => item.key === groupKey);
+        if (!group) return;
+        const shouldOpen = !group.isOpen;
+        this.groupState = this.groupState.map(item =>
+            item.key === groupKey ? { ...item, isOpen: shouldOpen } : item
+        );
+        if (shouldOpen) {
+            this.loadGroup(groupKey);
+        }
+    };
+
+    initializeGroups(): void {
         if (isEmpty(this._objectName)) return;
-        this.isLoading = true;
         this._hasLoaded = true;
+        this.groupState = [
+            {
+                key: 'schema',
+                label: 'Schema',
+                items: [],
+                isOpen: true,
+                isLoading: false,
+                error: '',
+                hasLoaded: false,
+            },
+            {
+                key: 'automation',
+                label: 'Automation',
+                items: [],
+                isOpen: true,
+                isLoading: false,
+                error: '',
+                hasLoaded: false,
+            },
+            {
+                key: 'ui',
+                label: 'UI & Layout',
+                items: [],
+                isOpen: true,
+                isLoading: false,
+                error: '',
+                hasLoaded: false,
+            },
+        ];
+    }
+
+    private loadOpenGroups(): void {
+        const openKeys = this.groupState.filter(group => group.isOpen).map(group => group.key);
+        openKeys.forEach(groupKey => this.loadGroup(groupKey));
+    }
+
+    private loadGroup = async (groupKey: string): Promise<void> => {
+        if (isEmpty(this._objectName)) return;
+        const group = this.groupState.find(item => item.key === groupKey);
+        if (!group || group.isLoading || group.hasLoaded) return;
+        const objectName = String(this._objectName);
+        const requestToken = this._requestToken;
+        this.updateGroup(groupKey, { isLoading: true, error: '' });
 
         try {
             await ensureSessionClientCallOption(this.connector);
             const conn = this.connector.conn;
-            const obj = this._objectName;
-
-            const [fieldResults, vrResults, rtResults] = await Promise.allSettled([
-                this.countFields(conn, obj),
-                this.countTooling(conn, 'ValidationRule', obj),
-                this.countRecordTypes(conn, obj),
-            ]);
-
-            const items: LimitItem[] = [];
-            if (fieldResults.status === 'fulfilled') {
-                items.push(...fieldResults.value);
-            }
-            if (vrResults.status === 'fulfilled') {
-                items.push(
+            let items: LimitItem[] = [];
+            if (groupKey === 'schema') {
+                items = await this.countFields(conn, objectName);
+            } else if (groupKey === 'automation') {
+                const validationRuleCount = await this.countTooling(
+                    conn,
+                    'ValidationRule',
+                    objectName
+                );
+                items = [
                     makeLimit(
                         'validationRules',
                         'Validation Rules',
                         'automation',
                         'utility:check',
-                        vrResults.value,
+                        validationRuleCount,
                         500
-                    )
-                );
-            }
-            if (rtResults.status === 'fulfilled') {
-                items.push(
+                    ),
+                ];
+            } else if (groupKey === 'ui') {
+                const recordTypeCount = await this.countRecordTypes(conn, objectName);
+                items = [
                     makeLimit(
                         'recordTypes',
                         'Record Types',
                         'ui',
                         'utility:record',
-                        rtResults.value,
+                        recordTypeCount,
                         200
-                    )
-                );
+                    ),
+                ];
             }
-            this.limits = items;
+            if (requestToken !== this._requestToken) return;
+            this.updateGroup(groupKey, { items, isLoading: false, error: '', hasLoaded: true });
         } catch (e) {
-            console.error('Limits load error:', e);
+            if (requestToken !== this._requestToken) return;
+            this.updateGroup(groupKey, {
+                isLoading: false,
+                error: e instanceof Error ? e.message : 'Failed to load limits',
+                hasLoaded: true,
+                items: [],
+            });
         }
-        this.isLoading = false;
     };
+
+    private updateGroup(groupKey: string, updates: Partial<LimitGroup>): void {
+        this.groupState = this.groupState.map(group =>
+            group.key === groupKey ? { ...group, ...updates } : group
+        );
+    }
 
     private async countFields(conn: any, obj: string): Promise<LimitItem[]> {
         const res = await conn.query(
@@ -194,29 +268,33 @@ export default class BlueprintLimits extends ToolkitElement {
     /** Getters */
 
     get limitGroups(): LimitGroup[] {
-        const groupMap = new Map<string, { key: string; label: string; items: LimitItem[] }>();
-        const groupDefs = [
-            { key: 'schema', label: 'Schema' },
-            { key: 'automation', label: 'Automation' },
-            { key: 'ui', label: 'UI & Layout' },
-        ];
-        for (const g of groupDefs) {
-            groupMap.set(g.key, { ...g, items: [] });
-        }
-        for (const item of this.limits) {
-            const group = groupMap.get(item.group);
-            if (group) group.items.push(item);
-        }
-        return groupDefs
-            .map(g => groupMap.get(g.key))
-            .filter(g => g && g.items.length > 0) as LimitGroup[];
+        return this.groupState.map(group => ({
+            ...group,
+            sectionClass: `slds-section${group.isOpen ? ' slds-is-open' : ''} slds-m-bottom_small`,
+            chevronIcon: group.isOpen ? 'utility:chevrondown' : 'utility:chevronright',
+            loadingMessage: `Loading ${group.label} limits...`,
+        })) as LimitGroup[];
     }
 
     get hasLimits(): boolean {
-        return this.limits.length > 0;
+        return this.groupState.some(group => group.items.length > 0);
+    }
+
+    get totalLimitCount(): number {
+        return this.groupState.reduce((count, group) => count + group.items.length, 0);
+    }
+
+    get summaryText(): string {
+        return `${this.totalLimitCount} limits tracked`;
+    }
+
+    get hasLoadedData(): boolean {
+        return this.groupState.some(group => group.hasLoaded);
     }
 
     get noLimits(): boolean {
-        return this.limits.length === 0;
+        if (!this._hasLoaded) return false;
+        const loadedAny = this.groupState.some(group => group.hasLoaded);
+        return loadedAny && !this.hasLimits;
     }
 }

@@ -9,6 +9,13 @@ import {
     getObjectListLink,
     getRecordTypesLink,
     getObjectDocLink,
+    getSetupEntityPagePath,
+    getSetupNodeHomePath,
+    getObjectManagerSectionPath,
+    getObjectManagerRecordPath,
+    getObjectListViewPath,
+    getAppBuilderPagePath,
+    getFlowBuilderPath,
 } from '../salesforceLinks.ts';
 
 const HOST = 'https://example.my.salesforce.com';
@@ -115,4 +122,60 @@ test('getRecordTypesLink: custom object uses durableId', () => {
 test('getObjectDocLink: tooling vs standard doc URL', () => {
     assert.match(getObjectDocLink('Account', false), /sforce_api_objects_account\.htm$/);
     assert.match(getObjectDocLink('ApexClass', true), /tooling_api_objects_apexclass\.htm$/);
+});
+
+test('getSetupEntityPagePath: supports relative and absolute paths', () => {
+    assert.equal(
+        getSetupEntityPagePath({ setupEntity: 'ApexClasses', id: '01p123' }),
+        '/lightning/setup/ApexClasses/page?address=%2F01p123'
+    );
+    assert.equal(
+        getSetupEntityPagePath({ host: HOST, setupEntity: 'ApexClasses', id: 'My Class' }),
+        'https://example.my.salesforce.com/lightning/setup/ApexClasses/page?address=%2FMy%20Class'
+    );
+});
+
+test('getSetupNodeHomePath: builds setup home links', () => {
+    assert.equal(
+        getSetupNodeHomePath({ setupNode: 'ScheduledJobs' }),
+        '/lightning/setup/ScheduledJobs/home'
+    );
+});
+
+test('object manager helpers build section and record links', () => {
+    assert.equal(
+        getObjectManagerSectionPath({ objectApiName: 'Account', section: 'PageLayouts' }),
+        '/lightning/setup/ObjectManager/Account/PageLayouts/view'
+    );
+    assert.equal(
+        getObjectManagerRecordPath({
+            objectApiName: 'Account',
+            section: 'PageLayouts',
+            recordId: '00h123',
+        }),
+        '/lightning/setup/ObjectManager/Account/PageLayouts/00h123/view'
+    );
+});
+
+test('getObjectListViewPath encodes filter name', () => {
+    assert.equal(
+        getObjectListViewPath({ objectApiName: 'Account', filterName: 'My List' }),
+        '/lightning/o/Account/list?filterName=My%20List'
+    );
+});
+
+test('app and flow builders preserve existing route formats', () => {
+    assert.equal(
+        getAppBuilderPagePath({ pageId: '0Pg123' }),
+        '/visualEditor/appBuilder.app?pageId=0Pg123'
+    );
+    assert.equal(
+        getFlowBuilderPath({ activeVersionId: '301ABC' }),
+        '/builder_platform_interaction/flowBuilder.app?flowId=301ABC'
+    );
+    assert.equal(
+        getFlowBuilderPath({ flowDefId: '300AAA', latestVersionId: '301BBB' }),
+        '/builder_platform_interaction/flowBuilder.app?isFromAloha=true&flowDefId=300AAA&flowId=301BBB'
+    );
+    assert.equal(getFlowBuilderPath({ flowDefId: '300AAA' }), '');
 });
