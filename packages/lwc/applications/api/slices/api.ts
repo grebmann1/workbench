@@ -54,6 +54,7 @@ function formatTab({
     name,
     header,
     body,
+    bodyMode,
     method,
     endpoint,
     isDraft,
@@ -67,6 +68,7 @@ function formatTab({
         name,
         header,
         body,
+        bodyMode: bodyMode || 'raw',
         method,
         endpoint,
         isDraft,
@@ -89,6 +91,7 @@ function enrichTab(tab, state, selector) {
     const fileData = file?.extra || {};
     const differs =
         norm(fileData.body) !== norm(tab.body) ||
+        norm(fileData.bodyMode || 'raw') !== norm(tab.bodyMode || 'raw') ||
         norm(fileData.header) !== norm(tab.header) ||
         norm(fileData.method) !== norm(tab.method) ||
         norm(fileData.endpoint) !== norm(tab.endpoint);
@@ -104,6 +107,7 @@ function assignNewApiData(item, value) {
         method: value.method,
         endpoint: value.endpoint,
         body: value.body,
+        bodyMode: value.bodyMode || 'raw',
         actions: value.actions,
         actionPointer: value.actionPointer,
     });
@@ -137,12 +141,14 @@ export const executeApiRequest = createAsyncThunk(
             connector,
             request,
             formattedRequest,
+            executionBody,
             tabId,
             createdDate,
         }: {
             connector: ConnectorLike;
             request: Record<string, any>;
             formattedRequest: Record<string, any>;
+            executionBody?: BodyInit | null;
             tabId: string;
             createdDate: string | number | Date;
         },
@@ -155,7 +161,9 @@ export const executeApiRequest = createAsyncThunk(
                 method: formattedRequest?.method || request?.method || 'GET',
                 url: formattedRequest?.url,
                 headers: formattedRequest?.headers,
-                body: formattedRequest?.body,
+                // `null` deliberately represents the no-body mode; only fall back when a
+                // caller did not provide an execution body at all.
+                body: executionBody !== undefined ? executionBody : formattedRequest?.body,
                 accessToken: connector?.conn?.accessToken,
                 signal,
             });
@@ -261,7 +269,7 @@ const apiSlice = createSlice({
             }
         },
         updateRequest: (state, action) => {
-            const { header, method, endpoint, body, tabId, isDraft } = action.payload;
+            const { header, method, endpoint, body, bodyMode, tabId, isDraft } = action.payload;
             const tabIndex = state.tabs.findIndex(x => x.id === tabId);
             // Reset Tab
             if (tabIndex > -1) {
@@ -270,6 +278,7 @@ const apiSlice = createSlice({
                     method,
                     endpoint,
                     body,
+                    bodyMode: bodyMode || 'raw',
                     isDraft,
                 });
                 assignNewApiData(state, state.tabs[tabIndex]);

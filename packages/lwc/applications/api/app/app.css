@@ -35,6 +35,131 @@
     min-height: 0;
 }
 
+.multipart-toggle {
+    margin-top: 0.25rem;
+}
+
+.multipart-body {
+    overflow: auto;
+}
+
+.form-data-table-wrap {
+    border: 1px solid var(--slds-g-color-border-base-1, #dddbda);
+    border-radius: 0.25rem;
+    overflow-x: auto;
+}
+
+.form-data-table {
+    border-collapse: collapse;
+    table-layout: fixed;
+    width: 100%;
+}
+
+.form-data-table th,
+.form-data-table td {
+    border-bottom: 1px solid var(--slds-g-color-border-base-1, #e5e5e5);
+    padding: 0.375rem;
+    text-align: left;
+    vertical-align: middle;
+}
+
+.form-data-table th {
+    background: var(--slds-g-color-neutral-base-95, #f3f3f3);
+    color: var(--slds-g-color-neutral-base-50, #444);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.form-data-table tr:last-child td {
+    border-bottom: 0;
+}
+
+.form-data-table th:nth-child(1) {
+    width: 32%;
+}
+
+.form-data-table th:nth-child(2) {
+    width: 22%;
+}
+
+.form-data-table th:nth-child(4) {
+    width: 4rem;
+}
+
+.form-data-table__actions {
+    text-align: center !important;
+    width: 4rem;
+}
+
+.form-data-table__file {
+    color: var(--slds-g-color-neutral-base-50, #444);
+    font-size: 0.75rem;
+    margin: 0.25rem 0 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.form-data-add-part {
+    display: flex;
+    justify-content: center;
+    padding-top: 0.75rem;
+}
+
+.multipart-files {
+    border-top: 1px solid var(--slds-g-color-border-base-1, #e5e5e5);
+    margin-top: 0.75rem;
+}
+
+.multipart-files__summary {
+    color: var(--slds-g-color-neutral-base-50, #444);
+    display: flex;
+    font-size: 0.75rem;
+    font-weight: 700;
+    justify-content: space-between;
+    letter-spacing: 0.04em;
+    padding: 0.625rem 0 0.375rem;
+    text-transform: uppercase;
+}
+
+.multipart-files__grid {
+    display: grid;
+    gap: 0.5rem;
+    grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr));
+}
+
+.multipart-file-card {
+    align-items: center;
+    background: var(--slds-g-color-neutral-base-95, #f3f3f3);
+    border: 1px solid var(--slds-g-color-border-base-1, #dddbda);
+    border-radius: 0.25rem;
+    display: flex;
+    gap: 0.625rem;
+    min-width: 0;
+    padding: 0.625rem;
+}
+
+.multipart-file-card__details {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.multipart-file-card__name {
+    color: var(--slds-g-color-neutral-base-10, #181818);
+    font-weight: 700;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.multipart-file-card__size {
+    color: var(--slds-g-color-neutral-base-50, #444);
+    font-size: 0.75rem;
+}
+
 /* Result toolbar */
 .result-toolbar {
     display: flex;

@@ -39,6 +39,7 @@ type ApiTab = {
     header: string;
     endpoint: string;
     body: string;
+    bodyMode?: 'none' | 'raw' | 'form-data' | 'binary';
     method: string;
     variables: string;
     actions: unknown[];
@@ -51,6 +52,7 @@ export const generateDefaultTab = (version: string, id?: string): ApiTab => {
         header: DEFAULT.HEADER,
         endpoint: DEFAULT.ENDPOINT(version),
         body: DEFAULT.BODY,
+        bodyMode: 'raw',
         method: DEFAULT.METHOD,
         variables: DEFAULT.VARIABLES,
         actions: [],
@@ -115,6 +117,25 @@ type FormattedApiRequest = {
     endpoint: string;
     body?: string;
     headers?: Record<string, string>;
+};
+
+export type FormDataPart = { id: string; name: string; type: 'text' | 'file'; value: string };
+
+export const parseFormDataParts = (raw: string): FormDataPart[] => {
+    try {
+        const parsed = JSON.parse(raw);
+        if (!Array.isArray(parsed)) return [];
+        return parsed.filter(
+            (part): part is FormDataPart =>
+                part &&
+                typeof part.id === 'string' &&
+                typeof part.name === 'string' &&
+                (part.type === 'text' || part.type === 'file') &&
+                typeof part.value === 'string'
+        );
+    } catch {
+        return [];
+    }
 };
 
 export const formatApiRequest = ({
@@ -285,6 +306,8 @@ export type ExecuteApiInput = {
     accessToken?: string;
     /** Optional fetch override (useful for tests / sanitized wrappers). */
     fetchImpl?: typeof fetch;
+    /** Presigned URLs must not receive the active Salesforce bearer token. */
+    skipAuthorization?: boolean;
 };
 
 export type ExecuteApiResult = {
@@ -316,6 +339,7 @@ export const executeApiRequest = async ({
     signal,
     accessToken,
     fetchImpl,
+    skipAuthorization,
 }: ExecuteApiInput): Promise<ExecuteApiResult> => {
     if (!url) {
         throw new Error('Missing request URL');
@@ -323,7 +347,7 @@ export const executeApiRequest = async ({
     const executionStartDate = Date.now();
     const mergedHeaders: Record<string, string> = { ...(headers || {}) };
     const hasAuth = Object.keys(mergedHeaders).some(k => k.toLowerCase() === 'authorization');
-    if (!hasAuth && accessToken) {
+    if (!hasAuth && accessToken && !skipAuthorization) {
         mergedHeaders.Authorization = `Bearer ${accessToken}`;
     }
 

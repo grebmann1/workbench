@@ -27,6 +27,7 @@ import {
     normalizeString as normalize,
     prettifyXml,
     autoDetectAndFormat,
+    formatBytes,
     API as API_UTILS,
 } from 'shared/utils';
 
@@ -162,6 +163,10 @@ export default class App extends ToolkitElement {
     @api header: string | null = null;
     @api body: string | null = null;
     @track defaultHeader: string | null = null;
+    bodyModes: Record<string, 'raw' | 'form-data' | 'binary' | 'none'> = {};
+    formDataPartsByTab: Record<string, API_UTILS.FormDataPart[]> = {};
+    formDataFilesByTab: Record<string, Record<string, File>> = {};
+    binaryFilesByTab: Record<string, File> = {};
 
     // Undo/Redo
     @track actions: Array<Record<string, any>> = [];
@@ -333,6 +338,19 @@ export default class App extends ToolkitElement {
             this.body = api.body;
             this.updateBodyEditor();
         }
+        if (api.currentTab) {
+            const tabId = api.currentTab.id;
+            const bodyMode = api.bodyMode || 'raw';
+            if (this.bodyModes[tabId] !== bodyMode) {
+                this.bodyModes = { ...this.bodyModes, [tabId]: bodyMode };
+            }
+            if (bodyMode === 'form-data' && !this.formDataPartsByTab[tabId]) {
+                this.formDataPartsByTab = {
+                    ...this.formDataPartsByTab,
+                    [tabId]: API_UTILS.parseFormDataParts(api.body || ''),
+                };
+            }
+        }
         if (this.method != api.method) {
             this.method = api.method;
             if (this._hasRendered) {
@@ -500,8 +518,27 @@ export default class App extends ToolkitElement {
     executeAction = () => {
         const _originalRequest = this.currentRequestToStore;
         const _formattedRequest = this.formatRequest();
+        const executionBody = this.buildExecutionBody(_formattedRequest);
         LOGGER.log('App [executeAction] _formattedRequest', _formattedRequest);
-        if (isUndefinedOrNull(_formattedRequest)) return;
+        if (isUndefinedOrNull(_formattedRequest) || executionBody === undefined) return;
+
+        if (
+            (this.isFormDataBody || this.isBinaryBody) &&
+            !this.isConnectedOrgUrl(_formattedRequest.url)
+        ) {
+            Toast.show({
+                label: 'File uploads are limited to the connected org',
+                message: 'Use an endpoint on the active Salesforce org to send a local file.',
+                variant: 'error',
+            });
+            return;
+        }
+
+        if (this.isFormDataBody) {
+            Object.keys(_formattedRequest.headers || {}).forEach(key => {
+                if (key.toLowerCase() === 'content-type') delete _formattedRequest.headers![key];
+            });
+        }
 
         this.isApiRunning = true;
         try {
@@ -519,6 +556,7 @@ export default class App extends ToolkitElement {
                 connector: this.connector,
                 request: _originalRequest,
                 formattedRequest: _formattedRequest,
+                executionBody,
                 tabId: this.currentTab.id,
                 createdDate: Date.now(),
             })
@@ -540,6 +578,12 @@ export default class App extends ToolkitElement {
             this.method = action.request.method;
             this.endpoint = action.request.endpoint;
             this.header = action.request.header;
+            if (this.currentTab) {
+                this.bodyModes = {
+                    ...this.bodyModes,
+                    [this.currentTab.id]: action.request.bodyMode || 'raw',
+                };
+            }
             this.statusCode = action.response.statusCode;
             this.contentType = action.response.contentType;
             this.contentHeaders = action.response.contentHeaders;
@@ -562,13 +606,9 @@ export default class App extends ToolkitElement {
             header: this.header,
             body: this.body,
         });
-        this.refs.method.value = this.method;
-        this.refs.url.value = this.endpoint;
-        this.refs.bodyEditor.currentModel.setValue(this.body || '');
-        this.refs.bodyEditor.currentMonaco.editor.setModelLanguage(
-            this.refs.bodyEditor.currentModel,
-            autoDetectAndFormat(this.body, this.header) || 'txt'
-        );
+        if (this.refs.method) this.refs.method.value = this.method;
+        if (this.refs.url) this.refs.url.value = this.endpoint;
+        this.updateBodyEditor();
         if (this.refs.responseEditor) {
             //this.refs.responseEditor.currentModel.setValue(this.content);
         }
@@ -759,6 +799,7 @@ export default class App extends ToolkitElement {
     };
 
     reset_click = e => {
+        this.clearMultipartState(this.currentTab?.id);
         store.dispatch(
             API.reduxSlice.actions.resetTab({
                 tabId: this.currentTab?.id,
@@ -776,11 +817,13 @@ export default class App extends ToolkitElement {
                 const _newDraft =
                     (this.currentFile &&
                         (this.currentFile.extra?.body != this.body ||
+                            (this.currentFile.extra?.bodyMode || 'raw') !== this.bodyMode ||
                             this.currentFile.extra?.method != this.method ||
                             this.currentFile.extra?.endpoint != this.endpoint ||
                             this.currentFile.extra?.header != this.header)) === true; // variables removed from draft check
                 if (
                     this.body !== api.body ||
+                    this.bodyMode !== (api.bodyMode || 'raw') ||
                     this.method !== api.method ||
                     this.endpoint !== api.endpoint ||
                     this.header !== api.header ||
@@ -829,6 +872,8 @@ export default class App extends ToolkitElement {
 
     endpoint_change = e => {
         LOGGER.log('App [endpoint_change]', e.detail.value);
+        this.clearFormDataFiles(this.currentTab?.id);
+        this.clearBinaryFile(this.currentTab?.id);
         this.endpoint = e.detail.value;
         this.updateRequestStates(e);
     };
@@ -842,6 +887,70 @@ export default class App extends ToolkitElement {
         if (this.body == e.detail.value) return;
         this.body = e.detail.value;
         this.updateRequestStates(e);
+    };
+
+    bodyMode_change = e => {
+        if (!this.currentTab) return;
+        const bodyMode = e.detail.value;
+        this.bodyModes = { ...this.bodyModes, [this.currentTab.id]: bodyMode };
+        if (bodyMode === 'form-data' && !this.formDataPartsByTab[this.currentTab.id]) {
+            this.formDataPartsByTab = {
+                ...this.formDataPartsByTab,
+                [this.currentTab.id]: API_UTILS.parseFormDataParts(this.body || ''),
+            };
+        }
+        if (bodyMode !== 'form-data') {
+            this.clearFormDataFiles(this.currentTab.id);
+        }
+        if (bodyMode !== 'binary') {
+            this.clearBinaryFile(this.currentTab.id);
+        }
+        this.updateRequestStates(e);
+    };
+
+    binaryFile_change = e => {
+        if (!this.currentTab) return;
+        const file = e.target.files?.[0];
+        const files = { ...this.binaryFilesByTab };
+        if (file) files[this.currentTab.id] = file;
+        else delete files[this.currentTab.id];
+        this.binaryFilesByTab = files;
+    };
+
+    formDataPart_change = e => {
+        const { id, field } = e.target.dataset;
+        const value = e.detail.value;
+        this.updateFormDataParts(
+            this.formDataParts.map(part => (part.id === id ? { ...part, [field]: value } : part)),
+            e
+        );
+    };
+
+    formDataFile_change = e => {
+        const files = { ...(this.formDataFilesByTab[this.currentTab.id] || {}) };
+        if (e.target.files?.[0]) files[e.target.dataset.id] = e.target.files[0];
+        else delete files[e.target.dataset.id];
+        this.formDataFilesByTab = { ...this.formDataFilesByTab, [this.currentTab.id]: files };
+    };
+
+    addFormDataPart = () => {
+        this.updateFormDataParts([
+            ...this.formDataParts,
+            { id: guid(), name: '', type: 'text', value: '' },
+        ]);
+    };
+
+    removeFormDataPart = e => {
+        const id = e.target.dataset.id;
+        this.clearFormDataFile(this.currentTab?.id, id);
+        this.updateFormDataParts(this.formDataParts.filter(part => part.id !== id));
+    };
+
+    updateFormDataParts = (parts, event?) => {
+        if (!this.currentTab) return;
+        this.formDataPartsByTab = { ...this.formDataPartsByTab, [this.currentTab.id]: parts };
+        this.body = JSON.stringify(parts);
+        this.updateRequestStates(event || { type: 'form-data' });
     };
 
     variables_change = e => {
@@ -1053,6 +1162,12 @@ export default class App extends ToolkitElement {
     };
 
     get apexHttpRequestSnippet() {
+        if (
+            this.executedRequest?.bodyMode === 'form-data' ||
+            this.executedRequest?.bodyMode === 'binary'
+        ) {
+            return '/* File request bodies are not available as Apex snippets. */';
+        }
         const formatted = this.formatRequest();
         if (isUndefinedOrNull(formatted)) {
             return '/* Unable to format request */';
@@ -1084,6 +1199,12 @@ export default class App extends ToolkitElement {
     }
 
     get curlSnippet() {
+        if (
+            this.executedRequest?.bodyMode === 'form-data' ||
+            this.executedRequest?.bodyMode === 'binary'
+        ) {
+            return '# File request bodies are not available as cURL snippets.';
+        }
         const formatted = this.formatRequest();
         if (isUndefinedOrNull(formatted)) {
             return '# Unable to format request';
@@ -1106,6 +1227,12 @@ export default class App extends ToolkitElement {
     }
 
     get jsforceSnippet() {
+        if (
+            this.executedRequest?.bodyMode === 'form-data' ||
+            this.executedRequest?.bodyMode === 'binary'
+        ) {
+            return '/* File request bodies are not available as jsforce snippets. */';
+        }
         const formatted = this.formatRequest();
         if (isUndefinedOrNull(formatted)) {
             return '/* Unable to format request */';
@@ -1551,6 +1678,17 @@ export default class App extends ToolkitElement {
         if (!tabId || !this.executedRequest || !this.executedFormattedRequest) return;
         if (this.isApiRunning) return;
 
+        if (
+            this.executedRequest.bodyMode === 'form-data' ||
+            this.executedRequest.bodyMode === 'binary'
+        ) {
+            Toast.show({
+                label: 'Retry unavailable for file request bodies',
+                message: 'Select the files and upload them again to send new binary payloads.',
+                variant: 'warning',
+            });
+            return;
+        }
         this.isApiRunning = true;
         const apiPromise = store.dispatch(
             API.executeApiRequest({
@@ -2064,6 +2202,7 @@ export default class App extends ToolkitElement {
 
     handleSelectTab = e => {
         const tabId = e.target.value;
+        this.clearMultipartState(this.currentTab?.id);
         store.dispatch(API.reduxSlice.actions.selectionTab({ id: tabId, alias: this.alias }));
     };
 
@@ -2079,9 +2218,15 @@ export default class App extends ToolkitElement {
             (currentTab.isDraft && isUndefinedOrNull(currentTab.fileId)) ||
             (currentTab.isDraft && (await LightningConfirm.open(params)))
         ) {
+            this.clearMultipartState(tabId);
             store.dispatch(API.reduxSlice.actions.removeTab({ id: tabId, alias: this.alias }));
         }
     };
+
+    disconnectedCallback() {
+        this.formDataFilesByTab = {};
+        this.binaryFilesByTab = {};
+    }
 
     /** Cached Settings */
 
@@ -2151,6 +2296,7 @@ export default class App extends ToolkitElement {
         if (category === CATEGORY_STORAGE.SAVED) {
             const savedRequest = {
                 body: extra?.body ?? '',
+                bodyMode: extra?.bodyMode ?? 'raw',
                 header: extra?.header ?? this.defaultHeader ?? API_UTILS.DEFAULT.HEADER,
                 method: extra?.method ?? API_UTILS.DEFAULT.METHOD,
                 endpoint: extra?.endpoint ?? API_UTILS.DEFAULT.ENDPOINT(this.currentApiVersion),
@@ -2172,6 +2318,7 @@ export default class App extends ToolkitElement {
             } else {
                 const tab = API_UTILS.generateDefaultTab(this.currentApiVersion);
                 tab.body = savedRequest.body;
+                tab.bodyMode = savedRequest.bodyMode;
                 tab.header = savedRequest.header;
                 tab.method = savedRequest.method;
                 tab.endpoint = savedRequest.endpoint;
@@ -2182,6 +2329,7 @@ export default class App extends ToolkitElement {
             // Open in new tab
             const tab = API_UTILS.generateDefaultTab(this.currentApiVersion);
             tab.body = extra.body;
+            tab.bodyMode = extra.bodyMode || 'raw';
             tab.header = extra.header;
             tab.method = extra.method;
             tab.endpoint = extra.endpoint;
@@ -2233,6 +2381,7 @@ export default class App extends ToolkitElement {
             method: this.method,
             body: this.body,
             header: this.header,
+            bodyMode: this.bodyMode,
         };
     }
 
@@ -2277,6 +2426,148 @@ export default class App extends ToolkitElement {
             this.isApiRunning
         );
     }
+
+    get bodyMode() {
+        return this.currentTab ? this.bodyModes[this.currentTab.id] || 'raw' : 'raw';
+    }
+
+    get bodyModeOptions() {
+        return [
+            { label: 'None', value: 'none' },
+            { label: 'Raw', value: 'raw' },
+            { label: 'Form-data', value: 'form-data' },
+            { label: 'Binary', value: 'binary' },
+        ];
+    }
+
+    get formDataTypeOptions() {
+        return [
+            { label: 'Text', value: 'text' },
+            { label: 'File', value: 'file' },
+        ];
+    }
+
+    get isFormDataBody() {
+        return this.bodyMode === 'form-data';
+    }
+
+    get isBinaryBody() {
+        return this.bodyMode === 'binary';
+    }
+
+    get isRawBody() {
+        return this.bodyMode === 'raw';
+    }
+
+    get formDataParts() {
+        return (this.currentTab ? this.formDataPartsByTab[this.currentTab.id] || [] : []).map(
+            part => {
+                const file = this.currentTab
+                    ? this.formDataFilesByTab[this.currentTab.id]?.[part.id]
+                    : null;
+                return {
+                    ...part,
+                    isFile: part.type === 'file',
+                    fileName: file?.name || '',
+                    fileSize: file ? formatBytes(file.size) : '',
+                    hasFile: Boolean(file),
+                };
+            }
+        );
+    }
+
+    get binaryFile() {
+        return this.currentTab ? this.binaryFilesByTab[this.currentTab.id] || null : null;
+    }
+
+    get binaryFileSize() {
+        return this.binaryFile ? formatBytes(this.binaryFile.size) : '';
+    }
+
+    get formDataFileSummary() {
+        const files = this.currentTab ? this.formDataFilesByTab[this.currentTab.id] || {} : {};
+        const selectedFiles = Object.values(files);
+        if (!selectedFiles.length) return '';
+        const totalBytes = selectedFiles.reduce((total, file) => total + file.size, 0);
+        return `${selectedFiles.length} ${selectedFiles.length === 1 ? 'file' : 'files'} (${formatBytes(totalBytes)})`;
+    }
+
+    get isFileInputDisabled() {
+        return this.isBodyDisabled;
+    }
+
+    clearMultipartState = tabId => {
+        if (!tabId) return;
+        const { [tabId]: removedParts, ...parts } = this.formDataPartsByTab;
+        const { [tabId]: removedFiles, ...files } = this.formDataFilesByTab;
+        const { [tabId]: removedBinary, ...binaryFiles } = this.binaryFilesByTab;
+        const { [tabId]: removedMode, ...modes } = this.bodyModes;
+        this.formDataPartsByTab = parts;
+        this.formDataFilesByTab = files;
+        this.binaryFilesByTab = binaryFiles;
+        this.bodyModes = modes;
+    };
+
+    clearFormDataFiles = tabId => {
+        if (!tabId) return;
+        const { [tabId]: removed, ...files } = this.formDataFilesByTab;
+        this.formDataFilesByTab = files;
+    };
+
+    clearFormDataFile = (tabId, id) => {
+        if (!tabId || !id) return;
+        const { [id]: removed, ...files } = this.formDataFilesByTab[tabId] || {};
+        this.formDataFilesByTab = { ...this.formDataFilesByTab, [tabId]: files };
+    };
+
+    clearBinaryFile = tabId => {
+        if (!tabId) return;
+        const { [tabId]: removed, ...files } = this.binaryFilesByTab;
+        this.binaryFilesByTab = files;
+    };
+
+    buildExecutionBody = request => {
+        if (this.bodyMode === 'none') return null;
+        if (!this.isFormDataBody && !this.isBinaryBody) return request?.body;
+        if (this.isBinaryBody) {
+            if (!this.binaryFile) {
+                Toast.show({
+                    label: 'Select a binary file',
+                    message: 'Choose a file before running.',
+                    variant: 'error',
+                });
+                return undefined;
+            }
+            return this.binaryFile;
+        }
+        const body = new FormData();
+        const files = this.formDataFilesByTab[this.currentTab.id] || {};
+        for (const part of this.formDataParts) {
+            if (!part.name.trim()) continue;
+            if (part.type === 'file') {
+                if (!files[part.id]) {
+                    Toast.show({
+                        label: 'Select a file',
+                        message: `Choose a file for ${part.name}.`,
+                        variant: 'error',
+                    });
+                    return undefined;
+                }
+                body.append(part.name, files[part.id], files[part.id].name);
+            } else {
+                body.append(part.name, this.replaceVariableValues(part.value) || '');
+            }
+        }
+        return body;
+    };
+
+    isConnectedOrgUrl = url => {
+        try {
+            return new URL(url).origin === new URL(this.connector.conn.instanceUrl).origin;
+        } catch {
+            return false;
+        }
+    };
 
     get isHeaderDisabled() {
         return this.isLoading || this.isApiRunning;
