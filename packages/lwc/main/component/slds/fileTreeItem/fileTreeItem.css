@@ -79,7 +79,7 @@
 }
 
 .file-tree-item-title {
-    font-size: small;
+    font-size: var(--slds-file-tree-item-font-size, small);
 }
 
 .tree-item-selected {

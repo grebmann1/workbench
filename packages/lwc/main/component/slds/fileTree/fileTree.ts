@@ -44,6 +44,7 @@ export default class FileTree extends LightningElement {
     @api isFolderSelectable = false;
     @api enableToggleOnItemClick = false;
     @api nestedItemSpacing = '0.35rem';
+    @api itemFontSize = '';
 
     /** Event Handlers */
 
@@ -236,6 +237,9 @@ export default class FileTree extends LightningElement {
 
     get treeStyle() {
         const spacing = String(this.nestedItemSpacing || '').trim() || '0.35rem';
-        return `--slds-file-tree-nested-item-spacing: ${spacing};`;
+        const itemFontSize = String(this.itemFontSize || '').trim();
+        return `--slds-file-tree-nested-item-spacing: ${spacing};${
+            itemFontSize ? `--slds-file-tree-item-font-size: ${itemFontSize};` : ''
+        }`;
     }
 }

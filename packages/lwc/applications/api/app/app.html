@@ -221,19 +221,146 @@
                                                 Auto-format based on headers
                                             </div>
                                         </div>
-                                        <div class="slds-form-element__control slds-fill-height">
-                                            <!--
-                                            <textarea class="slds-textarea slds-text-longform slds-textarea-body" placeholder="Write body here" disabled={isBodyDisabled} oninput={body_change}>
-                                                {body}
-                                            </textarea>
-                                            -->
-                                            <editor-default
-                                                lwc:ref="bodyEditor"
-                                                class="slds-full-height slds-is-relative"
-                                                model={currentModel}
-                                                onmonacoloaded={initBodyEditor}
-                                                onchange={body_change}></editor-default>
-                                        </div>
+                                        <lightning-radio-group
+                                            class="body-mode"
+                                            label="Body type"
+                                            variant="label-hidden"
+                                            options={bodyModeOptions}
+                                            value={bodyMode}
+                                            disabled={isBodyDisabled}
+                                            onchange={bodyMode_change}></lightning-radio-group>
+                                        <template lwc:if={isFormDataBody}>
+                                            <div class="multipart-body slds-p-top_small">
+                                                <template lwc:if={formDataFileSummary}>
+                                                    <p
+                                                        class="slds-text-body_small slds-text-color_weak slds-p-bottom_x-small">
+                                                        Selected files: {formDataFileSummary}
+                                                    </p>
+                                                </template>
+                                                <div class="form-data-table-wrap">
+                                                    <table class="form-data-table">
+                                                        <thead>
+                                                            <tr>
+                                                                <th scope="col">Key</th>
+                                                                <th scope="col">Type</th>
+                                                                <th scope="col">Value</th>
+                                                                <th scope="col">
+                                                                    <span
+                                                                        class="slds-assistive-text">
+                                                                        Actions
+                                                                    </span>
+                                                                </th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            <template
+                                                                for:each={formDataParts}
+                                                                for:item="part">
+                                                                <tr key={part.id}>
+                                                                    <td>
+                                                                        <lightning-input
+                                                                            data-id={part.id}
+                                                                            data-field="name"
+                                                                            label="Key"
+                                                                            variant="label-hidden"
+                                                                            placeholder="Key"
+                                                                            value={part.name}
+                                                                            onchange={formDataPart_change}></lightning-input>
+                                                                    </td>
+                                                                    <td
+                                                                        class="form-data-table__type">
+                                                                        <lightning-combobox
+                                                                            data-id={part.id}
+                                                                            data-field="type"
+                                                                            label="Type"
+                                                                            variant="label-hidden"
+                                                                            value={part.type}
+                                                                            options={formDataTypeOptions}
+                                                                            onchange={formDataPart_change}></lightning-combobox>
+                                                                    </td>
+                                                                    <td>
+                                                                        <template
+                                                                            lwc:if={part.isFile}>
+                                                                            <lightning-input
+                                                                                data-id={part.id}
+                                                                                type="file"
+                                                                                label="File"
+                                                                                variant="label-hidden"
+                                                                                onchange={formDataFile_change}></lightning-input>
+                                                                            <template
+                                                                                lwc:if={part.hasFile}>
+                                                                                <p
+                                                                                    class="form-data-table__file">
+                                                                                    {part.fileName}
+                                                                                    ({part.fileSize})
+                                                                                </p>
+                                                                            </template>
+                                                                        </template>
+                                                                        <template lwc:else>
+                                                                            <lightning-input
+                                                                                data-id={part.id}
+                                                                                data-field="value"
+                                                                                label="Value"
+                                                                                variant="label-hidden"
+                                                                                placeholder="Value"
+                                                                                value={part.value}
+                                                                                onchange={formDataPart_change}></lightning-input>
+                                                                        </template>
+                                                                    </td>
+                                                                    <td
+                                                                        class="form-data-table__actions">
+                                                                        <lightning-button-icon
+                                                                            data-id={part.id}
+                                                                            icon-name="utility:close"
+                                                                            alternative-text="Remove part"
+                                                                            title="Remove part"
+                                                                            onclick={removeFormDataPart}></lightning-button-icon>
+                                                                    </td>
+                                                                </tr>
+                                                            </template>
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                                <div class="form-data-add-part">
+                                                    <lightning-button
+                                                        label="Add part"
+                                                        icon-name="utility:add"
+                                                        onclick={addFormDataPart}></lightning-button>
+                                                </div>
+                                            </div>
+                                        </template>
+                                        <template lwc:elseif={isBinaryBody}>
+                                            <div class="multipart-body slds-p-top_small">
+                                                <lightning-input
+                                                    type="file"
+                                                    label="Binary file"
+                                                    disabled={isFileInputDisabled}
+                                                    onchange={binaryFile_change}></lightning-input>
+                                                <template lwc:if={binaryFile}>
+                                                    <p
+                                                        class="slds-text-body_small slds-text-color_weak slds-p-top_x-small">
+                                                        {binaryFile.name} ({binaryFileSize}) will be
+                                                        sent as the raw request body.
+                                                    </p>
+                                                </template>
+                                            </div>
+                                        </template>
+                                        <template lwc:elseif={isRawBody}>
+                                            <div
+                                                class="slds-form-element__control slds-fill-height">
+                                                <editor-default
+                                                    lwc:ref="bodyEditor"
+                                                    class="slds-full-height slds-is-relative"
+                                                    model={currentModel}
+                                                    onmonacoloaded={initBodyEditor}
+                                                    onchange={body_change}></editor-default>
+                                            </div>
+                                        </template>
+                                        <template lwc:else>
+                                            <div class="slds-p-top_small slds-text-color_weak">
+                                                This request will be sent without a body.
+                                            </div>
+                                        </template>
                                     </div>
                                 </template>
                                 <template lwc:elseif={isRequestVariablesDisplayed}>

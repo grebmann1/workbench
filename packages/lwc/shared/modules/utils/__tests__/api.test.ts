@@ -13,6 +13,7 @@ import {
     substituteVariables,
     parseVariables,
     executeApiRequest,
+    parseFormDataParts,
 } from '../modules/api.ts';
 
 test('constants: exports expected enums', () => {
@@ -124,6 +125,22 @@ test('formatApiRequest: header object is forwarded; replaceVariableValues applie
     assert.equal(request.headers!['X-Token'], 'secret');
 });
 
+test('parseFormDataParts: returns valid serializable text and file parts', () => {
+    assert.deepEqual(
+        parseFormDataParts(
+            '[{"id":"1","name":"metadata","type":"text","value":"x"},{"id":"2","name":"file","type":"file","value":""}]'
+        ),
+        [
+            { id: '1', name: 'metadata', type: 'text', value: 'x' },
+            { id: '2', name: 'file', type: 'file', value: '' },
+        ]
+    );
+});
+
+test('parseFormDataParts: returns an empty list for malformed content', () => {
+    assert.deepEqual(parseFormDataParts('not json'), []);
+});
+
 test('DEFAULT_API_VERSION is a non-empty version string', () => {
     assert.match(DEFAULT_API_VERSION, /^\d+\.\d+$/);
 });
@@ -230,6 +247,51 @@ test('executeApiRequest: does not override an existing Authorization header', as
         fetchImpl: fakeFetch as typeof fetch,
     });
     assert.equal(seen.Authorization, 'Bearer EXPLICIT');
+});
+
+test('executeApiRequest: does not inject Salesforce authorization for a presigned upload', async () => {
+    let seen: Record<string, string> = {};
+    const fakeFetch = async (_url: string, init: RequestInit) => {
+        seen = (init.headers as Record<string, string>) || {};
+        return new Response('', { status: 200 }) as unknown as Response;
+    };
+    await executeApiRequest({
+        method: 'PUT',
+        url: 'https://bucket.example/upload?signature=1',
+        headers: { 'Content-Type': 'application/pdf' },
+        body: new Blob(['file']),
+        accessToken: 'SALESFORCE_TOKEN',
+        skipAuthorization: true,
+        fetchImpl: fakeFetch as typeof fetch,
+    });
+    assert.equal(seen.Authorization, undefined);
+    assert.equal(seen['Content-Type'], 'application/pdf');
+});
+
+test('executeApiRequest: forwards FormData without setting Content-Type', async () => {
+    const body = new FormData();
+    body.append('file', new Blob(['contents'], { type: 'text/plain' }), 'note.txt');
+    let seenBody: BodyInit | null | undefined;
+    let seenHeaders: Record<string, string> = {};
+    const fakeFetch = async (_url: string, init: RequestInit) => {
+        seenBody = init.body;
+        seenHeaders = (init.headers as Record<string, string>) || {};
+        return new Response('{}', {
+            status: 200,
+            headers: { 'content-type': 'application/json' },
+        }) as unknown as Response;
+    };
+
+    await executeApiRequest({
+        method: 'POST',
+        url: 'https://ex/api',
+        headers: { Accept: 'application/json' },
+        body,
+        fetchImpl: fakeFetch as typeof fetch,
+    });
+
+    assert.equal(seenBody, body);
+    assert.equal(seenHeaders['Content-Type'], undefined);
 });
 
 test('executeApiRequest: missing URL throws', async () => {
