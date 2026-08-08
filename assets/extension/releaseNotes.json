@@ -1,5 +1,22 @@
 [
     {
+        "version": "2.0.9",
+        "date": "August 8th, 2026",
+        "sections": [
+            {
+                "title": "Bug Fixes",
+                "categories": [
+                    {
+                        "category": "VS Code",
+                        "items": [
+                            "Fixed the VS Code editor iframe failing to load with an 'Iframe JSForce bridge handshake timed out' error on builds where the VS Code origin wasn't set correctly at build time; the iframe now always targets vscode.sf-workbench.com."
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    {
         "version": "2.0.8",
         "date": "July 15th, 2026",
         "sections": [
