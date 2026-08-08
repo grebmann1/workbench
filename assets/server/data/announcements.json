@@ -1,13 +1,13 @@
 {
     "announcement": {
-        "id": "2026-07-15-2-0-8",
+        "id": "2026-08-08-2-0-9",
         "active": true,
         "variant": "brand",
-        "title": "Workbench 2.0.8 is here",
-        "message": "Workbench 2.0.8 fixes the overlay metadata spinner hanging on a stalled user/org lookup, the blank Current User card on non-enriched connections, stale Chrome reads after saving (record refreshes and async job polling now bypass the browser cache), a clipped picklist dropdown in the filtered Record Explorer, and two VS Code issues — undetected expired sessions across the iframe bridge and long Metadata API retrieves timing out (now cancellable).",
+        "title": "Workbench 2.0.9 is here",
+        "message": "Workbench 2.0.9 fixes the VS Code editor iframe failing to load with an 'Iframe JSForce bridge handshake timed out' error on builds where the VS Code origin wasn't set correctly at build time.",
         "linkLabel": "View release notes",
         "linkUrl": "https://www.sf-workbench.com/app?applicationName=release",
-        "startsAt": "2026-07-15T00:00:00Z",
+        "startsAt": "2026-08-08T00:00:00Z",
         "endsAt": "2026-12-31T23:59:59Z"
     }
 }
