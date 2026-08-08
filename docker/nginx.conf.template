@@ -54,6 +54,18 @@ http {
             return 200 "ok\n";
         }
 
+        # Some extension builds have WORKBENCH_VSCODE_URL unset at build time (falls
+        # back to WORKBENCH_BASE_URL / this domain), so their VS Code iframe loads
+        # this landing page instead of vscode.sf-workbench.com — it never answers the
+        # JSForce/FS bridge handshake and the editor times out. Those requests are
+        # identifiable by the bridge query params the iframe always appends. Redirect
+        # them to the real VS Code app so already-shipped/locally-built extensions
+        # keep working without a new release. 302 (not 301) so this can be removed
+        # once affected extension builds have aged out without leaving a stale cache.
+        if ($args ~ "(^|&)(fsBridge|jsforceBridge|aiBridge)=1(&|$)") {
+            return 302 https://vscode.sf-workbench.com$uri?$args;
+        }
+
         # Canonical redirect: /app and /app/<path> → api.sf-workbench.com/<path>
         # Declared before the SPA catch-all so try_files doesn't swallow it.
         location ~ ^/app(/.*)?$ {
