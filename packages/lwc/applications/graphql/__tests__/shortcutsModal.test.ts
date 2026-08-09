@@ -22,6 +22,14 @@ test('graphql/shortcutsModal: detectIsMac reads userAgentData.platform and legac
     assert.equal(detectIsMac({}), false);
 });
 
+test('graphql/shortcutsModal: detectIsMac falls back to global navigator when called with no argument', () => {
+    // No override supplied: the function must tolerate a missing argument and
+    // fall back to the ambient `navigator` (or an empty object when absent)
+    // without throwing.
+    assert.doesNotThrow(() => detectIsMac());
+    assert.equal(typeof detectIsMac(), 'boolean');
+});
+
 test('graphql/shortcutsModal: buildShortcutRows flags disabled rows and formats per-platform', () => {
     const macRows = buildShortcutRows(true);
     const winRows = buildShortcutRows(false);
