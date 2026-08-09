@@ -150,6 +150,41 @@ test('computeCentrality: linear chain — middle node B is the bottleneck', () =
     assert.equal(c.get('B'), 1, 'centrality is normalized so the max is 1');
 });
 
+test('computeCentrality: star graph — hub mediates every spoke, so hub centrality dominates and spokes are 0', () => {
+    // Hub connects outward to 4 leaves; every leaf-to-leaf path (if any were
+    // requested) would have to route through the hub. With directed
+    // hub→leaf edges only there are no leaf-to-leaf paths at all, so this
+    // asserts the hub is the sole non-zero entry rather than a specific
+    // magnitude — the point is contrast with the linear-chain case above,
+    // where a downstream node (C) still has zero betweenness.
+    const star: GraphData = {
+        nodes: [node('hub'), node('l1'), node('l2'), node('l3'), node('l4')],
+        edges: [edge('hub', 'l1'), edge('hub', 'l2'), edge('hub', 'l3'), edge('hub', 'l4')],
+    };
+    const c = computeCentrality(star);
+    assert.equal(c.get('l1'), 0, 'leaf l1 has no betweenness');
+    assert.equal(c.get('l2'), 0, 'leaf l2 has no betweenness');
+    assert.equal(c.get('l3'), 0, 'leaf l3 has no betweenness');
+    assert.equal(c.get('l4'), 0, 'leaf l4 has no betweenness');
+    assert.equal(c.get('hub'), 0, 'hub has no betweenness either — it is a source, not a mediator');
+});
+
+test('computeCentrality: bidirectional star — hub mediates every leaf-to-leaf path and dominates centrality', () => {
+    // Making edges bidirectional means every leaf can reach every other leaf
+    // only via the hub, so the hub now mediates all those paths while
+    // leaves mediate none — the intended "star graph" contrast with a line.
+    const nodes = [node('hub'), node('l1'), node('l2'), node('l3'), node('l4')];
+    const edges: GraphEdge[] = [];
+    for (const leaf of ['l1', 'l2', 'l3', 'l4']) {
+        edges.push(edge('hub', leaf), edge(leaf, 'hub'));
+    }
+    const c = computeCentrality({ nodes, edges });
+    assert.equal(c.get('hub'), 1, 'hub is normalized to the max centrality');
+    for (const leaf of ['l1', 'l2', 'l3', 'l4']) {
+        assert.equal(c.get(leaf), 0, `leaf ${leaf} mediates no shortest paths`);
+    }
+});
+
 // ---------------------------------------------------------------------------
 // computeDiameter
 // ---------------------------------------------------------------------------

@@ -89,6 +89,14 @@ test('fuzzyMatch: empty query returns null', () => {
     assert.equal(fuzzyMatch('   ', 'OrderLookup'), null);
 });
 
+test('fuzzyMatch: empty target returns null for a non-empty query', () => {
+    assert.equal(fuzzyMatch('order', ''), null);
+});
+
+test('fuzzyMatch: empty query against empty target returns null', () => {
+    assert.equal(fuzzyMatch('', ''), null);
+});
+
 test('fuzzyMatch: camelCase tokenization splits HTTPData correctly', () => {
     // 'HTTP' is one token, 'Data' is another
     const r = fuzzyMatch('Data', 'fetchHTTPData');
