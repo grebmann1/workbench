@@ -52,11 +52,16 @@ const workbenchAnnouncementsUrl = JSON.stringify(
         .trim()
         .replace(/\/+$/, '')
 );
-const workbenchVscodeUrl = JSON.stringify(
-    String(process.env.WORKBENCH_VSCODE_URL || process.env.WORKBENCH_BASE_URL || 'https://www.sf-workbench.com')
+// Single source of truth for the VS Code iframe origin. The manifest's CSP `frame-src`
+// (getChromeCopyTargets/getChromeChatCopyTargets) and the compiled JS bundle's
+// WORKBENCH_IFRAME_ORIGIN constant (via the `replace` plugin below) MUST both derive from
+// this exact function — see packages/lwc/main/vscode/fullApp/constants.ts and
+// packages/extension/__tests__/workbenchVscodeOrigin.test.js.
+export const resolveWorkbenchVscodeOrigin = (env = process.env) =>
+    String(env.WORKBENCH_VSCODE_URL || env.WORKBENCH_BASE_URL || 'https://www.sf-workbench.com')
         .trim()
-        .replace(/\/+$/, '')
-);
+        .replace(/\/+$/, '');
+const workbenchVscodeUrl = JSON.stringify(resolveWorkbenchVscodeOrigin());
 const fullAppPathFragment = `${path.sep}vscode${path.sep}fullApp${path.sep}`;
 
 function importerIsUnderVscodeFullApp(importer) {
@@ -395,7 +400,7 @@ const getAssetCopyTargets = (distRoot) => [
     { src: r('../../assets/extension/releaseNotes.json'), dest: r(distRoot) }
 ];
 
-const getChromeCopyTargets = ({
+export const getChromeCopyTargets = ({
     isProduction,
     distRoot = '../../dist/extension',
     manifestTemplatePath = '../../packages/extension/manifest.template.json',
@@ -424,11 +429,7 @@ const getChromeCopyTargets = ({
             newContents = newContents.replace('__buildVersion__', data.version);
             newContents = newContents.replace(
                 '__buildWorkbenchOrigin__',
-                String(
-                    process.env.WORKBENCH_VSCODE_URL ||
-                        process.env.WORKBENCH_BASE_URL ||
-                        'https://www.sf-workbench.com'
-                ).trim().replace(/\/+$/, '') + '/'
+                resolveWorkbenchVscodeOrigin() + '/'
             );
             const googleClientId = String(process.env.GOOGLE_CLIENT_ID_EXTENSION || '');
             if (googleClientId) {
@@ -447,7 +448,7 @@ const getChromeCopyTargets = ({
     }
 ];
 
-const getChromeChatCopyTargets = (isProduction) => [
+export const getChromeChatCopyTargets = (isProduction) => [
     { src: r('../../packages/extension-chat/src/views/chat.html'), dest: r('../../dist/extension-chat/views') },
     { src: r('../../packages/extension-chat/src/views/sandbox.html'), dest: r('../../dist/extension-chat/views') },
     { src: r('../../packages/extension-chat/src/views/sandbox-render.html'), dest: r('../../dist/extension-chat/views') },
@@ -471,13 +472,7 @@ const getChromeChatCopyTargets = (isProduction) => [
             newContents = newContents.replace('__buildVersion__', data.version);
             newContents = newContents.replace(
                 '__buildWorkbenchOrigin__',
-                String(
-                    process.env.WORKBENCH_VSCODE_URL ||
-                        process.env.WORKBENCH_BASE_URL ||
-                        'https://www.sf-workbench.com'
-                )
-                    .trim()
-                    .replace(/\/+$/, '') + '/'
+                resolveWorkbenchVscodeOrigin() + '/'
             );
             const googleClientId = String(process.env.GOOGLE_CLIENT_ID_EXTENSION || '');
             if (googleClientId) {
