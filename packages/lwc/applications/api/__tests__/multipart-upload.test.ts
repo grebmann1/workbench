@@ -31,6 +31,11 @@ test('no-body mode retains an explicit null execution body', () => {
     assert.match(slice, /executionBody !== undefined \? executionBody : formattedRequest\?\.body/);
 });
 
+test('bodyless requests do not use the file-body validation sentinel', () => {
+    const component = readFileSync(new URL('../app/app.ts', import.meta.url), 'utf8');
+    assert.match(component, /return request\?\.body \?\? null;/);
+});
+
 test('changing body type updates the saved draft state', () => {
     const component = readFileSync(new URL('../app/app.ts', import.meta.url), 'utf8');
     assert.match(component, /this\.bodyMode !== \(api\.bodyMode \|\| 'raw'\)/);

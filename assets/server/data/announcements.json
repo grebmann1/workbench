@@ -1,13 +1,13 @@
 {
     "announcement": {
-        "id": "2026-08-08-2-0-9",
+        "id": "2026-08-10-2-1-0",
         "active": true,
         "variant": "brand",
-        "title": "Workbench 2.0.9 is here",
-        "message": "Workbench 2.0.9 fixes the VS Code editor iframe failing to load with an 'Iframe JSForce bridge handshake timed out' error on builds where the VS Code origin wasn't set correctly at build time.",
+        "title": "Workbench 2.1.0 is here",
+        "message": "Workbench 2.1.0 adds form-data and binary file uploads in API Explorer and fixes GET requests being blocked before they were sent.",
         "linkLabel": "View release notes",
         "linkUrl": "https://www.sf-workbench.com/app?applicationName=release",
-        "startsAt": "2026-08-08T00:00:00Z",
+        "startsAt": "2026-08-10T00:00:00Z",
         "endsAt": "2026-12-31T23:59:59Z"
     }
 }

@@ -2,7 +2,7 @@
 
 > The modern replacement for **Salesforce Workbench** and **Benchpress**
 
-Latest release: **v2.0.9**
+Latest release: **v2.1.0**
 
 Workbench is a Salesforce administration toolkit that embeds directly into your browser — bringing an overlay panel, a VS Code editor, a full metadata explorer, a SOQL editor, and an AI agent capable of controlling your browser, all from a single Chrome extension.
 

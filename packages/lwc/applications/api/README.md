@@ -24,6 +24,5 @@ Compose and send REST API requests against your org with saved requests and rece
 - Store and reuse headers (e.g., content-type) as needed
 - For form-data and binary requests, selected files are kept only in the active browser session.
   They are never saved with requests or included in request history.
-- File uploads are restricted to the connected Salesforce org origin. Leave `Content-Type`
-  unset for form-data requests so the browser can generate the multipart boundary.
-
+- File uploads are restricted to the connected Salesforce org origin. Leave `Content-Type` unset
+  for form-data requests so the browser can generate the multipart boundary.
