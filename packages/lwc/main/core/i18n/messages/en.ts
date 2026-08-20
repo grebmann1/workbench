@@ -66,6 +66,17 @@ const messages = {
     PACKAGE_NEW_DEPLOYMENT: 'New Deployment',
     PACKAGE_DEPLOY: 'Deploy',
     PACKAGE_RETRIEVE: 'Retrieve',
+    OVERLAY_TOGGLE_SIDEBAR: 'Toggle sidebar panel',
+    OVERLAY_SEARCH_OBJECTS: 'Search Salesforce objects',
+    OVERLAY_EDIT_RECORD: 'Edit current record',
+    OVERLAY_OPEN_SOQL_EXPLORER: 'Open SOQL Explorer',
+    OVERLAY_OPEN_WORKBENCH: 'Open Workbench app',
+    OVERLAY_SHARE: 'Copy shareable link to clipboard',
+    OVERLAY_REFRESH: 'Refresh',
+    SOQL_TOOLBAR_TOGGLE_FIELDS: 'Show / hide fields panel',
+    SOQL_TOOLBAR_DELETE_RECORDS: 'Delete selected records',
+    SOQL_TOOLBAR_CHECK_PERFORMANCE: 'Check query performance',
+    SOQL_TOOLBAR_RECENT_QUERIES: 'Show recent & saved queries',
 };
 
 export type MessageKey = keyof typeof messages;

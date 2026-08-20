@@ -6,18 +6,24 @@
                     icon-name="utility:toggle_panel_right"
                     class="slds-button-first"
                     onclick={handleOpenSideBar}
+                    title={i18n.OVERLAY_TOGGLE_SIDEBAR}
+                    alternative-text={i18n.OVERLAY_TOGGLE_SIDEBAR}
                     tab-index="-1"></lightning-button-icon>
                 <lightning-button-icon-stateful
                     icon-name="utility:search"
                     selected={isOverlayDisplayed}
                     onclick={toggleOverlay}
                     class={searchButtonClass}
+                    title={i18n.OVERLAY_SEARCH_OBJECTS}
+                    alternative-text={i18n.OVERLAY_SEARCH_OBJECTS}
                     tab-index="-1"></lightning-button-icon-stateful>
                 <lightning-button-icon-stateful
                     icon-name="utility:edit"
                     class={editButtonClass}
                     selected={isOverlayDisplayed}
                     onclick={checkRecordId}
+                    title={i18n.OVERLAY_EDIT_RECORD}
+                    alternative-text={i18n.OVERLAY_EDIT_RECORD}
                     tab-index="-1"></lightning-button-icon-stateful>
             </div>
         </div>
@@ -137,18 +143,21 @@
                                         data-application="anonymousapex"></lightning-button-icon> -->
                                     <lightning-button-icon
                                         icon-name="utility:database"
-                                        label="Open SOQL Explorer"
+                                        title={i18n.OVERLAY_OPEN_SOQL_EXPLORER}
+                                        alternative-text={i18n.OVERLAY_OPEN_SOQL_EXPLORER}
                                         onclick={handleOpenToolkit}
                                         size="medium"
                                         data-application="soql"></lightning-button-icon>
                                     <lightning-button-icon
                                         icon-name="utility:new_window"
-                                        label="Open"
+                                        title={i18n.OVERLAY_OPEN_WORKBENCH}
+                                        alternative-text={i18n.OVERLAY_OPEN_WORKBENCH}
                                         onclick={handleOpenToolkit}
                                         size="medium"></lightning-button-icon>
                                     <lightning-button-icon
                                         icon-name="utility:share"
-                                        label="Share"
+                                        title={i18n.OVERLAY_SHARE}
+                                        alternative-text={i18n.OVERLAY_SHARE}
                                         onclick={handleShare}
                                         size="medium"
                                         disabled={isShareDisabled}></lightning-button-icon>
@@ -166,6 +175,8 @@
                                     class="slds-float_right"
                                     icon-name="utility:refresh"
                                     variant="bare"
+                                    title={i18n.OVERLAY_REFRESH}
+                                    alternative-text={i18n.OVERLAY_REFRESH}
                                     onclick={handleRefresh}></lightning-button-icon>
                             </span>
                             <div
