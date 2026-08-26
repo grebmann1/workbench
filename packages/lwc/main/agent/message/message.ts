@@ -8,6 +8,7 @@ export default class Message extends ToolkitElement {
     @api item: any;
     @api isCurrentMessage = false;
     @api isReasoningStreaming = false;
+    @api isLastMessage = false;
 
     /** Methods **/
 
@@ -155,9 +156,11 @@ export default class Message extends ToolkitElement {
         return this.renderedParts.length > 0;
     }
 
-    // Show a copy button on assistant messages that have text to copy.
+    // Show a copy button only on the last assistant message (the final answer
+    // to the user), and only when it has text to copy — not on intermediate
+    // turns or tool exchanges.
     get canCopyMessage() {
-        return this.isAssistant && this.renderedTextForClipboard.length > 0;
+        return this.isLastMessage && this.isAssistant && this.renderedTextForClipboard.length > 0;
     }
 
     get showAssistantEmptyFallback() {

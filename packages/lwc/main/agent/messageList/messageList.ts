@@ -32,6 +32,11 @@ export default class AgentMessageList extends LightningElement {
         return merged.map((message, index) => ({
             key: message?.id || `msg-${index}`,
             message,
+            // Only the final message in the list carries the copy affordance
+            // (the assistant's last answer to the user) — never intermediate
+            // turns or tool exchanges. During streaming the live message is
+            // rendered separately and stays uncopyable until it finalizes here.
+            isLast: index === merged.length - 1,
         }));
     }
 

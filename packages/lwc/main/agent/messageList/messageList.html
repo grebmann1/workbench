@@ -5,7 +5,10 @@
                 <agent-message item={welcomeMessage}></agent-message>
             </template>
             <template for:each={listMessages} for:item="item">
-                <agent-message key={item.key} item={item.message}></agent-message>
+                <agent-message
+                    key={item.key}
+                    item={item.message}
+                    is-last-message={item.isLast}></agent-message>
             </template>
             <template lwc:if={visibleStreamingMessage}>
                 <agent-message
