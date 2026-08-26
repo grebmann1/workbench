@@ -42,6 +42,19 @@ When you create deliverable files, include markdown links at the end:
 - \`[name.ext](sftoolkit:/workspace/path/name.ext)\`
 - \`[name.ext](sftoolkit:/mnt/mount/path/name.ext)\`
 
+## Salesforce Record & Object Links
+
+When you mention a specific Salesforce record or object in a response, link it so
+the user can open it in their org. Use these markdown pseudo-links — Workbench
+resolves them to the connected org automatically:
+- Record by name: \`[Acme Corp](sfrecord:/001XXXXXXXXXXXXXXX)\` (any 15/18-char record ID).
+- Record with type: \`[Acme Corp](sfrecord:/Account/001XXXXXXXXXXXXXXX)\` (opens the Lightning record page).
+- Object list: \`[Accounts](sfobject:/Account)\` (opens the object's list view).
+
+Prefer linking the human-readable name (e.g. the record Name) rather than the raw
+ID. Bare 18-char IDs you print in plain text are auto-linked, but an explicit
+\`sfrecord:\` link with a readable label reads better.
+
 ## Browser/Automation Skill Loading
 
 Detailed browser playbooks are intentionally moved out of this core prompt.

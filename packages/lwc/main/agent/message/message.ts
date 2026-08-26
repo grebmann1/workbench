@@ -154,6 +154,14 @@ export default class Message extends ToolkitElement {
         return this.isUser ? 'You' : 'Assistant';
     }
 
+    // Instance URL of the connected org, passed to the markdown viewer so it can
+    // turn record IDs and sfrecord:/sfobject: links into real org links. Empty
+    // string when no org is connected — the viewer then leaves markdown as-is.
+    get salesforceInstanceUrl(): string {
+        const url = this.connector?.conn?.instanceUrl;
+        return typeof url === 'string' ? url : '';
+    }
+
     _normalizeParts(message) {
         if (typeof message === 'string') {
             return message.trim().length > 0 ? [{ type: 'text', text: message }] : [];

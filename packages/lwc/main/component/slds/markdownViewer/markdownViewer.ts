@@ -2,11 +2,19 @@ import { getIndexedDbFileSystem } from 'core/fs';
 import { api, LightningElement, createElement } from 'lwc';
 import { ensureMermaidLoaded } from 'shared/loader';
 import { marked } from 'shared/markdown';
+import { buildRecordRedirectUrl, resolveSalesforceLinkHref } from 'shared/salesforceUrl';
 import { guid, isEmpty, normalizeString as normalize, runActionAfterTimeOut } from 'shared/utils';
 import sldsCodeBlock from 'slds/codeBlock';
 import MarkdownViewerEditorModal from 'slds/MarkdownViewerEditorModal';
 
 const SFTOOLKIT_PREFIX = 'sftoolkit:';
+
+// Bare 18-char Salesforce IDs are auto-linked in plain text. We deliberately
+// only auto-link the 18-char form: its trailing case-checksum makes false
+// positives on arbitrary alphanumeric tokens effectively impossible. The
+// checksum itself is validated in `buildRecordRedirectUrl`.
+const SF_ID_18_TEST = /\b[0-9a-zA-Z]{18}\b/;
+const SF_ID_18_GLOBAL = /\b[0-9a-zA-Z]{18}\b/g;
 
 function extractSftoolkitPath(href) {
     if (typeof href !== 'string' || !href.startsWith(SFTOOLKIT_PREFIX)) return null;
@@ -74,6 +82,24 @@ export default class MarkdownViewer extends LightningElement {
     fs = getIndexedDbFileSystem();
 
     _value = '';
+    _sfInstanceUrl = '';
+
+    // Opt-in: when a Salesforce instance URL is provided, record IDs and
+    // `sfrecord:` / `sfobject:` pseudo-links in the rendered markdown are turned
+    // into real org links. Left empty (the default), the viewer stays a generic
+    // markdown renderer and never linkifies IDs in unrelated content.
+    @api
+    set salesforceInstanceUrl(value) {
+        const next = typeof value === 'string' ? value : '';
+        if (next === this._sfInstanceUrl) return;
+        this._sfInstanceUrl = next;
+        if (this.hasRendered && this._lastRenderedValue != null) {
+            this.enable_salesforceLinks();
+        }
+    }
+    get salesforceInstanceUrl() {
+        return this._sfInstanceUrl;
+    }
 
     connectedCallback() {
         this._instanceKey = guid();
@@ -204,6 +230,7 @@ export default class MarkdownViewer extends LightningElement {
         const html = marked()(markdown);
         this.refs.container.innerHTML = html;
         this.enable_sftoolkitLinks();
+        this.enable_salesforceLinks();
         runActionAfterTimeOut(
             html,
             async () => {
@@ -250,6 +277,86 @@ export default class MarkdownViewer extends LightningElement {
         const wrapper = document.createElement('span');
         wrapper.innerHTML = buildFileAttachmentHTML(path, filename);
         anchor.replaceWith(wrapper.firstChild);
+    };
+
+    // Turn Salesforce references into real org links. Two sources:
+    //   1. Explicit `sfrecord:` / `sfobject:` anchors emitted by the agent.
+    //   2. Bare 18-char record IDs appearing in plain text.
+    // No-ops without an instance URL, so generic markdown usage is unaffected.
+    enable_salesforceLinks = () => {
+        const instanceUrl = this._sfInstanceUrl;
+        if (!instanceUrl || !this.refs?.container) return;
+
+        const anchors = Array.from(
+            this.refs.container.querySelectorAll('a[href^="sfrecord:"], a[href^="sfobject:"]')
+        );
+        anchors.forEach(anchor => {
+            const resolved = resolveSalesforceLinkHref(anchor.getAttribute('href'), instanceUrl);
+            if (!resolved) return;
+            anchor.setAttribute('href', resolved);
+            anchor.setAttribute('target', '_blank');
+            anchor.setAttribute('rel', 'noreferrer');
+            anchor.classList.add('sftoolkit-record-link');
+        });
+
+        this.autolinkRecordIds(instanceUrl);
+    };
+
+    autolinkRecordIds = instanceUrl => {
+        const container = this.refs?.container;
+        if (!container) return;
+        const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, {
+            acceptNode: node => {
+                const parent = node.parentElement;
+                if (!parent) return NodeFilter.FILTER_REJECT;
+                // Never linkify inside existing links or code/pre blocks.
+                if (parent.closest('a, code, pre')) return NodeFilter.FILTER_REJECT;
+                return SF_ID_18_TEST.test(node.nodeValue || '')
+                    ? NodeFilter.FILTER_ACCEPT
+                    : NodeFilter.FILTER_REJECT;
+            },
+        });
+        const targets = [];
+        let current = walker.nextNode();
+        while (current) {
+            targets.push(current);
+            current = walker.nextNode();
+        }
+        targets.forEach(textNode => this.linkifyTextNode(textNode, instanceUrl));
+    };
+
+    linkifyTextNode = (textNode, instanceUrl) => {
+        const text = textNode.nodeValue || '';
+        SF_ID_18_GLOBAL.lastIndex = 0;
+        const fragment = document.createDocumentFragment();
+        let lastIndex = 0;
+        let replaced = false;
+        let match = SF_ID_18_GLOBAL.exec(text);
+        while (match !== null) {
+            const href = buildRecordRedirectUrl(instanceUrl, match[0]);
+            if (href) {
+                replaced = true;
+                if (match.index > lastIndex) {
+                    fragment.appendChild(
+                        document.createTextNode(text.slice(lastIndex, match.index))
+                    );
+                }
+                const anchor = document.createElement('a');
+                anchor.href = href;
+                anchor.target = '_blank';
+                anchor.rel = 'noreferrer';
+                anchor.className = 'sftoolkit-record-link';
+                anchor.textContent = match[0];
+                fragment.appendChild(anchor);
+                lastIndex = match.index + match[0].length;
+            }
+            match = SF_ID_18_GLOBAL.exec(text);
+        }
+        if (!replaced) return;
+        if (lastIndex < text.length) {
+            fragment.appendChild(document.createTextNode(text.slice(lastIndex)));
+        }
+        textNode.parentNode?.replaceChild(fragment, textNode);
     };
 
     enable_codeViewer = () => {

@@ -11,6 +11,9 @@ import {
     toSalesforcePath,
     buildFrontDoorUrl,
     buildSalesforceNavigationPath,
+    isValidSalesforceId,
+    buildRecordRedirectUrl,
+    resolveSalesforceLinkHref,
 } from '../salesforceUrl.ts';
 
 test('normalizeInstanceUrl: adds https when scheme missing', () => {
@@ -189,4 +192,76 @@ test('buildSalesforceNavigationPath: url preserves encoded path, re-encodes quer
         instanceHost: 'acme.my.salesforce.com',
     });
     assert.equal(result, '/lightning/r/Account/001%20Special/view?name=Test+Name');
+});
+
+test('isValidSalesforceId: accepts any structurally-valid 15-char ID', () => {
+    assert.equal(isValidSalesforceId('001000000000001'), true);
+    assert.equal(isValidSalesforceId('0015000000WWD7Z'), true);
+});
+test('isValidSalesforceId: accepts 18-char IDs with a correct checksum', () => {
+    // 0015000000WWD7Z → checksum suffix AAX (real-world example).
+    assert.equal(isValidSalesforceId('0015000000WWD7ZAAX'), true);
+    assert.equal(isValidSalesforceId('001000000000001AAA'), true);
+});
+test('isValidSalesforceId: rejects 18-char tokens with a wrong checksum', () => {
+    // Correct suffix is AAX; anything else must be rejected.
+    assert.equal(isValidSalesforceId('0015000000WWD7ZAAA'), false);
+    assert.equal(isValidSalesforceId('0015000000WWD7ZZZZ'), false);
+});
+test('isValidSalesforceId: rejects wrong length and non-alphanumeric', () => {
+    assert.equal(isValidSalesforceId('001'), false);
+    assert.equal(isValidSalesforceId('0015000000WWD7ZAAXX'), false); // 19 chars
+    assert.equal(isValidSalesforceId('001-000000000001'), false);
+    assert.equal(isValidSalesforceId(null), false);
+    assert.equal(isValidSalesforceId(undefined), false);
+});
+
+test('buildRecordRedirectUrl: builds {base}/{id} for valid input', () => {
+    assert.equal(
+        buildRecordRedirectUrl('https://acme.my.salesforce.com', '0015000000WWD7ZAAX'),
+        'https://acme.my.salesforce.com/0015000000WWD7ZAAX'
+    );
+    // Normalizes a scheme-less instance host.
+    assert.equal(
+        buildRecordRedirectUrl('acme.my.salesforce.com', '001000000000001'),
+        'https://acme.my.salesforce.com/001000000000001'
+    );
+});
+test('buildRecordRedirectUrl: returns null for invalid id or missing instance', () => {
+    assert.equal(buildRecordRedirectUrl('https://acme.my.salesforce.com', 'not-an-id'), null);
+    assert.equal(buildRecordRedirectUrl('', '0015000000WWD7ZAAX'), null);
+});
+
+test('resolveSalesforceLinkHref: sfrecord with id only → classic redirect', () => {
+    assert.equal(
+        resolveSalesforceLinkHref('sfrecord:/0015000000WWD7ZAAX', 'https://acme.my.salesforce.com'),
+        'https://acme.my.salesforce.com/0015000000WWD7ZAAX'
+    );
+});
+test('resolveSalesforceLinkHref: sfrecord with object/id → lightning record view', () => {
+    assert.equal(
+        resolveSalesforceLinkHref(
+            'sfrecord:/Account/0015000000WWD7ZAAX',
+            'https://acme.my.salesforce.com'
+        ),
+        'https://acme.my.salesforce.com/lightning/r/Account/0015000000WWD7ZAAX/view'
+    );
+});
+test('resolveSalesforceLinkHref: sfobject → list view', () => {
+    assert.equal(
+        resolveSalesforceLinkHref('sfobject:/Account', 'https://acme.my.salesforce.com'),
+        'https://acme.my.salesforce.com/lightning/o/Account/list?filterName=__Recent'
+    );
+});
+test('resolveSalesforceLinkHref: returns null for invalid id, empty, or unknown scheme', () => {
+    assert.equal(
+        resolveSalesforceLinkHref('sfrecord:/not-an-id', 'https://acme.my.salesforce.com'),
+        null
+    );
+    assert.equal(resolveSalesforceLinkHref('sfobject:/', 'https://acme.my.salesforce.com'), null);
+    assert.equal(
+        resolveSalesforceLinkHref('https://evil.example', 'https://acme.my.salesforce.com'),
+        null
+    );
+    assert.equal(resolveSalesforceLinkHref('sfrecord:/0015000000WWD7ZAAX', ''), null);
 });
