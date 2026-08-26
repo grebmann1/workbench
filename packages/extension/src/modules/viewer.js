@@ -662,7 +662,10 @@ async function renderMarkdown(content, raw) {
     const wrapper = document.createElement('div');
     wrapper.className = 'viewer-markdown';
 
-    const html = marked(content || '');
+    // `marked` from shared/markdown is a factory: calling it returns the actual
+    // parser, which we then invoke on the content. Hence the double call —
+    // `marked(content)` would pass the string as the factory arg and render nothing.
+    const html = marked()(content || '');
     const doc = new DOMParser().parseFromString(html, 'text/html');
     const fragment = document.createDocumentFragment();
     Array.from(doc.body.childNodes).forEach(node => fragment.appendChild(node));

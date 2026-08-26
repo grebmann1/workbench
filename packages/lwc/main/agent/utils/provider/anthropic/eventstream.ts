@@ -18,6 +18,26 @@
 
 type DecodedFrame = { event: string; data: string };
 
+/**
+ * Decode a base64 string whose bytes are UTF-8 text.
+ *
+ * `atob` returns a "binary string" — one char per raw byte — so multi-byte
+ * UTF-8 sequences (emoji, em dashes, ✓) come back as Latin-1 mojibake (e.g.
+ * `✓` → `â\x9C\x93`) if used directly. We must run those bytes back through a
+ * UTF-8 decoder. The Node `Buffer` path already does this via `.toString('utf-8')`.
+ */
+function base64ToUtf8(b64: string): string {
+    if (typeof atob === 'function') {
+        const binary = atob(b64);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i += 1) {
+            bytes[i] = binary.charCodeAt(i) & 0xff;
+        }
+        return new TextDecoder('utf-8').decode(bytes);
+    }
+    return Buffer.from(b64, 'base64').toString('utf-8');
+}
+
 function readUInt32BE(bytes: Uint8Array, offset: number): number {
     return (
         ((bytes[offset] << 24) >>> 0) +
@@ -67,10 +87,7 @@ function decodePayload(headers: Record<string, string>, payload: Uint8Array): De
         const envelope = JSON.parse(raw);
         // Bedrock wraps the Anthropic event in `{ bytes: base64(JSON), p: ... }`.
         if (envelope && typeof envelope.bytes === 'string') {
-            const decoded =
-                typeof atob === 'function'
-                    ? atob(envelope.bytes)
-                    : Buffer.from(envelope.bytes, 'base64').toString('utf-8');
+            const decoded = base64ToUtf8(envelope.bytes);
             const inner = JSON.parse(decoded);
             const type = typeof inner?.type === 'string' ? inner.type : eventType;
             return { event: type, data: JSON.stringify(inner) };

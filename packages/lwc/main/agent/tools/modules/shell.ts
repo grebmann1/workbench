@@ -34,6 +34,7 @@ import {
     openToolkit,
 } from '../utils/utils';
 
+import { decodeExecStdout } from './execStdout';
 import { saveSkillToFs } from './skillUtils';
 
 export type BashToolOptions = {
@@ -1403,8 +1404,9 @@ export function createBashTools(shell, fs, opts: BashToolOptions = {}) {
                         command: args.command,
                     });
                     const res = await shell.exec(args.command);
+                    const stdout = decodeExecStdout(res);
                     const text = [
-                        res.stdout ? `stdout:\n${res.stdout}` : '',
+                        stdout ? `stdout:\n${stdout}` : '',
                         res.stderr ? `stderr:\n${res.stderr}` : '',
                         `exit code: ${res.exitCode}`,
                     ]
@@ -1416,7 +1418,6 @@ export function createBashTools(shell, fs, opts: BashToolOptions = {}) {
                             TOOL_OUTPUT_LIMITS.maxChars + TOOL_OUTPUT_LIMITS.existingCapSlackChars
                             ? text
                             : (await capToolOutput(text, 'bash', fs)).text;
-                    console.log('[agent:tool:bash] cappedText', { cappedText });
                     const pendingImages = consumePendingImages();
                     const compressedImages = (
                         await Promise.all(
@@ -1471,7 +1472,7 @@ export function createBashTools(shell, fs, opts: BashToolOptions = {}) {
                             kind: 'bash_result',
                             isError: false,
                             text: cappedText,
-                            stdout: res.stdout || '',
+                            stdout,
                             stderr: res.stderr || '',
                             exitCode: res.exitCode,
                             images: [],
@@ -1482,7 +1483,7 @@ export function createBashTools(shell, fs, opts: BashToolOptions = {}) {
                         kind: 'bash_result',
                         isError: false,
                         text: cappedText,
-                        stdout: res.stdout || '',
+                        stdout,
                         stderr: res.stderr || '',
                         exitCode: res.exitCode,
                         images: compressedImages,
