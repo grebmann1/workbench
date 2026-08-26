@@ -1504,12 +1504,27 @@ export function createBashTools(shell, fs, opts: BashToolOptions = {}) {
                 }
             },
             toModelOutput: ({ toolCallId, output }) => {
+                const text = output.text || output.output || output.content || '';
+                // Surface command failures as an `error-text` part so the model
+                // (and the UI's error detection) treat the result as an error
+                // rather than a green success.
+                if (output.isError) {
+                    const errorOutput = {
+                        type: 'error-text',
+                        value: text || 'Bash command failed.',
+                    };
+                    LOGGER.debug('[agent:tool:bash] tool error output', {
+                        toolCallId,
+                        errorOutput,
+                    });
+                    return errorOutput;
+                }
                 const toolOutput = {
                     type: 'content',
                     value: [
                         {
                             type: 'text',
-                            text: output.text || output.output || output.content || '',
+                            text,
                         },
                         ...(output.images &&
                         Array.isArray(output.images) &&
