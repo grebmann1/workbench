@@ -115,18 +115,25 @@ export default class ToolMessage extends LightningElement {
     // A tool call is an error when the AI SDK part state says so, or when the
     // (possibly `toModelOutput`-shaped) output carries an error marker. We look
     // one level into `output.value` because content-wrapped results nest the
-    // real payload there.
+    // real payload there. A nonzero `exitCode` counts as a failure too — a
+    // command can fail (e.g. `sf` errors, a script exiting 1) without throwing.
     get isErrorResult() {
         const part = this.toolPart;
         const state = typeof part?.state === 'string' ? part.state : '';
         if (state === 'output-error' || state === 'output-denied') return true;
         const output = this._effectiveToolResult?.output;
         if (output && typeof output === 'object') {
-            if (output.isError) return true;
+            if (this._carriesErrorMarker(output)) return true;
             if (typeof output.type === 'string' && output.type.startsWith('error')) return true;
-            const value = output.value;
-            if (value && typeof value === 'object' && value.isError) return true;
+            if (this._carriesErrorMarker(output.value)) return true;
         }
+        return false;
+    }
+
+    _carriesErrorMarker(candidate) {
+        if (!candidate || typeof candidate !== 'object') return false;
+        if (candidate.isError) return true;
+        if (typeof candidate.exitCode === 'number' && candidate.exitCode !== 0) return true;
         return false;
     }
 

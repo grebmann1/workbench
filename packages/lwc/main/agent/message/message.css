@@ -50,7 +50,19 @@
 }
 
 .message-actions-row {
+    display: flex;
     align-items: center;
+    gap: 4px;
+}
+
+.message-copy-button {
+    --slds-c-button-text-color: var(--slds-g-color-neutral-base-50, #747474);
+    opacity: 0.6;
+    transition: opacity 0.15s ease-in-out;
+}
+
+.message-copy-button:hover {
+    opacity: 1;
 }
 
 .message-code-block-truncate {

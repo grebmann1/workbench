@@ -13,13 +13,22 @@ export default class Message extends ToolkitElement {
 
     /** Events **/
 
-    handleDownload = async () => {
+    handleCopyMessage = async () => {
         const text = this.renderedTextForClipboard;
-        navigator.clipboard.writeText(text);
-        Toast.show({
-            label: 'Message exported to your clipboard',
-            variant: 'success',
-        });
+        if (!text) return;
+        try {
+            await navigator.clipboard.writeText(text);
+            Toast.show({
+                label: 'Message copied to your clipboard',
+                variant: 'success',
+            });
+        } catch (e) {
+            LOGGER.warn('Failed to copy message to clipboard', e);
+            Toast.show({
+                label: 'Could not copy message',
+                variant: 'error',
+            });
+        }
     };
 
     handleRetry = () => {
@@ -144,6 +153,11 @@ export default class Message extends ToolkitElement {
 
     get hasRenderableParts() {
         return this.renderedParts.length > 0;
+    }
+
+    // Show a copy button on assistant messages that have text to copy.
+    get canCopyMessage() {
+        return this.isAssistant && this.renderedTextForClipboard.length > 0;
     }
 
     get showAssistantEmptyFallback() {
