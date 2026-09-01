@@ -64,6 +64,40 @@
     margin-bottom: 4px;
 }
 
+.tool-result-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+
+.tool-result-header .tool-section-label {
+    margin-bottom: 0;
+}
+
+.tool-copy-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    border: none;
+    background: transparent;
+    padding: 2px 4px;
+    border-radius: 4px;
+    cursor: pointer;
+    color: var(--slds-g-color-neutral-base-30, #444);
+    font-size: 11px;
+}
+
+.tool-copy-button:hover {
+    background-color: var(--slds-g-color-neutral-base-95, #f5f5f5);
+}
+
+.tool-copy-label {
+    font-size: 11px;
+    letter-spacing: 0.02em;
+}
+
 .tool-section-body {
     margin: 0;
     padding: 8px 10px;

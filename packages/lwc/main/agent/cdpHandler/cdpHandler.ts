@@ -1,6 +1,8 @@
 import { GOOGLE_DRIVE_SCOPES } from 'agent/googleAuth';
 import LOGGER from 'shared/logger';
 
+import { decodeExecStdout } from '../tools/modules/execStdout';
+
 /**
  * Chrome Debugger Bridge (CdpHandler)
  *
@@ -987,7 +989,7 @@ export class CdpHandler {
             switch (message.type) {
                 case 'FS_READ_REQUEST': {
                     const res = await run(`cat -- ${quoteShell(message.path)}`);
-                    respond({ success: true, content: res.stdout ?? '' });
+                    respond({ success: true, content: decodeExecStdout(res) });
                     return;
                 }
                 case 'FS_WRITE_REQUEST': {
@@ -1048,7 +1050,7 @@ export class CdpHandler {
                     const res = await bash.exec(message.command, opts);
                     respond({
                         success: true,
-                        stdout: res?.stdout ?? '',
+                        stdout: decodeExecStdout(res),
                         stderr: res?.stderr ?? '',
                         exitCode: res?.exitCode ?? 0,
                     });
@@ -1188,7 +1190,7 @@ export class CdpHandler {
                                 `cat failed with exit code ${res?.exitCode}`
                         );
                     }
-                    respond({ success: true, result: { content: res.stdout ?? '' } });
+                    respond({ success: true, result: { content: decodeExecStdout(res) } });
                     return;
                 }
                 case 'listFiles': {

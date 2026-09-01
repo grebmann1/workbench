@@ -1,5 +1,33 @@
 [
     {
+        "version": "2.1.0",
+        "date": "August 10th, 2026",
+        "sections": [
+            {
+                "title": "Enhancements",
+                "categories": [
+                    {
+                        "category": "API Explorer",
+                        "items": [
+                            "Added form-data and binary request bodies for file uploads to the connected Salesforce org. Selected files remain only in the active browser session and are never saved with requests or request history."
+                        ]
+                    }
+                ]
+            },
+            {
+                "title": "Bug Fixes",
+                "categories": [
+                    {
+                        "category": "API Explorer",
+                        "items": [
+                            "Fixed GET and other bodyless requests being blocked before execution after file request body support was added."
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    {
         "version": "2.0.9",
         "date": "August 8th, 2026",
         "sections": [

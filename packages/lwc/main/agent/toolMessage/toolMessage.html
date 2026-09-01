@@ -30,7 +30,24 @@
 
             <template lwc:if={effectiveToolResult}>
                 <div class="tool-section">
-                    <div class="tool-section-label">{resultLabel}</div>
+                    <div class="tool-result-header">
+                        <span class="tool-section-label">{resultLabel}</span>
+                        <template lwc:if={canCopyResult}>
+                            <button
+                                type="button"
+                                class="tool-copy-button"
+                                onclick={handleCopyResult}
+                                title={copyLabel}
+                                aria-label={copyLabel}>
+                                <lightning-icon
+                                    icon-name={copyIconName}
+                                    class="tool-copy-icon"
+                                    size="xx-small"
+                                    alternative-text={copyLabel}></lightning-icon>
+                                <span class="tool-copy-label">{copyLabel}</span>
+                            </button>
+                        </template>
+                    </div>
                     <pre class="tool-section-body"><code>{resultText}</code></pre>
                     <template lwc:if={resultImages.length}>
                         <div class="tool-result-images slds-m-top_x-small">

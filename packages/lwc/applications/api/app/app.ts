@@ -2528,7 +2528,9 @@ export default class App extends ToolkitElement {
 
     buildExecutionBody = request => {
         if (this.bodyMode === 'none') return null;
-        if (!this.isFormDataBody && !this.isBinaryBody) return request?.body;
+        // GET and other bodyless requests have no formatted body. Normalize that
+        // to null so `undefined` remains the validation sentinel for file modes.
+        if (!this.isFormDataBody && !this.isBinaryBody) return request?.body ?? null;
         if (this.isBinaryBody) {
             if (!this.binaryFile) {
                 Toast.show({

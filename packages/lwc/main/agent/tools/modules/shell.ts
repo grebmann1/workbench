@@ -34,6 +34,7 @@ import {
     openToolkit,
 } from '../utils/utils';
 
+import { decodeExecStdout } from './execStdout';
 import { saveSkillToFs } from './skillUtils';
 
 export type BashToolOptions = {
@@ -1403,8 +1404,9 @@ export function createBashTools(shell, fs, opts: BashToolOptions = {}) {
                         command: args.command,
                     });
                     const res = await shell.exec(args.command);
+                    const stdout = decodeExecStdout(res);
                     const text = [
-                        res.stdout ? `stdout:\n${res.stdout}` : '',
+                        stdout ? `stdout:\n${stdout}` : '',
                         res.stderr ? `stderr:\n${res.stderr}` : '',
                         `exit code: ${res.exitCode}`,
                     ]
@@ -1416,7 +1418,6 @@ export function createBashTools(shell, fs, opts: BashToolOptions = {}) {
                             TOOL_OUTPUT_LIMITS.maxChars + TOOL_OUTPUT_LIMITS.existingCapSlackChars
                             ? text
                             : (await capToolOutput(text, 'bash', fs)).text;
-                    console.log('[agent:tool:bash] cappedText', { cappedText });
                     const pendingImages = consumePendingImages();
                     const compressedImages = (
                         await Promise.all(
@@ -1471,7 +1472,7 @@ export function createBashTools(shell, fs, opts: BashToolOptions = {}) {
                             kind: 'bash_result',
                             isError: false,
                             text: cappedText,
-                            stdout: res.stdout || '',
+                            stdout,
                             stderr: res.stderr || '',
                             exitCode: res.exitCode,
                             images: [],
@@ -1482,7 +1483,7 @@ export function createBashTools(shell, fs, opts: BashToolOptions = {}) {
                         kind: 'bash_result',
                         isError: false,
                         text: cappedText,
-                        stdout: res.stdout || '',
+                        stdout,
                         stderr: res.stderr || '',
                         exitCode: res.exitCode,
                         images: compressedImages,
@@ -1503,12 +1504,37 @@ export function createBashTools(shell, fs, opts: BashToolOptions = {}) {
                 }
             },
             toModelOutput: ({ toolCallId, output }) => {
+                const text = output.text || output.output || output.content || '';
+                // Surface command failures as an `error-text` part so the model
+                // (and the UI's error detection) treat the result as an error
+                // rather than a green success. A failure is either a thrown
+                // error (`isError`) or a command that exited with a nonzero code.
+                const exitCode = typeof output.exitCode === 'number' ? output.exitCode : 0;
+                if (output.isError || exitCode !== 0) {
+                    const stderr = typeof output.stderr === 'string' ? output.stderr.trim() : '';
+                    const errorText =
+                        text ||
+                        stderr ||
+                        (exitCode !== 0
+                            ? `Command exited with code ${exitCode}.`
+                            : 'Bash command failed.');
+                    const errorOutput = {
+                        type: 'error-text',
+                        value: errorText,
+                    };
+                    LOGGER.debug('[agent:tool:bash] tool error output', {
+                        toolCallId,
+                        exitCode,
+                        errorOutput,
+                    });
+                    return errorOutput;
+                }
                 const toolOutput = {
                     type: 'content',
                     value: [
                         {
                             type: 'text',
-                            text: output.text || output.output || output.content || '',
+                            text,
                         },
                         ...(output.images &&
                         Array.isArray(output.images) &&
