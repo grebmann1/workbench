@@ -8,18 +8,28 @@ export default class Message extends ToolkitElement {
     @api item: any;
     @api isCurrentMessage = false;
     @api isReasoningStreaming = false;
+    @api isLastMessage = false;
 
     /** Methods **/
 
     /** Events **/
 
-    handleDownload = async () => {
+    handleCopyMessage = async () => {
         const text = this.renderedTextForClipboard;
-        navigator.clipboard.writeText(text);
-        Toast.show({
-            label: 'Message exported to your clipboard',
-            variant: 'success',
-        });
+        if (!text) return;
+        try {
+            await navigator.clipboard.writeText(text);
+            Toast.show({
+                label: 'Message copied to your clipboard',
+                variant: 'success',
+            });
+        } catch (e) {
+            LOGGER.warn('Failed to copy message to clipboard', e);
+            Toast.show({
+                label: 'Could not copy message',
+                variant: 'error',
+            });
+        }
     };
 
     handleRetry = () => {
@@ -146,12 +156,27 @@ export default class Message extends ToolkitElement {
         return this.renderedParts.length > 0;
     }
 
+    // Show a copy button only on the last assistant message (the final answer
+    // to the user), and only when it has text to copy — not on intermediate
+    // turns or tool exchanges.
+    get canCopyMessage() {
+        return this.isLastMessage && this.isAssistant && this.renderedTextForClipboard.length > 0;
+    }
+
     get showAssistantEmptyFallback() {
         return this.isAssistant && !this.hasRenderableParts;
     }
 
     get originMessage() {
         return this.isUser ? 'You' : 'Assistant';
+    }
+
+    // Instance URL of the connected org, passed to the markdown viewer so it can
+    // turn record IDs and sfrecord:/sfobject: links into real org links. Empty
+    // string when no org is connected — the viewer then leaves markdown as-is.
+    get salesforceInstanceUrl(): string {
+        const url = this.connector?.conn?.instanceUrl;
+        return typeof url === 'string' ? url : '';
     }
 
     _normalizeParts(message) {

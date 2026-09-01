@@ -48,6 +48,7 @@
                                     <slds-markdown-viewer
                                         class="slds-flex-column slds-full-height"
                                         value={part.text}
+                                        salesforce-instance-url={salesforceInstanceUrl}
                                         onchange={handleChange}></slds-markdown-viewer>
                                 </template>
                             </div>
@@ -57,6 +58,18 @@
                         <div class="message-content-text agent-message-empty-fallback">—</div>
                     </template>
                 </div>
+                <template lwc:if={canCopyMessage}>
+                    <div class="message-actions-row slds-m-top_xx-small">
+                        <lightning-button-icon
+                            icon-name="utility:copy"
+                            variant="bare"
+                            size="small"
+                            title="Copy message"
+                            alternative-text="Copy message"
+                            class="message-copy-button"
+                            onclick={handleCopyMessage}></lightning-button-icon>
+                    </div>
+                </template>
             </div>
         </div>
     </li>

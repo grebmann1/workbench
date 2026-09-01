@@ -1,6 +1,6 @@
 import { Constants } from 'agent/utils';
 import { api, LightningElement } from 'lwc';
-import { safeParseJson } from 'shared/utils';
+import { guid, runActionAfterTimeOut, safeParseJson } from 'shared/utils';
 
 function normalizeText(value) {
     return typeof value === 'string' ? value.trim() : '';
@@ -53,6 +53,8 @@ export default class ToolMessage extends LightningElement {
     @api isRunning = false;
     @api toolPart: any; // AI SDK UIMessage tool invocation part
     expanded = false;
+    copied = false;
+    _copyResetKey = `tool-copy-${guid()}`;
 
     get _effectiveToolCall() {
         const part = this.toolPart;
@@ -110,13 +112,33 @@ export default class ToolMessage extends LightningElement {
         return !!this._effectiveToolResult;
     }
 
-    get hasSuccessfulResult() {
+    // A tool call is an error when the AI SDK part state says so, or when the
+    // (possibly `toModelOutput`-shaped) output carries an error marker. We look
+    // one level into `output.value` because content-wrapped results nest the
+    // real payload there. A nonzero `exitCode` counts as a failure too — a
+    // command can fail (e.g. `sf` errors, a script exiting 1) without throwing.
+    get isErrorResult() {
+        const part = this.toolPart;
+        const state = typeof part?.state === 'string' ? part.state : '';
+        if (state === 'output-error' || state === 'output-denied') return true;
         const output = this._effectiveToolResult?.output;
         if (output && typeof output === 'object') {
-            if (output.isError) return false;
-            if (typeof output.type === 'string' && output.type.startsWith('error')) return false;
+            if (this._carriesErrorMarker(output)) return true;
+            if (typeof output.type === 'string' && output.type.startsWith('error')) return true;
+            if (this._carriesErrorMarker(output.value)) return true;
         }
-        return this.hasToolResult;
+        return false;
+    }
+
+    _carriesErrorMarker(candidate) {
+        if (!candidate || typeof candidate !== 'object') return false;
+        if (candidate.isError) return true;
+        if (typeof candidate.exitCode === 'number' && candidate.exitCode !== 0) return true;
+        return false;
+    }
+
+    get hasSuccessfulResult() {
+        return this.hasToolResult && !this.isErrorResult;
     }
 
     get _effectiveIsRunning() {
@@ -157,10 +179,12 @@ export default class ToolMessage extends LightningElement {
     }
 
     get statusIconName() {
-        return this.hasToolResult ? 'utility:success' : 'utility:automate';
+        if (!this.hasToolResult) return 'utility:automate';
+        return this.isErrorResult ? 'utility:error' : 'utility:success';
     }
 
     get statusIconVariant() {
+        if (this.isErrorResult) return 'error';
         return this.hasSuccessfulResult ? 'success' : undefined;
     }
 
@@ -270,7 +294,40 @@ export default class ToolMessage extends LightningElement {
             .filter(Boolean);
     }
 
+    get canCopyResult() {
+        if (this._effectiveIsRunning) return false;
+        const text = this.resultText;
+        return typeof text === 'string' && text.trim().length > 0;
+    }
+
+    get copyIconName() {
+        return this.copied ? 'utility:check' : 'utility:copy';
+    }
+
+    get copyLabel() {
+        return this.copied ? 'Copied' : 'Copy result';
+    }
+
     handleToggle = () => {
         this.expanded = !this.expanded;
+    };
+
+    handleCopyResult = async event => {
+        event?.stopPropagation?.();
+        const text = this.resultText;
+        if (typeof text !== 'string' || !text) return;
+        try {
+            await navigator.clipboard.writeText(text);
+            this.copied = true;
+            runActionAfterTimeOut(
+                null,
+                () => {
+                    this.copied = false;
+                },
+                { timeout: 1500, key: this._copyResetKey }
+            );
+        } catch (e) {
+            // Clipboard unavailable (permissions / insecure context) — ignore.
+        }
     };
 }

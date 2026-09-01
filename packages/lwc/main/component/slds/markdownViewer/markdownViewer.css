@@ -1175,3 +1175,15 @@ img {
     color: #0d6efd;
     background: #e8f0fe;
 }
+
+.sftoolkit-record-link {
+    color: var(--slds-g-color-brand-base-30, #0176d3);
+    text-decoration: none;
+    border-bottom: 1px solid currentColor;
+    word-break: break-all;
+}
+
+.sftoolkit-record-link:hover {
+    text-decoration: none;
+    color: var(--slds-g-color-brand-base-20, #014486);
+}

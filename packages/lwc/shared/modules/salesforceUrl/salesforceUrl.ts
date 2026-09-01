@@ -91,3 +91,105 @@ export function buildSalesforceNavigationPath(args: {
     url.searchParams.delete('sid');
     return `${url.pathname}${url.search}${url.hash}`;
 }
+
+// The alphabet used to encode the 3-character case-checksum suffix of an
+// 18-character Salesforce ID. Each check char packs the upper/lower case of 5
+// characters of the 15-char base into a 5-bit value (0-31).
+const SF_ID_CHECKSUM_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ012345';
+
+function computeSalesforceIdChecksum(id15: string): string {
+    let suffix = '';
+    for (let chunk = 0; chunk < 3; chunk++) {
+        let value = 0;
+        for (let i = 0; i < 5; i++) {
+            const c = id15.charAt(chunk * 5 + i);
+            if (c >= 'A' && c <= 'Z') {
+                value += 1 << i;
+            }
+        }
+        suffix += SF_ID_CHECKSUM_ALPHABET.charAt(value);
+    }
+    return suffix;
+}
+
+/**
+ * Validate a Salesforce record ID.
+ *
+ * - 15-char IDs are accepted on structure alone (they carry no checksum).
+ * - 18-char IDs must additionally match their case-insensitive checksum
+ *   suffix, which makes false positives on arbitrary alphanumeric tokens
+ *   effectively impossible — this is what makes bare-ID auto-linking safe.
+ */
+export function isValidSalesforceId(value: unknown): boolean {
+    const id = String(value ?? '');
+    if (/^[a-zA-Z0-9]{15}$/.test(id)) {
+        return true;
+    }
+    if (/^[a-zA-Z0-9]{18}$/.test(id)) {
+        return computeSalesforceIdChecksum(id.slice(0, 15)) === id.slice(15).toUpperCase();
+    }
+    return false;
+}
+
+/**
+ * Build a classic-redirect URL for a record ID: `{instanceUrl}/{id}`.
+ * Salesforce resolves the object type server-side, so this works for any
+ * object without needing its API name. Returns null for invalid input.
+ */
+export function buildRecordRedirectUrl(instanceUrl: unknown, id: unknown): string | null {
+    const base = normalizeInstanceUrl(instanceUrl);
+    if (!base || !isValidSalesforceId(id)) {
+        return null;
+    }
+    return `${base}/${String(id)}`;
+}
+
+/**
+ * Resolve an agent-emitted `sfrecord:` / `sfobject:` pseudo-href into a real
+ * absolute Salesforce URL. Returns null when it can't be resolved.
+ *
+ * - `sfrecord:/{id}`             → `{base}/{id}` (classic redirect)
+ * - `sfrecord:/{Object}/{id}`    → `{base}/lightning/r/{Object}/{id}/view`
+ * - `sfobject:/{ApiName}`        → `{base}/lightning/o/{ApiName}/list`
+ */
+export function resolveSalesforceLinkHref(rawHref: unknown, instanceUrl: unknown): string | null {
+    const href = String(rawHref ?? '').trim();
+    const base = normalizeInstanceUrl(instanceUrl);
+    if (!base || !href) {
+        return null;
+    }
+
+    if (href.startsWith('sfrecord:')) {
+        const segments = href.slice('sfrecord:'.length).split('/').filter(Boolean);
+        if (segments.length === 0) {
+            return null;
+        }
+        const id = segments[segments.length - 1];
+        if (!isValidSalesforceId(id)) {
+            return null;
+        }
+        if (segments.length === 1) {
+            return `${base}/${id}`;
+        }
+        return `${base}${buildSalesforceNavigationPath({
+            kind: 'record',
+            object: segments[0],
+            id,
+            instanceHost: '',
+        })}`;
+    }
+
+    if (href.startsWith('sfobject:')) {
+        const object = href.slice('sfobject:'.length).split('/').filter(Boolean)[0];
+        if (!object) {
+            return null;
+        }
+        return `${base}${buildSalesforceNavigationPath({
+            kind: 'list',
+            object,
+            instanceHost: '',
+        })}`;
+    }
+
+    return null;
+}
