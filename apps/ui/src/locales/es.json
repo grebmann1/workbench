@@ -17,9 +17,35 @@
     "home": {
         "hero": {
             "eyebrow": "Kit de herramientas para administradores de Salesforce",
-            "title": "El toolkit creado para admins de Salesforce",
+            "title": "El toolkit creado por ingenieros de Salesforce",
             "body": "Workbench se integra directamente en Salesforce con un panel superpuesto, trae un editor VS Code a tu navegador, un explorador completo de metadatos y un agente de IA que puede controlar tu navegador — todo en una sola extensión.",
             "cta": "Añadir extensión web"
+        },
+        "demo": {
+            "ariaLabel": "Demo del producto",
+            "seeAllFeatures": "Ver todas las funciones",
+            "headings": {
+                "overlay": "Overlay",
+                "editor": "VS Code",
+                "soql": "SOQL",
+                "agent": "Agente"
+            },
+            "captions": {
+                "edge": "Una página de Salesforce — Workbench queda al borde.",
+                "overlay": "El panel se desliza sin salir del registro.",
+                "search": "Busca objetos sin salir de la página.",
+                "vscode": "Abre VS Code sin salir de Salesforce.",
+                "loadingEditor": "Abriendo VS Code…",
+                "typeCode": "Crea un LWC en el mismo navegador.",
+                "editorReady": "La plantilla está lista — ahora consulta los datos.",
+                "loading": "Abriendo el explorador SOQL…",
+                "toolkit": "El toolkit completo, todavía en el navegador.",
+                "query": "Escribe SOQL con la org a la vista.",
+                "results": "Cuentas de Acme, al instante.",
+                "ask": "Abre el panel lateral en cualquier sitio.",
+                "stream": "El agente rellena el formulario de soporte.",
+                "action": "Enviado — sin salir de la página."
+            }
         },
         "features": {
             "overlay": {

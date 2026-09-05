@@ -55,7 +55,12 @@ a {
 .announce-bar {
     margin: 0 -1.75rem;
     padding: 0.5rem 1.75rem;
-    background: linear-gradient(90deg, rgba(61, 114, 244, 0.06), rgba(61, 114, 244, 0.11) 50%, rgba(61, 114, 244, 0.06));
+    background: linear-gradient(
+        90deg,
+        rgba(61, 114, 244, 0.06),
+        rgba(61, 114, 244, 0.11) 50%,
+        rgba(61, 114, 244, 0.06)
+    );
     border-bottom: 1px solid rgba(61, 114, 244, 0.18);
     display: flex;
     align-items: center;
@@ -153,7 +158,9 @@ a {
     padding: 4px 6px;
     border-radius: 6px;
     color: var(--color-text-muted);
-    transition: background 0.15s ease, color 0.15s ease;
+    transition:
+        background 0.15s ease,
+        color 0.15s ease;
     line-height: 1;
 }
 
@@ -187,7 +194,9 @@ a {
     background: var(--color-surface);
     border: 1px solid var(--color-border);
     border-radius: 10px;
-    box-shadow: 0 8px 24px -4px rgba(19, 48, 98, 0.14), 0 0 0 1px rgba(0,0,0,0.04);
+    box-shadow:
+        0 8px 24px -4px rgba(19, 48, 98, 0.14),
+        0 0 0 1px rgba(0, 0, 0, 0.04);
     min-width: 148px;
     z-index: 100;
 }
@@ -211,7 +220,9 @@ a {
     padding: 7px 10px;
     border-radius: 7px;
     text-align: left;
-    transition: background 0.12s ease, color 0.12s ease;
+    transition:
+        background 0.12s ease,
+        color 0.12s ease;
 }
 
 .lang-picker-option:hover {
@@ -253,7 +264,10 @@ a {
     color: #ffffff;
     font-weight: 600;
     font-size: 0.95rem;
-    transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+    transition:
+        background-color 0.2s ease,
+        border-color 0.2s ease,
+        box-shadow 0.2s ease;
 }
 
 .button:hover,
@@ -347,7 +361,9 @@ h1 {
     max-width: 680px;
     opacity: 0;
     transform: translateY(28px);
-    transition: opacity 0.85s ease, transform 0.85s ease;
+    transition:
+        opacity 0.85s ease,
+        transform 0.85s ease;
     transition-delay: 0.05s;
 }
 
@@ -364,18 +380,21 @@ h1 {
     justify-content: center;
 }
 
-.hero-browser {
+.home-tour {
     width: 100%;
+    max-width: 1120px;
+    margin: 0 auto;
     opacity: 0;
-    transform: translateY(36px) perspective(1600px) rotateX(3deg);
-    transform-origin: top center;
-    transition: opacity 0.95s ease, transform 0.95s ease;
+    transform: translateY(36px);
+    transition:
+        opacity 0.95s ease,
+        transform 0.95s ease;
     transition-delay: 0.3s;
 }
 
-.hero-full.is-visible .hero-browser {
+.hero-full.is-visible .home-tour {
     opacity: 1;
-    transform: translateY(0) perspective(1600px) rotateX(3deg);
+    transform: translateY(0);
 }
 
 /* ─── Feature Sections ────────────────────────────────────── */
@@ -416,7 +435,9 @@ h1 {
 .feature-text {
     opacity: 0;
     transform: translateX(-28px);
-    transition: opacity 0.7s ease, transform 0.7s ease;
+    transition:
+        opacity 0.7s ease,
+        transform 0.7s ease;
     transition-delay: 0.1s;
 }
 
@@ -427,7 +448,9 @@ h1 {
 .feature-browser {
     opacity: 0;
     transform: translateX(28px);
-    transition: opacity 0.7s ease, transform 0.7s ease;
+    transition:
+        opacity 0.7s ease,
+        transform 0.7s ease;
     transition-delay: 0.25s;
 }
 
@@ -487,9 +510,15 @@ h1 {
     border-radius: 50%;
 }
 
-.dot-red    { background: #ff5f56; }
-.dot-yellow { background: #ffbd2e; }
-.dot-green  { background: #27c93f; }
+.dot-red {
+    background: #ff5f56;
+}
+.dot-yellow {
+    background: #ffbd2e;
+}
+.dot-green {
+    background: #27c93f;
+}
 
 .fake-browser-nav {
     display: flex;
@@ -530,11 +559,17 @@ h1 {
     justify-content: center;
 }
 
-.fake-browser-content--screenshot {
+.fake-browser-content--screenshot,
+.fake-browser-content--wireframe {
     min-height: unset;
     background: none;
     display: block;
     padding: 0;
+}
+
+.fake-browser--tour {
+    width: max-content;
+    max-width: none;
 }
 
 .fake-browser-screenshot {
@@ -579,7 +614,9 @@ h1 {
     border-radius: 0.9rem;
     background: var(--color-surface);
     box-shadow: 0 10px 28px -22px rgba(28, 67, 133, 0.5);
-    transition: box-shadow 0.2s ease, border-color 0.2s ease;
+    transition:
+        box-shadow 0.2s ease,
+        border-color 0.2s ease;
 }
 
 .platform-card:hover {
@@ -661,7 +698,9 @@ h1 {
     border-top: 1px solid var(--color-border);
     opacity: 0;
     transform: translateY(24px);
-    transition: opacity 0.7s ease, transform 0.7s ease;
+    transition:
+        opacity 0.7s ease,
+        transform 0.7s ease;
 }
 
 .faq-section.is-visible {
@@ -682,7 +721,9 @@ h1 {
     border-radius: 0.9rem;
     background: var(--color-surface);
     box-shadow: 0 10px 28px -22px rgba(28, 67, 133, 0.5);
-    transition: box-shadow 0.2s ease, border-color 0.2s ease;
+    transition:
+        box-shadow 0.2s ease,
+        border-color 0.2s ease;
     overflow: hidden;
 }
 
@@ -739,7 +780,7 @@ h1 {
 }
 
 .faq-code {
-    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
     font-size: 0.86em;
     padding: 0.1em 0.4em;
     border-radius: 0.35rem;
@@ -887,10 +928,6 @@ a:focus-visible {
         font-size: clamp(2rem, 9.5vw, 2.8rem);
     }
 
-    .hero-browser {
-        transform: none !important;
-    }
-
     .fake-browser-content {
         min-height: 240px;
     }
@@ -913,7 +950,9 @@ a:focus-visible {
     margin: 0 auto;
     opacity: 0;
     transform: translateY(24px);
-    transition: opacity 0.7s ease, transform 0.7s ease;
+    transition:
+        opacity 0.7s ease,
+        transform 0.7s ease;
 }
 
 .welcome-hero.is-visible {
@@ -1099,8 +1138,13 @@ a:focus-visible {
 }
 
 @keyframes pin-pulse {
-    0%, 100% { box-shadow: 0 0 0 2px rgba(61, 114, 244, 0.35); }
-    50%      { box-shadow: 0 0 0 5px rgba(61, 114, 244, 0.15); }
+    0%,
+    100% {
+        box-shadow: 0 0 0 2px rgba(61, 114, 244, 0.35);
+    }
+    50% {
+        box-shadow: 0 0 0 5px rgba(61, 114, 244, 0.15);
+    }
 }
 
 .pin-toolbar-popover {
@@ -1173,7 +1217,9 @@ a:focus-visible {
     border-top: 1px solid var(--color-border);
     opacity: 0;
     transform: translateY(28px);
-    transition: opacity 0.7s ease, transform 0.7s ease;
+    transition:
+        opacity 0.7s ease,
+        transform 0.7s ease;
 }
 
 .welcome-steps.is-visible {
@@ -1197,7 +1243,10 @@ a:focus-visible {
     border-radius: 0.9rem;
     background: var(--color-surface);
     box-shadow: 0 10px 28px -22px rgba(28, 67, 133, 0.5);
-    transition: box-shadow 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+    transition:
+        box-shadow 0.2s ease,
+        border-color 0.2s ease,
+        transform 0.2s ease;
 }
 
 .step-card:hover {
