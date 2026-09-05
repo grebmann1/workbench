@@ -1,6 +1,6 @@
 {
     "chrome": {
-        "announce": "The modern replacement for <bold>Salesforce Workbench</bold> and <bold>Benchpress</bold>",
+        "announce": "Workbench <bold>2.1.1</bold> is here — the Agent inspects the tab beside the side panel, and the model picker loads live catalogs from your API keys",
         "nav": {
             "github": "GitHub",
             "docs": "Docs",
@@ -17,9 +17,35 @@
     "home": {
         "hero": {
             "eyebrow": "Salesforce Administration Toolkit",
-            "title": "The toolkit built for Salesforce admins",
+            "title": "The toolkit built by Salesforce Engineers",
             "body": "Workbench embeds directly into Salesforce with a page overlay, brings a VS Code editor to your browser, a full metadata explorer, and an AI agent that can control your browser — all in one extension.",
             "cta": "Add Web Extension"
+        },
+        "demo": {
+            "ariaLabel": "Product demo",
+            "seeAllFeatures": "See all features",
+            "headings": {
+                "overlay": "Overlay",
+                "editor": "VS Code",
+                "soql": "SOQL",
+                "agent": "Agent"
+            },
+            "captions": {
+                "edge": "A Salesforce page — Workbench sits on the edge.",
+                "overlay": "The overlay slides in without leaving the record.",
+                "search": "Search objects without leaving the page.",
+                "vscode": "Open VS Code without leaving Salesforce.",
+                "loadingEditor": "Opening VS Code…",
+                "typeCode": "Create an LWC in the same browser.",
+                "editorReady": "The template is ready — now query the data.",
+                "loading": "Opening SOQL Explorer…",
+                "toolkit": "The full toolkit, still in the browser.",
+                "query": "Write SOQL with the org in view.",
+                "results": "Accounts from Acme, instantly.",
+                "ask": "Open the side panel on any website.",
+                "stream": "The agent fills the support form.",
+                "action": "Submitted — without leaving the page."
+            }
         },
         "features": {
             "overlay": {

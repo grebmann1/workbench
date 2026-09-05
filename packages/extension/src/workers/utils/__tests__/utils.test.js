@@ -11,6 +11,8 @@ const {
     compareMajorMinor,
     parsePatterns,
     normalizeUrlForPatternMatch,
+    mergePatternLines,
+    urlMatchesContentScriptPatterns,
 } = await import('../utils.js');
 
 test('toNumber: parses integer strings, passes numbers through', () => {
@@ -112,4 +114,57 @@ test('normalizeUrlForPatternMatch: non-http protocols → null', () => {
 test('normalizeUrlForPatternMatch: malformed URL → null', () => {
     assert.equal(normalizeUrlForPatternMatch('not a url'), null);
     assert.equal(normalizeUrlForPatternMatch(''), null);
+});
+
+test('mergePatternLines: appends missing required lines and preserves existing', () => {
+    const stored = '/foo/\n/bar/';
+    const merged = mergePatternLines(stored, [
+        '/bar/',
+        '/https:\\/\\/trailhead\\.salesforce\\.com/',
+    ]);
+    assert.equal(merged, '/foo/\n/bar/\n/https:\\/\\/trailhead\\.salesforce\\.com/');
+});
+
+test('mergePatternLines: no-op when required lines already present', () => {
+    const stored = '/foo/\n/bar/';
+    assert.equal(mergePatternLines(stored, ['/foo/']), '/foo/\n/bar/');
+});
+
+test('urlMatchesContentScriptPatterns: skips public Salesforce sites, keeps org hosts', () => {
+    const include = parsePatterns(
+        '/\\.salesforce(-com)?\\./\n/\\.lightning\\.force(-com)?\\./',
+        []
+    );
+    const exclude = parsePatterns(
+        '/https:\\/\\/(www|trailhead|help|developer|appearance)\\.salesforce\\.com/',
+        []
+    );
+    assert.equal(
+        urlMatchesContentScriptPatterns(
+            'https://trailhead.salesforce.com/content/learn/modules/x',
+            include,
+            exclude
+        ),
+        false
+    );
+    assert.equal(
+        urlMatchesContentScriptPatterns('https://help.salesforce.com/s/', include, exclude),
+        false
+    );
+    assert.equal(
+        urlMatchesContentScriptPatterns(
+            'https://na139.salesforce.com/lightning/o/Account/list',
+            include,
+            exclude
+        ),
+        true
+    );
+    assert.equal(
+        urlMatchesContentScriptPatterns(
+            'https://myorg.lightning.force.com/lightning/page/home',
+            include,
+            exclude
+        ),
+        true
+    );
 });

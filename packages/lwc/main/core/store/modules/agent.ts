@@ -1,10 +1,10 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import {
-    type ProcessMessageStepStart,
-    type ProcessMessageToolStart,
-    type ProcessMessageError,
-    type ProcessMessageStepFinish,
-    type ProcessMessageToolFinish,
+import type {
+    ProcessMessageStepStart,
+    ProcessMessageToolStart,
+    ProcessMessageError,
+    ProcessMessageStepFinish,
+    ProcessMessageToolFinish,
 } from 'agent/Agent';
 import {
     Constants,
@@ -45,6 +45,7 @@ export interface AgentState {
     messagesById: Record<string, ModelMessage[]>;
     debugMode: boolean;
     lastRunDebugByConversationId: Record<string, unknown>;
+    hasHydrated: boolean;
 }
 
 const DEFAULT_CONVERSATION = {
@@ -207,13 +208,30 @@ const initialState = {
     messagesById: {},
     debugMode: false,
     lastRunDebugByConversationId: {},
+    hasHydrated: false,
 };
 
-function saveCacheSettings(state) {
+function conversationsWithSyncedStreamHistory(state: AgentState): Conversation[] {
+    const messagesById = state.messagesById || {};
+    return (state.conversations || []).map(conversation => {
+        const live = messagesById[conversation.id];
+        if (!Array.isArray(live)) return conversation;
+        return {
+            ...conversation,
+            streamHistory: sanitizeMessagesForCache(live),
+        };
+    });
+}
+
+function saveCacheSettings(state: AgentState) {
     // Persist only cache-relevant fields; avoid serializing the full redux slice,
     // which may include non-serializable debug/runtime data.
     // Saves are fired immediately (not queued) so that writes reach chrome.storage
     // before the extension popup/panel is closed.
+    // Skip until the first cache load finishes so the empty initial state cannot
+    // overwrite persisted conversation history.
+    if (!state.hasHydrated) return;
+    state.conversations = conversationsWithSyncedStreamHistory(state);
     const payload = buildConversationDataFromState(state);
     saveSingleExtensionConfigToCache(CACHE_CONFIG.EINSTEIN_AGENT_CONVERSATION_DATA.key, payload)
         .then(() => {
@@ -483,6 +501,9 @@ const agentSlice = createSlice({
                 state.lastRunDebugByConversationId[id] = data;
             }
         },
+        flushConversationCache: state => {
+            saveCacheSettings(state);
+        },
     },
     extraReducers: builder => {
         builder
@@ -492,15 +513,18 @@ const agentSlice = createSlice({
                     loadCacheSettings(cachedConfig, state);
                 }
                 hydrateMessagesFromConversations(state);
+                state.hasHydrated = true;
             })
             .addCase(loadConversationsFromCache.fulfilled, (state, action) => {
-                if (!isNotUndefinedOrNull(action.payload)) return;
-                const normalized = normalizeAgentConversationData(action.payload);
-                state.conversations = normalized.conversations;
-                state.activeConversationId = normalized.activeConversationId;
-                state.selectedModel = normalized.selectedModel;
-                state.selectedReasoning = normalized.selectedReasoning;
-                hydrateMessagesFromConversations(state);
+                if (isNotUndefinedOrNull(action.payload)) {
+                    const normalized = normalizeAgentConversationData(action.payload);
+                    state.conversations = normalized.conversations;
+                    state.activeConversationId = normalized.activeConversationId;
+                    state.selectedModel = normalized.selectedModel;
+                    state.selectedReasoning = normalized.selectedReasoning;
+                    hydrateMessagesFromConversations(state);
+                }
+                state.hasHydrated = true;
             });
     },
 });
@@ -536,8 +560,11 @@ export const saveConversationsToCache = createAsyncThunk(
     'agent/saveConversationsToCache',
     async (_, { getState }) => {
         const state = getState();
+        if (!state.agent?.hasHydrated) {
+            return { count: 0 };
+        }
         const payload = normalizeAgentConversationData({
-            conversations: state.agent?.conversations,
+            conversations: conversationsWithSyncedStreamHistory(state.agent),
             activeConversationId: state.agent?.activeConversationId,
             selectedModel: state.agent?.selectedModel,
             selectedReasoning: state.agent?.selectedReasoning,

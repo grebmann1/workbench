@@ -12,10 +12,12 @@ import {
     saveSingleExtensionConfigToCache,
 } from 'shared/cacheManager';
 import {
+    fetchApiKeyProviderModels,
     fetchLlmModelsEndpoint,
     fetchSubscriptionModels,
     isInternalProviderBaseUrl,
     normalizeProviderConfigMap,
+    toNonEmptyProviderCatalogs,
     type LlmProviderConfigMap,
 } from 'shared/llm';
 import LOGGER from 'shared/logger';
@@ -148,6 +150,14 @@ export default class AiSettings extends LightningElement {
         store.dispatch(
             APPLICATION.reduxSlice.actions.updateSubscriptionModels({ models: subscriptionModels })
         );
+        const apiKeyCatalogs = toNonEmptyProviderCatalogs(
+            await fetchApiKeyProviderModels(providerConfigs)
+        );
+        if (Object.keys(apiKeyCatalogs).length > 0) {
+            store.dispatch(
+                APPLICATION.reduxSlice.actions.updateProviderCatalogs({ catalogs: apiKeyCatalogs })
+            );
+        }
     }
 
     async reloadProviderConfigs() {

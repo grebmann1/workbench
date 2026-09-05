@@ -15,7 +15,7 @@ Use this skill for tab lifecycle decisions.
 
 ## Recommended patterns
 
-- Start with `listTabs()` when user refers to existing tabs.
+- Start with `listTabs()` or `getCurrentTab()` when the user refers to existing tabs, "this tab", or visible page content.
 - Reuse a single worker tab for sequential scraping/navigation.
 - Open extra tabs only when parallel/isolated context is required.
 - Close force-created tabs once work completes.
@@ -23,4 +23,5 @@ Use this skill for tab lifecycle decisions.
 ## Anti-patterns
 
 - Do not call `createTab(..., { forceNew: true })` in loops/retries.
-- Do not assume the currently active user tab is safe to mutate.
+- Do not call `createTab()` to inspect a page the user already has open — connect to that tab instead.
+- Do not mutate the user's active tab unless they asked you to change it. Inspecting (snapshot/screenshot/read) is always OK.

@@ -29,6 +29,7 @@ const sessionStorage = new MemStorage();
 // callback-based in the real Chrome API.
 const chromeBags = { local: new Map<string, unknown>(), sync: new Map<string, unknown>() };
 (globalThis as any).chrome = {
+    runtime: {},
     storage: {
         local: {
             get(keys: string[], cb: (r: Record<string, unknown>) => void) {
@@ -144,4 +145,24 @@ test('chromeStore: sync variant targets chrome.storage.sync', async () => {
 
 test('chromeStore: rejects invalid variant', () => {
     assert.throws(() => chromeStore('bogus' as any), /Invalid variant/);
+});
+
+test('chromeStore: setItem rejects when chrome.runtime.lastError is set', async () => {
+    chromeBags.local.clear();
+    const store = chromeStore('local');
+    const originalSet = (globalThis as any).chrome.storage.local.set;
+    (globalThis as any).chrome.storage.local.set = (
+        _items: Record<string, unknown>,
+        cb: () => void
+    ) => {
+        (globalThis as any).chrome.runtime.lastError = { message: 'QUOTA_BYTES quota exceeded' };
+        cb();
+        (globalThis as any).chrome.runtime.lastError = undefined;
+    };
+    try {
+        await assert.rejects(() => store.setItem('ck', 'nope'), /QUOTA_BYTES quota exceeded/);
+        assert.equal(chromeBags.local.has('ck'), false);
+    } finally {
+        (globalThis as any).chrome.storage.local.set = originalSet;
+    }
 });

@@ -184,13 +184,16 @@ export function SiteFooter() {
 export function FakeBrowser({
     url = 'app.workbench.io',
     screenshot,
+    children,
 }: {
     url?: string;
     screenshot?: string;
+    children?: ReactNode;
 }) {
     const { t } = useTranslation();
+    const isWireframe = Boolean(children);
     return (
-        <div className="fake-browser">
+        <div className={`fake-browser${isWireframe ? ' fake-browser--tour' : ''}`}>
             <div className="fake-browser-bar">
                 <div className="fake-browser-dots">
                     <span className="dot dot-red" />
@@ -244,9 +247,11 @@ export function FakeBrowser({
                 </div>
             </div>
             <div
-                className={`fake-browser-content${screenshot ? ' fake-browser-content--screenshot' : ''}`}
+                className={`fake-browser-content${screenshot ? ' fake-browser-content--screenshot' : ''}${isWireframe ? ' fake-browser-content--wireframe' : ''}`}
             >
-                {screenshot ? (
+                {children ? (
+                    children
+                ) : screenshot ? (
                     <img src={screenshot} alt="" className="fake-browser-screenshot" />
                 ) : (
                     <div className="fake-browser-placeholder">

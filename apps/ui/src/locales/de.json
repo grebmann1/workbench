@@ -1,6 +1,6 @@
 {
     "chrome": {
-        "announce": "Der moderne Ersatz für <bold>Salesforce Workbench</bold> und <bold>Benchpress</bold>",
+        "announce": "Workbench <bold>2.1.1</bold> ist da — der Agent prüft den Tab neben dem Seitenpanel, und die Modellauswahl lädt Live-Kataloge aus Ihren API-Schlüsseln",
         "nav": {
             "github": "GitHub",
             "docs": "Docs",
@@ -17,9 +17,35 @@
     "home": {
         "hero": {
             "eyebrow": "Salesforce-Administrations-Toolkit",
-            "title": "Das Toolkit für Salesforce-Admins",
+            "title": "Das Toolkit von Salesforce-Ingenieuren",
             "body": "Workbench bettet sich direkt in Salesforce ein – mit einem seitlichen Panel, einem VS Code-Editor im Browser, einem vollständigen Metadaten-Explorer und einem KI-Agenten, der Ihren Browser steuern kann – alles in einer Erweiterung.",
             "cta": "Erweiterung hinzufügen"
+        },
+        "demo": {
+            "ariaLabel": "Produktdemo",
+            "seeAllFeatures": "Alle Funktionen ansehen",
+            "headings": {
+                "overlay": "Overlay",
+                "editor": "VS Code",
+                "soql": "SOQL",
+                "agent": "Agent"
+            },
+            "captions": {
+                "edge": "Eine Salesforce-Seite — Workbench sitzt am Rand.",
+                "overlay": "Das Overlay gleitet ein, ohne den Datensatz zu verlassen.",
+                "search": "Objekte suchen, ohne die Seite zu verlassen.",
+                "vscode": "VS Code öffnen, ohne Salesforce zu verlassen.",
+                "loadingEditor": "VS Code wird geöffnet…",
+                "typeCode": "Eine LWC im selben Browser anlegen.",
+                "editorReady": "Die Vorlage ist fertig — jetzt die Daten abfragen.",
+                "loading": "SOQL Explorer wird geöffnet…",
+                "toolkit": "Das volle Toolkit, weiter im Browser.",
+                "query": "SOQL schreiben, mit der Org im Blick.",
+                "results": "Accounts aus Acme, sofort.",
+                "ask": "Das Seitenpanel auf jeder Website öffnen.",
+                "stream": "Der Agent füllt das Support-Formular.",
+                "action": "Abgeschickt — ohne die Seite zu verlassen."
+            }
         },
         "features": {
             "overlay": {

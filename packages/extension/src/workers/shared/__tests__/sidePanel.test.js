@@ -2,7 +2,8 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
 function makeChrome() {
-    const calls = { setOptions: [], open: [] };
+    const sessionStore = {};
+    const calls = { setOptions: [], open: [], sessionSet: [] };
     globalThis.chrome = {
         sidePanel: {
             setOptions: opts => {
@@ -12,6 +13,20 @@ function makeChrome() {
             open: opts => {
                 calls.open.push(opts);
                 return Promise.resolve();
+            },
+        },
+        storage: {
+            session: {
+                get: async key => {
+                    if (typeof key === 'string') {
+                        return { [key]: sessionStore[key] };
+                    }
+                    return { ...sessionStore };
+                },
+                set: async obj => {
+                    Object.assign(sessionStore, obj);
+                    calls.sessionSet.push({ ...obj });
+                },
             },
         },
     };
@@ -108,25 +123,21 @@ test('toggleSideBar: no-ops when tab has no id', async () => {
     assert.equal(calls.setOptions.length, 0);
 });
 
-test('handleTabOpening: debounces a second call for the same tab+enabled state within 750ms', async () => {
+test('handleTabOpening: skips a second call for the same tab+enabled state', async () => {
     const calls = makeChrome();
     const controller = createSidePanelController('sidebar.html');
-    const origNow = Date.now;
-    let now = 1_000_000;
-    Date.now = () => now;
-    try {
-        await controller.handleTabOpening({ id: 4 });
-        assert.equal(calls.setOptions.length, 1);
+    await controller.handleTabOpening({ id: 4 });
+    assert.equal(calls.setOptions.length, 1);
 
-        now += 100; // well within 750ms window
-        await controller.handleTabOpening({ id: 4 });
-        assert.equal(calls.setOptions.length, 1, 'second call within window should be suppressed');
-    } finally {
-        Date.now = origNow;
-    }
+    await controller.handleTabOpening({ id: 4 });
+    assert.equal(
+        calls.setOptions.length,
+        1,
+        'second call with same enabled state should be skipped'
+    );
 });
 
-test('handleTabOpening: proceeds again once the debounce window has elapsed', async () => {
+test('handleTabOpening: does not re-apply setOptions after 750ms when enabled is unchanged', async () => {
     const calls = makeChrome();
     const controller = createSidePanelController('sidebar.html');
     const origNow = Date.now;
@@ -136,37 +147,37 @@ test('handleTabOpening: proceeds again once the debounce window has elapsed', as
         await controller.handleTabOpening({ id: 5 });
         assert.equal(calls.setOptions.length, 1);
 
-        now += 751; // past the 750ms debounce window
+        now += 751;
         await controller.handleTabOpening({ id: 5 });
-        assert.equal(calls.setOptions.length, 2, 'call after window should proceed');
+        assert.equal(
+            calls.setOptions.length,
+            1,
+            'same enabled state should still skip after 750ms'
+        );
     } finally {
         Date.now = origNow;
     }
 });
 
-test('handleTabOpening: stays debounced across an openSideBar call that records the same enabled state', async () => {
+test('handleTabOpening: does not re-apply enabled:true after openSideBar', async () => {
     const calls = makeChrome();
     const controller = createSidePanelController('sidebar.html');
-    const origNow = Date.now;
-    let now = 3_000_000;
-    Date.now = () => now;
-    try {
-        await controller.handleTabOpening({ id: 6 }); // enabled=false (not yet opened) -> writes once
-        assert.equal(calls.setOptions.length, 1);
+    await controller.handleTabOpening({ id: 6 }); // enabled=false (not yet opened) -> writes once
+    assert.equal(calls.setOptions.length, 1);
 
-        // openSideBar marks tab 6 as opened and records {enabled: true, ts: now} itself,
-        // issuing its own setOptions + open calls.
-        await controller.openSideBar({ id: 6 });
-        assert.equal(calls.setOptions.length, 2);
+    await controller.openSideBar({ id: 6 });
+    assert.equal(calls.setOptions.length, 2);
 
-        // handleTabOpening now computes enabled=true, matching the state openSideBar just
-        // recorded at the same `now`, so within the 750ms window it is debounced and skipped.
-        now += 10;
-        await controller.handleTabOpening({ id: 6 });
-        assert.equal(calls.setOptions.length, 2, 'debounced call should not add a setOptions call');
-    } finally {
-        Date.now = origNow;
-    }
+    await controller.handleTabOpening({ id: 6 });
+    assert.equal(calls.setOptions.length, 2, 'opened tab should not re-apply enabled:true');
+});
+
+test('handleTabOpening: writes enabled:false for an unopened tab', async () => {
+    const calls = makeChrome();
+    const controller = createSidePanelController('sidebar.html');
+    await controller.handleTabOpening({ id: 11 });
+    assert.equal(calls.setOptions.length, 1);
+    assert.deepEqual(calls.setOptions[0], { tabId: 11, path: 'sidebar.html', enabled: false });
 });
 
 test('handleTabOpening: no-ops when tab has no id', async () => {
@@ -269,26 +280,54 @@ test('registerSidePanelPort: tracks ports without a sender tab id gracefully (br
 test('handleTabRemoved: clears open tracking and last-options tracking for the tab', async () => {
     const calls = makeChrome();
     const controller = createSidePanelController('sidebar.html');
-    const origNow = Date.now;
-    let now = 5_000_000;
-    Date.now = () => now;
-    try {
-        await controller.openSideBar({ id: 42 });
-        assert.equal(calls.setOptions.length, 1);
+    await controller.openSideBar({ id: 42 });
+    assert.equal(calls.setOptions.length, 1);
 
-        controller.handleTabRemoved(42);
+    controller.handleTabRemoved(42);
 
-        // Before removal, handleTabOpening would have been debounced (enabled=true matches the
-        // state openSideBar recorded). After removal, lastSidePanelOptionsByTabId no longer has
-        // an entry for tab 42, so the very next handleTabOpening call is NOT debounced and writes.
-        now += 10;
-        await controller.handleTabOpening({ id: 42 });
-        assert.equal(
-            calls.setOptions.length,
-            2,
-            'stale debounce state should have been cleared by handleTabRemoved'
-        );
-    } finally {
-        Date.now = origNow;
-    }
+    // Before removal, handleTabOpening would skip (enabled=true matches the
+    // state openSideBar recorded). After removal, lastSidePanelOptionsByTabId no longer has
+    // an entry for tab 42, so the very next handleTabOpening call writes enabled:false.
+    await controller.handleTabOpening({ id: 42 });
+    assert.equal(
+        calls.setOptions.length,
+        2,
+        'stale debounce state should have been cleared by handleTabRemoved'
+    );
+    assert.deepEqual(calls.setOptions[1], { tabId: 42, path: 'sidebar.html', enabled: false });
+});
+
+test('openSideBar: persists opened tab ids to session storage', async () => {
+    const calls = makeChrome();
+    const controller = createSidePanelController('sidebar.html');
+    await controller.openSideBar({ id: 8 });
+    assert.deepEqual(calls.sessionSet.at(-1), { opened_side_panel_tab_ids: [8] });
+});
+
+test('closeSideBar: persists removal of the opened tab id', async () => {
+    const calls = makeChrome();
+    const controller = createSidePanelController('sidebar.html');
+    await controller.openSideBar({ id: 8 });
+    await controller.closeSideBar(8);
+    assert.deepEqual(calls.sessionSet.at(-1), { opened_side_panel_tab_ids: [] });
+});
+
+test('handleTabRemoved: persists removal of the opened tab id', async () => {
+    const calls = makeChrome();
+    const controller = createSidePanelController('sidebar.html');
+    await controller.openSideBar({ id: 8 });
+    controller.handleTabRemoved(8);
+    assert.deepEqual(calls.sessionSet.at(-1), { opened_side_panel_tab_ids: [] });
+});
+
+test('restoreOpenedTabIds: hydrates opened tabs so handleTabOpening writes enabled:true', async () => {
+    const calls = makeChrome();
+    const first = createSidePanelController('sidebar.html');
+    await first.openSideBar({ id: 8 });
+
+    const second = createSidePanelController('sidebar.html');
+    await second.restoreOpenedTabIds();
+    await second.handleTabOpening({ id: 8 });
+    const last = calls.setOptions.at(-1);
+    assert.deepEqual(last, { tabId: 8, path: 'sidebar.html', enabled: true });
 });

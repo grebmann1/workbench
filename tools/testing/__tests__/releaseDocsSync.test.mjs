@@ -62,4 +62,14 @@ test('docs/release: README, docs, and release metadata stay version-synced', () 
         expectedVersionPattern,
         'Announcement message should reference current package version'
     );
+
+    const landingLocales = ['en', 'fr', 'de', 'es', 'ja'];
+    for (const locale of landingLocales) {
+        const localePayload = JSON.parse(readRepoFile(`apps/ui/src/locales/${locale}.json`));
+        assert.match(
+            String(localePayload?.chrome?.announce || ''),
+            expectedVersionPattern,
+            `Landing announce bar (${locale}.json) should reference current package version`
+        );
+    }
 });

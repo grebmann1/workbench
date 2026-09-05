@@ -1,10 +1,6 @@
 import type { ToolCall as AiToolCall, ToolResultOutput } from '@ai-sdk/provider-utils';
 import type { Store } from '@reduxjs/toolkit';
-import {
-    clearCdpHandlerForConversation,
-    ensureCdpHandlerInitialized,
-    getCdpHandlerForConversation,
-} from 'agent/cdpHandler';
+import { clearCdpHandlerForConversation, ensureCdpHandlerInitialized } from 'agent/cdpHandler';
 import {
     type CompactionSettings,
     createCompactionSummaryMessage,
@@ -332,18 +328,22 @@ export class Agent {
     }) {
         const id = conversationId || guid();
         const shell = getOrCreateBashInstanceForConversation(id);
-        if (!getCdpHandlerForConversation(id)) {
-            await ensureCdpHandlerInitialized(id, {
-                getBashInstance: () => shell,
-                brightDataApiKey: settings.brightDataApiKey ?? null,
-                googleSheetEnabled: settings.googleSheetEnabled ?? false,
-            });
-        }
-        const cdpHandler = getCdpHandlerForConversation(id);
+        const sandboxDeps = {
+            getBashInstance: () => shell,
+            brightDataApiKey: settings.brightDataApiKey ?? null,
+            googleSheetEnabled: settings.googleSheetEnabled ?? false,
+        };
+        await ensureCdpHandlerInitialized(id, sandboxDeps);
         const fs = getIndexedDbFileSystem();
 
         const bashTools = createBashTools(shell, fs, {
-            execInSandbox: (code, timeoutMs) => cdpHandler.execInSandbox(code, timeoutMs),
+            execInSandbox: async (code, timeoutMs) => {
+                const handler = await ensureCdpHandlerInitialized(id, sandboxDeps);
+                if (!handler || typeof handler.execInSandbox !== 'function') {
+                    throw new Error('Browser runtime is unavailable');
+                }
+                return handler.execInSandbox(code, timeoutMs);
+            },
             brightDataApiKey: settings.brightDataApiKey ?? null,
         });
         const currentModel = settings.selectedModel || DEFAULT_MODEL;

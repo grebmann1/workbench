@@ -6,7 +6,7 @@
     "module": "ESNext",
     "skipLibCheck": true,
     "moduleResolution": "Bundler",
-    "allowImportingTsExtensions": false,
+    "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
@@ -15,5 +15,6 @@
     "types": ["vite/client"]
   },
   "include": ["src"],
+  "exclude": ["src/**/__test__/**"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

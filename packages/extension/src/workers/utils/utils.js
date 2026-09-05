@@ -303,6 +303,31 @@ export function parsePatterns(patternString, fallback) {
         .filter(Boolean);
 }
 
+export function mergePatternLines(stored, requiredLines) {
+    const existing = (stored || '')
+        .split('\n')
+        .map(line => line.trim())
+        .filter(Boolean);
+    const existingSet = new Set(existing);
+    const missing = (requiredLines || []).filter(line => line && !existingSet.has(line));
+    if (missing.length === 0) {
+        return existing.join('\n');
+    }
+    return [...existing, ...missing].join('\n');
+}
+
+export function urlMatchesContentScriptPatterns(url, includePatterns, excludePatterns) {
+    const normalizedUrl = normalizeUrlForPatternMatch(url);
+    if (!normalizedUrl) return false;
+    for (const pattern of excludePatterns || []) {
+        if (pattern.test(normalizedUrl)) return false;
+    }
+    for (const pattern of includePatterns || []) {
+        if (pattern.test(normalizedUrl)) return true;
+    }
+    return false;
+}
+
 export async function refreshContentScriptPatternsCache(
     defaultIncludePatterns,
     defaultExcludePatterns
@@ -348,18 +373,9 @@ export function normalizeUrlForPatternMatch(rawUrl) {
 }
 
 export async function isHostMatching(url, defaultIncludePatterns, defaultExcludePatterns) {
-    const normalizedUrl = normalizeUrlForPatternMatch(url);
-    if (!normalizedUrl) return false;
-
     const { includePatterns, excludePatterns } = await getContentScriptPatterns(
         defaultIncludePatterns,
         defaultExcludePatterns
     );
-    for (const pattern of excludePatterns) {
-        if (pattern.test(normalizedUrl)) return false;
-    }
-    for (const pattern of includePatterns) {
-        if (pattern.test(normalizedUrl)) return true;
-    }
-    return false;
+    return urlMatchesContentScriptPatterns(url, includePatterns, excludePatterns);
 }

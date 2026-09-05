@@ -10,10 +10,12 @@ import {
 } from 'shared/cacheManager';
 import {
     buildAvailableAgentModelOptions,
+    fetchApiKeyProviderModels,
     fetchLlmModelsEndpoint,
     fetchSubscriptionModels,
     getProviderForModel,
     normalizeModelSelection,
+    toNonEmptyProviderCatalogs,
 } from 'shared/llm';
 import LOGGER from 'shared/logger';
 import { store as legacyStore, store_application } from 'shared/store';
@@ -164,8 +166,17 @@ export default class Default extends LightningElement {
             APPLICATION.reduxSlice.actions.updateSubscriptionModels({ models: subscriptionModels })
         );
 
+        const apiKeyCatalogs = toNonEmptyProviderCatalogs(
+            await fetchApiKeyProviderModels(providerConfigs)
+        );
+        if (Object.keys(apiKeyCatalogs).length > 0) {
+            store.dispatch(
+                APPLICATION.reduxSlice.actions.updateProviderCatalogs({ catalogs: apiKeyCatalogs })
+            );
+        }
+
         const availableModels = buildAvailableAgentModelOptions({
-            availableModelsByProvider: serverCatalogs,
+            availableModelsByProvider: { ...(serverCatalogs || {}), ...apiKeyCatalogs },
             subscriptionModelsByProvider: subscriptionModels,
             providerConfigs,
         });

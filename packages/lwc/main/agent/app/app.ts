@@ -20,6 +20,7 @@ import {
     getDefaultModelForAgentProvider,
     readFileContent,
     generateConversationTitle,
+    buildRunningEnvironmentContext,
 } from 'agent/utils';
 import { invokeCommand } from 'host-api/commands';
 import type { ModelMessage, UIMessage } from 'ai';
@@ -38,7 +39,7 @@ import {
     normalizeLlmProvider,
 } from 'shared/llm';
 import LOGGER from 'shared/logger';
-import { isEmpty, isNotUndefinedOrNull, classSet } from 'shared/utils';
+import { isEmpty, isNotUndefinedOrNull, classSet, getCurrentTab } from 'shared/utils';
 
 import { normalizeMcpServerConfigs } from '../mcp/mcpJsonParser';
 
@@ -228,16 +229,31 @@ export default class App extends ToolkitElement {
         Analytics.trackAppOpen('agent', { alias: this.alias });
         store.dispatch(AGENT.loadCacheSettingsAsync());
         window.addEventListener('agent:ask_user', this._handleAskUserEvent);
+        window.addEventListener('pagehide', this._flushConversationCache);
+        document.addEventListener('visibilitychange', this._handleVisibilityChange);
         // Session hydration is handled by storeChange once loadFromCache populates the store.
     }
 
     disconnectedCallback() {
+        this._flushConversationCache();
         this._teardownStreamingSubscription();
         window.removeEventListener('agent:ask_user', this._handleAskUserEvent);
+        window.removeEventListener('pagehide', this._flushConversationCache);
+        document.removeEventListener('visibilitychange', this._handleVisibilityChange);
         // Reject any outstanding questions so the tool's promise doesn't leak.
         this.pendingQuestions.forEach(q => rejectQuestion(q.id));
         this.pendingQuestions = [];
     }
+
+    _flushConversationCache = () => {
+        store.dispatch(AGENT.reduxSlice.actions.flushConversationCache());
+    };
+
+    _handleVisibilityChange = () => {
+        if (document.visibilityState === 'hidden') {
+            this._flushConversationCache();
+        }
+    };
 
     renderedCallback() {
         if (this.isEditingTitle && this.refs && this.refs.titleInput) {
@@ -332,7 +348,7 @@ export default class App extends ToolkitElement {
         });
     };
 
-    _buildRunningEnvironmentContext(): string {
+    async _buildRunningEnvironmentContext(): Promise<string> {
         const state = store.getState();
         const isSidePanel = state.application?.isSidePanel ?? false;
         const connector = state.application?.connector ?? null;
@@ -342,53 +358,15 @@ export default class App extends ToolkitElement {
         const loginStatus = isLoggedIn
             ? `Connected org: ${connector.toPublic?.()?.alias ?? connector.toPublic?.()?.instanceUrl ?? 'unknown'}`
             : 'Not connected to any Salesforce org.';
-        const appLine = currentApplication
-            ? `\nCurrently visible panel: ${currentApplication}`
-            : '';
 
-        if (isSidePanel) {
-            return `
+        const currentTab = isSidePanel ? await getCurrentTab() : null;
 
-## Environment Context
-
-**Running in: Chrome Side Panel**
-
-${loginStatus}${appLine}
-
-You are running inside the Chrome Side Panel, which is a narrow overlay beside the browser — the SF Toolkit LWC app is **not** the visible tab. This has important consequences for UI tools:
-
-**Avoid UI-navigation tools** unless the user explicitly asks to open the Toolkit app:
-- \`navigate_workbench_app\`, \`sf navigate\`, \`soql_query\` (with UI), \`apex_navigate\`, \`metadata_navigate\`, \`navigateToApiEditor\` — these dispatch to the store and will take effect once the user switches to the Toolkit tab, but they produce no immediate visible feedback.
-
-**Prefer background/incognito tools** — they work reliably from the side panel without touching the UI:
-- \`soql_query_incognito\` instead of \`soql_query\`
-- \`sf data query\` for SOQL
-- \`sf apex run --no-ui\` or \`apex_execute\` for Apex (\`--no-ui\` runs incognito and does not create/update Apex tabs)
-- For UI runs, reuse the last returned \`tabId\` via \`sf apex run --tab-id <tabId>\` to avoid creating a new tab each time
-- \`sf api request\` for REST API calls
-- \`sf metadata list-types / list-records / deploy / retrieve\` for metadata operations
-- \`metadata_list_types\`, \`metadata_list_records\`, \`metadata_get_record\` (all incognito)
-
-**Connecting to a new org** via \`connect_org\` or \`sf org connect\` will open the full Toolkit in a new browser tab.
-
-**Chrome tools** (\`chrome_screenshot\`, \`chrome_list_tabs\`, etc.) work normally.
-`;
-        }
-
-        return `
-
-## Environment Context
-
-**Running in: SF Toolkit Web App**
-
-${loginStatus}${appLine}
-
-You have full access to the toolkit UI. All navigation and display tools work normally:
-- Navigation tools (\`navigate_workbench_app\`, \`sf navigate\`, \`apex_navigate\`, etc.) update the visible UI in real time.
-- Tab management tools open and switch visible editor panels.
-- Use \`soql_query\` (not incognito) to show results in the SOQL editor for the user.
-- Use incognito variants (\`soql_query_incognito\`, \`sf data query\`) when you need data silently without navigating away.
-`;
+        return buildRunningEnvironmentContext({
+            isSidePanel,
+            loginStatus,
+            currentApplication,
+            currentTab,
+        });
     }
 
     async buildAgentExecutionContext(model = this.selectedModel) {
@@ -423,7 +401,7 @@ You have full access to the toolkit UI. All navigation and display tools work no
                     state.agent?.selectedModel ||
                     getDefaultModelForAgentProvider(activeProvider, isInternal),
                 selectedReasoning: state.agent?.selectedReasoning ?? DEFAULT_REASONING,
-                systemPrompt: `${browserAgentInstructions}${this._buildRunningEnvironmentContext()}`,
+                systemPrompt: `${browserAgentInstructions}${await this._buildRunningEnvironmentContext()}`,
                 isStoreEnabled: true,
                 store,
                 extraTools: [askUserTool, ...workbenchContextTools, ...agentforceTools],

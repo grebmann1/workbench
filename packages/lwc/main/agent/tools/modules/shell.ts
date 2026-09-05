@@ -25,7 +25,7 @@ import { buildFrontDoorUrl, buildSalesforceNavigationPath } from 'shared/salesfo
 import { API as API_UTILS, compressImage } from 'shared/utils';
 import { z } from 'zod';
 
-import { SHELL_TOOL_HELP, SKILL_PATH_TEMPLATES, TOOL_OUTPUT_LIMITS } from '../constants';
+import { SHELL_TOOL_HELP, TOOL_OUTPUT_LIMITS } from '../constants';
 import {
     waitForLoaded,
     wrappedNavigate,
@@ -35,6 +35,7 @@ import {
 } from '../utils/utils';
 
 import { decodeExecStdout } from './execStdout';
+import { parseJsArgs, loadJsCode } from './jsCommand';
 import { saveSkillToFs } from './skillUtils';
 
 export type BashToolOptions = {
@@ -320,75 +321,6 @@ export function registerShellCommands({
 }) {
     if (opts.execInSandbox) {
         const execInSandbox = opts.execInSandbox;
-
-        const parseJsArgs = (argv: string[]) => {
-            let timeoutMs: number | undefined;
-            const argsWithoutFlags: string[] = [];
-
-            for (let i = 0; i < argv.length; i++) {
-                if (argv[i] === '--timeout' && i + 1 < argv.length) {
-                    timeoutMs = parseInt(argv[i + 1], 10);
-                    if (Number.isNaN(timeoutMs)) {
-                        return {
-                            timeoutMs: undefined,
-                            argsWithoutFlags: [],
-                            error: {
-                                stdout: '',
-                                stderr: 'Error: --timeout requires a numeric value\n',
-                                exitCode: 1,
-                            },
-                        };
-                    }
-                    i += 1;
-                    continue;
-                }
-                argsWithoutFlags.push(argv[i]);
-            }
-
-            return { timeoutMs, argsWithoutFlags, error: null };
-        };
-
-        const loadJsCode = async (argsWithoutFlags: string[], ctx: ShellCommandContext) => {
-            const inlineIndex = argsWithoutFlags.indexOf('-e');
-            if (inlineIndex !== -1) {
-                const inlineCode = argsWithoutFlags.slice(inlineIndex + 1).join(' ');
-                const code = inlineCode || ctx.stdin || '';
-                if (!code) {
-                    return {
-                        code: null,
-                        error: { stdout: '', stderr: "Usage: js -e '<code>'\n", exitCode: 1 },
-                    };
-                }
-                return { code, error: null };
-            }
-
-            const file = argsWithoutFlags[0];
-            if (!file) {
-                return {
-                    code: null,
-                    error: {
-                        stdout: '',
-                        stderr: "Usage: js -e '<code>' or js <file>\nRun js --help for full documentation.\n",
-                        exitCode: 1,
-                    },
-                };
-            }
-
-            const resolvedPath = ctx.fs.resolvePath(ctx.cwd, file);
-            try {
-                const code = await ctx.fs.readFile(resolvedPath, 'utf-8');
-                return { code, error: null };
-            } catch {
-                return {
-                    code: null,
-                    error: {
-                        stdout: '',
-                        stderr: `Error: Cannot read file: ${resolvedPath}\n`,
-                        exitCode: 1,
-                    },
-                };
-            }
-        };
 
         const jsCommand = createCommand('js', async (argv, ctx) => {
             if (argv.includes('--help') || argv.includes('-h')) {
@@ -1628,25 +1560,16 @@ export function createBashTools(shell, fs, opts: BashToolOptions = {}) {
                     };
                 }
 
-                const candidatePaths = SKILL_PATH_TEMPLATES.map(template =>
-                    template.replace('{name}', requestedName)
-                );
-
-                for (const skillPath of candidatePaths) {
-                    try {
-                        const content = await fs.readFile(skillPath, 'utf-8');
-                        const workingDirectory = skillPath.replace(/\/SKILL\.md$/, '');
-                        return {
-                            kind: 'load_skill_result',
-                            isError: false,
-                            skillName: requestedName,
-                            workingDirectory,
-                            content,
-                            text: `# Skill Loaded: ${requestedName}\nWorking Directory: ${workingDirectory}\n\n${content}`,
-                        };
-                    } catch (_) {
-                        // Try next candidate path.
-                    }
+                const skill = await fetchSkillByName(requestedName);
+                if (skill) {
+                    return {
+                        kind: 'load_skill_result',
+                        isError: false,
+                        skillName: skill.name,
+                        workingDirectory: skill.rootDir,
+                        content: skill.content,
+                        text: `# Skill Loaded: ${skill.name}\nWorking Directory: ${skill.rootDir}\n\n${skill.content}`,
+                    };
                 }
 
                 return {

@@ -23,6 +23,7 @@ import {
     isEmpty,
     isHostMatching,
     isNotNullOrUndefined,
+    mergePatternLines,
     normalizeUrlForPatternMatch,
     refreshContentScriptPatternsCache,
     safeDebug,
@@ -51,6 +52,7 @@ const PORT_INJECTED = 'sf-toolkit-injected';
 const PORT_SIDEPANEL = 'sf-toolkit-sidepanel';
 const MATCH_CONTENT_SCRIPT_URL = 'matchContentScriptUrl';
 const STABLE_SIDEPANEL_PATH = 'views/default.html';
+const OPENED_SIDE_PANEL_TAB_IDS_KEY = 'opened_side_panel_tab_ids';
 
 /** Default content-script patterns */
 const DEFAULT_INCLUDE_PATTERNS = [
@@ -69,6 +71,8 @@ const DEFAULT_INCLUDE_PATTERNS = [
     '/\.lightning\.force\.com\.mcas\.ms/',
     '/\.builder\.salesforce-experience\.com/',
 ];
+const PUBLIC_SALESFORCE_HOST_EXCLUDE =
+    '/https:\\/\\/(www|trailhead|help|developer|appearance)\\.salesforce\\.com/';
 const DEFAULT_EXCLUDE_PATTERNS = [
     '/\/setup\/secur\/RemoteAccessAuthorizationPage\.apexp/',
     '/\/_ui\/common\/apex\/debug\//',
@@ -77,7 +81,21 @@ const DEFAULT_EXCLUDE_PATTERNS = [
     'https:\/\/login\.salesforce\.com\//',
     '/\/loginflow\//',
     'salesforce\.com\/#\[^\/\]/',
+    // Public Salesforce sites are not Lightning orgs. Injecting the overlay's
+    // LWC runtime into them can trip Chrome's `upload` Permissions-Policy
+    // ("upload is not allowed in this document").
+    PUBLIC_SALESFORCE_HOST_EXCLUDE,
 ];
+
+async function ensurePublicSalesforceHostExclude() {
+    const data = await chrome.storage.local.get(['content_script_exclude_patterns']);
+    if (!data.content_script_exclude_patterns) return;
+    const mergedExcludes = mergePatternLines(data.content_script_exclude_patterns, [
+        PUBLIC_SALESFORCE_HOST_EXCLUDE,
+    ]);
+    if (mergedExcludes === data.content_script_exclude_patterns) return;
+    await chrome.storage.local.set({ content_script_exclude_patterns: mergedExcludes });
+}
 
 const redirectToUrlViaChrome = ({ baseUrl, sessionId, serverUrl, navigation }) => {
     let params = new URLSearchParams();
@@ -200,25 +218,46 @@ function hasSidePanelPortForTab(tabId) {
     return false;
 }
 
+function persistOpenedSidePanelTabIds() {
+    const setter = chrome.storage?.session?.set;
+    if (typeof setter !== 'function') return;
+    Promise.resolve(
+        setter.call(chrome.storage.session, {
+            [OPENED_SIDE_PANEL_TAB_IDS_KEY]: [...openedSidePanelTabIds],
+        })
+    ).catch(() => {});
+}
+
+async function restoreOpenedSidePanelTabIds() {
+    try {
+        const stored = await chrome.storage.session.get(OPENED_SIDE_PANEL_TAB_IDS_KEY);
+        const ids = stored?.[OPENED_SIDE_PANEL_TAB_IDS_KEY];
+        if (!Array.isArray(ids)) return;
+        for (const id of ids) {
+            if (Number.isInteger(id)) openedSidePanelTabIds.add(id);
+        }
+    } catch (e) {}
+}
+
 const handleTabOpening = async tab => {
     try {
         if (!tab?.id) return;
-        const now = Date.now();
         const last = _lastSidePanelOptionsByTabId.get(tab.id);
         const enabled = openedSidePanelTabIds.has(tab.id);
-        if (last && last.enabled === enabled && now - last.ts < 750) return;
+        if (last && last.enabled === enabled) return;
         await chrome.sidePanel.setOptions({
             tabId: tab.id,
             path: STABLE_SIDEPANEL_PATH,
             enabled,
         });
-        _lastSidePanelOptionsByTabId.set(tab.id, { enabled, ts: now });
+        _lastSidePanelOptionsByTabId.set(tab.id, { enabled, ts: Date.now() });
     } catch (e) {}
 };
 
 const openSideBar = async tab => {
     if (!tab?.id) return;
     openedSidePanelTabIds.add(tab.id);
+    persistOpenedSidePanelTabIds();
     _lastSidePanelOptionsByTabId.set(tab.id, { enabled: true, ts: Date.now() });
 
     const optionsPromise = chrome.sidePanel.setOptions({
@@ -236,6 +275,7 @@ const closeSideBar = async tabOrTabId => {
     const tabId = getTabId(tabOrTabId);
     if (!Number.isInteger(tabId)) return;
     openedSidePanelTabIds.delete(tabId);
+    persistOpenedSidePanelTabIds();
     _lastSidePanelOptionsByTabId.delete(tabId);
 
     await chrome.sidePanel.setOptions({
@@ -419,6 +459,7 @@ function handleSidePanelPort(port) {
             if (Number.isInteger(tabId)) {
                 sidePanelTabIdByPort.set(port, tabId);
                 openedSidePanelTabIds.add(tabId);
+                persistOpenedSidePanelTabIds();
                 _lastSidePanelOptionsByTabId.set(tabId, {
                     enabled: true,
                     ts: Date.now(),
@@ -626,7 +667,6 @@ async function handleTabUpdated(tabId, info, tab) {
             }
         );
     }
-    await handleTabOpening(tab);
 }
 
 /** Runtime message handlers. */
@@ -941,6 +981,7 @@ chrome.contextMenus.onClicked.addListener(handleContextMenuClick);
 chrome.tabs.onActivated.addListener(handleTabActivated);
 chrome.tabs.onRemoved.addListener(tabId => {
     openedSidePanelTabIds.delete(tabId);
+    persistOpenedSidePanelTabIds();
     _lastSidePanelOptionsByTabId.delete(tabId);
     injectingTabIds.delete(tabId);
 });
@@ -1038,6 +1079,8 @@ chrome.runtime.onInstalled.addListener(async details => {
         await chrome.storage.local.set({
             content_script_exclude_patterns: DEFAULT_EXCLUDE_PATTERNS.join('\n'),
         });
+    } else {
+        await ensurePublicSalesforceHostExclude();
     }
     await refreshContentScriptPatternsCache(DEFAULT_INCLUDE_PATTERNS, DEFAULT_EXCLUDE_PATTERNS);
 });
@@ -1056,6 +1099,7 @@ chrome.commands.onCommand.addListener((command, tab) => {
 
 /** Service worker bootstrap. */
 const init = async () => {
+    await restoreOpenedSidePanelTabIds();
     chrome.sidePanel
         .setPanelBehavior({ openPanelOnActionClick: false })
         .catch(error => console.error(error));
@@ -1063,9 +1107,11 @@ const init = async () => {
         .setOptions({ path: STABLE_SIDEPANEL_PATH, enabled: false })
         .catch(error => console.error(error));
     ensureContextMenu().catch(() => {});
-    refreshContentScriptPatternsCache(DEFAULT_INCLUDE_PATTERNS, DEFAULT_EXCLUDE_PATTERNS).catch(
-        () => {}
-    );
+    ensurePublicSalesforceHostExclude()
+        .then(() =>
+            refreshContentScriptPatternsCache(DEFAULT_INCLUDE_PATTERNS, DEFAULT_EXCLUDE_PATTERNS)
+        )
+        .catch(() => {});
 };
 
 chrome.runtime.setUninstallURL('https://forms.gle/cd8SkEPe5RGTVijJA');

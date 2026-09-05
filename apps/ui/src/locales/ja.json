@@ -1,6 +1,6 @@
 {
     "chrome": {
-        "announce": "<bold>Salesforce Workbench</bold> と <bold>Benchpress</bold> の現代的な代替ツール",
+        "announce": "Workbench <bold>2.1.1</bold> リリース — エージェントはサイドパネル横のタブを直接確認でき、モデル選択は API キーから最新カタログを読み込みます",
         "nav": {
             "github": "GitHub",
             "docs": "ドキュメント",
@@ -17,9 +17,35 @@
     "home": {
         "hero": {
             "eyebrow": "Salesforce 管理者向けツールキット",
-            "title": "Salesforce 管理者のための統合ツールキット",
+            "title": "Salesforce エンジニアが構築したツールキット",
             "body": "Workbench は Salesforce に直接組み込まれ、ページオーバーレイ、ブラウザ内 VS Code エディタ、フルメタデータエクスプローラー、ブラウザを操作できる AI エージェントをひとつの拡張機能として提供します。",
             "cta": "拡張機能を追加"
+        },
+        "demo": {
+            "ariaLabel": "製品デモ",
+            "seeAllFeatures": "すべての機能を見る",
+            "headings": {
+                "overlay": "Overlay",
+                "editor": "VS Code",
+                "soql": "SOQL",
+                "agent": "Agent"
+            },
+            "captions": {
+                "edge": "Salesforce のページ — Workbench は端に控えています。",
+                "overlay": "レコードを離れることなくオーバーレイが滑り込む。",
+                "search": "ページを離れずにオブジェクトを検索。",
+                "vscode": "Salesforce を離れずに VS Code を開く。",
+                "loadingEditor": "VS Code を開いています…",
+                "typeCode": "同じブラウザで LWC を作る。",
+                "editorReady": "テンプレートの準備完了 — 次はデータを照会。",
+                "loading": "SOQL Explorer を開いています…",
+                "toolkit": "フルツールキットは、まだブラウザの中。",
+                "query": "Org を見ながら SOQL を書く。",
+                "results": "Acme の Account がすぐに表示。",
+                "ask": "どのサイトでもサイドパネルを開く。",
+                "stream": "エージェントがサポートフォームを入力する。",
+                "action": "ページを離れずに送信。"
+            }
         },
         "features": {
             "overlay": {

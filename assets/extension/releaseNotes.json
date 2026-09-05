@@ -1,5 +1,47 @@
 [
     {
+        "version": "2.1.1",
+        "date": "September 5th, 2026",
+        "sections": [
+            {
+                "title": "Enhancements",
+                "categories": [
+                    {
+                        "category": "AI Agent — Browser",
+                        "items": [
+                            "From the Chrome side panel, the Agent now knows which browser tab you are looking at and can inspect that page directly — quizzes, \"what's on this tab\", screenshots — without opening a new tab.",
+                            "Sandbox `js` scripts can call `getCurrentTab()` and `connectToPage()` with no tab id to attach to the visible tab. Multi-line scripts via heredoc (`js <<'EOF'`) are supported, and wrapping code in `(async () => { ... })()` no longer returns empty output."
+                        ]
+                    },
+                    {
+                        "category": "AI Agent — Models",
+                        "items": [
+                            "With an API key configured, the model picker now loads the live catalog from OpenAI, Anthropic, Gemini, Mistral, and xAI, so newly released models appear without a Workbench update."
+                        ]
+                    },
+                    {
+                        "category": "Overlay & SOQL Explorer",
+                        "items": [
+                            "Added hover tooltips to icon-only buttons in the overlay panel and SOQL Explorer toolbar. Thanks to @sachinho-oda for reporting (#53)."
+                        ]
+                    }
+                ]
+            },
+            {
+                "title": "Bug Fixes",
+                "categories": [
+                    {
+                        "category": "AI Agent",
+                        "items": [
+                            "Page snapshots no longer fail on file inputs and other form fields whose type cannot be read.",
+                            "Sandbox `js` evaluation no longer hangs on simple scripts, and a stale sandbox after the side panel remounts no longer swallows eval until timeout."
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    {
         "version": "2.1.0",
         "date": "August 10th, 2026",
         "sections": [

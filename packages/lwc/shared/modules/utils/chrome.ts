@@ -141,6 +141,10 @@ export const getVscodeEditorUrl = (seed: VscodeEditorUrlParams): string | null =
 
 type ChromeTab = {
     id?: number;
+    title?: string;
+    url?: string;
+    active?: boolean;
+    windowId?: number;
 };
 
 export async function getCurrentTab(): Promise<ChromeTab | null> {

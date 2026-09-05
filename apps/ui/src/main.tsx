@@ -5,6 +5,7 @@ import './i18n';
 import App from './App';
 import Welcome from './Welcome';
 import './styles.css';
+import './product-tour/product-tour.css';
 
 const gaId = import.meta.env.VITE_GA_MEASUREMENT_ID as string | undefined;
 if (gaId) {
@@ -15,7 +16,9 @@ if (gaId) {
     // @ts-expect-error — gtag global injected at runtime
     window.dataLayer = window.dataLayer || [];
     // @ts-expect-error — gtag global injected at runtime
-    window.gtag = function gtag() { window.dataLayer.push(arguments); };
+    window.gtag = function gtag() {
+        window.dataLayer.push(arguments);
+    };
     // @ts-expect-error — gtag global injected at runtime
     window.gtag('js', new Date());
     // @ts-expect-error — gtag global injected at runtime
