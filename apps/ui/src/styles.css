@@ -383,6 +383,7 @@ h1 {
 .home-tour {
     width: 100%;
     max-width: 1120px;
+    min-width: 0;
     margin: 0 auto;
     opacity: 0;
     transform: translateY(36px);
@@ -448,6 +449,8 @@ h1 {
 .feature-browser {
     opacity: 0;
     transform: translateX(28px);
+    min-width: 0;
+    max-width: 100%;
     transition:
         opacity 0.7s ease,
         transform 0.7s ease;
@@ -568,8 +571,8 @@ h1 {
 }
 
 .fake-browser--tour {
-    width: max-content;
-    max-width: none;
+    width: 100%;
+    max-width: 100%;
 }
 
 .fake-browser-screenshot {
@@ -600,7 +603,7 @@ h1 {
 
 .platforms {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
     gap: 1rem;
     margin-top: 1.4rem;
 }
@@ -908,20 +911,35 @@ a:focus-visible {
         padding-left: 1.1rem;
         padding-right: 1.1rem;
         font-size: 0.79rem;
+        flex-wrap: wrap;
     }
 
     .header {
         padding: 0.75rem 1.1rem;
         margin: 0 -1.1rem;
+        flex-wrap: wrap;
+        gap: 0.6rem;
+    }
+
+    .header-nav {
+        gap: 0.55rem;
+        flex-wrap: wrap;
     }
 
     .page {
         padding: 0 1.1rem;
+        overflow-x: clip;
     }
 
     .hero-full {
-        padding-top: 3.5rem;
-        gap: 2.5rem;
+        padding-top: 2.5rem;
+        gap: 1.75rem;
+    }
+
+    .home-tour,
+    .feature-browser,
+    .product-tour {
+        max-width: 100%;
     }
 
     h1 {
