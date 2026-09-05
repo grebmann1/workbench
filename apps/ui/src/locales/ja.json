@@ -1,6 +1,6 @@
 {
     "chrome": {
-        "announce": "<bold>Salesforce Workbench</bold> と <bold>Benchpress</bold> の現代的な代替ツール",
+        "announce": "Workbench <bold>2.1.1</bold> リリース — エージェントはサイドパネル横のタブを直接確認でき、モデル選択は API キーから最新カタログを読み込みます",
         "nav": {
             "github": "GitHub",
             "docs": "ドキュメント",

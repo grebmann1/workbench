@@ -1,6 +1,6 @@
 {
     "chrome": {
-        "announce": "El reemplazo moderno de <bold>Salesforce Workbench</bold> y <bold>Benchpress</bold>",
+        "announce": "Workbench <bold>2.1.1</bold> ya está aquí — el Agente inspecciona la pestaña junto al panel lateral, y el selector de modelos carga catálogos en vivo desde tus claves API",
         "nav": {
             "github": "GitHub",
             "docs": "Docs",
