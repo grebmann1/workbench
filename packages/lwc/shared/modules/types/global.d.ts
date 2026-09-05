@@ -8,6 +8,7 @@ declare const chrome: {
     runtime?: {
         getURL: (path: string) => string;
         id?: string;
+        lastError?: { message?: string };
     };
     storage: {
         local: ChromeStorageArea;

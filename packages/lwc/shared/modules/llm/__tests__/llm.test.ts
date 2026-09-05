@@ -17,9 +17,13 @@ import {
     getMaxOutputTokensForModel,
     getProviderForModel,
     buildAvailableAgentModelOptions,
+    inferProviderFromModelId,
     fetchCodexModels,
     fetchXaiModels,
     fetchSubscriptionModels,
+    fetchApiKeyProviderModels,
+    refineLiveModelOptions,
+    toNonEmptyProviderCatalogs,
     resolveCodexClientVersion,
     CODEX_MODELS_CLIENT_VERSION,
     hasUsableProviderCredentials,
@@ -798,4 +802,199 @@ test('buildAvailableAgentModelOptions: accepts { models } catalog shape', () => 
     });
     assert.equal(options.length, 1);
     assert.equal(options[0].value, 'wrapped');
+});
+
+test('refineLiveModelOptions: drops non-chat ids and dated pins when an alias exists', () => {
+    const refined = refineLiveModelOptions(
+        [
+            { label: 'gpt-5.4', value: 'gpt-5.4', provider: 'openai' },
+            { label: 'gpt-5.4-20260305', value: 'gpt-5.4-20260305', provider: 'openai' },
+            { label: 'whisper-1', value: 'whisper-1', provider: 'openai' },
+            {
+                label: 'text-embedding-3-large',
+                value: 'text-embedding-3-large',
+                provider: 'openai',
+            },
+            { label: 'gpt-5-mini', value: 'gpt-5-mini', provider: 'openai' },
+        ],
+        'openai'
+    );
+    assert.deepEqual(
+        refined.map(model => model.value),
+        ['gpt-5.4', 'gpt-5-mini']
+    );
+    const mini = refined.find(model => model.value === 'gpt-5-mini');
+    assert.equal(mini?.maxOutputTokens, 16000);
+    assert.equal(mini?.label, 'gpt-5-mini');
+});
+
+test('refineLiveModelOptions: keeps a dated pin when no alias is present', () => {
+    const refined = refineLiveModelOptions(
+        [{ label: 'gpt-5.4-20260305', value: 'gpt-5.4-20260305', provider: 'openai' }],
+        'openai'
+    );
+    assert.deepEqual(
+        refined.map(model => model.value),
+        ['gpt-5.4-20260305']
+    );
+    assert.equal(refined[0].maxOutputTokens, 16000);
+});
+
+test('inferProviderFromModelId: maps common gateway ids to a provider family', () => {
+    assert.equal(inferProviderFromModelId('claude-haiku-4-5-20251001'), 'anthropic');
+    assert.equal(inferProviderFromModelId('us.anthropic.claude-sonnet-4-6'), 'anthropic');
+    assert.equal(inferProviderFromModelId('gemini-3-flash-preview'), 'gemini');
+    assert.equal(inferProviderFromModelId('grok-4.6'), 'grok');
+    assert.equal(inferProviderFromModelId('mistral-large-2512'), 'mistral');
+    assert.equal(inferProviderFromModelId('gpt-5.6-sol'), 'openai');
+    assert.equal(inferProviderFromModelId('gpt-5.5-bedrock'), 'openai');
+    assert.equal(inferProviderFromModelId('custom-proxy-slug'), null);
+});
+
+test('refineLiveModelOptions: mixed gateway dump keeps only the requesting provider', () => {
+    const dump = [
+        { label: 'gpt-5.6-sol', value: 'gpt-5.6-sol', provider: 'openai' as const },
+        {
+            label: 'claude-haiku-4-5-20251001',
+            value: 'claude-haiku-4-5-20251001',
+            provider: 'openai' as const,
+        },
+        { label: 'gemini-2.0-flash', value: 'gemini-2.0-flash', provider: 'openai' as const },
+        { label: 'grok-4.6', value: 'grok-4.6', provider: 'openai' as const },
+        { label: 'my-gateway-custom', value: 'my-gateway-custom', provider: 'openai' as const },
+    ];
+    assert.deepEqual(
+        refineLiveModelOptions(dump, 'openai').map(model => model.value),
+        ['gpt-5.6-sol', 'my-gateway-custom']
+    );
+    assert.deepEqual(
+        refineLiveModelOptions(dump, 'anthropic').map(model => model.value),
+        ['claude-haiku-4-5-20251001', 'my-gateway-custom']
+    );
+});
+
+test('toNonEmptyProviderCatalogs: omits empty providers', () => {
+    const catalogs = toNonEmptyProviderCatalogs({
+        openai: [{ label: 'live', value: 'live', provider: 'openai' }],
+        anthropic: [],
+    });
+    assert.equal(catalogs.openai?.models[0].value, 'live');
+    assert.equal(catalogs.openai?.status, 'ok');
+    assert.equal(catalogs.anthropic, undefined);
+});
+
+function jsonResponse(body: unknown, ok = true): Response {
+    return {
+        ok,
+        status: ok ? 200 : 500,
+        json: async () => body,
+    } as Response;
+}
+
+test('fetchApiKeyProviderModels: maps OpenAI {data:[{id}]} and skips OAuth / workbench', async () => {
+    const configs = createDefaultProviderConfigMap();
+    configs.openai = { apiKey: 'sk-openai', baseUrl: DEFAULT_PROVIDER_BASE_URLS.openai };
+    configs.anthropic = {
+        apiKey: 'sk-ant',
+        baseUrl: DEFAULT_PROVIDER_BASE_URLS.anthropic,
+        authMode: 'oauth',
+        oauth: { access: 'tok', refresh: 'r', expires: 1 },
+    };
+    configs.workbench = { apiKey: 'free', baseUrl: DEFAULT_PROVIDER_BASE_URLS.workbench };
+    const calls: Array<{ url: string; headers: Record<string, string> }> = [];
+    const mockFetch = (async (url: string | URL, options?: RequestInit) => {
+        calls.push({
+            url: String(url),
+            headers: (options?.headers ?? {}) as Record<string, string>,
+        });
+        return jsonResponse({
+            data: [{ id: 'gpt-5.4' }, { id: 'whisper-1' }, { id: 'gpt-5.4-20260305' }],
+        });
+    }) as unknown as typeof fetch;
+
+    const result = await fetchApiKeyProviderModels(configs, mockFetch);
+    assert.deepEqual(
+        result.openai?.map(model => model.value),
+        ['gpt-5.4']
+    );
+    assert.equal(result.anthropic, undefined);
+    assert.equal(result.workbench, undefined);
+    assert.equal(calls.length, 1);
+    assert.match(calls[0].url, /api\.openai\.com\/v1\/models$/);
+    assert.equal(calls[0].headers.Authorization, 'Bearer sk-openai');
+});
+
+test('fetchApiKeyProviderModels: Anthropic uses x-api-key and display_name', async () => {
+    const configs = createDefaultProviderConfigMap();
+    configs.anthropic = { apiKey: 'sk-ant', baseUrl: DEFAULT_PROVIDER_BASE_URLS.anthropic };
+    const calls: Array<{ url: string; headers: Record<string, string> }> = [];
+    const mockFetch = (async (url: string | URL, options?: RequestInit) => {
+        calls.push({
+            url: String(url),
+            headers: (options?.headers ?? {}) as Record<string, string>,
+        });
+        return jsonResponse({
+            data: [{ id: 'claude-sonnet-4-6', display_name: 'Claude Sonnet 4.6' }],
+        });
+    }) as unknown as typeof fetch;
+
+    const result = await fetchApiKeyProviderModels(configs, mockFetch);
+    assert.equal(result.anthropic?.[0].value, 'claude-sonnet-4-6');
+    assert.equal(result.anthropic?.[0].label, 'claude-sonnet-4-6');
+    assert.match(calls[0].url, /api\.anthropic\.com\/v1\/models$/);
+    assert.equal(calls[0].headers['x-api-key'], 'sk-ant');
+    assert.equal(calls[0].headers['anthropic-version'], '2023-06-01');
+});
+
+test('fetchApiKeyProviderModels: Gemini native list strips models/ and generateContent-only', async () => {
+    const configs = createDefaultProviderConfigMap();
+    configs.gemini = { apiKey: 'gem-key', baseUrl: DEFAULT_PROVIDER_BASE_URLS.gemini };
+    const calls: string[] = [];
+    const mockFetch = (async (url: string | URL) => {
+        calls.push(String(url));
+        return jsonResponse({
+            models: [
+                {
+                    name: 'models/gemini-3-flash-preview',
+                    displayName: 'Gemini 3 Flash',
+                    supportedGenerationMethods: ['generateContent'],
+                },
+                {
+                    name: 'models/embedding-001',
+                    supportedGenerationMethods: ['embedContent'],
+                },
+            ],
+        });
+    }) as unknown as typeof fetch;
+
+    const result = await fetchApiKeyProviderModels(configs, mockFetch);
+    assert.deepEqual(
+        result.gemini?.map(model => model.value),
+        ['gemini-3-flash-preview']
+    );
+    assert.match(calls[0], /generativelanguage\.googleapis\.com\/v1beta\/models\?key=gem-key$/);
+});
+
+test('fetchApiKeyProviderModels: Grok API-key uses /language-models', async () => {
+    const configs = createDefaultProviderConfigMap();
+    configs.grok = { apiKey: 'xai-key', baseUrl: DEFAULT_PROVIDER_BASE_URLS.grok };
+    const calls: string[] = [];
+    const mockFetch = (async (url: string | URL) => {
+        calls.push(String(url));
+        return jsonResponse({ models: [{ id: 'grok-4-1-fast-reasoning' }] });
+    }) as unknown as typeof fetch;
+
+    const result = await fetchApiKeyProviderModels(configs, mockFetch);
+    assert.equal(result.grok?.[0].value, 'grok-4-1-fast-reasoning');
+    assert.match(calls[0], /api\.x\.ai\/v1\/language-models$/);
+});
+
+test('fetchApiKeyProviderModels: failed fetch is omitted so the static seed remains', async () => {
+    const configs = createDefaultProviderConfigMap();
+    configs.mistral = { apiKey: 'm-key', baseUrl: DEFAULT_PROVIDER_BASE_URLS.mistral };
+    const mockFetch = (async () => jsonResponse({}, false)) as unknown as typeof fetch;
+    const result = await fetchApiKeyProviderModels(configs, mockFetch);
+    assert.deepEqual(result, {});
+    const fallback = buildAvailableAgentModelOptions({ providerConfigs: configs });
+    assert.ok(fallback.some(model => model.provider === 'mistral'));
 });

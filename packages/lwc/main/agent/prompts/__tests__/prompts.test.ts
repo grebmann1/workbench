@@ -74,3 +74,12 @@ test('browserAgentInstructions: reduced length stays within slim budget', () => 
     assert.ok(afterLength < beforeLength, `expected ${afterLength} to be < ${beforeLength}`);
     assert.ok(afterLength < 10000, `expected slimmed prompt < 10000 chars, got ${afterLength}`);
 });
+
+test('browserAgentInstructions: tells the agent how to inspect the current tab', () => {
+    assert.match(browserAgentInstructions, /listTabs\(\)/);
+    assert.match(browserAgentInstructions, /getCurrentTab\(\)/);
+    assert.match(browserAgentInstructions, /connectToPage/);
+    assert.match(browserAgentInstructions, /top-level `await`/);
+    assert.match(browserAgentInstructions, /js <<'EOF'/);
+    assert.doesNotMatch(browserAgentInstructions, /chrome_screenshot.*work normally/);
+});

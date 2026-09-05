@@ -1,3 +1,5 @@
+const OPENED_SIDE_PANEL_TAB_IDS_KEY = 'opened_side_panel_tab_ids';
+
 export function createSidePanelController(sidePanelPath) {
     const openedSidePanelTabIds = new Set();
     const sidePanelTabIdByPort = new Map();
@@ -18,25 +20,46 @@ export function createSidePanelController(sidePanelPath) {
         return false;
     }
 
+    function persistOpenedTabIds() {
+        const setter = chrome.storage?.session?.set;
+        if (typeof setter !== 'function') return;
+        Promise.resolve(
+            setter.call(chrome.storage.session, {
+                [OPENED_SIDE_PANEL_TAB_IDS_KEY]: [...openedSidePanelTabIds],
+            })
+        ).catch(() => {});
+    }
+
+    async function restoreOpenedTabIds() {
+        try {
+            const stored = await chrome.storage.session.get(OPENED_SIDE_PANEL_TAB_IDS_KEY);
+            const ids = stored?.[OPENED_SIDE_PANEL_TAB_IDS_KEY];
+            if (!Array.isArray(ids)) return;
+            for (const id of ids) {
+                if (Number.isInteger(id)) openedSidePanelTabIds.add(id);
+            }
+        } catch (e) {}
+    }
+
     async function handleTabOpening(tab) {
         try {
             if (!tab?.id) return;
-            const now = Date.now();
             const last = lastSidePanelOptionsByTabId.get(tab.id);
             const enabled = openedSidePanelTabIds.has(tab.id);
-            if (last && last.enabled === enabled && now - last.ts < 750) return;
+            if (last && last.enabled === enabled) return;
             await chrome.sidePanel.setOptions({
                 tabId: tab.id,
                 path: sidePanelPath,
                 enabled,
             });
-            lastSidePanelOptionsByTabId.set(tab.id, { enabled, ts: now });
+            lastSidePanelOptionsByTabId.set(tab.id, { enabled, ts: Date.now() });
         } catch (e) {}
     }
 
     async function openSideBar(tab) {
         if (!tab?.id) return;
         openedSidePanelTabIds.add(tab.id);
+        persistOpenedTabIds();
         lastSidePanelOptionsByTabId.set(tab.id, { enabled: true, ts: Date.now() });
         await chrome.sidePanel.setOptions({ tabId: tab.id, path: sidePanelPath, enabled: true });
         await chrome.sidePanel.open({ tabId: tab.id });
@@ -46,6 +69,7 @@ export function createSidePanelController(sidePanelPath) {
         const tabId = getTabId(tabOrTabId);
         if (!Number.isInteger(tabId)) return;
         openedSidePanelTabIds.delete(tabId);
+        persistOpenedTabIds();
         lastSidePanelOptionsByTabId.delete(tabId);
         await chrome.sidePanel.setOptions({ tabId, path: sidePanelPath, enabled: false });
     }
@@ -97,6 +121,7 @@ export function createSidePanelController(sidePanelPath) {
 
     function handleTabRemoved(tabId) {
         openedSidePanelTabIds.delete(tabId);
+        persistOpenedTabIds();
         lastSidePanelOptionsByTabId.delete(tabId);
     }
 
@@ -109,5 +134,6 @@ export function createSidePanelController(sidePanelPath) {
         sendMessageToSidePanelInTab,
         broadcastMessageToAllSidePanelInstances,
         handleTabRemoved,
+        restoreOpenedTabIds,
     };
 }

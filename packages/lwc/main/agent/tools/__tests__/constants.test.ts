@@ -20,6 +20,13 @@ test('SHELL_TOOL_HELP: every entry is a non-empty string', () => {
         assert.ok(value.length > 0, `${key} must be non-empty`);
     }
     assert.ok(SHELL_TOOL_HELP.js.includes('js -e'), 'js help shows inline usage');
+    assert.ok(SHELL_TOOL_HELP.js.includes("js <<'EOF'"), 'js help shows heredoc usage');
+    assert.ok(
+        SHELL_TOOL_HELP.js.includes('top-level await'),
+        'js help tells agents to use top-level await'
+    );
+    assert.ok(SHELL_TOOL_HELP.js.includes('listTabs()'), 'js help lists listTabs');
+    assert.ok(SHELL_TOOL_HELP.js.includes('getCurrentTab()'), 'js help lists getCurrentTab');
     assert.ok(SHELL_TOOL_HELP.saveSkill.includes('save-skill'), 'saveSkill help mentions command');
 });
 

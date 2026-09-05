@@ -43,6 +43,15 @@ const chromeStore = (variant: 'local' | 'sync' = 'local'): StorageStore => {
             // Custom implementation here...
             return new Promise((resolve, reject) => {
                 chrome.storage[variant].set({ [key]: value }, function () {
+                    const lastError = chrome.runtime?.lastError;
+                    if (lastError) {
+                        const message =
+                            typeof lastError.message === 'string' && lastError.message
+                                ? lastError.message
+                                : 'chrome.storage set failed';
+                        reject(new Error(message));
+                        return;
+                    }
                     if (callback) {
                         callback();
                     }

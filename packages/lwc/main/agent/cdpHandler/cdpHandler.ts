@@ -2,6 +2,14 @@ import { GOOGLE_DRIVE_SCOPES } from 'agent/googleAuth';
 import LOGGER from 'shared/logger';
 
 import { decodeExecStdout } from '../tools/modules/execStdout';
+import {
+    DEFAULT_EVAL_TIMEOUT_MS,
+    IFRAME_LOAD_TIMEOUT_MS,
+    SANDBOX_PING_TIMEOUT_MS,
+    SANDBOX_READY_TIMEOUT_MS,
+    isSandboxIframeAlive,
+} from './sandboxIframe';
+import { mapTabForSandbox, queryActiveTabForAgent, queryTabsForAgent } from './tabQuery';
 
 /**
  * Chrome Debugger Bridge (CdpHandler)
@@ -86,19 +94,29 @@ function createSandboxIframe() {
         typeof chrome !== 'undefined' && chrome.runtime?.getURL
             ? chrome.runtime.getURL('views/sandbox.html')
             : '/views/sandbox.html';
+    iframe.allow = 'upload';
     iframe.style.display = 'none';
     iframe.title = 'Eval Sandbox';
     return iframe;
 }
 
-function waitForIframeLoad(iframe: HTMLIFrameElement) {
+function waitForIframeLoad(iframe: HTMLIFrameElement, timeoutMs = IFRAME_LOAD_TIMEOUT_MS) {
     return new Promise((resolve, reject) => {
         if (!iframe) {
             reject(new Error('Iframe not created'));
             return;
         }
-        iframe.onload = () => resolve();
-        iframe.onerror = () => reject(new Error('Iframe load error'));
+        const timer = window.setTimeout(() => {
+            reject(new Error('Sandbox iframe load timeout'));
+        }, timeoutMs);
+        iframe.onload = () => {
+            window.clearTimeout(timer);
+            resolve();
+        };
+        iframe.onerror = () => {
+            window.clearTimeout(timer);
+            reject(new Error('Iframe load error'));
+        };
     });
 }
 
@@ -134,23 +152,46 @@ if (typeof window !== 'undefined') {
 
 /**
  * Ensures a CdpHandler exists for the given conversation: if not, creates sandbox iframe, appends to parent,
- * creates CdpHandler for this conversation, and waits for sandbox ready. No-op if handler already exists or if
- * no parent element was set via setSandboxParentElement().
+ * creates CdpHandler for this conversation, and waits for sandbox ready.
+ *
+ * Reuses a live handler. A half-initialized or detached iframe (ready timeout after
+ * the handler was already stored, side-panel remount) is destroyed and recreated so
+ * `js` does not hang until Execution timeout.
  *
  * @param {string} conversationId
  * @param {Object} deps - optional deps for the handler
  * @returns {Promise<CdpHandler | null>}
  */
 export async function ensureCdpHandlerInitialized(conversationId: string, deps) {
-    if (getCdpHandlerForConversation(conversationId)) {
-        return cdpHandlersByConversationId.get(conversationId);
+    const existing = getCdpHandlerForConversation(conversationId);
+    if (existing?.isAlive()) {
+        existing.deps = deps ?? existing.deps;
+        try {
+            await existing.waitForSandboxReady(SANDBOX_PING_TIMEOUT_MS);
+            return existing;
+        } catch (error) {
+            LOGGER.log(
+                'Existing sandbox did not respond to ping, recreating',
+                error instanceof Error ? error.message : String(error)
+            );
+            clearCdpHandlerForConversation(conversationId);
+        }
+    } else if (existing) {
+        LOGGER.log('Existing sandbox iframe is dead, recreating');
+        clearCdpHandlerForConversation(conversationId);
     }
-    const iframe = createSandboxIframe();
-    document.body.appendChild(iframe);
-    await waitForIframeLoad(iframe);
-    const handler = getOrCreateCdpHandler(conversationId, iframe, deps);
-    await handler.waitForSandboxReady();
-    return handler;
+
+    try {
+        const iframe = createSandboxIframe();
+        document.body.appendChild(iframe);
+        await waitForIframeLoad(iframe);
+        const handler = getOrCreateCdpHandler(conversationId, iframe, deps);
+        await handler.waitForSandboxReady();
+        return handler;
+    } catch (error) {
+        clearCdpHandlerForConversation(conversationId);
+        throw error;
+    }
 }
 
 export class CdpHandler {
@@ -208,6 +249,10 @@ export class CdpHandler {
 
     getSandboxWindow() {
         return this.iframe?.contentWindow ?? null;
+    }
+
+    isAlive() {
+        return isSandboxIframeAlive(this.iframe);
     }
 
     registerDebuggerListeners() {
@@ -289,11 +334,15 @@ export class CdpHandler {
     }
 
     execInSandbox(code: string, timeoutMs?: number) {
+        if (!this.isAlive()) {
+            return Promise.reject(new Error('Browser runtime iframe is not available'));
+        }
+
         return new Promise((resolve, reject) => {
             const id = crypto.randomUUID();
             LOGGER.log('execInSandbox called, id:', id, 'timeout:', timeoutMs);
 
-            const timeout = timeoutMs ?? 30000;
+            const timeout = timeoutMs ?? DEFAULT_EVAL_TIMEOUT_MS;
             const timer = setTimeout(() => {
                 if (!this.pending.has(id)) return;
                 LOGGER.log('execInSandbox timeout, id:', id);
@@ -340,14 +389,19 @@ export class CdpHandler {
         this.pending.clear();
     }
 
-    waitForSandboxReady() {
+    waitForSandboxReady(timeoutMs = SANDBOX_READY_TIMEOUT_MS) {
         return new Promise((resolve, reject) => {
             LOGGER.log('waitForSandboxReady called');
+
+            if (!this.getSandboxWindow()) {
+                reject(new Error('Sandbox iframe is not available'));
+                return;
+            }
 
             const timer = window.setTimeout(() => {
                 window.removeEventListener('message', handler);
                 reject(new Error('Sandbox ready timeout'));
-            }, 10_000);
+            }, timeoutMs);
 
             const handler = event => {
                 LOGGER.log(
@@ -694,8 +748,7 @@ export class CdpHandler {
     async handleCdpAttach(tabId) {
         LOGGER.log('handleCdpAttach called, tabId:', tabId);
 
-        const targetTabId =
-            tabId ?? (await chrome.tabs.query({ active: true, currentWindow: true }))[0]?.id;
+        const targetTabId = tabId ?? (await queryActiveTabForAgent())?.id;
 
         if (!targetTabId) {
             LOGGER.log('handleCdpAttach: No active tab');
@@ -854,12 +907,7 @@ export class CdpHandler {
 
     async handleListTabsRequest(id) {
         try {
-            const tabs = (await chrome.tabs.query({ currentWindow: true })).map(tab => ({
-                id: tab.id,
-                title: tab.title,
-                url: tab.url,
-                active: tab.active,
-            }));
+            const tabs = (await queryTabsForAgent()).map(mapTabForSandbox);
 
             this.postToSandbox({ type: 'LIST_TABS_RESPONSE', id, success: true, tabs });
         } catch (error) {

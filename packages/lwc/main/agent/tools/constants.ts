@@ -1,14 +1,16 @@
 export const SHELL_TOOL_HELP = {
     js: `Execute JavaScript in the sandbox with Puppeteer browser automation and filesystem access.
-Use 'return' to get a result back.
+Use 'return' to get a result back. The runtime already wraps scripts in async — use top-level await.
+Do not wrap scripts in an extra (async () => { ... })(); that returns immediately with no output.
 
 Usage:
   js -e '<code>'              Inline code (like node -e)
   js <file>                    Run a script file from the filesystem
+  js <<'EOF'                   Multi-line code via stdin/heredoc
   js --timeout 30000 -e '...'  Custom timeout (default: 10000ms)
   js --help                    Show this help
 
-Available globals: connectToPage(tabId), getSnapshot(page), getElementByRef(page, ref), clearInput(handle),
+Available globals: listTabs(), getCurrentTab(), connectToPage(tabId?), getSnapshot(page), getElementByRef(page, ref), clearInput(handle),
 readFile(path), writeFile(path), listFiles(path), bash(command), logImage(base64), workspace.status(), etc.`,
     saveSkill: `Save a skill to the workspace.
 

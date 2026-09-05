@@ -28,6 +28,16 @@ const DEFAULT_PROVIDER_BASE_URLS: Record<LlmProvider, string> = {
     mistral: 'https://api.mistral.ai/v1',
     grok: 'https://api.x.ai/v1',
 };
+const ANTHROPIC_API_VERSION = '2023-06-01';
+const NON_CHAT_MODEL_PATTERN =
+    /embedding|whisper|tts|dall-e|image|moderation|realtime|transcribe|computer-use/i;
+const DATED_MODEL_SUFFIX_PATTERN = /-\d{8}$/;
+const NATIVE_PROVIDER_DOMAINS: Partial<Record<LlmProvider, string>> = {
+    anthropic: 'api.anthropic.com',
+    gemini: 'generativelanguage.googleapis.com',
+    grok: 'api.x.ai',
+    mistral: 'api.mistral.ai',
+};
 const OPENAI_MODEL_OPTIONS: LlmModelOption[] = [
     { label: 'gpt-5-mini', value: 'gpt-5-mini', provider: 'openai' },
     { label: 'gpt-5', value: 'gpt-5-2025-08-07', provider: 'openai' },
@@ -135,6 +145,14 @@ function isInternalProviderBaseUrl(baseUrl: unknown) {
     return normalizeString(baseUrl).includes('eng-ai-model-gateway');
 }
 
+function isOpenAiCompatibleGateway(provider: LlmProvider, baseUrl: unknown) {
+    if (isInternalProviderBaseUrl(baseUrl)) return true;
+    const normalized = normalizeString(baseUrl).toLowerCase();
+    if (!normalized) return false;
+    const nativeDomain = NATIVE_PROVIDER_DOMAINS[provider];
+    return !!nativeDomain && !normalized.includes(nativeDomain);
+}
+
 type LlmModelsRequestBody = {
     provider?: string;
     providerConfigs?: LlmProviderConfigMap;
@@ -144,96 +162,187 @@ function toBaseUrl(baseUrl: string) {
     return baseUrl.replace(/\/+$/, '');
 }
 
-async function fetchGatewayModels(
-    config: LlmProviderConfigMap['openai']
-): Promise<Awaited<ReturnType<typeof getOpenAiCatalog>>> {
-    if (!config.apiKey) {
-        return {
-            provider: 'openai',
-            status: 'missing_key',
-            models: [],
-            defaultModel: null,
-            error: 'OpenAI API key is required to load models.',
-        };
-    }
-
-    try {
-        const response = await fetch(`${toBaseUrl(config.baseUrl)}/models`, {
-            method: 'GET',
-            headers: {
-                Authorization: `Bearer ${config.apiKey}`,
-                'Content-Type': 'application/json',
-            },
-        });
-        if (!response.ok) {
-            return {
-                provider: 'openai',
-                status: 'upstream_error',
-                models: [],
-                defaultModel: null,
-                error: `Gateway model lookup failed with status ${response.status}.`,
-            };
-        }
-        const payload = (await response.json()) as { data?: Array<{ id?: unknown }> } | null;
-        const upstreamModels: LlmModelOption[] = Array.isArray(payload?.data)
-            ? payload.data
-                  .map((item): LlmModelOption | null => {
-                      const id = typeof item?.id === 'string' ? item.id.trim() : '';
-                      return id ? { label: id, value: id, provider: 'openai' as const } : null;
-                  })
-                  .filter((item): item is LlmModelOption => item !== null)
-            : [];
-        return {
-            provider: 'openai',
-            status: 'ok',
-            models: upstreamModels,
-            defaultModel: upstreamModels[0]?.value || null,
-            error: null,
-        };
-    } catch (error) {
-        return {
-            provider: 'openai',
-            status: 'upstream_error',
-            models: [],
-            defaultModel: null,
-            error: error instanceof Error ? error.message : 'Unable to load gateway models.',
-        };
-    }
+function overlayStaticMetadata(models: LlmModelOption[], provider: LlmProvider): LlmModelOption[] {
+    const known = new Map(getProviderModelOptions(provider).map(model => [model.value, model]));
+    return models.map(model => {
+        const match = known.get(model.value);
+        return match ? { ...model, label: match.label || model.label } : model;
+    });
 }
 
-async function getOpenAiCatalog(
-    config: LlmProviderConfigMap['openai']
-): Promise<LlmProviderCatalog> {
-    if (!config.baseUrl) {
-        return {
-            provider: 'openai',
-            status: 'invalid_config',
-            models: [],
-            defaultModel: null,
-            error: 'OpenAI base URL is required.',
-        };
+function inferProviderFromModelId(modelId: string): LlmProvider | null {
+    const id = modelId.toLowerCase();
+    if (!id) return null;
+    if (id.includes('claude') || id.includes('anthropic')) return 'anthropic';
+    if (id.includes('gemini')) return 'gemini';
+    if (id.includes('grok')) return 'grok';
+    if (/(^|[^a-z])(mistral|codestral|pixtral|ministral|devstral|magistral)/.test(id)) {
+        return 'mistral';
     }
-
-    if (isInternalProviderBaseUrl(config.baseUrl)) {
-        return fetchGatewayModels(config);
+    if (
+        id.startsWith('gpt-') ||
+        id.startsWith('chatgpt') ||
+        id.startsWith('openai') ||
+        id.startsWith('ft:') ||
+        id.includes('davinci') ||
+        id.includes('babbage') ||
+        /(?:^|[^a-z])(o1|o3|o4)(?:-|$)/.test(id)
+    ) {
+        return 'openai';
     }
+    return null;
+}
 
-    const models = getProviderModelOptions('openai');
-    return {
-        provider: 'openai',
-        status: config.apiKey ? 'ok' : 'missing_key',
-        models,
-        defaultModel: getDefaultModelForProvider('openai'),
-        error: config.apiKey ? null : 'OpenAI API key is required to load models.',
-    };
+function refineLiveModels(models: LlmModelOption[], provider: LlmProvider): LlmModelOption[] {
+    const chatModels = models.filter(model => {
+        if (NON_CHAT_MODEL_PATTERN.test(model.value)) return false;
+        const inferred = inferProviderFromModelId(model.value);
+        return inferred === null || inferred === provider;
+    });
+    const ids = new Set(chatModels.map(model => model.value));
+    const withoutDatedPins = chatModels.filter(model => {
+        if (!DATED_MODEL_SUFFIX_PATTERN.test(model.value)) return true;
+        const alias = model.value.replace(DATED_MODEL_SUFFIX_PATTERN, '');
+        return !ids.has(alias);
+    });
+    return overlayStaticMetadata(withoutDatedPins, provider);
+}
+
+function parseOpenAiShapedCatalog(data: unknown, provider: LlmProvider): LlmModelOption[] {
+    if (!isRecord(data)) return [];
+    const rawList = Array.isArray(data.models)
+        ? data.models
+        : Array.isArray(data.data)
+          ? data.data
+          : [];
+    const options: LlmModelOption[] = [];
+    const seen = new Set<string>();
+    for (const entry of rawList) {
+        if (!isRecord(entry)) continue;
+        const id =
+            typeof entry.slug === 'string'
+                ? entry.slug
+                : typeof entry.id === 'string'
+                  ? entry.id
+                  : '';
+        if (!id || seen.has(id)) continue;
+        seen.add(id);
+        const label =
+            typeof entry.display_name === 'string' && entry.display_name.trim()
+                ? entry.display_name.trim()
+                : id;
+        options.push({ label, value: id, provider });
+    }
+    return options;
+}
+
+function parseGeminiCatalog(data: unknown, provider: LlmProvider): LlmModelOption[] {
+    if (!isRecord(data) || !Array.isArray(data.models)) return [];
+    const options: LlmModelOption[] = [];
+    const seen = new Set<string>();
+    for (const entry of data.models) {
+        if (!isRecord(entry)) continue;
+        const methods = Array.isArray(entry.supportedGenerationMethods)
+            ? entry.supportedGenerationMethods
+            : [];
+        if (methods.length > 0 && !methods.includes('generateContent')) continue;
+        const rawName =
+            typeof entry.name === 'string'
+                ? entry.name
+                : typeof entry.id === 'string'
+                  ? entry.id
+                  : '';
+        const id = rawName.replace(/^models\//, '').trim();
+        if (!id || seen.has(id)) continue;
+        seen.add(id);
+        const label =
+            typeof entry.displayName === 'string' && entry.displayName.trim()
+                ? entry.displayName.trim()
+                : id;
+        options.push({ label, value: id, provider });
+    }
+    return options;
+}
+
+function resolveGeminiNativeModelsUrl(baseUrl: string): string {
+    const root = toBaseUrl(baseUrl);
+    if (root.endsWith('/v1beta')) return `${root}/models`;
+    if (root.includes('generativelanguage.googleapis.com')) return `${root}/v1beta/models`;
+    return `${root}/models`;
+}
+
+async function fetchJsonCatalog(
+    url: string,
+    headers: Record<string, string>,
+    fetchImpl: typeof fetch
+): Promise<unknown> {
+    const response = await fetchImpl(url, { method: 'GET', headers });
+    if (!response.ok) {
+        throw new Error(`Model catalog request to ${url} failed with status ${response.status}.`);
+    }
+    return response.json();
+}
+
+async function fetchLiveModels(
+    provider: LlmProvider,
+    config: LlmProviderConfig,
+    fetchImpl: typeof fetch
+): Promise<LlmModelOption[]> {
+    const apiKey = config.apiKey;
+    if (!apiKey) return [];
+    const root = toBaseUrl(config.baseUrl || DEFAULT_PROVIDER_BASE_URLS[provider]);
+    const openAiCompatible =
+        provider === 'openai' ||
+        provider === 'mistral' ||
+        isOpenAiCompatibleGateway(provider, config.baseUrl);
+
+    if (provider === 'gemini' && !openAiCompatible) {
+        const url = `${resolveGeminiNativeModelsUrl(config.baseUrl)}?key=${encodeURIComponent(apiKey)}`;
+        const data = await fetchJsonCatalog(url, { Accept: 'application/json' }, fetchImpl);
+        return refineLiveModels(parseGeminiCatalog(data, provider), provider);
+    }
+    if (provider === 'anthropic' && !openAiCompatible) {
+        const data = await fetchJsonCatalog(
+            `${root}/models`,
+            {
+                Accept: 'application/json',
+                'x-api-key': apiKey,
+                'anthropic-version': ANTHROPIC_API_VERSION,
+            },
+            fetchImpl
+        );
+        return refineLiveModels(parseOpenAiShapedCatalog(data, provider), provider);
+    }
+    if (provider === 'grok' && !openAiCompatible) {
+        const data = await fetchJsonCatalog(
+            `${root}/language-models`,
+            {
+                Authorization: `Bearer ${apiKey}`,
+                Accept: 'application/json',
+            },
+            fetchImpl
+        );
+        return refineLiveModels(parseOpenAiShapedCatalog(data, provider), provider);
+    }
+    const data = await fetchJsonCatalog(
+        `${root}/models`,
+        {
+            Authorization: `Bearer ${apiKey}`,
+            Accept: 'application/json',
+        },
+        fetchImpl
+    );
+    let models = parseOpenAiShapedCatalog(data, provider);
+    if (provider === 'gemini' && models.length === 0) {
+        models = parseGeminiCatalog(data, provider);
+    }
+    return refineLiveModels(models, provider);
 }
 
 function getStaticProviderCatalog(
-    provider: Exclude<LlmProvider, 'openai'>,
+    provider: LlmProvider,
     config: LlmProviderConfig
 ): LlmProviderCatalog {
-    // When the provider points at the internal gateway, defer to the client-side
-    // INTERNAL_MODEL_OPTIONS fallback so we don't duplicate the catalog on the server.
     if (isInternalProviderBaseUrl(config.baseUrl)) {
         return {
             provider,
@@ -258,15 +367,84 @@ function getStaticProviderCatalog(
     };
 }
 
-async function buildCatalogs(providerConfigs: LlmProviderConfigMap) {
-    const catalogs = {} as Record<LlmProvider, LlmProviderCatalog>;
-    for (const provider of LLM_PROVIDERS) {
-        if (provider === 'openai') {
-            catalogs.openai = await getOpenAiCatalog(providerConfigs.openai);
-            continue;
-        }
-        catalogs[provider] = getStaticProviderCatalog(provider, providerConfigs[provider]);
+function fallbackCatalog(
+    provider: LlmProvider,
+    config: LlmProviderConfig,
+    status: LlmProviderCatalog['status'],
+    error: string | null
+): LlmProviderCatalog {
+    const isInternal = isInternalProviderBaseUrl(config.baseUrl);
+    const models = isInternal ? [] : getProviderModelOptions(provider);
+    return {
+        provider,
+        status,
+        models,
+        defaultModel: models[0]?.value || null,
+        error,
+    };
+}
+
+async function getProviderCatalog(
+    provider: LlmProvider,
+    config: LlmProviderConfig,
+    fetchImpl: typeof fetch = fetch
+): Promise<LlmProviderCatalog> {
+    if (!config.baseUrl) {
+        return {
+            provider,
+            status: 'invalid_config',
+            models: [],
+            defaultModel: null,
+            error: `${provider} base URL is required.`,
+        };
     }
+    if (!config.apiKey) {
+        return getStaticProviderCatalog(provider, config);
+    }
+
+    try {
+        const liveModels = await fetchLiveModels(provider, config, fetchImpl);
+        if (liveModels.length > 0) {
+            return {
+                provider,
+                status: 'ok',
+                models: liveModels,
+                defaultModel: liveModels[0]?.value || null,
+                error: null,
+            };
+        }
+        return fallbackCatalog(provider, config, 'ok', null);
+    } catch (error) {
+        return fallbackCatalog(
+            provider,
+            config,
+            'upstream_error',
+            error instanceof Error ? error.message : `Unable to load ${provider} models.`
+        );
+    }
+}
+
+async function getOpenAiCatalog(
+    config: LlmProviderConfigMap['openai'],
+    fetchImpl: typeof fetch = fetch
+): Promise<LlmProviderCatalog> {
+    return getProviderCatalog('openai', config, fetchImpl);
+}
+
+async function buildCatalogs(
+    providerConfigs: LlmProviderConfigMap,
+    fetchImpl: typeof fetch = fetch
+) {
+    const catalogs = {} as Record<LlmProvider, LlmProviderCatalog>;
+    await Promise.all(
+        LLM_PROVIDERS.map(async provider => {
+            catalogs[provider] = await getProviderCatalog(
+                provider,
+                providerConfigs[provider],
+                fetchImpl
+            );
+        })
+    );
     return catalogs;
 }
 
@@ -291,6 +469,7 @@ export default function llmModels(app: Application, path = '/api/llm/models') {
 export const __testables = {
     buildCatalogs,
     getOpenAiCatalog,
+    getProviderCatalog,
     getStaticProviderCatalog,
     normalizeProviderConfigMap,
 };

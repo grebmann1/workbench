@@ -428,15 +428,50 @@ export default class App extends ToolkitElement {
         }
     };
 
+    handleSaveClick = () => {
+        const { apex } = store.getState();
+        const file = apex.currentTab.fileId
+            ? SELECTORS.apexFiles.selectById(store.getState(), lowerCaseKey(apex.currentTab.fileId))
+            : null;
+        SaveModal.open({
+            title: 'Save Apex Script',
+            _file: file,
+        }).then(async data => {
+            if (isUndefinedOrNull(data)) return;
+
+            const { name, isGlobal, folder, tags } = data;
+            store.dispatch(async (dispatch, getState) => {
+                await dispatch(
+                    DOCUMENT.reduxSlices.APEXFILE.actions.upsertOne({
+                        id: name,
+                        isGlobal,
+                        content: this.body,
+                        alias: this.alias,
+                        extra: {
+                            ...(file?.extra || {}),
+                            folder: folder || '',
+                            tags: Array.isArray(tags) ? tags : [],
+                        },
+                    })
+                );
+                await dispatch(
+                    APEX.reduxSlice.actions.linkFileToTab({
+                        fileId: name,
+                        alias: this.alias,
+                        apexFiles: getState().apexFiles,
+                    })
+                );
+            });
+        });
+    };
+
     executeSave = () => {
-        //console.log('---> executeSave');
         const { apex } = store.getState();
         const file = apex.currentTab.fileId
             ? SELECTORS.apexFiles.selectById(store.getState(), lowerCaseKey(apex.currentTab.fileId))
             : null;
 
         if (isNotUndefinedOrNull(file)) {
-            // Existing file
             store.dispatch(async (dispatch, getState) => {
                 await dispatch(
                     DOCUMENT.reduxSlices.APEXFILE.actions.upsertOne({
@@ -453,37 +488,7 @@ export default class App extends ToolkitElement {
                 );
             });
         } else {
-            // Create new file
-            SaveModal.open({
-                title: 'Save Apex Script',
-                _file: file,
-            }).then(async data => {
-                //console.log('Save Apex Script', data);
-                if (isUndefinedOrNull(data)) return;
-
-                const { name, isGlobal } = data;
-                store.dispatch(async (dispatch, getState) => {
-                    await dispatch(
-                        DOCUMENT.reduxSlices.APEXFILE.actions.upsertOne({
-                            id: name, // generic
-                            isGlobal, // generic
-                            content: this.body,
-                            alias: this.alias,
-                            extra: {
-                                //useToolingApi:this._useToolingApi === true, // Needed for queries
-                            },
-                        })
-                    );
-                    await dispatch(
-                        APEX.reduxSlice.actions.linkFileToTab({
-                            fileId: name,
-                            alias: this.alias,
-                            apexFiles: getState().apexFiles,
-                        })
-                    );
-                });
-                // Reset draft
-            });
+            this.handleSaveClick();
         }
     };
 

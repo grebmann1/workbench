@@ -98,6 +98,28 @@ export const CODEX_WHAM_BASE_URL = 'https://chatgpt.com/backend-api/wham';
  *  current Codex CLI version. Isolated here so it's a one-line bump when OpenAI moves forward. */
 export const CODEX_MODELS_CLIENT_VERSION = '0.137.0';
 
+/** Anthropic Models API required header. */
+export const ANTHROPIC_API_VERSION = '2023-06-01';
+
+/** Fallback max output tokens for live-catalog ids that are not in the static overlay. */
+export const LIVE_MODEL_MAX_OUTPUT_TOKENS = 16000;
+
+/** Drop non-chat entries from raw `/models` dumps (whisper, embeddings, image, …). */
+export const NON_CHAT_MODEL_PATTERN =
+    /embedding|whisper|tts|dall-e|image|moderation|realtime|transcribe|computer-use/i;
+
+/** Dated pin suffix (`gpt-5.4-20260305`). Dropped when a shorter alias is in the same list. */
+export const DATED_MODEL_SUFFIX_PATTERN = /-\d{8}$/;
+
+/** Providers whose native `/models` (or equivalent) we live-fetch with an API key. */
+export const API_KEY_LIVE_PROVIDERS = [
+    'openai',
+    'anthropic',
+    'gemini',
+    'mistral',
+    'grok',
+] as const satisfies readonly LlmProvider[];
+
 export const INTERNAL_PROVIDER_BASE_URLS = {
     openai: 'https://eng-ai-model-gateway.sfproxy.devx-preprod.aws-esvc1-useast2.aws.sfdc.cl/v1',
     anthropic:

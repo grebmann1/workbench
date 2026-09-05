@@ -1,18 +1,23 @@
 import { isRecord } from 'shared/utils';
 
 import {
+    ANTHROPIC_API_VERSION,
+    API_KEY_LIVE_PROVIDERS,
     CODEX_MODELS_CLIENT_VERSION,
     CODEX_WHAM_BASE_URL,
+    DATED_MODEL_SUFFIX_PATTERN,
     DEFAULT_LLM_PROVIDER,
     DEFAULT_PROVIDER_BASE_URLS,
     INTERNAL_MODEL_OPTIONS,
+    LIVE_MODEL_MAX_OUTPUT_TOKENS,
     LLM_PROVIDERS,
     LLM_PROVIDER_OPTIONS,
-    OPENAI_MODEL_OPTIONS,
+    NON_CHAT_MODEL_PATTERN,
     PROVIDER_MODEL_OPTIONS,
     type LlmModelOption,
-    type LlmProvider,
     type LlmModelsEndpointResponse,
+    type LlmProvider,
+    type LlmProviderCatalog,
     type LlmProviderConfig,
     type LlmProviderConfigMap,
     type OAuthCredentials,
@@ -261,6 +266,33 @@ export function getProviderForModel(
     return aliasMatch?.provider || DEFAULT_LLM_PROVIDER;
 }
 
+/** Guess which picker bucket a raw model id belongs to. Mixed OpenAI-compatible gateways
+ *  (Salesforce eng-ai-model-gateway, LiteLLM) return Claude/Gemini/Grok ids from `/v1/models`;
+ *  those must not be tagged as the requesting provider. Returns null when the id is unknown
+ *  so a custom/proxy slug can still appear in the catalog that listed it. */
+export function inferProviderFromModelId(modelId: unknown): LlmProvider | null {
+    const id = normalizeString(modelId).toLowerCase();
+    if (!id) return null;
+    if (id.includes('claude') || id.includes('anthropic')) return 'anthropic';
+    if (id.includes('gemini')) return 'gemini';
+    if (id.includes('grok')) return 'grok';
+    if (/(^|[^a-z])(mistral|codestral|pixtral|ministral|devstral|magistral)/.test(id)) {
+        return 'mistral';
+    }
+    if (
+        id.startsWith('gpt-') ||
+        id.startsWith('chatgpt') ||
+        id.startsWith('openai') ||
+        id.startsWith('ft:') ||
+        id.includes('davinci') ||
+        id.includes('babbage') ||
+        /(?:^|[^a-z])(o1|o3|o4)(?:-|$)/.test(id)
+    ) {
+        return 'openai';
+    }
+    return null;
+}
+
 export function buildAvailableAgentModelOptions({
     availableModelsByProvider,
     subscriptionModelsByProvider,
@@ -374,7 +406,19 @@ export async function resolveCodexClientVersion(fetchImpl: typeof fetch = fetch)
     return CODEX_MODELS_CLIENT_VERSION;
 }
 
-const SUBSCRIPTION_MODEL_MAX_OUTPUT_TOKENS = 16000;
+function toCatalogBaseUrl(baseUrl: string) {
+    return normalizeString(baseUrl).replace(/\/+$/, '');
+}
+
+function entryDisplayLabel(entry: Record<string, unknown>, fallbackId: string) {
+    if (typeof entry.display_name === 'string' && entry.display_name.trim()) {
+        return entry.display_name.trim();
+    }
+    if (typeof entry.displayName === 'string' && entry.displayName.trim()) {
+        return entry.displayName.trim();
+    }
+    return fallbackId;
+}
 
 /** Parse an OpenAI-compatible model-listing response into picker options. Handles every list
  *  shape the subscription backends return: `{ data: [{ id }] }` (OpenAI / xAI `/v1/models`),
@@ -400,14 +444,101 @@ function parseModelCatalogResponse(data: unknown, provider: LlmProvider): LlmMod
         if (id && !seen.has(id)) {
             seen.add(id);
             options.push({
-                label: id,
+                label: entryDisplayLabel(entry, id),
                 value: id,
                 provider,
-                maxOutputTokens: SUBSCRIPTION_MODEL_MAX_OUTPUT_TOKENS,
+                maxOutputTokens: LIVE_MODEL_MAX_OUTPUT_TOKENS,
             });
         }
     }
     return options;
+}
+
+function parseGeminiModelsResponse(data: unknown, provider: LlmProvider): LlmModelOption[] {
+    if (!isRecord(data) || !Array.isArray(data.models)) return [];
+    const options: LlmModelOption[] = [];
+    const seen = new Set<string>();
+    for (const entry of data.models) {
+        if (!isRecord(entry)) continue;
+        const methods = Array.isArray(entry.supportedGenerationMethods)
+            ? entry.supportedGenerationMethods
+            : [];
+        if (methods.length > 0 && !methods.includes('generateContent')) {
+            continue;
+        }
+        const rawName =
+            typeof entry.name === 'string'
+                ? entry.name
+                : typeof entry.id === 'string'
+                  ? entry.id
+                  : '';
+        const id = rawName.replace(/^models\//, '').trim();
+        if (!id || seen.has(id)) continue;
+        seen.add(id);
+        const maxOutputTokens =
+            typeof entry.outputTokenLimit === 'number' && Number.isFinite(entry.outputTokenLimit)
+                ? entry.outputTokenLimit
+                : LIVE_MODEL_MAX_OUTPUT_TOKENS;
+        options.push({
+            label: entryDisplayLabel(entry, id),
+            value: id,
+            provider,
+            maxOutputTokens,
+        });
+    }
+    return options;
+}
+
+function dropDatedPinsWhenAliasExists(models: LlmModelOption[]): LlmModelOption[] {
+    const ids = new Set(models.map(model => model.value));
+    return models.filter(model => {
+        if (!DATED_MODEL_SUFFIX_PATTERN.test(model.value)) return true;
+        const alias = model.value.replace(DATED_MODEL_SUFFIX_PATTERN, '');
+        return !ids.has(alias);
+    });
+}
+
+function overlayKnownModelMetadata(
+    models: LlmModelOption[],
+    provider: LlmProvider
+): LlmModelOption[] {
+    const known = [...getProviderModelOptions(provider), ...getInternalModelsForProvider(provider)];
+    const byValue = new Map(known.map(model => [model.value, model]));
+    return models.map(model => {
+        const match = byValue.get(model.value);
+        if (!match) {
+            return {
+                ...model,
+                maxOutputTokens: model.maxOutputTokens ?? LIVE_MODEL_MAX_OUTPUT_TOKENS,
+            };
+        }
+        return {
+            ...model,
+            label: match.label || model.label,
+            maxOutputTokens:
+                match.maxOutputTokens ?? model.maxOutputTokens ?? LIVE_MODEL_MAX_OUTPUT_TOKENS,
+        };
+    });
+}
+
+/** Drop non-chat / other-provider / dated-pin noise and overlay static label + maxOutputTokens. */
+export function refineLiveModelOptions(
+    models: LlmModelOption[],
+    provider: LlmProvider
+): LlmModelOption[] {
+    const chatModels = models.filter(model => {
+        if (NON_CHAT_MODEL_PATTERN.test(model.value)) return false;
+        const inferred = inferProviderFromModelId(model.value);
+        return inferred === null || inferred === provider;
+    });
+    return overlayKnownModelMetadata(dropDatedPinsWhenAliasExists(chatModels), provider);
+}
+
+function resolveGeminiNativeModelsUrl(baseUrl: string): string {
+    const root = toCatalogBaseUrl(baseUrl) || DEFAULT_PROVIDER_BASE_URLS.gemini;
+    if (root.endsWith('/v1beta')) return `${root}/models`;
+    if (root.includes('generativelanguage.googleapis.com')) return `${root}/v1beta/models`;
+    return `${root}/models`;
 }
 
 /** Fetch + parse a provider's model catalog from an OpenAI-compatible `/models`-style endpoint.
@@ -519,6 +650,123 @@ export async function fetchSubscriptionModels(
     ]);
 
     return { openai, grok };
+}
+
+function usesOpenAiCompatibleCatalog(provider: LlmProvider, baseUrl: string) {
+    return (
+        provider === 'openai' ||
+        provider === 'mistral' ||
+        isOpenAiCompatibleGateway(provider, baseUrl)
+    );
+}
+
+async function fetchJsonCatalog(
+    url: string,
+    headers: Record<string, string>,
+    fetchImpl: typeof fetch
+): Promise<unknown> {
+    const response = await fetchImpl(url, { headers });
+    if (!response.ok) {
+        throw new Error(`Model catalog request to ${url} failed with status ${response.status}.`);
+    }
+    return response.json();
+}
+
+async function fetchOneApiKeyProvider(
+    provider: (typeof API_KEY_LIVE_PROVIDERS)[number],
+    config: LlmProviderConfig,
+    fetchImpl: typeof fetch
+): Promise<LlmModelOption[]> {
+    if (!config.apiKey || config.authMode === 'oauth') return [];
+    const root = toCatalogBaseUrl(config.baseUrl) || DEFAULT_PROVIDER_BASE_URLS[provider];
+    const openAiCompatible = usesOpenAiCompatibleCatalog(provider, config.baseUrl);
+
+    try {
+        if (provider === 'gemini' && !openAiCompatible) {
+            const url = `${resolveGeminiNativeModelsUrl(config.baseUrl)}?key=${encodeURIComponent(config.apiKey)}`;
+            const data = await fetchJsonCatalog(url, { Accept: 'application/json' }, fetchImpl);
+            return refineLiveModelOptions(parseGeminiModelsResponse(data, provider), provider);
+        }
+        if (provider === 'anthropic' && !openAiCompatible) {
+            const data = await fetchJsonCatalog(
+                `${root}/models`,
+                {
+                    Accept: 'application/json',
+                    'x-api-key': config.apiKey,
+                    'anthropic-version': ANTHROPIC_API_VERSION,
+                },
+                fetchImpl
+            );
+            return refineLiveModelOptions(parseModelCatalogResponse(data, provider), provider);
+        }
+        if (provider === 'grok' && !openAiCompatible) {
+            const models = await fetchOAuthModelCatalog({
+                url: `${root}/language-models`,
+                bearer: config.apiKey,
+                provider,
+                fetchImpl,
+            });
+            return refineLiveModelOptions(models, provider);
+        }
+        const data = await fetchJsonCatalog(
+            `${root}/models`,
+            {
+                Authorization: `Bearer ${config.apiKey}`,
+                Accept: 'application/json',
+            },
+            fetchImpl
+        );
+        let models = parseModelCatalogResponse(data, provider);
+        if (provider === 'gemini' && models.length === 0) {
+            models = parseGeminiModelsResponse(data, provider);
+        }
+        return refineLiveModelOptions(models, provider);
+    } catch {
+        return [];
+    }
+}
+
+/** Fetch live `/models` catalogs for API-key providers (not Codex/xAI OAuth, not workbench).
+ *  Each provider degrades to `[]` on failure; empty results are omitted so callers can leave an
+ *  existing catalog untouched. Never throws. */
+export async function fetchApiKeyProviderModels(
+    providerConfigs: LlmProviderConfigMap,
+    fetchImpl: typeof fetch = fetch
+): Promise<Partial<Record<LlmProvider, LlmModelOption[]>>> {
+    const configs = normalizeProviderConfigMap(providerConfigs);
+    const entries = await Promise.all(
+        API_KEY_LIVE_PROVIDERS.map(async provider => {
+            const models = await fetchOneApiKeyProvider(provider, configs[provider], fetchImpl);
+            return [provider, models] as const;
+        })
+    );
+    const result: Partial<Record<LlmProvider, LlmModelOption[]>> = {};
+    for (const [provider, models] of entries) {
+        if (models.length > 0) {
+            result[provider] = models;
+        }
+    }
+    return result;
+}
+
+/** Catalog dispatch payload for live API-key fetches. Empty lists are omitted so
+ *  `updateProviderCatalogs` cannot wipe a previous (e.g. server) catalog. */
+export function toNonEmptyProviderCatalogs(
+    modelsByProvider: Partial<Record<LlmProvider, LlmModelOption[]>>
+): Partial<Record<LlmProvider, LlmProviderCatalog>> {
+    const catalogs: Partial<Record<LlmProvider, LlmProviderCatalog>> = {};
+    for (const provider of LLM_PROVIDERS) {
+        const models = modelsByProvider[provider];
+        if (!models || models.length === 0) continue;
+        catalogs[provider] = {
+            provider,
+            status: 'ok',
+            models,
+            defaultModel: models[0]?.value || null,
+            error: null,
+        };
+    }
+    return catalogs;
 }
 
 /** Fetch the server-driven model catalog (all providers). OAuth tokens are stripped from the body

@@ -242,6 +242,10 @@ const SNAPSHOT_SCRIPT = `
     } catch { return []; }
   }
 
+  function safeInputType(element) {
+    try { return (element.type || "").toLowerCase(); } catch { return ""; }
+  }
+
   const kImplicitRoleByTagName = {
     A: e => e.hasAttribute("href") ? "link" : null,
     AREA: e => e.hasAttribute("href") ? "link" : null,
@@ -256,7 +260,7 @@ const SNAPSHOT_SCRIPT = `
     HR: () => "separator", HTML: () => "document",
     IMG: e => e.getAttribute("alt") === "" && !e.getAttribute("title") && !hasGlobalAriaAttribute(e) && !hasTabIndex(e) ? "presentation" : "img",
     INPUT: e => {
-      const type = e.type.toLowerCase();
+      const type = safeInputType(e);
       if (type === "search") return e.hasAttribute("list") ? "combobox" : "searchbox";
       if (["email","tel","text","url",""].includes(type)) {
         const list = getIdRefs(e, e.getAttribute("list"))[0];
@@ -390,15 +394,15 @@ const SNAPSHOT_SCRIPT = `
     if (ariaLabel.trim()) { options.visitedElements.add(element); return ariaLabel; }
 
     if (!["presentation","none"].includes(role)) {
-      if (tagName === "INPUT" && ["button","submit","reset"].includes(element.type)) {
+      if (tagName === "INPUT" && ["button","submit","reset"].includes(safeInputType(element))) {
         options.visitedElements.add(element);
         const value = element.value || "";
         if (value.trim()) return value;
-        if (element.type === "submit") return "Submit";
-        if (element.type === "reset") return "Reset";
+        if (safeInputType(element) === "submit") return "Submit";
+        if (safeInputType(element) === "reset") return "Reset";
         return element.getAttribute("title") || "";
       }
-      if (tagName === "INPUT" && element.type === "image") {
+      if (tagName === "INPUT" && safeInputType(element) === "image") {
         options.visitedElements.add(element);
         const alt = element.getAttribute("alt") || "";
         if (alt.trim()) return alt;
@@ -468,7 +472,7 @@ const SNAPSHOT_SCRIPT = `
   function getAriaChecked(element) {
     const tagName = elementSafeTagName(element);
     if (tagName === "INPUT" && element.indeterminate) return "mixed";
-    if (tagName === "INPUT" && ["checkbox","radio"].includes(element.type)) return element.checked;
+    if (tagName === "INPUT" && ["checkbox","radio"].includes(safeInputType(element))) return element.checked;
     if (kAriaCheckedRoles.includes(getAriaRole(element) || "")) {
       const checked = element.getAttribute("aria-checked");
       if (checked === "true") return true;
@@ -686,7 +690,9 @@ const SNAPSHOT_SCRIPT = `
     if (kAriaPressedRoles.includes(role)) result.pressed = getAriaPressed(element);
     if (kAriaSelectedRoles.includes(role)) result.selected = getAriaSelected(element);
     if (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement) {
-      if (element.type !== "checkbox" && element.type !== "radio" && element.type !== "file") result.children = [element.value];
+      const inputType = safeInputType(element);
+      if (inputType === "file") return null;
+      if (inputType !== "checkbox" && inputType !== "radio") result.children = [element.value];
     }
     return result;
   }
@@ -945,6 +951,23 @@ async function listTabs() {
 }
 
 /**
+ * The user's visible/active tab from listTabs(), or the first listed tab.
+ * @returns {Promise<{id:number,title:string,url:string,active:boolean}|null>}
+ */
+async function getCurrentTab() {
+    const tabs = await listTabs();
+    if (!Array.isArray(tabs) || tabs.length === 0) return null;
+    return tabs.find(t => t.active) || tabs[0] || null;
+}
+
+function resolveConnectTabId(tabId, tabs) {
+    if (Number.isInteger(tabId)) return tabId;
+    if (!Array.isArray(tabs) || tabs.length === 0) return null;
+    const active = tabs.find(t => t.active);
+    return active?.id ?? tabs[0]?.id ?? null;
+}
+
+/**
  * Open a new tab via extension host.
  *
  * Idempotent by default: if a previous createTab() call in this sandbox is
@@ -1152,11 +1175,22 @@ class SandboxCdpTransport {
 /**
  * Connect to a Chrome tab and return a Puppeteer Page. Caches one browser/page per tab;
  * reuses cache when tabId is unchanged, closes and reconnects when tabId changes.
- * @param {number} tabId - Chrome tab ID
+ * @param {number} [tabId] - Chrome tab ID. When omitted, attaches to the active tab from listTabs().
  * @returns {Promise<import('puppeteer-core').Page>}
  */
 async function connectToPage(tabId) {
     sandboxLog('connectToPage called with tabId:', tabId);
+
+    if (!Number.isInteger(tabId)) {
+        const tabs = await listTabs();
+        tabId = resolveConnectTabId(tabId, tabs);
+        if (!Number.isInteger(tabId)) {
+            throw new Error(
+                'No browser tab available. Pass a tabId from listTabs(), or open a tab first with createTab().'
+            );
+        }
+        sandboxLog('connectToPage defaulted to tab:', tabId);
+    }
 
     //await activateTab(tabId); (We don't activate the tab here otherwise it force the navigation)
 
@@ -1672,6 +1706,7 @@ function sendBashRequest(command, cwd, timeoutMs = 60000) {
 
 // Expose for code run via EVAL_REQUEST (e.g. browser automation tools)
 window.listTabs = listTabs;
+window.getCurrentTab = getCurrentTab;
 window.createTab = createTab;
 window.closeTab = closeTab;
 window.activateTab = activateTab;
@@ -1902,9 +1937,61 @@ function formatConsoleArg(value) {
     return String(value);
 }
 
+/**
+ * Compile agent `js` source so the sandbox awaits the completion value.
+ * `(async () => { ... })();` fails `return (${code})` because of the trailing
+ * semicolon; `return await ${code}` captures that promise instead of returning
+ * immediately with undefined.
+ *
+ * Compile-only fallback is not enough: pick every wrap that parses, then execute
+ * them in order so a wrap that parses but throws SyntaxError at runtime can fall
+ * through. Returning the first compiled Function used to hang simple scripts
+ * when that wrap produced a never-settling thenable.
+ */
+function compileSandboxEvalFns(code) {
+    const source = typeof code === 'string' ? code : '';
+    const attempts = [
+        `return (async () => { return (${source}); })()`,
+        `return (async () => { return await ${source}; })()`,
+        `return (async () => { ${source} })()`,
+    ];
+    const compiled = [];
+    let lastError;
+    for (const body of attempts) {
+        try {
+            compiled.push(new Function(body));
+        } catch (err) {
+            lastError = err;
+            if (!(err instanceof SyntaxError)) throw err;
+        }
+    }
+    if (compiled.length === 0) throw lastError;
+    return compiled;
+}
+
+async function runCompiledSandboxEval(evalFns, runWithTimeout) {
+    const run = async () => {
+        let execError;
+        for (const fn of evalFns) {
+            try {
+                return await fn();
+            } catch (err) {
+                execError = err;
+                if (!(err instanceof SyntaxError)) throw err;
+            }
+        }
+        throw execError;
+    };
+    return runWithTimeout(run);
+}
+
 async function runEval(id, code, timeoutMs) {
     aborted = false;
     currentEvalId = id;
+    if (imageContext) {
+        imageContext.images = [];
+        imageContext.counter = 0;
+    }
     const timeout = Math.max(1000, Math.min(timeoutMs || 45000, 120000));
 
     const chunks = [];
@@ -1993,15 +2080,12 @@ async function runEval(id, code, timeoutMs) {
     const finish = result => done({ startTime, ...result });
     finishCurrentEval = finish;
     try {
-        let value;
-        try {
-            const expressionFn = new Function(`return (async () => { return (${code}); })()`);
-            value = await runWithTimeout(() => expressionFn());
-        } catch (err) {
-            if (!(err instanceof SyntaxError)) throw err;
-            const statementFn = new Function(`return (async () => { ${code} })()`);
-            value = await runWithTimeout(() => statementFn());
-        }
+        // Prefer expression wrap, then `return await ${code}` so trailing-semicolon
+        // async IIFEs (`(async () => { ... })();`) are awaited. The statement
+        // fallback does not await a fire-and-forget IIFE, which used to finish in
+        // 0ms with undefined and no console output.
+        const evalFns = compileSandboxEvalFns(code);
+        const value = await runCompiledSandboxEval(evalFns, runWithTimeout);
 
         if (!settled && currentEvalId === id) {
             await finish({ output: formatReturnValue(value), hasError: false });

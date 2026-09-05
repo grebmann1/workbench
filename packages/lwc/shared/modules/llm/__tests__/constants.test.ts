@@ -15,6 +15,7 @@ import {
     WORKBENCH_MODEL_OPTIONS,
     GROK_MODEL_OPTIONS,
     PROVIDER_MODEL_OPTIONS,
+    API_KEY_LIVE_PROVIDERS,
 } from '../constants';
 
 test('LLM_PROVIDERS: includes the six known provider ids, no duplicates', () => {
@@ -135,4 +136,16 @@ test('model options: maxOutputTokens is a positive integer when set', () => {
             }
         }
     }
+});
+
+test('API_KEY_LIVE_PROVIDERS: every live-fetch provider is a known LLM provider except workbench', () => {
+    assert.ok(API_KEY_LIVE_PROVIDERS.includes('openai'));
+    assert.ok(API_KEY_LIVE_PROVIDERS.includes('anthropic'));
+    assert.ok(API_KEY_LIVE_PROVIDERS.includes('gemini'));
+    assert.ok(API_KEY_LIVE_PROVIDERS.includes('mistral'));
+    assert.ok(API_KEY_LIVE_PROVIDERS.includes('grok'));
+    assert.equal(
+        API_KEY_LIVE_PROVIDERS.includes('workbench' as (typeof API_KEY_LIVE_PROVIDERS)[number]),
+        false
+    );
 });

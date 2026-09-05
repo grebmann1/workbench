@@ -10,10 +10,12 @@ import {
 } from 'shared/cacheManager';
 import {
     buildAvailableAgentModelOptions,
+    fetchApiKeyProviderModels,
     fetchLlmModelsEndpoint,
     fetchSubscriptionModels,
     getProviderForModel,
     normalizeModelSelection,
+    toNonEmptyProviderCatalogs,
 } from 'shared/llm';
 import LOGGER from 'shared/logger';
 import { isChromeExtension } from 'shared/utils';
@@ -97,8 +99,17 @@ async function refreshLlmCatalogInBackground(aiProvider, providerConfigs) {
         APPLICATION.reduxSlice.actions.updateSubscriptionModels({ models: subscriptionModels })
     );
 
+    const apiKeyCatalogs = toNonEmptyProviderCatalogs(
+        await fetchApiKeyProviderModels(providerConfigs)
+    );
+    if (Object.keys(apiKeyCatalogs).length > 0) {
+        store.dispatch(
+            APPLICATION.reduxSlice.actions.updateProviderCatalogs({ catalogs: apiKeyCatalogs })
+        );
+    }
+
     const availableModels = buildAvailableAgentModelOptions({
-        availableModelsByProvider: serverCatalogs,
+        availableModelsByProvider: { ...(serverCatalogs || {}), ...apiKeyCatalogs },
         subscriptionModelsByProvider: subscriptionModels,
         providerConfigs,
     });
