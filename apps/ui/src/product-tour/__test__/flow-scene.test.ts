@@ -17,12 +17,14 @@ import {
     T_ACTION,
     T_BUNDLE,
     T_EDITOR,
+    T_FORM_EMAIL,
     T_FORM_NAME,
     T_HTML_DONE,
     T_LOADING_EDITOR,
     T_LOADING_SOQL,
     T_PALETTE,
     T_RESULTS,
+    T_RUN,
     T_SIDEPANEL,
     T_SOQL,
     T_STREAM,
@@ -117,15 +119,18 @@ test('sceneForElapsed: opens a side panel and fills the Acme support form', () =
     assert.ok(streaming.assistant.length > 0);
     const filling = sceneForElapsed(T_FORM_NAME + 10);
     assert.equal(filling.formFocus, 'name');
-    assert.equal(filling.formName, FORM_NAME);
     assert.equal(filling.captionKey, 'stream');
+    assert.ok(filling.formName.length > 0);
+    assert.ok(filling.formName.length < FORM_NAME.length);
+    assert.equal(filling.formName, FORM_NAME.slice(0, filling.formName.length));
+    assert.equal(sceneForElapsed(T_FORM_EMAIL).formName, FORM_NAME);
     const submitted = sceneForElapsed(T_ACTION + 10);
     assert.equal(submitted.assistant, ASSISTANT_REPLY);
     assert.equal(submitted.formFocus, 'submit');
     assert.equal(submitted.formEmail, FORM_EMAIL);
     assert.equal(submitted.formOrder, FORM_ORDER);
     assert.equal(submitted.formMessage, FORM_MESSAGE);
-    assert.equal(submitted.formSubmitPulse, true);
+    assert.equal(submitted.formSubmitPulse, false);
     assert.equal(submitted.captionKey, 'action');
 });
 
@@ -172,6 +177,10 @@ test('slidePlayForElapsed: agent fills the Acme support form', () => {
     const start = slidePlayForElapsed('agent', 0);
     assert.equal(start.formName, '');
     assert.equal(start.formFocus, null);
+    const typing = slidePlayForElapsed('agent', 700);
+    assert.equal(typing.formFocus, 'name');
+    assert.ok(typing.formName.length > 0);
+    assert.ok(typing.formName.length < FORM_NAME.length);
     const done = completedSlidePlay('agent');
     assert.equal(done.formName, FORM_NAME);
     assert.equal(done.formEmail, FORM_EMAIL);
@@ -179,4 +188,16 @@ test('slidePlayForElapsed: agent fills the Acme support form', () => {
     assert.equal(done.formMessage, FORM_MESSAGE);
     assert.equal(done.formFocus, 'submit');
     assert.equal(done.assistant, ASSISTANT_REPLY);
+});
+
+test('cursorTargetForScene: follows the beat and hides while loading', () => {
+    assert.equal(sceneForElapsed(0).cursorTarget, 'dock-vscode');
+    assert.equal(sceneForElapsed(T.typeSearch + 10).cursorTarget, 'overlay-search');
+    assert.equal(sceneForElapsed(T_VSCODE_PULSE + 10).cursorTarget, 'dock-vscode');
+    assert.equal(sceneForElapsed(T_LOADING_EDITOR + 10).cursorTarget, null);
+    assert.equal(sceneForElapsed(T_PALETTE + 10).cursorTarget, 'palette');
+    assert.equal(sceneForElapsed(T_RUN + 10).cursorTarget, 'run');
+    assert.equal(sceneForElapsed(T_SIDEPANEL + 10).cursorTarget, null);
+    assert.equal(sceneForElapsed(T_FORM_NAME + 10).cursorTarget, null);
+    assert.equal(sceneForElapsed(T_ACTION + 10).cursorTarget, null);
 });

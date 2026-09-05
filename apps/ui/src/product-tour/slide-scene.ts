@@ -13,6 +13,8 @@ import {
     STREAM_MS,
     inRange,
     typed,
+    typedToward,
+    type CursorTarget,
     type FormFocus,
     type PalettePhase,
 } from './flow-scene.ts';
@@ -187,11 +189,11 @@ function agentLoop(now: number): { play: SlidePlay; loopMs: number } {
             assistant,
             streaming: inRange(now, streamAt, submitAt),
             formFocus,
-            formName: now >= nameAt ? FORM_NAME : '',
-            formEmail: now >= emailAt ? FORM_EMAIL : '',
-            formOrder: now >= orderAt ? FORM_ORDER : '',
-            formMessage: now >= messageAt ? FORM_MESSAGE : '',
-            formSubmitPulse: inRange(now, submitAt, submitAt + 900),
+            formName: typedToward(FORM_NAME, nameAt, emailAt, now),
+            formEmail: typedToward(FORM_EMAIL, emailAt, orderAt, now),
+            formOrder: typedToward(FORM_ORDER, orderAt, messageAt, now),
+            formMessage: typedToward(FORM_MESSAGE, messageAt, submitAt, now),
+            formSubmitPulse: false,
         },
     };
 }
@@ -215,4 +217,16 @@ export function slidePlayForElapsed(id: TourSlideId, ms: number): SlidePlay {
 
 export function completedSlidePlay(id: TourSlideId): SlidePlay {
     return slidePlayForElapsed(id, slideLoopMs(id) - HOLD_MS + 200);
+}
+
+export function cursorTargetForPlay(play: SlidePlay): CursorTarget {
+    if (play.formFocus) return null;
+    if (play.sendPulse) return 'run';
+    if (play.soqlCaret) return 'soql';
+    if (play.editorCaret) return 'editor';
+    if (play.paletteCaret || play.paletteOpen) return 'palette';
+    if (play.vscodeHot) return 'dock-vscode';
+    if (play.overlayCaret || play.overlayOpen) return 'overlay-search';
+    if (play.metaCaret) return 'meta-filter';
+    return null;
 }
