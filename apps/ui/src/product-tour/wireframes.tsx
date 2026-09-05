@@ -1,8 +1,9 @@
-import type { ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import {
     Bell,
     Bot,
     Building2,
+    Check,
     ChevronDown,
     ChevronRight,
     Cloud,
@@ -12,9 +13,7 @@ import {
     FileCode2,
     Filter,
     Folder,
-    Globe,
     LayoutGrid,
-    MousePointerClick,
     Package,
     PanelRight,
     Pencil,
@@ -25,11 +24,17 @@ import {
     Settings,
     Share2,
     SquareTerminal,
-    Table2,
 } from 'lucide-react';
-import type { FlowScene, FormFocus, PalettePhase } from './flow-scene';
+import {
+    VIEW_FADE_MS,
+    type FlowScene,
+    type FlowView,
+    type FormFocus,
+    type PalettePhase,
+} from './flow-scene';
 import { AUTHORED_HEIGHT, AUTHORED_WIDTH, type TourSlideId } from './slides';
-import { completedSlidePlay, type SlidePlay } from './slide-scene';
+import { completedSlidePlay, cursorTargetForPlay, type SlidePlay } from './slide-scene';
+import { TourCursor } from './TourCursor';
 import { useTourNav } from './tour-nav';
 
 function classNames(...parts: Array<string | false | null | undefined>): string {
@@ -38,6 +43,31 @@ function classNames(...parts: Array<string | false | null | undefined>): string 
 
 function Caret(): ReactNode {
     return <span className="pt-caret" aria-hidden />;
+}
+
+function BetaBadge(): ReactNode {
+    return <span className="pt-beta">Beta</span>;
+}
+
+function UtilityFooter({ org = 'Acme' }: { org?: string }): ReactNode {
+    return (
+        <footer className="pt-util-footer">
+            <span>{org}</span>
+            <span className="pt-keycaps">
+                <kbd className="pt-key">⌘K</kbd>
+            </span>
+        </footer>
+    );
+}
+
+function ObjectBadges(): ReactNode {
+    return (
+        <span className="pt-obj-badges" aria-hidden>
+            <i className="pt-obj-badge is-q">Q</i>
+            <i className="pt-obj-badge is-c">C</i>
+            <i className="pt-obj-badge is-u">U</i>
+        </span>
+    );
 }
 
 function SalesforceHeader(): ReactNode {
@@ -105,6 +135,7 @@ function OverlayDock({
             <button
                 type="button"
                 className={classNames('pt-overlay-soql', vscodeHot && 'is-hot')}
+                data-pt-target="dock-vscode"
                 onClick={onOpenEditor}
                 aria-label="Open VS Code Editor"
             >
@@ -125,6 +156,7 @@ function OverlayDock({
 function OverlayPanel({
     search,
     caret,
+    overlayOpen,
     soqlHot,
     vscodeHot,
     onOpenSoql,
@@ -132,6 +164,7 @@ function OverlayPanel({
 }: {
     search: string;
     caret: boolean;
+    overlayOpen: boolean;
     soqlHot?: boolean;
     vscodeHot?: boolean;
     onOpenSoql?: () => void;
@@ -142,9 +175,13 @@ function OverlayPanel({
         name => !q || name.toLowerCase().includes(q)
     );
     return (
-        <aside className="pt-overlay" aria-label="Workbench overlay">
+        <aside
+            className={classNames('pt-overlay', overlayOpen && 'is-open')}
+            aria-label="Workbench overlay"
+        >
             <div className="pt-overlay-bar">
-                <span className="pt-overlay-search">
+                <strong className="pt-overlay-brand">Workbench</strong>
+                <span className="pt-overlay-search" data-pt-target="overlay-search">
                     <Filter size={11} strokeWidth={2} aria-hidden />
                     <span className="pt-overlay-search-value">
                         {search || 'Search Object, Profiles and more'}
@@ -171,6 +208,11 @@ function OverlayPanel({
                     <Share2 size={12} strokeWidth={2} aria-hidden />
                 </span>
             </div>
+            <div className="pt-overlay-pills" aria-hidden>
+                <span className={search ? undefined : 'is-active'}>Org</span>
+                <span className={search ? 'is-active' : undefined}>Objects</span>
+                <span>Profiles</span>
+            </div>
             <div className="pt-overlay-meta">
                 48 objects • Refreshed just now
                 <RefreshCw size={11} strokeWidth={2} aria-hidden />
@@ -180,7 +222,8 @@ function OverlayPanel({
                     {objects.map(name => (
                         <li key={name} className={name === 'Account' ? 'is-hot' : undefined}>
                             <Building2 size={12} strokeWidth={2} aria-hidden />
-                            {name}
+                            <span className="pt-obj-name">{name}</span>
+                            <ObjectBadges />
                         </li>
                     ))}
                 </ul>
@@ -217,6 +260,7 @@ function OverlayPanel({
                     </fieldset>
                 </div>
             )}
+            <UtilityFooter />
         </aside>
     );
 }
@@ -283,16 +327,15 @@ function SalesforcePage({
                 onOpenSoql={interactive ? () => goToSlide?.('soql') : undefined}
                 onOpenEditor={interactive ? () => goToSlide?.('editor') : undefined}
             />
-            {overlayOpen ? (
-                <OverlayPanel
-                    search={overlaySearch}
-                    caret={caret}
-                    soqlHot={soqlHot}
-                    vscodeHot={vscodeHot}
-                    onOpenSoql={interactive ? () => goToSlide?.('soql') : undefined}
-                    onOpenEditor={interactive ? () => goToSlide?.('editor') : undefined}
-                />
-            ) : null}
+            <OverlayPanel
+                search={overlaySearch}
+                caret={caret}
+                overlayOpen={overlayOpen}
+                soqlHot={soqlHot}
+                vscodeHot={vscodeHot}
+                onOpenSoql={interactive ? () => goToSlide?.('soql') : undefined}
+                onOpenEditor={interactive ? () => goToSlide?.('editor') : undefined}
+            />
         </div>
     );
 }
@@ -305,31 +348,42 @@ const NAV_ITEMS: Array<{
         group: 'Data',
         items: [
             { id: 'soql', label: 'SOQL Explorer', icon: <Database size={12} strokeWidth={2} /> },
-            { id: 'overlay', label: 'Record Viewer', icon: <Table2 size={12} strokeWidth={2} /> },
         ],
     },
     {
         group: 'Code',
         items: [
-            { id: 'editor', label: 'VS Code', icon: <SquareTerminal size={12} strokeWidth={2} /> },
-            { id: 'soql', label: 'API Explorer', icon: <Globe size={12} strokeWidth={2} /> },
+            {
+                id: 'editor',
+                label: 'VS Code Editor',
+                icon: <SquareTerminal size={12} strokeWidth={2} />,
+            },
+        ],
+    },
+    {
+        group: 'Agentforce',
+        items: [
+            { id: 'agent', label: 'Next Gen Agent', icon: <Bot size={12} strokeWidth={2} /> },
         ],
     },
     {
         group: 'Admin',
         items: [
-            { id: 'workbench', label: 'Metadata', icon: <Package size={12} strokeWidth={2} /> },
-            { id: 'workbench', label: 'SObject', icon: <Building2 size={12} strokeWidth={2} /> },
+            {
+                id: 'workbench',
+                label: 'Metadata Explorer',
+                icon: <Package size={12} strokeWidth={2} />,
+            },
         ],
     },
 ];
 
 const ACTIVE_NAV_LABEL: Record<TourSlideId, string> = {
-    overlay: 'Record Viewer',
+    overlay: 'SOQL Explorer',
     soql: 'SOQL Explorer',
-    editor: 'VS Code',
-    workbench: 'Metadata',
-    agent: 'Agent',
+    editor: 'VS Code Editor',
+    workbench: 'Metadata Explorer',
+    agent: 'Next Gen Agent',
 };
 
 function ToolkitShell({
@@ -351,10 +405,6 @@ function ToolkitShell({
     return (
         <div className={classNames('pt-toolkit', agentOpen && 'is-agent')}>
             <aside className="pt-nav">
-                <div className="pt-nav-brand">
-                    <span>Workbench</span>
-                    <span className="pt-beta">Beta</span>
-                </div>
                 {NAV_ITEMS.map(section => (
                     <div key={section.group} className="pt-nav-group">
                         <p>{section.group}</p>
@@ -374,22 +424,11 @@ function ToolkitShell({
                         ))}
                     </div>
                 ))}
-                <button
-                    type="button"
-                    className={classNames(
-                        'pt-nav-item pt-nav-agent',
-                        activeApp === 'agent' && 'is-active'
-                    )}
-                    onClick={interactive ? () => goToSlide?.('agent') : undefined}
-                >
-                    <Bot size={12} strokeWidth={2} />
-                    Agent
-                </button>
             </aside>
             <div className="pt-toolkit-main">
                 <header className="pt-context">
                     <span className="pt-context-name">Workbench</span>
-                    <span className="pt-beta">Beta</span>
+                    <BetaBadge />
                     <span className="pt-tab is-active">{tabLabel}</span>
                     <span className="pt-context-end">
                         <Settings size={13} strokeWidth={1.75} aria-hidden />
@@ -408,6 +447,7 @@ function ToolkitShell({
                     {agentOpen ? agent : null}
                 </div>
             </div>
+            <UtilityFooter />
         </div>
     );
 }
@@ -425,19 +465,34 @@ function SoqlBody({
 }): ReactNode {
     return (
         <div className="pt-soql">
-            <div className="pt-soql-toolbar">
-                <span>Acme · API 62.0</span>
-                <span className={classNames('pt-run', sendPulse && 'is-pulse')}>
+            <div className="pt-soql-pagehead">
+                <span className="pt-soql-icon" aria-hidden>
+                    <Database size={16} strokeWidth={1.75} />
+                </span>
+                <div>
+                    <p>Tools</p>
+                    <h3>SOQL Explorer</h3>
+                </div>
+                <span
+                    className={classNames('pt-run', sendPulse && 'is-pulse')}
+                    data-pt-target="run"
+                >
                     <Play size={11} strokeWidth={2.2} aria-hidden />
                     Run
                 </span>
             </div>
-            <pre className="pt-soql-editor">
+            <div className="pt-soql-toolbar">
+                <span>Acme · API 62.0</span>
+            </div>
+            <pre className="pt-soql-editor" data-pt-target="soql">
                 {draft || <span className="pt-placeholder">SELECT Id, Name FROM Account</span>}
                 {caret ? <Caret /> : null}
             </pre>
-            {resultsVisible ? (
-                <table className="pt-results">
+            <div className="pt-soql-outcome">
+                <div className={classNames('pt-soql-empty', !resultsVisible && 'is-open')}>
+                    Run a query to see records
+                </div>
+                <table className={classNames('pt-results', resultsVisible && 'is-open')}>
                     <thead>
                         <tr>
                             <th>Id</th>
@@ -463,9 +518,7 @@ function SoqlBody({
                         </tr>
                     </tbody>
                 </table>
-            ) : (
-                <div className="pt-soql-empty">Run a query to see records</div>
-            )}
+            </div>
         </div>
     );
 }
@@ -486,7 +539,7 @@ function MetadataBody({
     return (
         <div className="pt-meta">
             <div className="pt-meta-tree">
-                <div className="pt-meta-filter">
+                <div className="pt-meta-filter" data-pt-target="meta-filter">
                     <Search size={11} strokeWidth={2} aria-hidden />
                     <span>
                         {filter || 'Filter metadata'}
@@ -520,40 +573,39 @@ function MetadataBody({
                 </div>
             </div>
             <div className="pt-meta-detail">
-                {selected ? (
-                    <>
-                        <header>
-                            <Package size={14} strokeWidth={1.75} />
-                            Account
-                            <span className="pt-pill">CustomObject</span>
-                        </header>
-                        <dl>
-                            <div>
-                                <dt>Label</dt>
-                                <dd>Account</dd>
-                            </div>
-                            <div>
-                                <dt>API Name</dt>
-                                <dd>Account</dd>
-                            </div>
-                            <div>
-                                <dt>Fields</dt>
-                                <dd>186</dd>
-                            </div>
-                            <div>
-                                <dt>Last modified</dt>
-                                <dd>Alex Rivera · 2h ago</dd>
-                            </div>
-                        </dl>
-                        <div className="pt-skel-block">
-                            <i />
-                            <i />
-                            <i />
+                <div className={classNames('pt-fade-panel', selected && 'is-open')}>
+                    <header>
+                        <Package size={14} strokeWidth={1.75} />
+                        Account
+                        <span className="pt-pill">CustomObject</span>
+                    </header>
+                    <dl>
+                        <div>
+                            <dt>Label</dt>
+                            <dd>Account</dd>
                         </div>
-                    </>
-                ) : (
-                    <p className="pt-soql-empty">Select a component to inspect it</p>
-                )}
+                        <div>
+                            <dt>API Name</dt>
+                            <dd>Account</dd>
+                        </div>
+                        <div>
+                            <dt>Fields</dt>
+                            <dd>186</dd>
+                        </div>
+                        <div>
+                            <dt>Last modified</dt>
+                            <dd>Alex Rivera · 2h ago</dd>
+                        </div>
+                    </dl>
+                    <div className="pt-skel-block">
+                        <i />
+                        <i />
+                        <i />
+                    </div>
+                </div>
+                <p className={classNames('pt-soql-empty', !selected && 'is-open')}>
+                    Select a component to inspect it
+                </p>
             </div>
         </div>
     );
@@ -597,19 +649,18 @@ function EditorBody({
             <div className="pt-vscode-files">
                 <p>FORCE-APP</p>
                 <span className="pt-tree-row">force-app/main/default/lwc</span>
-                {bundleReady ? (
-                    <>
-                        <span className="pt-tree-row is-folder">accountHighlight</span>
-                        <span className="pt-tree-row is-file is-active">
-                            {dirty ? <i className="pt-dirty" aria-hidden /> : null}
-                            accountHighlight.html
-                        </span>
-                        <span className="pt-tree-row is-file">accountHighlight.js</span>
-                        <span className="pt-tree-row is-file">accountHighlight.js-meta.xml</span>
-                    </>
-                ) : (
-                    <span className="pt-tree-row is-muted">No components yet</span>
-                )}
+                <span className={classNames('pt-tree-row is-muted', !bundleReady && 'is-open')}>
+                    No components yet
+                </span>
+                <div className={classNames('pt-fade-panel', bundleReady && 'is-open')}>
+                    <span className="pt-tree-row is-folder">accountHighlight</span>
+                    <span className="pt-tree-row is-file is-active">
+                        {dirty ? <i className="pt-dirty" aria-hidden /> : null}
+                        accountHighlight.html
+                    </span>
+                    <span className="pt-tree-row is-file">accountHighlight.js</span>
+                    <span className="pt-tree-row is-file">accountHighlight.js-meta.xml</span>
+                </div>
             </div>
             <div className="pt-vscode-main">
                 <div className="pt-vscode-tabs">
@@ -622,7 +673,7 @@ function EditorBody({
                         <span className="pt-vscode-tab is-empty">Welcome</span>
                     )}
                 </div>
-                <div className="pt-vscode-editor">
+                <div className="pt-vscode-editor" data-pt-target="editor">
                     {lines.map((line, i) => (
                         <div key={`ln-${i}`} className="pt-code-line">
                             <em>{i + 1}</em>
@@ -640,25 +691,27 @@ function EditorBody({
                         Ln {lines.length}, Col {lastLine.length + 1}
                     </span>
                 </footer>
-                {paletteOpen ? (
-                    <div className="pt-palette" aria-label="Command palette">
-                        <div className="pt-palette-input">
-                            <Search size={12} strokeWidth={2} aria-hidden />
-                            <span>
-                                {paletteValue}
-                                {paletteCaret ? <Caret /> : null}
-                            </span>
-                        </div>
-                        {palettePhase === 'command' ? (
-                            <ul>
-                                <li className="is-active">SFDX: Create Lightning Web Component</li>
-                                <li>SFDX: Create Apex Class</li>
-                            </ul>
-                        ) : (
-                            <p className="pt-palette-hint">New Lightning web component</p>
-                        )}
+                <div
+                    className={classNames('pt-palette', paletteOpen && 'is-open')}
+                    aria-label="Command palette"
+                    data-pt-target="palette"
+                >
+                    <div className="pt-palette-input">
+                        <Search size={12} strokeWidth={2} aria-hidden />
+                        <span>
+                            {paletteValue}
+                            {paletteCaret ? <Caret /> : null}
+                        </span>
                     </div>
-                ) : null}
+                    {palettePhase === 'command' ? (
+                        <ul>
+                            <li className="is-active">SFDX: Create Lightning Web Component</li>
+                            <li>SFDX: Create Apex Class</li>
+                        </ul>
+                    ) : (
+                        <p className="pt-palette-hint">New Lightning web component</p>
+                    )}
+                </div>
             </div>
         </div>
     );
@@ -669,8 +722,37 @@ const FORM_TOOL: Record<Exclude<FormFocus, null>, string> = {
     email: 'browser_fill · Email',
     order: 'browser_fill · Order #',
     message: 'browser_fill · Message',
-    submit: 'Clicked Submit',
+    submit: 'Submitted the form',
 };
+
+function FormField({
+    label,
+    value,
+    placeholder,
+    focus,
+    target,
+    area,
+}: {
+    label: string;
+    value: string;
+    placeholder: string;
+    focus: boolean;
+    target: string;
+    area?: boolean;
+}): ReactNode {
+    return (
+        <label
+            className={classNames('pt-form-field', area && 'is-area', focus && 'is-focus')}
+            data-pt-target={target}
+        >
+            {label}
+            <span className={classNames(!value && 'is-placeholder')}>
+                {value || placeholder}
+                {focus ? <Caret /> : null}
+            </span>
+        </label>
+    );
+}
 
 function SidePanelForm({
     assistant,
@@ -680,7 +762,6 @@ function SidePanelForm({
     formEmail,
     formOrder,
     formMessage,
-    formSubmitPulse,
 }: {
     assistant: string;
     streaming?: boolean;
@@ -689,13 +770,18 @@ function SidePanelForm({
     formEmail: string;
     formOrder: string;
     formMessage: string;
-    formSubmitPulse: boolean;
 }): ReactNode {
+    const sent = formFocus === 'submit';
     return (
         <div className="pt-sidepanel-scene">
             <div className="pt-acme-site">
                 <header className="pt-acme-header">
-                    <strong>Acme</strong>
+                    <span className="pt-acme-logo">
+                        <i className="pt-acme-mark" aria-hidden>
+                            A
+                        </i>
+                        Acme
+                    </span>
                     <nav>
                         <span>Help Center</span>
                         <span className="is-active">Contact</span>
@@ -703,48 +789,61 @@ function SidePanelForm({
                     </nav>
                 </header>
                 <main className="pt-acme-form">
-                    <p className="pt-acme-kicker">Support</p>
-                    <h3>How can we help?</h3>
-                    <label
-                        className={classNames('pt-form-field', formFocus === 'name' && 'is-focus')}
-                    >
-                        Name
-                        <span>{formName || 'Full name'}</span>
-                    </label>
-                    <label
-                        className={classNames('pt-form-field', formFocus === 'email' && 'is-focus')}
-                    >
-                        Email
-                        <span>{formEmail || 'you@company.com'}</span>
-                    </label>
-                    <label
-                        className={classNames('pt-form-field', formFocus === 'order' && 'is-focus')}
-                    >
-                        Order #<span>{formOrder || 'e.g. 1842'}</span>
-                    </label>
-                    <label
-                        className={classNames(
-                            'pt-form-field is-area',
-                            formFocus === 'message' && 'is-focus'
-                        )}
-                    >
-                        Message
-                        <span>{formMessage || 'Describe the issue'}</span>
-                    </label>
-                    <span
-                        className={classNames(
-                            'pt-form-submit',
-                            (formFocus === 'submit' || formSubmitPulse) && 'is-pulse'
-                        )}
-                    >
-                        Submit
-                    </span>
+                    <div className="pt-acme-form-card">
+                        <p className="pt-acme-kicker">Support</p>
+                        <h3>Contact support</h3>
+                        <p className="pt-acme-lede">Tell us about the issue and we will get back to you.</p>
+                        <div className="pt-form-row">
+                            <FormField
+                                label="Name"
+                                value={formName}
+                                placeholder="Full name"
+                                focus={formFocus === 'name'}
+                                target="form-name"
+                            />
+                            <FormField
+                                label="Email"
+                                value={formEmail}
+                                placeholder="you@company.com"
+                                focus={formFocus === 'email'}
+                                target="form-email"
+                            />
+                        </div>
+                        <FormField
+                            label="Order number"
+                            value={formOrder}
+                            placeholder="e.g. 1842"
+                            focus={formFocus === 'order'}
+                            target="form-order"
+                        />
+                        <FormField
+                            label="Message"
+                            value={formMessage}
+                            placeholder="Describe the issue"
+                            focus={formFocus === 'message'}
+                            target="form-message"
+                            area
+                        />
+                        <span
+                            className={classNames('pt-form-submit', sent && 'is-sent')}
+                            data-pt-target="form-submit"
+                        >
+                            {sent ? (
+                                <>
+                                    <Check size={12} strokeWidth={2.4} aria-hidden />
+                                    Sent
+                                </>
+                            ) : (
+                                'Submit ticket'
+                            )}
+                        </span>
+                    </div>
                 </main>
             </div>
-            <aside className="pt-sidepanel" aria-label="Workbench side panel">
+            <aside className="pt-sidepanel" aria-label="Next Gen Agent">
                 <header>
                     <Bot size={13} strokeWidth={1.75} />
-                    Workbench
+                    Next Gen Agent
                     <Settings size={12} strokeWidth={1.75} aria-hidden />
                 </header>
                 <div className="pt-agent-thread">
@@ -756,7 +855,7 @@ function SidePanelForm({
                             className={classNames('pt-tool', formFocus === 'submit' && 'is-action')}
                         >
                             {formFocus === 'submit' ? (
-                                <MousePointerClick size={11} strokeWidth={2} />
+                                <Check size={11} strokeWidth={2} />
                             ) : (
                                 <Pencil size={11} strokeWidth={2} />
                             )}
@@ -776,8 +875,13 @@ function SidePanelForm({
                     )}
                 </div>
                 <div className="pt-composer">
-                    <span>Ask the agent to fill this form…</span>
-                    <Send size={12} strokeWidth={2} aria-hidden />
+                    <span className="pt-composer-model">GPT-4.1</span>
+                    <div className="pt-composer-row">
+                        <span>Ask the agent to fill this form…</span>
+                        <span className="pt-composer-send" aria-hidden>
+                            <Send size={12} strokeWidth={2} />
+                        </span>
+                    </div>
                 </div>
             </aside>
         </div>
@@ -793,31 +897,9 @@ function LoadingOverlay({ label }: { label: 'editor' | 'soql' }): ReactNode {
     );
 }
 
-export function HomeFlowWireframe({ scene }: { scene: FlowScene }): ReactNode {
-    const soqlBody = (
-        <SoqlBody
-            draft={scene.soqlDraft}
-            caret={scene.caret === 'soql'}
-            resultsVisible={scene.resultsVisible}
-            sendPulse={scene.sendPulse}
-        />
-    );
-    const editorBody = (
-        <EditorBody
-            typedSource={scene.editorTyped}
-            caret={scene.caret === 'editor'}
-            dirty={scene.editorDirty}
-            paletteOpen={scene.paletteOpen}
-            palettePhase={scene.palettePhase}
-            paletteQuery={scene.paletteQuery}
-            paletteName={scene.paletteName}
-            paletteCaret={scene.caret === 'palette'}
-            bundleReady={scene.bundleReady}
-        />
-    );
-    let body: ReactNode;
-    if (scene.view === 'salesforce') {
-        body = (
+function flowViewBody(view: FlowView, scene: FlowScene): ReactNode {
+    if (view === 'salesforce') {
+        return (
             <SalesforcePage
                 overlayOpen={scene.overlayOpen}
                 overlaySearch={scene.overlaySearch}
@@ -826,40 +908,96 @@ export function HomeFlowWireframe({ scene }: { scene: FlowScene }): ReactNode {
                 vscodeHot={scene.vscodeHot}
             />
         );
-    } else if (scene.view === 'editor') {
-        body = (
+    }
+    if (view === 'editor') {
+        return (
             <ToolkitShell activeApp="editor" tabLabel="VS Code">
-                {editorBody}
+                <EditorBody
+                    typedSource={scene.editorTyped}
+                    caret={scene.caret === 'editor'}
+                    dirty={scene.editorDirty}
+                    paletteOpen={scene.paletteOpen}
+                    palettePhase={scene.palettePhase}
+                    paletteQuery={scene.paletteQuery}
+                    paletteName={scene.paletteName}
+                    paletteCaret={scene.caret === 'palette'}
+                    bundleReady={scene.bundleReady}
+                />
             </ToolkitShell>
         );
-    } else if (scene.view === 'soql') {
-        body = (
+    }
+    if (view === 'soql') {
+        return (
             <ToolkitShell activeApp="soql" tabLabel="SOQL Explorer">
-                {soqlBody}
+                <SoqlBody
+                    draft={scene.soqlDraft}
+                    caret={scene.caret === 'soql'}
+                    resultsVisible={scene.resultsVisible}
+                    sendPulse={scene.sendPulse}
+                />
             </ToolkitShell>
-        );
-    } else {
-        body = (
-            <SidePanelForm
-                assistant={scene.assistant}
-                streaming={Boolean(scene.assistant) && scene.formFocus !== 'submit'}
-                formFocus={scene.formFocus}
-                formName={scene.formName}
-                formEmail={scene.formEmail}
-                formOrder={scene.formOrder}
-                formMessage={scene.formMessage}
-                formSubmitPulse={scene.formSubmitPulse}
-            />
         );
     }
     return (
+        <SidePanelForm
+            assistant={scene.assistant}
+            streaming={Boolean(scene.assistant) && scene.formFocus !== 'submit'}
+            formFocus={scene.formFocus}
+            formName={scene.formName}
+            formEmail={scene.formEmail}
+            formOrder={scene.formOrder}
+            formMessage={scene.formMessage}
+        />
+    );
+}
+
+function useHeldView(view: FlowView): { current: FlowView; outgoing: FlowView | null } {
+    const [current, setCurrent] = useState(view);
+    const [outgoing, setOutgoing] = useState<FlowView | null>(null);
+    const timerRef = useRef(0);
+    useEffect(() => {
+        if (view === current) return;
+        setOutgoing(current);
+        setCurrent(view);
+        window.clearTimeout(timerRef.current);
+        timerRef.current = window.setTimeout(() => setOutgoing(null), VIEW_FADE_MS);
+    }, [view, current]);
+    useEffect(() => () => window.clearTimeout(timerRef.current), []);
+    return { current, outgoing };
+}
+
+export function HomeFlowWireframe({
+    scene,
+    loopGen = 0,
+    showCursor,
+}: {
+    scene: FlowScene;
+    loopGen?: number;
+    showCursor?: boolean;
+}): ReactNode {
+    const stageRef = useRef<HTMLDivElement>(null);
+    const { current, outgoing } = useHeldView(scene.view);
+    return (
         <div
+            ref={stageRef}
             className="pt-stage"
             data-flow-view={scene.view}
+            data-loop-gen={loopGen > 0 ? loopGen : undefined}
             style={{ width: AUTHORED_WIDTH, height: AUTHORED_HEIGHT }}
         >
-            {body}
+            {outgoing ? (
+                <div className="pt-view-layer is-exit">{flowViewBody(outgoing, scene)}</div>
+            ) : null}
+            <div className={classNames('pt-view-layer is-current', outgoing && 'is-enter')}>
+                {flowViewBody(current, scene)}
+            </div>
             {scene.loadingTarget ? <LoadingOverlay label={scene.loadingTarget} /> : null}
+            <TourCursor
+                stageRef={stageRef}
+                target={scene.cursorTarget}
+                clicking={scene.vscodeHot || scene.sendPulse}
+                hidden={!showCursor || scene.loading || scene.view === 'sidepanel'}
+            />
         </div>
     );
 }
@@ -867,10 +1005,13 @@ export function HomeFlowWireframe({ scene }: { scene: FlowScene }): ReactNode {
 export function SlideWireframe({
     slideId,
     play,
+    showCursor,
 }: {
     slideId: TourSlideId;
     play?: SlidePlay;
+    showCursor?: boolean;
 }): ReactNode {
+    const stageRef = useRef<HTMLDivElement>(null);
     const scene = play ?? completedSlidePlay(slideId);
     let body: ReactNode;
     if (slideId === 'overlay') {
@@ -931,17 +1072,23 @@ export function SlideWireframe({
                 formEmail={scene.formEmail}
                 formOrder={scene.formOrder}
                 formMessage={scene.formMessage}
-                formSubmitPulse={scene.formSubmitPulse}
             />
         );
     }
     return (
         <div
+            ref={stageRef}
             className="pt-stage"
             data-tour-slide={slideId}
             style={{ width: AUTHORED_WIDTH, height: AUTHORED_HEIGHT }}
         >
-            {body}
+            <div className="pt-view-layer is-current">{body}</div>
+            <TourCursor
+                stageRef={stageRef}
+                target={cursorTargetForPlay(scene)}
+                clicking={scene.vscodeHot || scene.sendPulse}
+                hidden={!showCursor || slideId === 'agent'}
+            />
         </div>
     );
 }

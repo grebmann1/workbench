@@ -45,19 +45,40 @@ export function ProductDemo(): ReactNode {
     const { t } = useTranslation();
     const reduceMotion = usePrefersReducedMotion();
     const elapsed = useTourElapsed(FLOW_LOOP_MS, !reduceMotion);
+    const lastElapsed = useRef(elapsed);
+    const [loopGen, setLoopGen] = useState(0);
     const scene = reduceMotion ? completedScene() : sceneForElapsed(elapsed);
     const heading = headingForView(scene.view);
+
+    useEffect(() => {
+        if (reduceMotion) {
+            lastElapsed.current = elapsed;
+            return;
+        }
+        if (elapsed + 200 < lastElapsed.current) {
+            setLoopGen(gen => gen + 1);
+        }
+        lastElapsed.current = elapsed;
+    }, [elapsed, reduceMotion]);
 
     return (
         <div className="product-tour" data-tour-demo>
             <section aria-label={t('home.demo.ariaLabel')}>
                 <header className="product-tour-heading">
-                    <h2>{t(`home.demo.headings.${heading}`)}</h2>
-                    <p>{t(`home.demo.captions.${scene.captionKey}`)}</p>
+                    <h2 key={heading} className="pt-copy-fade">
+                        {t(`home.demo.headings.${heading}`)}
+                    </h2>
+                    <p key={scene.captionKey} className="pt-copy-fade">
+                        {t(`home.demo.captions.${scene.captionKey}`)}
+                    </p>
                 </header>
                 <SpatialFixture>
                     <FakeBrowser url={demoUrlForView(scene.view)}>
-                        <HomeFlowWireframe scene={scene} />
+                        <HomeFlowWireframe
+                            scene={scene}
+                            loopGen={loopGen}
+                            showCursor={!reduceMotion}
+                        />
                     </FakeBrowser>
                 </SpatialFixture>
                 <p className="product-tour-more">
@@ -96,7 +117,11 @@ export function FeatureSlide({ slideId, url }: { slideId: TourSlideId; url: stri
         <div ref={rootRef}>
             <SpatialFixture>
                 <FakeBrowser url={url}>
-                    <SlideWireframe slideId={slideId} play={play} />
+                    <SlideWireframe
+                        slideId={slideId}
+                        play={play}
+                        showCursor={inView && !reduceMotion}
+                    />
                 </FakeBrowser>
             </SpatialFixture>
         </div>

@@ -24,6 +24,23 @@ export type PalettePhase = 'command' | 'name' | null;
 
 export type FormFocus = 'name' | 'email' | 'order' | 'message' | 'submit' | null;
 
+export type CursorTarget =
+    | 'dock-vscode'
+    | 'overlay-search'
+    | 'palette'
+    | 'editor'
+    | 'soql'
+    | 'run'
+    | 'meta-filter'
+    | 'form-name'
+    | 'form-email'
+    | 'form-order'
+    | 'form-message'
+    | 'form-submit'
+    | null;
+
+export const VIEW_FADE_MS = 400;
+
 export interface FlowScene {
     view: FlowView;
     overlayOpen: boolean;
@@ -51,6 +68,7 @@ export interface FlowScene {
     formMessage: string;
     formSubmitPulse: boolean;
     captionKey: CaptionKey;
+    cursorTarget: CursorTarget;
 }
 
 export const SEARCH_QUERY = 'Account';
@@ -114,6 +132,14 @@ export function typed(text: string, start: number, now: number, msPerChar: numbe
     return text.slice(0, Math.max(0, Math.min(text.length, chars)));
 }
 
+export function typedToward(text: string, start: number, end: number, now: number): string {
+    if (now < start) return '';
+    if (text.length === 0 || now >= end) return text;
+    const span = Math.max(1, end - start);
+    const chars = Math.min(text.length, Math.floor(((now - start) / span) * text.length) + 1);
+    return text.slice(0, chars);
+}
+
 export function inRange(now: number, start: number, end: number): boolean {
     return now >= start && now < end;
 }
@@ -154,6 +180,27 @@ function formFocusFor(now: number): FormFocus {
     return null;
 }
 
+export function cursorTargetForScene(scene: {
+    loading: boolean;
+    view?: FlowView;
+    formFocus: FormFocus;
+    sendPulse: boolean;
+    caret: CaretTarget;
+    paletteOpen: boolean;
+    vscodeHot: boolean;
+    overlayOpen: boolean;
+}): CursorTarget {
+    if (scene.loading) return null;
+    if (scene.view === 'sidepanel' || scene.formFocus) return null;
+    if (scene.sendPulse) return 'run';
+    if (scene.caret === 'soql') return 'soql';
+    if (scene.caret === 'editor') return 'editor';
+    if (scene.caret === 'palette' || scene.paletteOpen) return 'palette';
+    if (scene.vscodeHot) return 'dock-vscode';
+    if (scene.caret === 'search' || scene.overlayOpen) return 'overlay-search';
+    return 'dock-vscode';
+}
+
 export function sceneForElapsed(ms: number): FlowScene {
     const now = Number.isFinite(ms) ? Math.max(0, ms) : 0;
     const loadingTarget: LoadingTarget = inRange(now, T_LOADING_EDITOR, T_EDITOR)
@@ -181,8 +228,7 @@ export function sceneForElapsed(ms: number): FlowScene {
     else if (inRange(now, T_TYPE_QUERY, T_RUN)) caret = 'soql';
 
     const focus = formFocusFor(now);
-
-    return {
+    const scene = {
         view,
         overlayOpen: now >= T.overlayOpen,
         overlaySearch: typed(SEARCH_QUERY, T.typeSearch, now, CHAR_MS),
@@ -203,13 +249,14 @@ export function sceneForElapsed(ms: number): FlowScene {
         editorTyped: typed(LWC_HTML, T_TYPE_HTML, now, STREAM_MS),
         editorDirty: now >= T_TYPE_HTML && now < T_HTML_DONE + 350,
         formFocus: focus,
-        formName: now >= T_FORM_NAME ? FORM_NAME : '',
-        formEmail: now >= T_FORM_EMAIL ? FORM_EMAIL : '',
-        formOrder: now >= T_FORM_ORDER ? FORM_ORDER : '',
-        formMessage: now >= T_FORM_MESSAGE ? FORM_MESSAGE : '',
-        formSubmitPulse: inRange(now, T_FORM_SUBMIT, T_FORM_SUBMIT + 900),
+        formName: typedToward(FORM_NAME, T_FORM_NAME, T_FORM_EMAIL, now),
+        formEmail: typedToward(FORM_EMAIL, T_FORM_EMAIL, T_FORM_ORDER, now),
+        formOrder: typedToward(FORM_ORDER, T_FORM_ORDER, T_FORM_MESSAGE, now),
+        formMessage: typedToward(FORM_MESSAGE, T_FORM_MESSAGE, T_FORM_SUBMIT, now),
+        formSubmitPulse: false,
         captionKey: captionFor(now),
     };
+    return { ...scene, cursorTarget: cursorTargetForScene(scene) };
 }
 
 export function completedScene(): FlowScene {
