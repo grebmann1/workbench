@@ -1,5 +1,22 @@
 [
     {
+        "version": "2.1.2",
+        "date": "September 7th, 2026",
+        "sections": [
+            {
+                "title": "Enhancements",
+                "categories": [
+                    {
+                        "category": "Chrome Extension",
+                        "items": [
+                            "The Chrome extension is much smaller. VS Code still opens in the extension, but it now loads from the hosted workbench instead of shipping the full editor engine inside the package. Standalone Monaco editors (SOQL, code, and diff) continue to work locally."
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    {
         "version": "2.1.1",
         "date": "September 5th, 2026",
         "sections": [

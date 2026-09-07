@@ -4459,4 +4459,3 @@ onmessage = /*#__PURE__*/function () {
     return _ref19.apply(this, arguments);
   };
 }();
-//# sourceMappingURL=metadata.worker.js.map

@@ -1,4 +1,5 @@
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 
 import { transformSync } from '@babel/core';
@@ -41,6 +42,21 @@ const stripTypescript = () => ({
 });
 
 export default (args) => {
+	const isProduction = (args?.NODE_ENV || process.env.NODE_ENV) === 'production';
+	const dropStaleMaps = () => ({
+		name: 'drop-prod-sourcemaps',
+		writeBundle() {
+			if (!isProduction) return;
+			for (const file of [
+				'assets/extension/libs/workers/metadata.worker.js.map',
+				'assets/extension/libs/workers/accessAnalyzer.worker.js.map',
+			]) {
+				if (fs.existsSync(file)) {
+					fs.unlinkSync(file);
+				}
+			}
+		},
+	});
 	return [
 		{
 			input: 'packages/workers/src/metadata.worker.js', // your source file
@@ -48,7 +64,7 @@ export default (args) => {
 				file: 'assets/extension/libs/workers/metadata.worker.js',
 				format: 'es',
 				intro: 'var global = typeof globalThis !== "undefined" ? globalThis : self;',
-				sourcemap: true // optional but helpful for debugging
+				sourcemap: !isProduction
 			},
 		plugins: [
 			json(),
@@ -68,7 +84,8 @@ export default (args) => {
 		babel({
 			babelHelpers: 'bundled',
 			presets: ['@babel/preset-env']
-		})
+		}),
+		dropStaleMaps()
 	]
 },
 {
@@ -76,7 +93,7 @@ export default (args) => {
 	output: {
 		file: 'assets/extension/libs/workers/accessAnalyzer.worker.js',
 		format: 'es',
-		sourcemap: true // optional but helpful for debugging
+		sourcemap: !isProduction
 	},
 	plugins: [
 		json(),

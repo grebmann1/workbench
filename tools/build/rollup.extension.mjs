@@ -332,73 +332,53 @@ const vscodePureAliasEntries = [
     { find: 'vscode/bridge/iframeJsforceBridgeClient', replacement: r('../../packages/lwc/main/vscode/fullApp/bridge/iframeJsforceBridgeClient.ts') },
 ];
 
-const monacoWrapperInlineScriptExtractor = () => ({
-    name: 'monaco-wrapper-inline-script-extractor',
-    writeBundle() {
-        const monacoWrapperDir = r('../../dist/extension/libs/vscode/monacoWrapper');
-        if (!fs.existsSync(monacoWrapperDir)) {
-            return;
-        }
-        const htmlFiles = fs
-            .readdirSync(monacoWrapperDir)
-            .filter(fileName => fileName.toLowerCase().endsWith('.html'));
-
-        htmlFiles.forEach(htmlFileName => {
-            const htmlPath = path.join(monacoWrapperDir, htmlFileName);
-            const htmlSource = fs.readFileSync(htmlPath, 'utf8');
-            const htmlBaseName = path.basename(htmlFileName, '.html');
-            const priorExtractedPrefix = `${htmlBaseName}.inline-`;
-            fs.readdirSync(monacoWrapperDir)
-                .filter(
-                    fileName =>
-                        fileName.startsWith(priorExtractedPrefix) &&
-                        fileName.toLowerCase().endsWith('.js')
-                )
-                .forEach(fileName => {
-                    fs.rmSync(path.join(monacoWrapperDir, fileName));
-                });
-
-            let inlineScriptCount = 0;
-            const rewrittenHtml = htmlSource.replace(
-                /<script\b([^>]*)>([\s\S]*?)<\/script>/gi,
-                (fullMatch, attributes = '', scriptContent = '') => {
-                    if (/\bsrc\s*=/i.test(String(attributes))) {
-                        return fullMatch;
-                    }
-
-                    inlineScriptCount += 1;
-                    const scriptFileName = `${htmlBaseName}.inline-${inlineScriptCount}.js`;
-                    const scriptPath = path.join(monacoWrapperDir, scriptFileName);
-                    fs.writeFileSync(scriptPath, String(scriptContent), 'utf8');
-
-                    const normalizedAttributes = String(attributes).trim();
-                    const attributesWithSpacing = normalizedAttributes
-                        ? ` ${normalizedAttributes}`
-                        : '';
-                    return `<script${attributesWithSpacing} src="./${scriptFileName}"></script>`;
-                }
-            );
-
-            if (inlineScriptCount > 0 && rewrittenHtml !== htmlSource) {
-                fs.writeFileSync(htmlPath, rewrittenHtml, 'utf8');
-            }
-        });
-    },
-});
-
-// Copy targets extracted for clarity
-const getAssetCopyTargets = (distRoot) => [
-    { src: r('../../assets/extension/styles'), dest: r(distRoot) },
-    { src: r('../../assets/extension/libs'), dest: r(distRoot) },
-    // { src: r('../../assets/shared/libs/extensions'), dest: r('../../dist/extension/libs') },
-    { src: r('../../assets/extension/images'), dest: r(distRoot) },
-    { src: r('../../node_modules/@salesforce-ux/design-system/assets'), dest: r(distRoot) },
-    // Default skills are fetched from /public/skills at runtime.
-    // Note: copying a directory into ".../public/skills" would create ".../public/skills/skills/...".
-    // We want "/public/skills/<...>".
-    { src: r('../../assets/shared/skills'), dest: r(`${distRoot}/public`) },
-    { src: r('../../assets/extension/releaseNotes.json'), dest: r(distRoot) }
+const SLDS_ICON_SPRITES = [
+    'utility-sprite',
+    'standard-sprite',
+    'action-sprite',
+    'custom-sprite',
+    'doctype-sprite',
 ];
+
+// Runtime assets only. `assets/extension/libs/vscode` (monaco-vscode-api) is not
+// shipped — the editor iframes WORKBENCH_VSCODE_URL. jsforce / just-bash /
+// openapi-parser remain Rollup inputs via aliases and are not copied into dist.
+export const getAssetCopyTargets = (distRoot) => {
+    const libsDest = r(`${distRoot}/libs`);
+    const iconsDest = r(`${distRoot}/assets/icons`);
+    return [
+        { src: r('../../assets/extension/styles'), dest: r(distRoot) },
+        { src: r('../../assets/extension/images'), dest: r(distRoot) },
+        { src: r('../../assets/extension/releaseNotes.json'), dest: r(distRoot) },
+        // Default skills are fetched from /public/skills at runtime.
+        // Copying a directory into ".../public/skills" would create ".../public/skills/skills/...".
+        { src: r('../../assets/shared/skills'), dest: r(`${distRoot}/public`) },
+        { src: r('../../assets/extension/libs/monaco'), dest: libsDest },
+        {
+            src: r('../../assets/extension/libs/mermaid/mermaid.min.js'),
+            dest: r(`${distRoot}/libs/mermaid`),
+        },
+        {
+            src: r('../../assets/extension/libs/prism/prism.js'),
+            dest: r(`${distRoot}/libs/prism`),
+        },
+        { src: r('../../assets/extension/libs/localforage'), dest: libsDest },
+        {
+            src: r('../../assets/extension/libs/workers/*.js'),
+            dest: r(`${distRoot}/libs/workers`),
+        },
+        ...SLDS_ICON_SPRITES.map((sprite) => ({
+            src: r(`../../node_modules/@salesforce-ux/design-system/assets/icons/${sprite}`),
+            dest: iconsDest,
+        })),
+        {
+            src: r(
+                '../../node_modules/@salesforce-ux/design-system/assets/icons/License-for-icons.txt'
+            ),
+            dest: iconsDest,
+        },
+    ];
+};
 
 export const getChromeCopyTargets = ({
     isProduction,
@@ -568,15 +548,13 @@ const modules = [
 
 const chatModules = modules;
 
+// Overlay + input-quick-pick only. Do not register application slices / pages —
+// those pull the full LWC app graph into the Salesforce content script.
 const injectedModules = [
-    { name: 'core/store', path: r('../../packages/lwc/main/core/store/lightStore.ts') }, // fake store for injection
+    { name: 'core/store', path: r('../../packages/lwc/main/core/store/lightStore.ts') },
     { dir: r('../../packages/lwc/extension') },
     { dir: r('../../packages/lwc/main') },
     { dir: r('../../packages/lwc/main/component') },
-    { dir: r('../../packages/lwc/main/application') },
-    { dir: r('../../packages/lwc/main/pages') },
-    { dir: r('../../packages/lwc/main/pages/documentation') },
-    { dir: r('../../packages/lwc/applications') },
     { name: 'core/connector', path: r('../../packages/lwc/main/core/connector/connector.ts') },
     { name: 'core/desktopBridge', path: r('../../packages/lwc/main/core/desktopBridge.ts') },
     { name: 'core/store/storeRef', path: r('../../packages/lwc/main/core/store/storeRef.ts') },
@@ -595,33 +573,6 @@ const injectedModules = [
     { name: 'host-api/desktopBridge', path: r('../../packages/lwc/main/host-api/desktopBridge.ts') },
     { name: 'host-api/fs', path: r('../../packages/lwc/main/host-api/fs.ts') },
     { name: 'host-api/worker', path: r('../../packages/lwc/main/host-api/worker.ts') },
-    { name: 'soql/slices', path: r('../../packages/lwc/applications/soql/slices/slices.ts') },
-    { name: 'soql/slices/ui', path: r('../../packages/lwc/applications/soql/slices/ui.ts') },
-    { name: 'soql/slices/query', path: r('../../packages/lwc/applications/soql/slices/query.ts') },
-    { name: 'metadata/slices', path: r('../../packages/lwc/applications/metadata/slices/slices.ts') },
-    { name: 'metadata/slices/metadata', path: r('../../packages/lwc/applications/metadata/slices/metadata.ts') },
-    { name: 'object/slices', path: r('../../packages/lwc/applications/object/slices/slices.ts') },
-    { name: 'object/slices/sobjectExplorer', path: r('../../packages/lwc/applications/object/slices/sobjectExplorer.ts') },
-    { name: 'package/slices', path: r('../../packages/lwc/applications/package/slices/slices.ts') },
-    { name: 'package/slices/package', path: r('../../packages/lwc/applications/package/slices/package.ts') },
-    { name: 'platformevent/slices', path: r('../../packages/lwc/applications/platformevent/slices/slices.ts') },
-    { name: 'platformevent/slices/platformEvent', path: r('../../packages/lwc/applications/platformevent/slices/platformEvent.ts') },
-    { name: 'recordviewer/slices', path: r('../../packages/lwc/applications/recordviewer/slices/slices.ts') },
-    { name: 'recordviewer/slices/recordViewer', path: r('../../packages/lwc/applications/recordviewer/slices/recordViewer.ts') },
-    { name: 'anonymousApex/slices', path: r('../../packages/lwc/applications/anonymousApex/slices/slices.ts') },
-    { name: 'anonymousApex/slices/apex', path: r('../../packages/lwc/applications/anonymousApex/slices/apex.ts') },
-    { name: 'api/slices', path: r('../../packages/lwc/applications/api/slices/slices.ts') },
-    { name: 'api/slices/api', path: r('../../packages/lwc/applications/api/slices/api.ts') },
-    { name: 'graphql/slices', path: r('../../packages/lwc/applications/graphql/slices/slices.ts') },
-    { name: 'graphql/slices/ui', path: r('../../packages/lwc/applications/graphql/slices/ui.ts') },
-    { name: 'graphql/slices/query', path: r('../../packages/lwc/applications/graphql/slices/query.ts') },
-    { name: 'graphql/shortcutsModal', path: r('../../packages/lwc/applications/graphql/shortcutsModal/shortcutsModal.ts') },
-    { name: 'graphql/templates', path: r('../../packages/lwc/applications/graphql/templates.ts') },
-    { name: 'graphql/catalogPanel', path: r('../../packages/lwc/applications/graphql/catalogPanel/catalogPanel.ts') },
-    { name: 'agentforce/slices/agents', path: r('../../packages/lwc/applications/agentforce/slices/agents.ts') },
-    { name: 'agentforce/slices/debugger', path: r('../../packages/lwc/applications/agentforce/slices/debugger.ts') },
-    { name: 'agentforce/inspector/search/fuzzyMatch', path: r('../../packages/lwc/applications/agentforce/inspector/search/fuzzyMatch.ts') },
-    { name: 'agentforce/shared/emptyStates/emptyStates', path: r('../../packages/lwc/applications/agentforce/shared/emptyStates/emptyStates.ts') },
     ...sharedModules,
     { npm: 'lightning-base-components' },
     { name: 'imported/jsforce', path: r('../../assets/extension/libs/jsforce/jsforce.js') },
@@ -782,7 +733,6 @@ const coreBuilder = (
         copy({
             targets: chromeCopyTargets,
         }),
-        monacoWrapperInlineScriptExtractor(),
         ...(isProduction ? [terserPlugin] : []),
     ]
 });
