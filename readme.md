@@ -7,7 +7,7 @@ Latest release: **v2.1.2**
 Workbench is a Salesforce administration toolkit that embeds directly into your browser — bringing an overlay panel, a VS Code editor, a full metadata explorer, a SOQL editor, and an AI agent capable of controlling your browser, all from a single Chrome extension.
 
 <div align="center">
-<img src="./assets/images/screenshots/screenshot-welcome.png" alt="Workbench App" width="90%" />
+<img src="./assets/images/screenshots/screenshot-hero.gif" alt="Workbench product tour" width="90%" />
 </div>
 
 ---
