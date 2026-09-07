@@ -29,6 +29,7 @@ __lwr_cache__
 site
 dist/web
 out/
+# Zip artifacts (CI zips dist/extension in .github/workflows/extension-release.yml)
 *.zip
 dist/extension/
 dist/extension-chat/

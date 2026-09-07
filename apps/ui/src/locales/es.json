@@ -1,6 +1,6 @@
 {
     "chrome": {
-        "announce": "Workbench <bold>2.1.1</bold> ya está aquí — el Agente inspecciona la pestaña junto al panel lateral, y el selector de modelos carga catálogos en vivo desde tus claves API",
+        "announce": "Workbench <bold>2.1.2</bold> ya está aquí — la extensión de Chrome es mucho más pequeña, y VS Code sigue cargándose desde el workbench alojado",
         "nav": {
             "github": "GitHub",
             "docs": "Docs",

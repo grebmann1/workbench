@@ -21,6 +21,11 @@ npm run start:prod:server          # NODE_ENV=production, loads .env.prod
 npm run start:dev:extension        # watch + serve dist/extension
 npm run build:prod:extension       # full prod build (main + sandbox + workers)
 npm run build:extension:main       # main-only (faster)
+npm run build:extension:chat:main  # chat target → dist/extension-chat
+
+# Dist notes: core and chat are separate Rollup targets. Both folders may exist
+# locally if both were built. The Chrome Web Store zip is produced only in CI
+# (.github/workflows/extension-release.yml); do not commit dist/*.zip.
 
 # Desktop (Electron) — lives under packages/desktop
 npm run start:dev:desktop          # against an already-running web server
@@ -95,9 +100,9 @@ The repo is mid-refactor from monolith into a **core host + pluggable apps** mod
 - **Host** (`packages/lwc/main/*`): shell/chrome, routing, Redux store, connector, design system, agent runtime, `host-api/`.
 - **Apps** (`packages/lwc/applications/<name>/`): self-contained launchable features. Each has its own `package.json`, may ship a `<name>.manifest.json`, and registers through the application registry.
 - **`host-api/`** = the stable contract apps are allowed to import. Apps must **not** reach into `core/*` directly.
-  - Stateful / host-coupled → `host-api/<name>` (e.g. `host-api/store`, `host-api/commands`, `host-api/element`, `host-api/connector`, `host-api/desktopBridge`, `host-api/fs`, `host-api/worker`).
-  - Pure, reusable → `packages/lwc/shared/modules/<name>` (imported as `shared/<name>`). If a stable import prefix is wanted for apps, re-export from `host-api/` (as with `host-api/logger`, `host-api/analytics`).
-  - **Do not add a third namespace** (`host-helper/`, `host-shared/`).
+    - Stateful / host-coupled → `host-api/<name>` (e.g. `host-api/store`, `host-api/commands`, `host-api/element`, `host-api/connector`, `host-api/desktopBridge`, `host-api/fs`, `host-api/worker`).
+    - Pure, reusable → `packages/lwc/shared/modules/<name>` (imported as `shared/<name>`). If a stable import prefix is wanted for apps, re-export from `host-api/` (as with `host-api/logger`, `host-api/analytics`).
+    - **Do not add a third namespace** (`host-helper/`, `host-shared/`).
 - Redux state uses **slice injection**: `host-api/store` exposes `store`, `injectReducer`, `removeReducer`, `connectStore`, `reportError`. Apps attach their own slices at runtime rather than registering in the root store.
 - Commands: `host-api/commands` (`registerCommand` / `invokeCommand` / `hasCommand`) is the named-command registry used by electron launch intents and agent tools to talk to apps without importing them.
 
@@ -121,8 +126,8 @@ Chrome extension (primary), Electron desktop, and Node server for the web app. T
 - `tools/build/rollup.workers.mjs` builds `packages/workers/src`.
 - `lwr.config.json` controls routes, module resolution, and static assets for the web app.
 - `build:shared` runs two generators before `tsc`:
-  - `tools/scripts/generate_manifest_skill.js` → builds agent skill manifest from `assets/shared/skills/*.SKILL.md` into `packages/lwc/shared/modules/defaultAgentSkills`.
-  - `tools/scripts/generate_application_manifest.js` → aggregates `packages/lwc/applications/*/*.manifest.json`.
+    - `tools/scripts/generate_manifest_skill.js` → builds agent skill manifest from `assets/shared/skills/*.SKILL.md` into `packages/lwc/shared/modules/defaultAgentSkills`.
+    - `tools/scripts/generate_application_manifest.js` → aggregates `packages/lwc/applications/*/*.manifest.json`.
 - Vendor bundles (`vendor-bundles/just-bash`) must be built before the extension build (this is wired into `build:extension*` and watch scripts) — output is copied into `assets/extension/libs/just-bash/`.
 
 ### OAuth / environment

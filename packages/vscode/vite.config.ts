@@ -2,6 +2,7 @@ import { defineConfig } from 'vite'
 import importMetaUrlPlugin from '@codingame/esbuild-import-meta-url-plugin'
 import * as fs from 'fs'
 import path from 'path'
+import { trimTreeSitterWasmPlugin } from './vite.treesitterTrim'
 const pkg = JSON.parse(
   fs.readFileSync(new URL('./package.json', import.meta.url).pathname).toString()
 )
@@ -18,6 +19,7 @@ export default defineConfig({
     format: 'es'
   },
   plugins: [
+    trimTreeSitterWasmPlugin(),
     {
       name: 'load-vscode-css-as-string',
       enforce: 'pre',

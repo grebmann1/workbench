@@ -1,13 +1,13 @@
 {
     "announcement": {
-        "id": "2026-09-05-2-1-1",
+        "id": "2026-09-07-2-1-2",
         "active": true,
         "variant": "brand",
-        "title": "Workbench 2.1.1 is here",
-        "message": "Workbench 2.1.1 lets the Agent inspect the tab beside the side panel, loads live model catalogs from your API keys, and adds hover tooltips to overlay and SOQL toolbar buttons.",
+        "title": "Workbench 2.1.2 is here",
+        "message": "Workbench 2.1.2 ships a much smaller Chrome extension by loading VS Code from the hosted workbench instead of bundling the editor engine.",
         "linkLabel": "View release notes",
         "linkUrl": "https://www.sf-workbench.com/app?applicationName=release",
-        "startsAt": "2026-09-05T00:00:00Z",
+        "startsAt": "2026-09-07T00:00:00Z",
         "endsAt": "2026-12-31T23:59:59Z"
     }
 }

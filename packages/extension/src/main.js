@@ -14,7 +14,7 @@ const init = async () => {
     window.defaultStore = await chromeStore('local');
     window.settingsStore = await chromeStore('sync');
     /** Define Settings **/
-    window.Prism = Prism;
+    window.Prism = typeof Prism !== 'undefined' ? Prism : window.Prism;
     //window.connections = {}; // use for faster connection, during live processing
     window.jsforceSettings = {
         clientId:

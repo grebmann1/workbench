@@ -21,7 +21,7 @@ import { bootstrapChatCommands } from './chatCommandBootstrap.js';
 const init = async () => {
     window.defaultStore = await chromeStore('local');
     window.settingsStore = await chromeStore('sync');
-    window.Prism = Prism;
+    window.Prism = typeof Prism !== 'undefined' ? Prism : window.Prism;
     window.jsforceSettings = {
         clientId:
             '3MVG9_kZcLde7U5oNdaqndT3T9qa54eaA.ycC6APuOkYzRP286pPeOvwOqAQ2ue7l5ejNAxPYj4xTbWn3zS6Y',

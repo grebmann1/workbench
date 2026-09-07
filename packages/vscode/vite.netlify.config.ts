@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite'
 import * as fs from 'fs'
+import { trimTreeSitterWasmPlugin } from './vite.treesitterTrim'
 const pkg = JSON.parse(
   fs.readFileSync(new URL('./package.json', import.meta.url).pathname).toString()
 )
@@ -14,6 +15,7 @@ export default defineConfig({
     assetsInlineLimit: 0
   },
   plugins: [
+    trimTreeSitterWasmPlugin(),
     {
       name: 'load-vscode-css-as-string',
       enforce: 'pre',
