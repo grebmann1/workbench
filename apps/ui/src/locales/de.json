@@ -1,6 +1,6 @@
 {
     "chrome": {
-        "announce": "Workbench <bold>2.1.1</bold> ist da — der Agent prüft den Tab neben dem Seitenpanel, und die Modellauswahl lädt Live-Kataloge aus Ihren API-Schlüsseln",
+        "announce": "Workbench <bold>2.1.2</bold> ist da — die Chrome-Erweiterung ist deutlich kleiner, und VS Code lädt weiterhin aus dem gehosteten Workbench",
         "nav": {
             "github": "GitHub",
             "docs": "Docs",

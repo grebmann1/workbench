@@ -1,6 +1,6 @@
 {
     "chrome": {
-        "announce": "Workbench <bold>2.1.1</bold> リリース — エージェントはサイドパネル横のタブを直接確認でき、モデル選択は API キーから最新カタログを読み込みます",
+        "announce": "Workbench <bold>2.1.2</bold> リリース — Chrome 拡張が大幅に軽量化され、VS Code は引き続きホストされたワークベンチから読み込まれます",
         "nav": {
             "github": "GitHub",
             "docs": "ドキュメント",
