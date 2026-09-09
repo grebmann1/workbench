@@ -61,3 +61,15 @@ test('parseJsArgs: --timeout is stripped from positional args', () => {
     assert.equal(parsed.timeoutMs, 30000);
     assert.deepEqual(parsed.argsWithoutFlags, ['-e', 'return 1']);
 });
+
+test('parseJsArgs: --timeout above 120s is clamped', () => {
+    const parsed = parseJsArgs(['--timeout', '999999', '-e', 'return 1']);
+    assert.equal(parsed.error, null);
+    assert.equal(parsed.timeoutMs, 120000);
+});
+
+test('parseJsArgs: --timeout below 1s is clamped', () => {
+    const parsed = parseJsArgs(['--timeout', '0', '-e', 'return 1']);
+    assert.equal(parsed.error, null);
+    assert.equal(parsed.timeoutMs, 1000);
+});
