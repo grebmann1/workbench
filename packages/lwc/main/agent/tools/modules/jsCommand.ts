@@ -1,3 +1,5 @@
+import { clampEvalTimeoutMs } from '../../cdpHandler/sandboxIframe';
+
 export type JsCommandResult = {
     stdout: string;
     stderr: string;
@@ -39,6 +41,7 @@ export function parseJsArgs(argv: string[]): JsArgsParseResult {
                     },
                 };
             }
+            timeoutMs = clampEvalTimeoutMs(timeoutMs);
             i += 1;
             continue;
         }

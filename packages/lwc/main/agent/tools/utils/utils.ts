@@ -4,6 +4,14 @@ import LOGGER from 'shared/logger';
 import { store as legacyStore, store_application as legacyStore_application } from 'shared/store';
 import { guid, isChromeExtension, getChromePort } from 'shared/utils';
 
+import {
+    WAIT_FOR_LOADED_INTERVAL_MS,
+    WAIT_FOR_LOADED_TIMEOUT_MS,
+    waitUntilNotLoading,
+} from './waitForLoaded';
+
+export { WAIT_FOR_LOADED_INTERVAL_MS, WAIT_FOR_LOADED_TIMEOUT_MS, waitUntilNotLoading };
+
 export function formatTabId(tabId, tabs) {
     LOGGER.log('Tool -> utils -> formatTabId', tabId, tabs);
     if (tabs.some(tab => tab.id === tabId)) {
@@ -12,19 +20,8 @@ export function formatTabId(tabId, tabs) {
     return { tabId: guid(), isNewTab: true };
 }
 
-// Helper: waitForLoaded (copied from soqlLogic.js)
-export function waitForLoaded() {
-    return new Promise(resolve => {
-        const checkLoading = () => {
-            const { application } = store.getState();
-            if (!application.isLoading) {
-                clearInterval(intervalId);
-                resolve();
-            }
-        };
-        checkLoading();
-        const intervalId = setInterval(checkLoading, 1000);
-    });
+export function waitForLoaded(timeoutMs?: number): Promise<void> {
+    return waitUntilNotLoading(() => Boolean(store.getState().application?.isLoading), timeoutMs);
 }
 
 export function wrappedNavigate(payload) {

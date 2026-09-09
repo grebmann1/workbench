@@ -12,3 +12,11 @@ test('sandbox.js compiles every eval wrap then executes with SyntaxError fallbac
     assert.match(src, /compileSandboxEvalFns\(code\)/);
     assert.match(src, /trailing-semicolon/);
 });
+
+test('sandbox.js refuses a second EVAL_REQUEST while one eval is in flight', async () => {
+    const sandboxPath = fileURLToPath(new URL('../sandbox.js', import.meta.url));
+    const src = await readFile(sandboxPath, 'utf8');
+    assert.match(src, /async function runEval\(id, code, timeoutMs\) \{\s*if \(currentEvalId\)/s);
+    assert.match(src, /Sandbox is busy with another eval/);
+    assert.match(src, /const MAX_EVAL_TIMEOUT_MS = 120000/);
+});

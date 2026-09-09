@@ -2,11 +2,12 @@ import { GOOGLE_DRIVE_SCOPES } from 'agent/googleAuth';
 import LOGGER from 'shared/logger';
 
 import { decodeExecStdout } from '../tools/modules/execStdout';
+import { createSerializedTaskQueue } from './evalQueue';
 import {
-    DEFAULT_EVAL_TIMEOUT_MS,
     IFRAME_LOAD_TIMEOUT_MS,
     SANDBOX_PING_TIMEOUT_MS,
     SANDBOX_READY_TIMEOUT_MS,
+    clampEvalTimeoutMs,
     isSandboxIframeAlive,
 } from './sandboxIframe';
 import { mapTabForSandbox, queryActiveTabForAgent, queryTabsForAgent } from './tabQuery';
@@ -204,6 +205,7 @@ export class CdpHandler {
     webpEncodingSupported = null;
 
     pending = new Map();
+    evalQueue = createSerializedTaskQueue();
 
     tabTargetInfo = {
         targetId: 'tabTargetId',
@@ -291,6 +293,7 @@ export class CdpHandler {
             this.debuggerEventsRegistered = false;
         }
 
+        this.evalQueue.destroy();
         for (const [id, pending] of this.pending) {
             clearTimeout(pending.timer);
             pending.reject(new Error('CdpHandler destroyed'));
@@ -338,15 +341,23 @@ export class CdpHandler {
             return Promise.reject(new Error('Browser runtime iframe is not available'));
         }
 
+        return this.evalQueue.enqueue(() => this.execInSandboxUnqueued(code, timeoutMs));
+    }
+
+    private execInSandboxUnqueued(code: string, timeoutMs?: number) {
+        if (!this.isAlive()) {
+            return Promise.reject(new Error('Browser runtime iframe is not available'));
+        }
+
         return new Promise((resolve, reject) => {
             const id = crypto.randomUUID();
             LOGGER.log('execInSandbox called, id:', id, 'timeout:', timeoutMs);
 
-            const timeout = timeoutMs ?? DEFAULT_EVAL_TIMEOUT_MS;
+            const timeout = clampEvalTimeoutMs(timeoutMs);
             const timer = setTimeout(() => {
                 if (!this.pending.has(id)) return;
                 LOGGER.log('execInSandbox timeout, id:', id);
-                // The sandbox only supports one in-flight eval at a time, so a global abort is safe here.
+                // Only one eval is in flight (queued at execInSandbox), so a global abort is safe here.
                 this.postToSandbox({ type: 'ABORT' });
                 this.pending.delete(id);
                 reject(new Error('Execution timeout'));
@@ -378,6 +389,7 @@ export class CdpHandler {
 
     abortExecution() {
         LOGGER.log('abortExecution called, pending requests:', this.pending.size);
+        this.evalQueue.abortQueued();
         this.postToSandbox({ type: 'ABORT' });
 
         for (const [id, pending] of this.pending) {

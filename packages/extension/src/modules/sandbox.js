@@ -837,6 +837,9 @@ const parentOrigin = '*';
 let aborted = false;
 let currentEvalId = null;
 let finishCurrentEval = null;
+const MIN_EVAL_TIMEOUT_MS = 1000;
+const MAX_EVAL_TIMEOUT_MS = 120000;
+const DEFAULT_EVAL_TIMEOUT_MS = 45000;
 
 // Cached Puppeteer browser and page per tab (one connection per tab)
 let cachedBrowser = null;
@@ -1986,13 +1989,28 @@ async function runCompiledSandboxEval(evalFns, runWithTimeout) {
 }
 
 async function runEval(id, code, timeoutMs) {
+    if (currentEvalId) {
+        sendToParent({
+            type: 'EVAL_RESULT',
+            id,
+            output: '[Error]\nSandbox is busy with another eval\n',
+            hasError: true,
+            images: [],
+            aborted: false,
+        });
+        return;
+    }
+
     aborted = false;
     currentEvalId = id;
     if (imageContext) {
         imageContext.images = [];
         imageContext.counter = 0;
     }
-    const timeout = Math.max(1000, Math.min(timeoutMs || 45000, 120000));
+    const timeout = Math.max(
+        MIN_EVAL_TIMEOUT_MS,
+        Math.min(timeoutMs || DEFAULT_EVAL_TIMEOUT_MS, MAX_EVAL_TIMEOUT_MS)
+    );
 
     const chunks = [];
     const originalLog = console.log;
