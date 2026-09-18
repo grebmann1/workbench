@@ -1,0 +1,56 @@
+:host {
+    display: block;
+    height: 100%;
+    overflow: auto;
+}
+.investigation {
+    max-width: 76rem;
+    padding: 1rem;
+}
+.investigation > p {
+    margin: 0.35rem 0;
+    overflow-wrap: anywhere;
+}
+.input-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+    gap: 0.75rem;
+    margin: 1rem 0;
+}
+.search-row {
+    display: flex;
+    gap: 0.75rem;
+    align-items: end;
+}
+.search-row lightning-input {
+    flex: 1;
+    max-width: 38rem;
+}
+.actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin: 1rem 0;
+}
+.user-results,
+.sources {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin: 0.75rem 0;
+}
+.table-scroll {
+    overflow: auto;
+    margin: 1rem 0;
+}
+td,
+th {
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+td {
+    min-width: 6rem;
+}
+details li {
+    margin: 0.4rem 0;
+}

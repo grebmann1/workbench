@@ -1,4 +1,5 @@
 import { credentialStrategies, OAUTH_TYPES, getConfiguration } from 'core/connector';
+import type { ConnectorLike } from 'core/connector';
 import { notifyDesktopLimitedModeStatus } from 'core/desktopBridge';
 import { store, APPLICATION } from 'core/store';
 import Toast from 'lightning/toast';
@@ -23,6 +24,12 @@ function hasSpecificPageTarget(targetPage) {
 
 function getDefaultLandingTarget() {
     return store.getState()?.application?.isLoggedIn ? 'org/app' : 'home/app';
+}
+
+function requireReadySession(connector: ConnectorLike | null | undefined) {
+    if (connector?.configuration?._hasError) {
+        throw new Error(connector.configuration._errorMessage || 'Salesforce connection failed.');
+    }
 }
 
 /**
@@ -76,6 +83,7 @@ export async function loadLimitedMode(context) {
             throw new Error('No credentials found');
         }
 
+        requireReadySession(connector);
         store.dispatch(APPLICATION.reduxSlice.actions.login({ connector }));
 
         if (isElectronApp()) {
@@ -127,32 +135,30 @@ export async function loadFullMode(context) {
                 sessionId,
                 serverUrl,
             });
+            requireReadySession(connector);
             store.dispatch(APPLICATION.reduxSlice.actions.login({ connector }));
         } else {
             // New logic inspired by old getExistingSession
             const currentConnectionRaw = sessionStorage.getItem('currentConnection');
             if (currentConnectionRaw) {
-                try {
-                    const settings = JSON.parse(currentConnectionRaw);
-                    settings.logLevel = null;
-                    let connector;
-                    if (settings.sessionId && settings.serverUrl) {
-                        connector = await credentialStrategies.SESSION.connect({
-                            sessionId: settings.sessionId,
-                            serverUrl: settings.serverUrl,
-                        });
-                    } else if (
-                        settings.credentialType &&
-                        credentialStrategies[settings.credentialType || 'OAUTH']
-                    ) {
-                        connector =
-                            await credentialStrategies[settings.credentialType].connect(settings);
-                    }
-                    if (connector) {
-                        store.dispatch(APPLICATION.reduxSlice.actions.login({ connector }));
-                    }
-                } catch (e) {
-                    LOGGER.error('load_fullMode Error -->', e);
+                const settings = JSON.parse(currentConnectionRaw);
+                settings.logLevel = null;
+                let connector;
+                if (settings.sessionId && settings.serverUrl) {
+                    connector = await credentialStrategies.SESSION.connect({
+                        sessionId: settings.sessionId,
+                        serverUrl: settings.serverUrl,
+                    });
+                } else if (
+                    settings.credentialType &&
+                    credentialStrategies[settings.credentialType || 'OAUTH']
+                ) {
+                    connector =
+                        await credentialStrategies[settings.credentialType].connect(settings);
+                }
+                if (connector) {
+                    requireReadySession(connector);
+                    store.dispatch(APPLICATION.reduxSlice.actions.login({ connector }));
                 }
             }
         }
@@ -160,6 +166,12 @@ export async function loadFullMode(context) {
         LOGGER.error('loadFullMode bootstrap failed -->', e);
         // Keep the shell usable even when automatic reconnect fails.
         store.dispatch(APPLICATION.reduxSlice.actions.logout({}));
+        Toast.show({
+            label: 'Session Error',
+            message: e.message,
+            variant: 'error',
+            mode: 'dismissible',
+        });
     }
 
     if (redirectUrl) {

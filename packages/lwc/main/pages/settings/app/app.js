@@ -9,7 +9,7 @@ import { store, APPLICATION } from 'core/store';
 import ToolkitElement from 'core/toolkitElement';
 import Toast from 'lightning/toast';
 import { track, wire } from 'lwc';
-import { NavigationContext, navigate } from 'lwr/navigation';
+import { CurrentPageReference, NavigationContext, navigate } from 'lwr/navigation';
 import {
     buildProviderConfigCacheRecord,
     cacheManager,
@@ -116,10 +116,21 @@ export default class App extends ToolkitElement {
     @wire(NavigationContext)
     navContext;
 
+    @wire(CurrentPageReference)
+    handlePageReference(pageRef) {
+        if (
+            pageRef?.type === 'application' &&
+            pageRef.state?.applicationName === 'settings' &&
+            pageRef.state?.tab === 'ai'
+        ) {
+            this.activeTab = 'ai';
+        }
+    }
+
     connectedCallback() {
         this.loadConfigFromCache();
         this.loadVersionInfo();
-        this.activeTab = this.isUserLoggedIn ? 'session' : 'ui';
+        this.activeTab ||= this.isUserLoggedIn ? 'session' : 'ui';
         this.loadMetadataStorageTypeOptions();
     }
 

@@ -1,16 +1,9 @@
 # Access Analyzer
 
-Review and compare access provided by Permission Sets and Profiles.
+Investigate a selected user's object, field and record access, or compare configured profile and permission-set permissions.
 
-## Where to find
-- Explorers → Access Analyzer
+Open **Admin → Access Analyzer** and enter the object, record and optional field to investigate. User investigations run read-only checks on request, preserve the record context, expose unavailable evidence, link to Setup and export a Markdown note. The report workflow remains available through **Compare profiles and permission sets**.
 
-## Key features
-- Compare Profiles and Permission Sets
-- Inspect object/field permissions and user-level effective access
-- Export or review differences
+Object/field observations use UserEntityAccess and UserFieldAccess; record observations use UserRecordAccess. Configured-source inspection covers profiles and active direct permission-set assignments. Group/muting contributions, licenses, target-session activation, restriction rules and UI behavior remain unexamined. Missing evidence is never interpreted as a denial or a successful access check.
 
-## Tips
-- Use comparisons to validate changes before deployment
-
-
+See [the user guide](../../../../apps/docs/docs/applications/access-analyzer.md) for scope and usage.

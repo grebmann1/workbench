@@ -1,6 +1,6 @@
 {
     "chrome": {
-        "announce": "Workbench <bold>2.1.2</bold> ya está aquí — la extensión de Chrome es mucho más pequeña, y VS Code sigue cargándose desde el workbench alojado",
+        "announce": "Workbench <bold>2.1.4</bold> ya está aquí — los 401 de Salesforce no renovables (BlackTab) se detienen tras la primera respuesta",
         "nav": {
             "github": "GitHub",
             "docs": "Docs",

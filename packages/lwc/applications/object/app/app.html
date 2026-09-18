@@ -105,6 +105,7 @@
                                     <!-- Content -->
                                     <template lwc:if={isViewerDisplayed}>
                                         <object-sobject
+                                            investigation={activeInvestigation}
                                             object-records={records}
                                             record-name={activeRecordName}
                                             use-tooling-api={activeUseToolingApi}></object-sobject>

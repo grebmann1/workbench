@@ -1,13 +1,13 @@
 {
     "announcement": {
-        "id": "2026-09-07-2-1-2",
+        "id": "2026-09-18-2-1-4",
         "active": true,
         "variant": "brand",
-        "title": "Workbench 2.1.2 is here",
-        "message": "Workbench 2.1.2 ships a much smaller Chrome extension by loading VS Code from the hosted workbench instead of bundling the editor engine.",
+        "title": "Workbench 2.1.4 is here",
+        "message": "Workbench 2.1.4 fixes BlackTab (BT) and expired-session retry loops, opens AI settings from the side panel, and adds clear Close controls to Error Log and Jobs panels.",
         "linkLabel": "View release notes",
         "linkUrl": "https://www.sf-workbench.com/app?applicationName=release",
-        "startsAt": "2026-09-07T00:00:00Z",
+        "startsAt": "2026-09-18T00:00:00Z",
         "endsAt": "2026-12-31T23:59:59Z"
     }
 }

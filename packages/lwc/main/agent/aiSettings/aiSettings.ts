@@ -32,7 +32,6 @@ export default class AiSettings extends LightningElement {
     @api config = {};
     @api hideMcpCard = false;
     @api hideLlmSettingsCard = false;
-    @api useInlineOnboarding = false;
 
     @track googleUser = null;
     @track googleDriveConnected = false;
@@ -369,6 +368,18 @@ export default class AiSettings extends LightningElement {
 
     handleCloseOnboardAiProvider = () => {
         this.showOnboardAiProvider = false;
+    };
+
+    handleOpenProviderSettings = event => {
+        event.preventDefault();
+        event.stopPropagation();
+        this.handleCloseOnboardAiProvider();
+        requestAnimationFrame(() => {
+            const controls = this.template.querySelector(
+                '.provider-controls'
+            ) as HTMLElement | null;
+            controls?.scrollIntoView({ block: 'nearest' });
+        });
     };
 
     handleOnboardAiProviderSetupComplete = () => {

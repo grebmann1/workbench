@@ -3,6 +3,7 @@ import { Buffer } from 'buffer';
 import { unzipSync, strFromU8 } from 'fflate/browser';
 import jsforce from 'imported/jsforce';
 
+import { applySessionRefreshLimit } from '../../lwc/main/core/connector/sessionRefreshLimit';
 import { createIndexedDbFileSystem } from '../../lwc/main/core/fs/indexedDbFileSystem';
 import createMetadataFsService from '../../lwc/main/core/fs/metadataFsService';
 
@@ -69,6 +70,7 @@ const initializeConnection = (connectionParams, debug = false) => {
     debugEnabled = Boolean(debug);
     connectionContext = connectionParams || {};
     conn = new jsforce.Connection(connectionParams);
+    applySessionRefreshLimit(conn);
     const fs = createIndexedDbFileSystem();
     metadataFs = createMetadataFsService(fs);
     debugLog('initialized', {

@@ -1,11 +1,18 @@
 import ToolkitElement from 'host-api/element';
 import Toast from 'lightning/toast';
-import { api, track } from 'lwc';
+import { api, track, wire } from 'lwc';
+import { connectStore, store } from 'host-api/store';
+import {
+    currentInvestigation,
+    investigationOrgKey,
+    recordEvidenceNote,
+} from 'shared/recordInvestigation';
 import { store as legacyStore, store_application } from 'shared/store';
 import { isEmpty } from 'shared/utils';
 import { ensureSessionClientCallOption } from '../sessionCallOptions';
 import {
     GROUPS,
+    COVERAGE_NOTES,
     CATEGORIES,
     STATUS_BADGE_CLASS,
     buildBlueprintSetupUrl,
@@ -17,9 +24,33 @@ import {
 import type { BlueprintItem, BlueprintCategory, BlueprintGroup } from './constants';
 
 type AnyRecord = Record<string, any>;
+type BlueprintResult = BlueprintItem[] | { items: BlueprintItem[]; warning: string };
 
 export default class Blueprint extends ToolkitElement {
     _objectName: string | null = null;
+    @api investigation = '';
+    _focusedInvestigation = '';
+    _orgKey = '';
+
+    @wire(connectStore, { store })
+    connectionChanged() {
+        const key = investigationOrgKey(this.connector);
+        if (this._orgKey && key !== this._orgKey) {
+            this._requestToken++;
+            this._categories = new Map();
+            this._loadedCategories = new Set();
+            this._hasLoaded = false;
+        }
+        this._orgKey = key;
+    }
+    disconnectedCallback() {
+        this._requestToken++;
+    }
+    get investigationContext() {
+        const context = currentInvestigation(this.investigation, this.connector);
+        return context?.objectName === this.objectName ? context : null;
+    }
+
     @track _categories: Map<string, BlueprintCategory> = new Map();
     @track searchTerm = '';
     @track activeOnly = false;
@@ -51,7 +82,19 @@ export default class Blueprint extends ToolkitElement {
     activate(): void {
         if (!this._hasLoaded && !isEmpty(this._objectName)) {
             this.initializeBlueprint();
-            this.loadAllCategories();
+            if (!this.investigationContext) this.loadAllCategories();
+        }
+        const context = this.investigationContext;
+        if (context && this._focusedInvestigation !== context.id) {
+            this._focusedInvestigation = context.id;
+            const group = CATEGORIES.find(category => category.key === context.category)?.group;
+            this.openGroups = Object.fromEntries(
+                GROUPS.map(item => [item.key, item.key === group])
+            );
+            this.openCategories = { [context.category]: true };
+            CATEGORIES.filter(category => category.group === group).forEach(category =>
+                this.loadCategory(category.key)
+            );
         }
     }
 
@@ -101,8 +144,15 @@ export default class Blueprint extends ToolkitElement {
     handleRefresh = (): void => {
         this._requestToken += 1;
         this._loadedCategories = new Set();
+        const loaded = [...this._categories.values()]
+            .filter(category => category.checked || category.isLoading || category.error)
+            .map(category => category.key);
         this.initializeBlueprint();
-        this.loadAllCategories();
+        if (this.investigationContext) {
+            (loaded.length ? loaded : [this.investigationContext.category]).forEach(key =>
+                this.loadCategory(key)
+            );
+        } else this.loadAllCategories();
     };
 
     handleToggleGroup = (e: any): void => {
@@ -181,7 +231,7 @@ export default class Blueprint extends ToolkitElement {
     private getCategoryFetcher(
         conn: any,
         obj: string
-    ): Record<string, () => Promise<BlueprintItem[]>> {
+    ): Record<string, () => Promise<BlueprintResult>> {
         return {
             validationRules: () => this.fetchValidationRules(conn, obj),
             apexTriggers: () => this.fetchApexTriggers(conn, obj),
@@ -233,25 +283,53 @@ export default class Blueprint extends ToolkitElement {
         if (!category || category.isLoading) return;
         const objectName = String(this._objectName);
         const requestToken = this._requestToken;
+        const connector = this.connector;
+        const orgKey = investigationOrgKey(connector);
+        const isCurrent = () =>
+            requestToken === this._requestToken &&
+            connector === this.connector &&
+            orgKey === investigationOrgKey(this.connector);
         this.updateCategory(catKey, { isLoading: true, error: '' });
         try {
-            await ensureSessionClientCallOption(this.connector);
-            const conn = this.connector.conn;
+            await ensureSessionClientCallOption(connector);
+            if (!isCurrent()) return;
+            const conn = connector.conn;
             const fetchers = this.getCategoryFetcher(conn, objectName);
             const fetchCategory = fetchers[catKey];
             if (!fetchCategory) {
                 this.updateCategory(catKey, { isLoading: false, error: 'Category not supported' });
                 return;
             }
-            const items = await fetchCategory();
-            if (requestToken !== this._requestToken) return;
+            const result = await fetchCategory();
+            if (!isCurrent()) return;
+            const items = Array.isArray(result) ? result : result.items;
+            const missingDetails = items.filter(item => item.coverageWarning).length;
+            const warning = [
+                COVERAGE_NOTES[catKey],
+                !Array.isArray(result) ? result.warning : '',
+                missingDetails
+                    ? `${missingDetails} item(s) have unavailable details. Inspect their components in Setup.`
+                    : '',
+            ]
+                .filter(Boolean)
+                .join(' ');
             this._loadedCategories.add(catKey);
-            this.updateCategory(catKey, { items, error: '', isLoading: false });
+            this.updateCategory(catKey, {
+                items,
+                warning,
+                checked: true,
+                checkedAt: new Date().toISOString(),
+                error: '',
+                isLoading: false,
+            });
         } catch (e: any) {
-            if (requestToken !== this._requestToken) return;
+            if (!isCurrent()) return;
             this.updateCategory(catKey, {
                 items: [],
-                error: e?.message || 'Failed to load',
+                checked: false,
+                checkedAt: new Date().toISOString(),
+                error: `Unavailable: ${e?.message || 'Failed to load'}`,
+
                 isLoading: false,
             });
         }
@@ -319,6 +397,10 @@ export default class Blueprint extends ToolkitElement {
                 lastModifiedDate: formatDateString(safeString(r.LastModifiedDate)),
                 lastModifiedBy: safeString(r.LastModifiedBy?.Name),
                 category: 'validationRules',
+                coverageWarning:
+                    metaResult.status !== 'fulfilled' || !metaResult.value?.[0]?.Metadata
+                        ? 'Rule details unavailable'
+                        : '',
             };
         });
     };
@@ -485,6 +567,10 @@ export default class Blueprint extends ToolkitElement {
                 lastModifiedDate: formatDateString(safeString(r.LastModifiedDate)),
                 lastModifiedBy: safeString(r.LastModifiedBy?.Name),
                 category: 'duplicateRules',
+                coverageWarning:
+                    metaResult.status !== 'fulfilled' || !metaResult.value?.Metadata
+                        ? 'Rule details unavailable'
+                        : '',
             };
         });
     };
@@ -613,12 +699,12 @@ export default class Blueprint extends ToolkitElement {
     };
 
     private async readSharingRulesMetadata(conn: any, obj: string): Promise<AnyRecord | null> {
-        try {
-            const result = await conn.metadata.read('SharingRules', obj);
-            return (result as AnyRecord) || null;
-        } catch {
-            return null;
-        }
+        const result = await conn.metadata.read('SharingRules', obj);
+        if (!result)
+            throw new Error(
+                'Salesforce returned no sharing metadata. Coverage could not be established.'
+            );
+        return result as AnyRecord;
     }
 
     private sharedToValues(val: unknown): string[] {
@@ -1310,7 +1396,7 @@ export default class Blueprint extends ToolkitElement {
         }));
     };
 
-    fetchScheduledJobs = async (conn: any, obj: string): Promise<BlueprintItem[]> => {
+    fetchScheduledJobs = async (conn: any, obj: string): Promise<BlueprintResult> => {
         const items: BlueprintItem[] = [];
 
         const scheduledFlows = await this.standardQuery(
@@ -1382,10 +1468,89 @@ export default class Blueprint extends ToolkitElement {
                 }
             }
         } catch {
-            // ApexClass body search may fail in some orgs
+            return {
+                items,
+                warning:
+                    'Scheduled Apex evidence is unavailable. Only scheduled-flow results are included.',
+            };
         }
 
         return items;
+    };
+
+    handleRetryCategory = (event: Event) => {
+        const key = (event.currentTarget as HTMLElement).dataset.category;
+        if (key) this.loadCategory(key);
+    };
+
+    buildEvidenceNote(): string {
+        const context = this.investigationContext;
+        const lines = context
+            ? [
+                  recordEvidenceNote(context, context.recordFetchedAt || ''),
+                  '',
+                  '## Object Blueprint evidence',
+              ]
+            : [
+                  '# Object Blueprint evidence',
+                  '',
+                  `Org: ${this.connector?.conn?.instanceUrl || 'Unavailable'}`,
+                  `Object: ${this.objectName}`,
+              ];
+        lines.push(
+            `Exported at: ${new Date().toISOString()}`,
+            '',
+            'Scope: object-wide inventory, not proof of field dependencies or automation execution.',
+            'Record values, history and user access were not checked by Blueprint.'
+        );
+        for (const definition of CATEGORIES) {
+            const category = this._categories.get(definition.key);
+            const status = category?.isLoading
+                ? 'Loading'
+                : category?.error
+                  ? 'Unavailable'
+                  : !category?.checked
+                    ? 'Not checked'
+                    : category.warning
+                      ? 'Partial coverage'
+                      : 'Retrieved';
+            lines.push(
+                '',
+                `### ${definition.label} — ${status}`,
+                `Checked at: ${category?.checkedAt || 'Not checked'}`
+            );
+            if (category?.warning) lines.push(category.warning);
+            if (category?.error)
+                lines.push('The request failed. Retry this category or inspect it in Setup.');
+            if (category?.checked && !category.items.length)
+                lines.push('No items returned within this check’s coverage.');
+            for (const item of category?.items || []) {
+                lines.push(
+                    `- ${item.apiName || item.name} — ${item.status}${item.lastModifiedDate ? `; modified ${item.lastModifiedDate}` : ''}`
+                );
+                if (item.coverageWarning) lines.push(`  ${item.coverageWarning}`);
+                // Only generated Setup paths are exported, never session/front-door URLs.
+                if (
+                    item.setupUrl.startsWith('/') &&
+                    !item.setupUrl.startsWith('//') &&
+                    !/[?&](sid|sessionId|access_token|token)=/i.test(item.setupUrl)
+                ) {
+                    lines.push(`  Setup: ${item.setupUrl}`);
+                }
+            }
+        }
+        return lines.join('\n');
+    }
+
+    handleExportEvidence = () => {
+        const url = URL.createObjectURL(
+            new Blob([this.buildEvidenceNote()], { type: 'text/markdown' })
+        );
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `blueprint-${this.objectName}-evidence.md`;
+        link.click();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
     };
 
     /** Getters */
@@ -1436,6 +1601,23 @@ export default class Blueprint extends ToolkitElement {
                     items,
                     _count: items.length,
                     _hasItems: items.length > 0,
+                    _coverageLabel: base.isLoading
+                        ? 'Loading'
+                        : base.error
+                          ? 'Unavailable'
+                          : !base.checked
+                            ? 'Not checked'
+                            : base.warning
+                              ? 'Partial coverage'
+                              : 'Retrieved',
+                    _emptyMessage: !base.checked
+                        ? 'Not checked yet. Open this category to retrieve evidence.'
+                        : base.items.length
+                          ? 'No items match the current filters.'
+                          : base.warning
+                            ? 'No candidates returned within this limited coverage.'
+                            : 'No items returned by this check.',
+
                     _activeCount: activeCount,
                     _inactiveCount: inactiveCount,
                     _hasActive: activeCount > 0,
@@ -1480,7 +1662,10 @@ export default class Blueprint extends ToolkitElement {
     }
 
     get summaryText(): string {
-        return `${this.totalItemCount} items found, ${this.activeItemCount} active`;
+        const categories = [...this._categories.values()];
+        const checked = categories.filter(category => category.checked).length;
+        const unavailable = categories.filter(category => category.error).length;
+        return `${this.totalItemCount} items; ${checked}/${categories.length} categories retrieved; ${unavailable} unavailable`;
     }
 
     get hasData(): boolean {
@@ -1491,7 +1676,11 @@ export default class Blueprint extends ToolkitElement {
         if (!this._hasLoaded || this._loadedCategories.size === 0) {
             return false;
         }
-        return this.totalItemCount === 0;
+        return (
+            this._loadedCategories.size === CATEGORIES.length &&
+            this.totalItemCount === 0 &&
+            [...this._categories.values()].every(category => !category.error && !category.warning)
+        );
     }
 
     get activeOnlyVariant(): string {

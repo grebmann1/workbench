@@ -1,6 +1,6 @@
 {
     "chrome": {
-        "announce": "Workbench <bold>2.1.2</bold> is here — the Chrome extension is much smaller, and VS Code still loads from the hosted workbench",
+        "announce": "Workbench <bold>2.1.4</bold> is here — BlackTab and other non-refreshable Salesforce 401s fail closed after the first response",
         "nav": {
             "github": "GitHub",
             "docs": "Docs",

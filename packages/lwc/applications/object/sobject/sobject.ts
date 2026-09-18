@@ -1,5 +1,11 @@
 import ToolkitElement from 'host-api/element';
-import { store, SOBJECT } from 'host-api/store';
+import {
+    currentInvestigation,
+    investigationHeading,
+    investigationOrgKey,
+    investigationRoute,
+} from 'shared/recordInvestigation';
+import { connectStore, store, SOBJECT } from 'host-api/store';
 import Toast from 'lightning/toast';
 import { api, wire, track } from 'lwc';
 import { NavigationContext, navigate } from 'lwr/navigation';
@@ -17,6 +23,52 @@ type AnyRecord = Record<string, any>;
 
 export default class Sobject extends ToolkitElement {
     _recordName: string | null = null;
+    @api investigation = '';
+    _appliedInvestigation = '';
+    _describeToken = 0;
+    _orgKey = '';
+
+    @wire(connectStore, { store })
+    connectionChanged() {
+        const key = investigationOrgKey(this.connector);
+        const changed = this._orgKey && key !== this._orgKey;
+        this._orgKey = key;
+        if (changed) {
+            this._describeToken++;
+            this.selectedDetails = null;
+            this._appliedInvestigation = '';
+            this.reset();
+            if (key && this.recordName) this.loadSpecificRecord();
+        }
+    }
+
+    get investigationContext() {
+        const context = currentInvestigation(this.investigation, this.connector);
+        return context?.objectName === this.recordName ? context : null;
+    }
+    get investigationSummary() {
+        return this.investigationContext ? investigationHeading(this.investigationContext) : '';
+    }
+    handleReturnToRecord = () => {
+        const context = this.investigationContext;
+        if (context)
+            navigate(this.navContext, {
+                type: 'application',
+                state: investigationRoute(context, 'recordviewer'),
+            });
+    };
+    handleInvestigationQuery = () => {
+        const context = this.investigationContext;
+        if (context)
+            navigate(this.navContext, {
+                type: 'application',
+                state: investigationRoute(context, 'soql'),
+            });
+    };
+    disconnectedCallback() {
+        this._describeToken++;
+    }
+
     @wire(NavigationContext)
     navContext: any;
 
@@ -45,8 +97,17 @@ export default class Sobject extends ToolkitElement {
     @api
     objectRecords: AnyRecord[] = [];
 
+    _useToolingApi = false;
     @api
-    useToolingApi = false;
+    get useToolingApi() {
+        return this._useToolingApi;
+    }
+    set useToolingApi(value: boolean) {
+        const next = value === true;
+        if (this._useToolingApi === next) return;
+        this._useToolingApi = next;
+        if (this.recordName) this.loadSpecificRecord();
+    }
 
     @api
     get recordName(): string | null {
@@ -54,7 +115,9 @@ export default class Sobject extends ToolkitElement {
     }
 
     set recordName(value: string | null) {
+        if (value === this._recordName) return;
         this._recordName = value;
+        this._appliedInvestigation = '';
         if (!isEmpty(value)) {
             this.loadSpecificRecord();
         }
@@ -65,6 +128,16 @@ export default class Sobject extends ToolkitElement {
     }
 
     renderedCallback() {
+        const context = this.investigationContext;
+        if (
+            context &&
+            this.selectedDetails?.name === context.objectName &&
+            this._appliedInvestigation !== context.id
+        ) {
+            this._appliedInvestigation = context.id;
+            this.detailTab = 'blueprint';
+            this.scheduleDetailActivation('blueprint');
+        }
         this.flushPendingDetailActivation();
     }
 
@@ -207,9 +280,11 @@ export default class Sobject extends ToolkitElement {
 
     loadSpecificRecord = async (): Promise<void> => {
         this.reset();
+        const token = ++this._describeToken;
+        this.selectedDetails = null;
         this.isLoading = true;
-        await this.describeSpecific(this.recordName);
-        this.isLoading = false;
+        await this.describeSpecific(this.recordName, token);
+        if (token === this._describeToken) this.isLoading = false;
     };
 
     /** Methods  **/
@@ -220,6 +295,7 @@ export default class Sobject extends ToolkitElement {
     };
 
     reset = (): void => {
+        this.extraSelectedDetails = { totalRecords: null };
         this.isNoRecord = false;
         this.isLoading = false;
         this.fieldSearch = '';
@@ -235,23 +311,38 @@ export default class Sobject extends ToolkitElement {
     };
 
     checkTotalRecords = async (): Promise<void> => {
-        this.extraSelectedDetails = { totalRecords: 0 };
+        const token = this._describeToken;
+        const objectName = this.selectedDetails?.name;
+        const connector = this.connector;
+        const useToolingApi = this.useToolingApi;
+        const orgKey = investigationOrgKey(connector);
+        const isCurrent = () =>
+            token === this._describeToken &&
+            connector === this.connector &&
+            orgKey === investigationOrgKey(this.connector);
+        this.extraSelectedDetails = { totalRecords: null };
         try {
-            await ensureSessionClientCallOption(this.connector);
-            const conn = this.useToolingApi ? this.connector.conn.tooling : this.connector.conn;
-            const res = await conn.query(
-                `SELECT Count(Id) total FROM ${this.selectedDetails.name}`
-            );
-            const total = res?.records?.[0]?.total;
-            // IMPORTANT: replace object to trigger re-render
-            this.extraSelectedDetails = { ...this.extraSelectedDetails, totalRecords: total };
-        } catch (e) {
-            console.error('checkTotalRecords', e);
-            this.extraSelectedDetails = { ...this.extraSelectedDetails, totalRecords: null };
+            await ensureSessionClientCallOption(connector);
+            if (!isCurrent()) return;
+            const conn = useToolingApi ? connector.conn.tooling : connector.conn;
+            const res = await conn.query(`SELECT Count(Id) total FROM ${objectName}`);
+            if (isCurrent())
+                this.extraSelectedDetails = { totalRecords: res?.records?.[0]?.total ?? null };
+        } catch (error) {
+            if (isCurrent()) this.extraSelectedDetails = { totalRecords: null };
         }
     };
 
-    describeSpecific = async (name: string): Promise<void> => {
+    describeSpecific = async (name: string, token: number): Promise<void> => {
+        const connector = this.connector;
+        const orgKey = investigationOrgKey(connector);
+        const useToolingApi = this.useToolingApi;
+        const isCurrent = () =>
+            token === this._describeToken &&
+            useToolingApi === this.useToolingApi &&
+            name === this.recordName &&
+            connector === this.connector &&
+            orgKey === investigationOrgKey(this.connector);
         try {
             await ensureSessionClientCallOption(this.connector);
             const sobjectConfig = (
@@ -263,14 +354,16 @@ export default class Sobject extends ToolkitElement {
                     })
                 )
             ).payload;
+            if (!isCurrent()) return;
             LOGGER.debug('sobjectConfig', sobjectConfig);
             this.selectedDetails = this.enrichSelectedDetails(deepClone(sobjectConfig.data));
             //console.log('this.selectedDetails',this.selectedDetails);
-            this.checkTotalRecords();
+            if (!this.investigationContext) this.checkTotalRecords();
             setTimeout(() => {
-                this.buildUML();
+                if (isCurrent()) this.buildUML();
             }, 100);
         } catch (e) {
+            if (!isCurrent()) return;
             console.error(e);
             this.isNoRecord = true;
         }

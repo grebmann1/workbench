@@ -22,6 +22,7 @@ export interface BlueprintItem {
     lastModifiedDate: string;
     lastModifiedBy: string;
     category: string;
+    coverageWarning?: string;
 }
 
 export interface BlueprintCategory {
@@ -32,6 +33,9 @@ export interface BlueprintCategory {
     items: BlueprintItem[];
     error: string;
     isLoading: boolean;
+    checkedAt?: string;
+    warning?: string;
+    checked?: boolean;
 }
 
 export interface BlueprintGroup {
@@ -272,3 +276,15 @@ export function safeString(val: unknown): string {
 export function safeBool(val: unknown): boolean {
     return val === true;
 }
+
+export const COVERAGE_NOTES: Record<string, string> = {
+    apexClasses:
+        'Candidate matches by class name only; namespaced classes are excluded and results are limited to 50. This is not dependency coverage.',
+    scheduledJobs:
+        'Scheduled Apex matches use class/body and job-name heuristics. Other related jobs may be missing.',
+    queues: 'Queue inventory; nested membership and optional member details may be incomplete.',
+    listViews:
+        'List-view inventory; optional view descriptions and record-type details may be incomplete.',
+    flexiPageAssignments:
+        'Available page-assignment metadata; this does not evaluate runtime page visibility.',
+};

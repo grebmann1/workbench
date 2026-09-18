@@ -115,6 +115,7 @@ function formatTab(tab) {
         selectedRecordIds,
         sobject,
         useToolingApi,
+        investigation,
     } = tab;
     return {
         id,
@@ -127,6 +128,7 @@ function formatTab(tab) {
         selectedRecordIds: Array.isArray(selectedRecordIds) ? selectedRecordIds : [],
         sobject: sobject || parseSObjectFromBody(body),
         useToolingApi: useToolingApi === true,
+        investigation: typeof investigation === 'string' ? investigation : '',
     };
 }
 
