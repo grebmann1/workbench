@@ -95,13 +95,16 @@ export default class OnboardaiProvider extends LightningElement {
     };
 
     handleOpenSettings = () => {
-        if (!this.navContext) {
-            this.dispatchEvent(new CustomEvent('opensettings', { bubbles: true, composed: true }));
-            return;
-        }
+        const request = new CustomEvent('opensettings', {
+            bubbles: true,
+            composed: true,
+            cancelable: true,
+        });
+        // An embedded setup dialog or chat panel can reveal its own provider controls.
+        if (!this.dispatchEvent(request) || !this.navContext) return;
         navigate(this.navContext, {
             type: 'application',
-            state: { applicationName: 'settings' },
+            state: { applicationName: 'settings', tab: 'ai' },
         });
     };
 }

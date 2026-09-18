@@ -46,7 +46,9 @@ export default class Chat extends LightningElement {
     @track config = {};
     @track originalConfig = {};
 
-    handleOpenSettings = async () => {
+    handleOpenSettings = async event => {
+        event?.preventDefault();
+        event?.stopPropagation();
         await this.loadConfigFromCache();
         this.isSettingsViewOpen = true;
     };

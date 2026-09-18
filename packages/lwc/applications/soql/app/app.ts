@@ -1,4 +1,10 @@
 import Analytics from 'host-api/analytics';
+import {
+    currentInvestigation,
+    investigationHeading,
+    investigationRoute,
+    recordInvestigationQuery,
+} from 'shared/recordInvestigation';
 import { SaveModal, CATEGORY_STORAGE } from 'host-api/builder';
 import { registerCommand } from 'host-api/commands';
 import type { ConnectionLike } from 'host-api/connector';
@@ -120,6 +126,7 @@ function bootstrapSoqlExtension() {
 bootstrapSoqlExtension();
 
 export default class App extends ToolkitElement {
+    @wire(NavigationContext) navContext: Parameters<typeof navigate>[0];
     // used to controle store of childs
     isActive = false;
     isLoading = false;
@@ -213,10 +220,44 @@ export default class App extends ToolkitElement {
     }
 
     loadFromNavigation = async (pageRef: any): Promise<void> => {
-        const { state } = pageRef;
+        const state = pageRef?.state;
+        if (state?.applicationName !== 'soql') return;
+        if (state.investigation) {
+            const context = currentInvestigation(state.investigation, this.connector);
+            if (!context) {
+                Toast.show({
+                    label: 'This investigation belongs to another org or has invalid context.',
+                    variant: 'warning',
+                });
+                return;
+            }
+            const id = `investigation-${context.id}`;
+            const storeState = store.getState();
+            const ui = 'ui' in storeState ? storeState.ui : null;
+            if (!ui || typeof ui !== 'object' || !('tabs' in ui) || !Array.isArray(ui.tabs)) return;
+            const existingTab = ui.tabs.find(tab => tab.id === id);
+            if (existingTab) {
+                store.dispatch(UI.reduxSlice.actions.selectionTab({ id }));
+            } else {
+                store.dispatch(
+                    UI.reduxSlice.actions.addTab({
+                        tab: {
+                            id,
+                            body: recordInvestigationQuery(context),
+                            useToolingApi: context.useToolingApi,
+                            investigation: JSON.stringify(context),
+                        },
+                    })
+                );
+            }
+            return;
+        }
         // Use state.query to force a specific query to be loaded !
         if (isNotUndefinedOrNull(state.query)) {
-            const _guid = guidFromHash(state.query);
+            const explicitApi = state.queryApi === 'tooling' || state.queryApi === 'data';
+            const _guid = guidFromHash(
+                explicitApi ? `${state.queryApi}:${state.query}` : state.query
+            );
             const { ui } = store.getState() as any;
             const existingTab = ui.tabs.find(x => x.id === _guid);
             if (existingTab) {
@@ -227,6 +268,7 @@ export default class App extends ToolkitElement {
                         tab: {
                             id: _guid,
                             body: state.query,
+                            ...(explicitApi ? { useToolingApi: state.queryApi === 'tooling' } : {}),
                         },
                     })
                 );
@@ -242,6 +284,22 @@ export default class App extends ToolkitElement {
                 `${window.location.origin}${window.location.pathname}?${searchParams.toString()}`
             );
         }
+    };
+
+    activeInvestigation = '';
+    get investigationContext() {
+        return currentInvestigation(this.activeInvestigation, this.connector);
+    }
+    get investigationSummary() {
+        return this.investigationContext ? investigationHeading(this.investigationContext) : '';
+    }
+    handleReturnToRecord = () => {
+        const context = this.investigationContext;
+        if (context)
+            navigate(this.navContext, {
+                type: 'application',
+                state: investigationRoute(context, 'recordviewer'),
+            });
     };
 
     @wire(connectStore, { store })
@@ -266,6 +324,7 @@ export default class App extends ToolkitElement {
         if (ui && this._useToolingApi != (ui.currentTab?.useToolingApi === true)) {
             this._useToolingApi = ui.currentTab?.useToolingApi === true;
         }
+        this.activeInvestigation = ui.currentTab?.investigation || '';
         this.isLeftToggled = ui.leftPanelToggled;
         this.isRecentToggled = ui.recentPanelToggled;
         this.soql = ui.soql;

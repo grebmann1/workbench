@@ -16,7 +16,10 @@ import {
     isNotUndefinedOrNull,
     getFromStorage,
 } from 'shared/utils';
-import ModalUserSelector from 'slds/modalUserSelector';
+import AccessInvestigation from 'accessAnalyzer/investigation';
+import { wire } from 'lwc';
+import { CurrentPageReference } from 'lwr/navigation';
+import { currentInvestigation } from 'shared/recordInvestigation';
 import { TabulatorFull as Tabulator } from 'tabulator-tables';
 
 type AnyRecord = Record<string, any>;
@@ -141,6 +144,35 @@ const getAccessAnalyzerJobMeta = (alias, startedAt = Date.now()) => {
 };
 
 export default class App extends ToolkitElement {
+    investigationComponent = AccessInvestigation;
+    showInvestigation = true;
+    investigation = '';
+    investigationError = '';
+
+    @wire(CurrentPageReference)
+    handleInvestigationNavigation(pageRef) {
+        if (pageRef?.state?.applicationName !== 'access') return;
+        const value = pageRef.state.investigation;
+        if (!value) return;
+        const context = currentInvestigation(value, this.connector);
+        this.investigationError =
+            !context || context.useToolingApi
+                ? 'Open this investigation in its original org with a standard API record.'
+                : '';
+        this.investigation = context && !context.useToolingApi ? JSON.stringify(context) : '';
+        this.showInvestigation = true;
+    }
+
+    handleShowInvestigation = () => {
+        this.tableInstance?.destroy();
+        this.tableInstance = null;
+        this.showInvestigation = true;
+    };
+    handleShowReports = async () => {
+        this.showInvestigation = false;
+        await Promise.resolve();
+        this.loadMetadata(false);
+    };
     /* Metadata */
     metadata: MetadataLike | null = null;
     permissionSets: Record<string, PermissionSetLike> = {};
@@ -294,7 +326,6 @@ export default class App extends ToolkitElement {
     connectedCallback() {
         Analytics.trackAppOpen('accessAnalyzer', { alias: this.alias });
         this.loadCachedSettings();
-        this.loadMetadata(false);
         window.addEventListener('resize', this.tableResize);
     }
 
@@ -754,12 +785,7 @@ export default class App extends ToolkitElement {
         });
     };
 
-    userFiltering_handleClick = e => {
-        ModalUserSelector.open({
-            conn: this.connector.conn,
-            size: 'full',
-        }).then(res => {});
-    };
+    userFiltering_handleClick = () => this.handleShowInvestigation();
 
     namespaceFiltering_handleChange = e => {
         this.namespaceFiltering_value = e.detail.value;

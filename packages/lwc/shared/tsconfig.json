@@ -6,6 +6,7 @@
         "lib": ["ES2020", "DOM"],
         "baseUrl": ".",
         "paths": {
+            "shared/recordInvestigation": ["modules/recordInvestigation/recordInvestigation"],
             "shared/*": ["modules/*"],
             "shared/analytics": ["modules/analytics/analytics"],
             "shared/llm": ["modules/llm/llm"],

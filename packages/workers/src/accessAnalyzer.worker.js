@@ -1,5 +1,6 @@
 import jsforce from 'imported/jsforce';
 import { loadMetadata_async } from 'imported/sf';
+import { applySessionRefreshLimit } from '../../lwc/main/core/connector/sessionRefreshLimit';
 //import * as localForage from "localforage";
 
 const STATUS = {
@@ -12,6 +13,7 @@ let conn;
 
 const initializeConnection = params => {
     conn = new jsforce.Connection(params);
+    applySessionRefreshLimit(conn);
     postMessage({ type: 'message', value: 'Web worker initiated', status: STATUS.RUNNING });
 };
 

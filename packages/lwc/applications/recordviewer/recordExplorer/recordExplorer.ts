@@ -1,5 +1,7 @@
 import ToolkitElement from 'host-api/element';
 import Toast from 'lightning/toast';
+import { connectStore, store } from 'host-api/store';
+import { investigationOrgKey } from 'shared/recordInvestigation';
 import { wire, api, track } from 'lwc';
 import { CurrentPageReference, NavigationContext, generateUrl, navigate } from 'lwr/navigation';
 import { store as legacyStore, store_application } from 'shared/store';
@@ -9,7 +11,6 @@ import {
     isUndefinedOrNull,
     refreshCurrentTab,
     runSilent,
-    getCurrentObjectType,
     getCurrentTab,
     getObjectDocLink,
     getObjectFieldsSetupLink,
@@ -43,6 +44,27 @@ export default class RecordExplorer extends ToolkitElement {
     @api isPanel = false;
 
     _recordId;
+    _requestToken = 0;
+    _orgKey = '';
+    _loadedOrgKey = '';
+    @wire(connectStore, { store })
+    connectionChanged() {
+        const key = investigationOrgKey(this.connector);
+        if (this._orgKey && key !== this._orgKey) {
+            this._requestToken++;
+            this.metadata = null;
+            this.record = null;
+            this.data = [];
+            this._loadedOrgKey = '';
+            this.isLoading = false;
+        }
+        this._orgKey = key;
+    }
+
+    disconnectedCallback() {
+        this._requestToken++;
+    }
+
     tableInstance;
     isLoading = false;
 
@@ -58,6 +80,7 @@ export default class RecordExplorer extends ToolkitElement {
     data = [];
     filter = '';
     isError = false;
+    errorMessage = '';
 
     // Exceptions
     networkMembers = [];
@@ -88,6 +111,8 @@ export default class RecordExplorer extends ToolkitElement {
         const toRun = this._recordId != value && !isEmpty(value);
         this._recordId = value;
         if (toRun) {
+            this.filter = '';
+            this.pageNumber = 1;
             this.initRecordExplorer();
         }
     }
@@ -102,71 +127,92 @@ export default class RecordExplorer extends ToolkitElement {
     /** Methods **/
 
     initRecordExplorer = async () => {
+        const token = ++this._requestToken;
+        const recordId = this.recordId;
+        const connector = this.connector;
+        const orgKey = investigationOrgKey(connector);
+        const isCurrent = () =>
+            token === this._requestToken &&
+            recordId === this.recordId &&
+            orgKey === investigationOrgKey(this.connector) &&
+            connector === this.connector;
+        this.isError = false;
+        this.errorMessage = '';
+        this.isLoading = true;
+        this.metadata = null;
+        this.record = null;
+        this.recordType = null;
+        this.data = [];
+        this.networkMembers = [];
+        this._loadedOrgKey = '';
         try {
-            this.isError = false;
-            this.isLoading = true;
-
-            this.currentTab = await getCurrentTab();
-            this.currentOrigin = this.connector?.frontDoorUrl + '&retURL=';
-            // Get sobjectName (Step 2) // Should be optimized to save 1 API Call [Caching]
-            this.sobjectName = await getCurrentObjectType(this.connector.conn, this.recordId); // to replace with describeGlobal using lastModified to fetch only the changes !
-
-            // Get Metadata (Step 3) // Should be optimized to save 1 API Call [Caching]
-            var [metadata, record] = await Promise.all([
-                this.connector.conn.sobject(this.sobjectName).describe$(),
-                this.connector.conn
-                    .sobject(this.sobjectName)
-                    .retrieve(this.recordId, { headers: NO_CACHE_HEADERS }),
+            if (!connector || !orgKey)
+                throw new Error('Connect to Salesforce to inspect this record.');
+            const currentTab = await getCurrentTab();
+            const describe = await connector.conn.describeGlobal();
+            let sobjectName = describe.sobjects.find(
+                object => object.keyPrefix === recordId.slice(0, 3)
+            )?.name;
+            let useToolingApi = false;
+            if (!sobjectName) {
+                const toolingDescribe = await connector.conn.tooling.describeGlobal();
+                sobjectName = toolingDescribe.sobjects.find(
+                    object => object.keyPrefix === recordId.slice(0, 3)
+                )?.name;
+                useToolingApi = true;
+            }
+            if (!sobjectName) throw new Error('No accessible object matches this record ID.');
+            if (!isCurrent()) return;
+            let conn = useToolingApi ? connector.conn.tooling : connector.conn;
+            let [metadata, record] = await Promise.all([
+                conn.sobject(sobjectName).describe$(),
+                conn.sobject(sobjectName).retrieve(recordId, { headers: NO_CACHE_HEADERS }),
             ]);
-            if (isUndefinedOrNull(metadata)) {
-                var [metadata, record] = await Promise.all([
-                    this.connector.conn.tooling.sobject(this.sobjectName).describe$(),
-                    this.connector.conn.tooling
-                        .sobject(this.sobjectName)
-                        .retrieve(this.recordId, { headers: NO_CACHE_HEADERS }),
+            if (!metadata && !useToolingApi) {
+                useToolingApi = true;
+                conn = connector.conn.tooling;
+                [metadata, record] = await Promise.all([
+                    conn.sobject(sobjectName).describe$(),
+                    conn.sobject(sobjectName).retrieve(recordId, { headers: NO_CACHE_HEADERS }),
                 ]);
-                this.metadata = metadata;
-                this.record = record;
-                if (isNotUndefinedOrNull(this.metadata)) {
-                    this.metadata._useToolingApi = true;
-                }
-            } else {
-                this.metadata = metadata;
-                this.record = record;
             }
-
+            if (!isCurrent()) return;
+            let networkMembers = [];
+            if (sobjectName === SOBJECT.contact) {
+                networkMembers = await runSilent(
+                    async () =>
+                        (
+                            await connector.conn.query(
+                                `SELECT Id, MemberId, NetworkId,Network.Name,Network.Status FROM NetworkMember Where Member.ContactId = '${recordId}' AND Network.Status = 'Live'`
+                            )
+                        ).records,
+                    []
+                );
+            }
+            const recordType = record.RecordTypeId
+                ? await connector.conn
+                      .sobject('RecordType')
+                      .retrieve(record.RecordTypeId, { headers: NO_CACHE_HEADERS })
+                : null;
+            if (!isCurrent()) return;
+            this.currentTab = currentTab;
+            this.currentOrigin = connector.frontDoorUrl + '&retURL=';
+            this.sobjectName = sobjectName;
+            this.metadata = { ...metadata, _useToolingApi: useToolingApi === true };
+            this.record = record;
+            this.recordType = recordType;
+            this._loadedOrgKey = orgKey;
+            this.networkMembers = networkMembers.map(x => ({
+                ...x,
+                _redirectLink: `${connector.conn.instanceUrl}/servlet/servlet.su?oid=${encodeURIComponent(connector.configuration.orgId)}&retURL=%2F&sunetworkid=${encodeURIComponent(x.NetworkId)}&sunetworkuserid=${encodeURIComponent(x.MemberId)}`,
+            }));
             this.updateData(this.formatData());
-            if (this.sobjectName === SOBJECT.contact) {
-                const query = `SELECT Id, MemberId, NetworkId,Network.Name,Network.Status FROM NetworkMember Where Member.ContactId = '${this.recordId}' AND Network.Status = 'Live'`;
-                const networkMembers = await runSilent(async () => {
-                    return (await this.connector.conn.query(query)).records;
-                }, []);
-                //console.log('networkMembers',networkMembers);
-                const retUrl = '/';
-                this.networkMembers = networkMembers.map(x => ({
-                    ...x,
-                    _redirectLink: `${
-                        this.connector.conn.instanceUrl
-                    }/servlet/servlet.su?oid=${encodeURIComponent(
-                        this.connector.configuration.orgId
-                    )}&retURL=${encodeURIComponent(retUrl)}&sunetworkid=${encodeURIComponent(
-                        x.NetworkId
-                    )}&sunetworkuserid=${encodeURIComponent(x.MemberId)}`,
-                }));
-            }
-            // Get RecordType
-            if (this.record.RecordTypeId) {
-                this.recordType = await this.connector.conn
-                    .sobject('RecordType')
-                    .retrieve(this.record.RecordTypeId, { headers: NO_CACHE_HEADERS });
-            }
-
             this.dispatchEvent(
                 new CustomEvent('dataload', {
                     detail: {
-                        recordId: this.recordId,
-                        record: this.record,
-                        recordType: this.recordType,
+                        recordId,
+                        record,
+                        recordType,
                         refreshedDate: new Date(),
                         success: true,
                     },
@@ -174,70 +220,24 @@ export default class RecordExplorer extends ToolkitElement {
                     composed: true,
                 })
             );
-
-            this.isLoading = false;
         } catch (e) {
+            if (!isCurrent()) return;
             console.error(e);
             this.isError = true;
-            this.isLoading = false;
-
+            this.errorMessage = e.message || 'The record could not be retrieved.';
             this.dispatchEvent(
                 new CustomEvent('dataload', {
-                    detail: {
-                        recordId: this.recordId,
-                        success: false,
-                        error: e.message,
-                    },
+                    detail: { recordId, success: false, error: e.message },
                     bubbles: true,
                     composed: true,
                 })
             );
+        } finally {
+            if (isCurrent()) this.isLoading = false;
         }
     };
 
-    refreshData = async () => {
-        //console.log('refreshData');
-        try {
-            this.isError = false;
-            this.isLoading = true;
-
-            // Get data
-            if (isNotUndefinedOrNull(this.metadata)) {
-                const _connector = this.metadata?._useToolingApi
-                    ? this.connector.conn.tooling
-                    : this.connector.conn;
-                const [metadata, record] = await Promise.all([
-                    _connector.sobject(this.sobjectName).describe$(), // Refresh Metadata
-                    _connector
-                        .sobject(this.sobjectName)
-                        .retrieve(this.recordId, { headers: NO_CACHE_HEADERS }),
-                ]);
-                this.metadata = metadata;
-                this.record = record;
-                this.updateData(this.formatData());
-
-                this.dispatchEvent(
-                    new CustomEvent('dataload', {
-                        detail: {
-                            recordId: this.recordId,
-                            record: this.record,
-                            recordType: this.recordType,
-                            refreshedDate: new Date(),
-                            success: true,
-                        },
-                        bubbles: true,
-                        composed: true,
-                    })
-                );
-            }
-
-            this.isLoading = false;
-        } catch (e) {
-            console.error(e);
-            this.isError = true;
-            this.isLoading = false;
-        }
-    };
+    refreshData = () => this.initRecordExplorer();
 
     updateData = newData => {
         // to force refresh
@@ -271,7 +271,7 @@ export default class RecordExplorer extends ToolkitElement {
 
     scrollToTop = () => {
         window.setTimeout(() => {
-            this.template.querySelector('.tableFixHead').scrollTo({ top: 0, behavior: 'auto' });
+            this.template.querySelector('.tableFixHead')?.scrollTo({ top: 0, behavior: 'auto' });
         }, 100);
     };
 
@@ -653,11 +653,16 @@ export default class RecordExplorer extends ToolkitElement {
     }
 
     get formattedData() {
-        return this.filtering(this.data);
+        return this.filtering(this.data || []);
     }
 
     get isRecordIdAvailable() {
-        return isNotUndefinedOrNull(this.recordId) && !this.isError;
+        return (
+            isNotUndefinedOrNull(this.recordId) &&
+            !this.isError &&
+            !!this.record &&
+            this._loadedOrgKey === investigationOrgKey(this.connector)
+        );
     }
 
     get isChangeMessageDisplayed() {

@@ -1,0 +1,164 @@
+<template>
+    <section class="investigation" aria-label="User access investigation">
+        <h1 class="slds-text-heading_medium">Investigate user access</h1>
+        <p>
+            Check why a user can read or edit a record and field. Select a target user; each check
+            runs with your connected session.
+        </p>
+        <p class="slds-text-body_small">Org: {orgLabel}</p>
+        <p class="slds-text-body_small">Connected user: {connectedUserLabel}</p>
+        <template lwc:if={context}>
+            <lightning-button label="Return to record" onclick={handleReturn}></lightning-button>
+        </template>
+        <div class="input-grid">
+            <lightning-input
+                label="Object API name"
+                name="objectName"
+                value={objectName}
+                onchange={handleInput}
+                disabled={contextLocked}
+                required></lightning-input>
+            <lightning-input
+                label="Record ID"
+                name="recordId"
+                value={recordId}
+                onchange={handleInput}
+                disabled={contextLocked}
+                required></lightning-input>
+            <lightning-input
+                label="Field API name (optional)"
+                name="fieldName"
+                value={fieldName}
+                onchange={handleInput}
+                disabled={isLoading}></lightning-input>
+        </div>
+        <div class="search-row">
+            <lightning-input
+                type="search"
+                label="Find a target user"
+                value={userSearch}
+                onchange={handleUserSearchInput}
+                disabled={isLoading}
+                placeholder="Name, username or 005 user ID"></lightning-input>
+            <lightning-button
+                label="Find users"
+                onclick={handleSearch}
+                disabled={searchDisabled}></lightning-button>
+        </div>
+        <p role="status">{searchMessage}</p>
+        <template lwc:if={hasUsers}>
+            <ul class="user-results" aria-label="Matching users">
+                <template for:each={users} for:item="user">
+                    <li key={user.id}>
+                        <button
+                            type="button"
+                            class="slds-button slds-button_neutral"
+                            data-id={user.id}
+                            onclick={handleSelectUser}
+                            disabled={isLoading}>
+                            {user.name} · {user.username}
+                        </button>
+                    </li>
+                </template>
+            </ul>
+        </template>
+        <p class="slds-text-title_bold">Target user: {selectedUserLabel}</p>
+        <div class="actions">
+            <lightning-button
+                variant="brand"
+                label="Run access checks"
+                onclick={handleRun}
+                disabled={runDisabled}></lightning-button>
+            <lightning-button
+                label="Export access evidence"
+                onclick={handleExport}
+                disabled={exportDisabled}></lightning-button>
+            <template lwc:if={selectedUser}>
+                <lightning-button
+                    label="Open user in Setup"
+                    onclick={handleUserSetup}></lightning-button>
+            </template>
+        </div>
+        <template lwc:if={isLoading}>
+            <p role="status">Checking access and configured sources…</p>
+        </template>
+        <template lwc:if={error}>
+            <p class="slds-text-color_error" role="alert">{error}</p>
+        </template>
+        <template lwc:if={evidence}>
+            <section aria-label="Access findings" class="findings" lwc:ref="findings">
+                <h2 class="slds-text-heading_small">Access findings</h2>
+                <p>Target user: {evidence.targetName} · {evidence.targetUsername}</p>
+                <p role="status">{summary}</p>
+                <p class="slds-text-body_small">Checked at: {evidence.checkedAt}</p>
+                <template lwc:if={inactiveUser}>
+                    <p>
+                        The target user is inactive. These permission results do not establish that
+                        the user can sign in.
+                    </p>
+                </template>
+                <div class="table-scroll">
+                    <table class="slds-table slds-table_bordered slds-table_cell-buffer">
+                        <thead>
+                            <tr>
+                                <th scope="col">Layer</th>
+                                <th scope="col">Read</th>
+                                <th scope="col">Edit</th>
+                                <th scope="col">Evidence</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <template for:each={checks} for:item="check">
+                                <tr key={check.key}>
+                                    <th scope="row">{check.label}</th>
+                                    <td>{check.readLabel}</td>
+                                    <td>{check.editLabel}</td>
+                                    <td>
+                                        <p>{check.status}</p>
+                                        <p>{check.detail}</p>
+                                        <template lwc:if={check.canOpenQuery}>
+                                            <lightning-button
+                                                label="Open check query"
+                                                data-key={check.key}
+                                                onclick={handleOpenQuery}></lightning-button>
+                                        </template>
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+                <lightning-button
+                    label="Inspect object fields in Setup"
+                    onclick={handleObjectSetup}></lightning-button>
+                <h2 class="slds-text-heading_small slds-m-top_medium">
+                    Configured permission sources
+                </h2>
+                <p>{evidence.sourceNote}</p>
+                <ul class="sources">
+                    <template for:each={evidence.sources} for:item="source">
+                        <li key={source.id}>
+                            <p>
+                                <strong>{source.label}</strong>
+                                · {source.kind}
+                            </p>
+                            <p>{source.detail}</p>
+                            <lightning-button
+                                label="Open source in Setup"
+                                data-id={source.id}
+                                onclick={handleSourceSetup}></lightning-button>
+                        </li>
+                    </template>
+                </ul>
+            </section>
+        </template>
+        <details class="slds-m-top_medium">
+            <summary>Coverage and remaining checks</summary>
+            <ul>
+                <template for:each={coverage} for:item="item">
+                    <li key={item.id}>{item.detail}</li>
+                </template>
+            </ul>
+        </details>
+    </section>
+</template>

@@ -4,7 +4,8 @@ title: Record Viewer
 
 # Record Viewer
 
-**Menu path:** Explorers → Record Viewer  
+**Menu path:** Data → Record Viewer
+
 **URL parameter:** `applicationName=recordviewer`
 
 The Record Viewer displays all fields of a single Salesforce record by ID. It is useful for debugging data issues, verifying field values, and inspecting records without navigating through the Salesforce UI.
@@ -14,10 +15,9 @@ The Record Viewer displays all fields of a single Salesforce record by ID. It is
 ## Getting started
 
 1. Open Workbench and connect to an org.
-2. Click **Record Viewer** in the left menu (under **Explorers**).
-3. Enter a **record ID** (15 or 18-character) in the ID field.
-4. Optionally select the **SObject type** — Workbench can detect it automatically from the ID prefix.
-5. Click **View** — all fields and their values load in the panel below.
+2. Click **Record Viewer** in the left menu (under **Data**).
+3. Enter a **record ID** (15 or 18-character) or Salesforce record URL.
+4. Click **Search** — Workbench identifies the object from its ID prefix and retrieves the accessible record and schema.
 
 ---
 
@@ -25,10 +25,10 @@ The Record Viewer displays all fields of a single Salesforce record by ID. It is
 
 The record is displayed in a two-column table:
 
-| Column | Content |
-| --- | --- |
-| Field Label | Display label of the field |
-| Value | The current value stored on the record |
+| Column      | Content                                |
+| ----------- | -------------------------------------- |
+| Field Label | Display label of the field             |
+| Value       | The current value stored on the record |
 
 All fields returned by the `describe` endpoint for the object are shown, including:
 

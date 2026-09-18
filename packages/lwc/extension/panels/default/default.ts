@@ -5,7 +5,6 @@ import {
     loadSingleExtensionConfigFromCache,
     saveSingleExtensionConfigToCache,
 } from 'shared/cacheManager';
-import { LLM_PROVIDERS, hasUsableProviderCredentials } from 'shared/llm';
 import { store as legacyStore, store_application } from 'shared/store';
 import {
     isNotUndefinedOrNull,
@@ -77,8 +76,6 @@ export default class Default extends LightningElement {
         this.emitApplicationChange(value);
     }
 
-    isAgentDisplayed = false;
-
     /** Getters **/
 
     get connectionVariant() {
@@ -134,19 +131,6 @@ export default class Default extends LightningElement {
             this.loadFromNavigation(pageRef);
         }
         //console.log('application in default',application)
-    }
-
-    // New Store
-    @wire(connectStore, { store: store })
-    stateChange({ application }) {
-        // Show the Agent button when ANY provider is usable — either an API key or,
-        // for subscription sign-ins (OAuth), a stored access token. Mirrors the
-        // credential gate the agent model picker uses (hasUsableProviderCredentials),
-        // so configuring ChatGPT/Grok/Anthropic/etc. (not just OpenAI) reveals it.
-        const configs = application?.providerConfigs;
-        this.isAgentDisplayed =
-            !!configs &&
-            LLM_PROVIDERS.some(provider => hasUsableProviderCredentials(configs[provider]));
     }
 
     /** Events **/
@@ -229,6 +213,14 @@ export default class Default extends LightningElement {
         redirectToUrlViaChrome({
             baseUrl: chrome.runtime.getURL('/views/app.html'),
             redirectUrl: buildApplicationRedirectUrl('settings'),
+        });
+    };
+
+    handleOpenAiSettings = (event: Event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        void chrome.tabs.create({
+            url: chrome.runtime.getURL('/views/app.html?applicationName=settings&tab=ai'),
         });
     };
 

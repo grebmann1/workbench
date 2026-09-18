@@ -12,7 +12,12 @@ import { test as base, chromium, expect, type BrowserContext, type Page } from '
  * build:prod:extension` (or the faster `build:extension:main`) must have
  * completed before running the `extension` Playwright project.
  */
-const EXT_DIR = path.resolve(__dirname, '../../../../dist/extension');
+const EXT_DIR = path.resolve(
+    __dirname,
+    process.env.E2E_EXTENSION_TARGET === 'chat'
+        ? '../../../../dist/extension-chat'
+        : '../../../../dist/extension'
+);
 
 /**
  * Derive the Chrome extension id from the `key` field in manifest.json.

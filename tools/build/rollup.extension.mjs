@@ -303,6 +303,7 @@ const sharedModules = [
     { name: 'shared/types', path: r('../../packages/lwc/shared/modules/types/index.ts') },
     { name: 'shared/utils', path: getSharedModulePath('utils') },
     { name: 'shared/salesforceUrl', path: getSharedModulePath('salesforceUrl') },
+    { name: 'shared/recordInvestigation', path: getSharedModulePath('recordInvestigation') },
     { name: 'shared/pageReference/pageReference', path: r('../../packages/lwc/shared/modules/pageReference/pageReference.ts') },
     { name: 'shared/sf/setupUrl', path: r('../../packages/lwc/shared/modules/sf/setupUrl.ts') },
     { name: 'shared/sliceHelpers/handleSliceError', path: r('../../packages/lwc/shared/modules/sliceHelpers/handleSliceError.ts') },

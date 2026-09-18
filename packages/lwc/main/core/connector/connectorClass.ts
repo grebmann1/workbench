@@ -13,6 +13,11 @@ import {
     deriveOrgIdFromToken,
     applyChromeCacheBusting,
 } from './base';
+import {
+    applySessionRefreshLimit,
+    isSalesforceApiBlocked,
+    isSalesforceSessionError,
+} from './sessionRefreshLimit';
 import type { ConnectionLike, ConnectorConfiguration } from './connector';
 import { OAUTH_TYPES } from './credentialStrategies/oauthTypes';
 import { getConfiguration, getCurrentPlatform } from './platformService';
@@ -34,6 +39,9 @@ export class Connector {
             // cache — stale read-after-write data and hung status-polling loops.
             // Wrap the transport once so every GET bypasses the cache.
             applyChromeCacheBusting(conn, getCurrentPlatform());
+            // jsforce HttpApi caps session refresh and skips BlackTab 401s.
+            // Latch the transport so overlay/safeLoad cannot keep probing.
+            applySessionRefreshLimit(conn);
             this.addListeners(conn);
         }
     }
@@ -126,6 +134,8 @@ export class Connector {
     }
 
     async _lightEnrichWithVersions() {
+        const retryBudget = this.conn._maxSessionRefreshRetries;
+        this.conn._maxSessionRefreshRetries = 0;
         try {
             const versions = await this.conn.request?.('/services/data/');
 
@@ -140,13 +150,19 @@ export class Connector {
             });
         } catch (e) {
             LOGGER.error('Error enriching connector', e);
+            if (isSalesforceApiBlocked(this.conn) || isSalesforceSessionError(e)) {
+                await this.handleError(e);
+            }
+        } finally {
+            this.conn._maxSessionRefreshRetries = retryBudget ?? 1;
         }
     }
 
     async _enrichConnector() {
         try {
             this.resetError();
-            // set for connection, to avoid refresh if it's failing
+            // Honored by jsforce HttpApi. 0 during identity probe so a bad
+            // token fails immediately without a refresh attempt.
             this.conn._maxSessionRefreshRetries = 0;
 
             let identity = undefined;

@@ -15,7 +15,7 @@ import { connectStore, store, DOCUMENT, APPLICATION, SHELL } from 'core/store';
 import { LightningElement, track, api, wire } from 'lwc';
 import { NavigationContext, CurrentPageReference, navigate } from 'lwr/navigation';
 import LOGGER from 'shared/logger';
-import { store as legacyStore } from 'shared/store';
+import { store as legacyStore, store_application } from 'shared/store';
 import {
     guid,
     isNotUndefinedOrNull,
@@ -379,6 +379,16 @@ export default class App extends LightningElement {
             const existingAppId = this.applications.find(x => x.name === target).id;
             this.loadSpecificTab(existingAppId);
         }
+    };
+
+    handleOpenAiSettings = event => {
+        event.preventDefault();
+        event.stopPropagation();
+        legacyStore.dispatch(store_application.collapseAgentChat('user'));
+        navigate(this.navContext, {
+            type: 'application',
+            state: { applicationName: 'settings', tab: 'ai' },
+        });
     };
 
     /** Methods  */

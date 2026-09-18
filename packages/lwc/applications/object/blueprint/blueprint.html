@@ -3,6 +3,13 @@
         <!-- Toolbar -->
         <template lwc:if={hasData}>
             <div class="blueprint-toolbar slds-m-bottom_small">
+                <p class="slds-text-body_small slds-m-bottom_x-small">
+                    Object-wide evidence. Active metadata does not prove execution or a dependency
+                    on a selected field.
+                </p>
+                <lightning-button
+                    label="Export Blueprint evidence"
+                    onclick={handleExportEvidence}></lightning-button>
                 <div class="blueprint-toolbar__summary-row slds-m-bottom_x-small">
                     <div class="blueprint-toolbar__summary-pill">
                         <span class="slds-text-body_small slds-text-color_weak">{summaryText}</span>
@@ -98,6 +105,9 @@
                                         <span class="slds-truncate" title={cat.label}>
                                             {cat.label}
                                         </span>
+                                        <span class="slds-badge slds-m-left_x-small">
+                                            {cat._coverageLabel}
+                                        </span>
                                         <template lwc:if={cat._hasActive}>
                                             <span
                                                 class="status-pill pill-active slds-m-left_x-small">
@@ -115,6 +125,13 @@
                                 <template lwc:if={cat._isOpen}>
                                     <div
                                         class="slds-section__content slds-p-horizontal_small slds-p-bottom_x-small">
+                                        <template lwc:if={cat.warning}>
+                                            <p
+                                                class="slds-text-body_small slds-m-bottom_x-small"
+                                                role="status">
+                                                {cat.warning}
+                                            </p>
+                                        </template>
                                         <!-- Category loading -->
                                         <template lwc:if={cat.isLoading}>
                                             <div class="section-loader-overlay slds-is-relative">
@@ -130,6 +147,10 @@
                                             <div
                                                 class="slds-text-color_error slds-p-vertical_x-small slds-text-body_small">
                                                 {cat.error}
+                                                <lightning-button
+                                                    label="Retry category"
+                                                    data-category={cat.key}
+                                                    onclick={handleRetryCategory}></lightning-button>
                                             </div>
                                         </template>
 
@@ -271,7 +292,7 @@
                                         <template lwc:else>
                                             <div
                                                 class="slds-text-color_weak slds-p-vertical_x-small slds-text-body_small">
-                                                No {cat.label} found.
+                                                {cat._emptyMessage}
                                             </div>
                                         </template>
                                     </div>

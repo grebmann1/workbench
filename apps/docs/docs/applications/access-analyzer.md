@@ -4,60 +4,38 @@ title: Access Analyzer
 
 # Access Analyzer
 
-**Menu path:** Explorers → Access Analyzer  
+**Menu path:** Admin → Access Analyzer
+
 **URL parameter:** `applicationName=access`
 
-The Access Analyzer lets you compare the effective permissions of two profiles or permission sets side by side. Use it to audit what a user can see, edit, or execute — and spot gaps or over-provisioned access quickly.
+Investigate one user's access to a record and field, or compare the permissions configured in profiles and permission sets.
 
----
+## Investigate user access
 
-## Getting started
+Open **Admin → Access Analyzer** and enter an object API name, record ID and optional field API name. You can copy these from [Record Viewer](./record-viewer).
 
-1. Open Workbench and connect to an org.
-2. Click **Access Analyzer** in the left menu (under **Explorers**).
-3. Select the **type** you want to compare: **Profile** or **Permission Set**.
-4. Pick the first profile or permission set from the left dropdown.
-5. Pick the second from the right dropdown.
-6. Click **Analyze** — Workbench fetches permissions for both and renders the comparison.
+1. Use **Find users** to search by name, username or a 005 user ID. Select the target user. The connected user and target user are shown separately.
+2. Choose **Run access checks**. Selecting a user alone does not run access checks.
+3. Review the three layers: object read/edit, field read/edit and record read/edit. For example, object and record edit can be allowed while field edit is not allowed.
+4. Inspect configured permission sources and open the relevant user, object or permission configuration in Salesforce Setup.
+5. Rerun after a configuration change. Use **Open check query** to prepare the exact check in SOQL Explorer with the appropriate API mode, or **Export access evidence** to save a Markdown note.
 
----
+Object and field observations come from Tooling API queries filtered to the selected user. Record observations come from UserRecordAccess. A failed query, an empty result, a mismatched user, or a missing permission value remains **Unavailable / Unknown**. A field omitted from the connected user's schema is not treated as a denial for the target user. No selected field is **Not checked**.
 
-## What the analyzer compares
+Configured sources cover the profile and active direct permission-set assignments, with matching object/field grants. Assigned groups are listed for inspection; their components and muting are not resolved into granting sources. Session activation and licenses also require separate inspection. These configured-source rows do not replace the per-user API observations.
 
-### Object-level permissions
+Restriction rules, page layouts, Dynamic Forms, record types, validation rules, automation and the target user's active session remain unexamined. The results do not certify that an edit will succeed in a particular page or session. Inactive users are identified separately. Unsupported APIs and insufficient inspector permissions remain visible as unavailable checks.
 
-For each SObject, the table shows Create, Read, Edit, Delete, View All, and Modify All permissions for both selections side by side. Differences are highlighted so you can identify where the two diverge.
+Checks use read-only API calls. Evidence notes include org, connected and target user, record/field, timestamps, queries, configured sources and coverage. They omit credentials and record field values. Changing org, user or scope clears previous results; late responses cannot replace the new investigation.
 
-### Field-level security
+## Compare profiles and permission sets
 
-Switch to the **Fields** tab to compare field-level read and edit permissions across all fields for a selected object.
+Choose **Compare profiles and permission sets** to open the existing report workspace. Metadata collection starts when you open this workflow. Use the report selector and filters to inspect configured object, field, general, Apex and page permissions. Export the report to CSV or PDF or use the similarity/difference filter.
 
-### System permissions
-
-The **System** tab compares administrative and special permissions (e.g. "Modify All Data", "View Setup and Configuration", "API Enabled").
-
-### Apex class and VF page access
-
-The **Apex / Pages** tab lists which Apex classes and Visualforce pages are enabled for each selection.
-
----
-
-## Use cases
-
-- **Troubleshooting access issues** — compare a user's profile against a permission set to understand the combined effective access.
-- **Permission set design** — compare a proposed permission set against the baseline profile before assigning it to users.
-- **Compliance audits** — verify that sensitive objects have restricted access and document differences between user groups.
-
----
-
-## Tips
-
-- The analyzer shows the permissions configured in the profile or permission set — not the user's final effective access (which is the union of the profile and all assigned permission sets). To analyze effective access for a specific user, check their permission set assignments first.
-- Use [Org Overview](./org-overview) to find the list of profiles and permission sets in the org before opening the analyzer.
-
----
+A comparison describes the selected configurations. It does not establish a particular user's effective access, which can also depend on assignments, groups and muting, licenses, record sharing and session context.
 
 ## Related tools
 
-- [Org Overview](./org-overview) — see how many users are on each profile
-- [SObject Explorer](./sobject-explorer) — understand field metadata before reviewing field-level security
+- [Record Viewer](./record-viewer) — inspect the affected record and its field values
+- [SOQL Explorer](./soql-explorer) — reproduce an individual check
+- [SObject Explorer](./sobject-explorer) — inspect object-wide configuration and Blueprint evidence

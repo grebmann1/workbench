@@ -1,4 +1,23 @@
 <template>
+    <template lwc:if={investigationContext}>
+        <section
+            class="slds-p-around_small slds-theme_shade slds-shrink-none"
+            aria-label="Record investigation">
+            <p class="slds-text-title_bold">Record investigation</p>
+            <p>{investigationSummary}</p>
+            <p>
+                Blueprint evidence covers this object. It does not establish which automation ran or
+                references the selected fields.
+            </p>
+            <lightning-button
+                label="Return to record"
+                onclick={handleReturnToRecord}></lightning-button>
+            <lightning-button
+                class="slds-m-left_x-small"
+                label="Open record query"
+                onclick={handleInvestigationQuery}></lightning-button>
+        </section>
+    </template>
     <!-- Container -->
     <template lwc:if={isLoading}>
         <slds-spinner
@@ -716,6 +735,7 @@
                             onactive={handleDetailTabActive}>
                             <object-blueprint
                                 lwc:ref="blueprintView"
+                                investigation={investigation}
                                 object-name={activeObjectName}></object-blueprint>
                         </lightning-tab>
 
