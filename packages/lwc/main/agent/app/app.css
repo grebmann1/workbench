@@ -832,6 +832,55 @@
     color: #164a71;
     font-weight: 600;
 }
+.conversation-options {
+    flex-shrink: 0;
+    --slds-c-button-radius-border: 0.65rem;
+    --slds-c-button-color-border: var(--assistant-line, #e6e5ed);
+    --slds-c-button-color-border-hover: var(--assistant-hover-line, #b5acd9);
+    --slds-c-button-color-background: var(--assistant-surface, #fff);
+    --slds-c-button-color-background-hover: var(--assistant-soft, #f4f2fb);
+    --slds-c-button-text-color: var(--assistant-muted, #727487);
+    --slds-c-button-text-color-hover: var(--assistant-accent, #6357bd);
+    --slds-c-button-shadow-focus: 0 0 0 2px var(--assistant-soft, #f4f2fb);
+    --slds-c-button-line-height: 1.875rem;
+}
+.chat-approval-mode {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    gap: 0.25rem;
+    min-height: 2rem;
+    padding: 0.25rem 0.45rem;
+    border: 1px solid var(--assistant-line, #e5e5e5);
+    border-radius: 0.65rem;
+    background: var(--assistant-surface, #fff);
+    color: var(--assistant-muted, #5c5c5c);
+    font: inherit;
+    font-size: 0.625rem;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+}
+.chat-approval-mode:hover {
+    background: var(--assistant-soft, #eef4ff);
+}
+.chat-approval-mode_yolo {
+    color: #915900;
+    background: #fff5de;
+    border-color: #ead29d;
+}
+.chat-approval-mode_yolo:hover {
+    background: #ffedc2;
+}
+.chat-approval-mode:focus-visible {
+    outline: 2px solid var(--assistant-accent, #0176d3);
+    outline-offset: 2px;
+}
+.chat-approval-mode:disabled {
+    cursor: default;
+    opacity: 0.65;
+}
 .conversation-picker {
     flex: 1;
     min-width: 0;

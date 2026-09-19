@@ -121,7 +121,7 @@
                             value={pendingTitle}
                             oninput={handleConversationTitleChange}
                             onkeydown={handleConversationTitleKeydown}
-                            lwc:ref="titleInput" />
+                            data-conversation-title />
                         <button
                             class="chat-action chat-action_icon"
                             type="button"
@@ -153,25 +153,49 @@
                             <slds-lucide-icon name="chevron-down" size="14"></slds-lucide-icon>
                         </button>
                         <button
-                            class="chat-action chat-action_new"
+                            class={newConversationClass}
                             type="button"
                             aria-label="New conversation"
                             title="New conversation"
                             onclick={createNewConversation}>
                             <slds-lucide-icon name="plus" size="16"></slds-lucide-icon>
-                            New chat
+                            <span lwc:if={showWorkbenchApprovalMode} class="slds-assistive-text">
+                                New chat
+                            </span>
+                            <span lwc:else>New chat</span>
+                        </button>
+                        <button
+                            lwc:if={showWorkbenchApprovalMode}
+                            type="button"
+                            class={approvalModeClass}
+                            role="switch"
+                            aria-label="YOLO mode"
+                            aria-checked={workbenchYoloMode}
+                            title={approvalModeHint}
+                            disabled={isApprovalModeDisabled}
+                            onclick={handleToggleYolo}>
+                            <slds-lucide-icon
+                                name={approvalModeIcon}
+                                size="13"
+                                aria-hidden="true"></slds-lucide-icon>
+                            {approvalModeLabel}
                         </button>
                         <lightning-button-menu
-                            icon-name="utility:threedots_vertical"
+                            class="conversation-options"
+                            icon-name="utility:threedots"
                             alternative-text="Conversation options"
-                            variant="bare"
+                            title="Conversation options"
+                            variant="border-filled"
+                            internal-datatable-actions-menu
                             menu-alignment="right"
                             onselect={handleConversationMenu}>
                             <lightning-menu-item
                                 value="rename"
+                                prefix-icon-name="utility:edit"
                                 label="Rename conversation"></lightning-menu-item>
                             <lightning-menu-item
                                 value="clear"
+                                prefix-icon-name="utility:delete"
                                 label="Clear messages"></lightning-menu-item>
                             <lightning-menu-item
                                 value="debug"
@@ -215,7 +239,7 @@
                                 value={pendingTitle}
                                 oninput={handleConversationTitleChange}
                                 onkeydown={handleConversationTitleKeydown}
-                                lwc:ref="titleInput" />
+                                data-conversation-title />
                             <lightning-button-icon
                                 icon-name="utility:check"
                                 onclick={saveConversationTitle}

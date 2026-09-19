@@ -4,7 +4,11 @@ import { createUserModelMessage } from 'agent/utils';
 import { persistPromptImageFiles } from 'agent/utils';
 import { getIndexedDbFileSystem } from 'core/fs';
 import { Agent } from 'agent/Agent';
-import { BROWSER_PROMPT_SUGGESTIONS, BROWSER_APPROVAL_INSTRUCTIONS } from './constants';
+import {
+    BROWSER_PROMPT_SUGGESTIONS,
+    TOOL_APPROVAL_INSTRUCTIONS,
+    WORKBENCH_APPROVAL_MODE_KEY,
+} from './constants';
 import { ConversationRunController, type QueuedRun } from 'agent/runController';
 import { prepareRetry } from '../runController/retry';
 import { browserAgentInstructions } from 'agent/agents';
@@ -32,7 +36,7 @@ import ToolkitElement from 'core/toolkitElement';
 import Toast from 'lightning/toast';
 import { api, track, wire } from 'lwc';
 import { NavigationContext } from 'lwr/navigation';
-import { CACHE_CONFIG, saveSingleExtensionConfigToCache } from 'shared/cacheManager';
+import { cacheManager, CACHE_CONFIG, saveSingleExtensionConfigToCache } from 'shared/cacheManager';
 import {
     buildAvailableAgentModelOptions,
     getContextWindowForModel,
@@ -79,7 +83,6 @@ export default class App extends ToolkitElement {
     ];
 
     navContext: any;
-    refs: Record<string, HTMLElement> | undefined;
     @wire(NavigationContext)
     updateNavigationContext(navContext) {
         this.navContext = navContext;
@@ -130,7 +133,79 @@ export default class App extends ToolkitElement {
     @api assistantStyle = false;
     @api assistantTheme = 'chat';
     @api yoloMode = false;
+    @api allowYoloMode = false;
     @api browserTabId: number | undefined;
+
+    @track workbenchYoloMode = false;
+    @track approvalModeLoaded = false;
+    @track isSavingApprovalMode = false;
+    @track isAnyConversationRunning = false;
+
+    get showWorkbenchApprovalMode() {
+        return this.allowYoloMode && !this.browserAgentEnabled;
+    }
+
+    get isApprovalModeDisabled() {
+        return (
+            !this.approvalModeLoaded || this.isSavingApprovalMode || this.isAnyConversationRunning
+        );
+    }
+
+    get approvalModeClass() {
+        return `chat-approval-mode${this.workbenchYoloMode ? ' chat-approval-mode_yolo' : ''}`;
+    }
+
+    get approvalModeLabel() {
+        return this.workbenchYoloMode ? 'YOLO on' : 'YOLO off';
+    }
+
+    get approvalModeIcon() {
+        return this.workbenchYoloMode ? 'zap' : 'shield-check';
+    }
+
+    get approvalModeHint() {
+        if (this.isAnyConversationRunning)
+            return 'Stop the active run before changing approval mode.';
+        return this.workbenchYoloMode
+            ? 'YOLO: Salesforce actions, Bash, and connected tools run without approval. Applies to new requests.'
+            : 'Ask first: guarded tools ask for approval. Click to enable YOLO.';
+    }
+
+    async loadApprovalMode() {
+        try {
+            this.workbenchYoloMode =
+                (await cacheManager.getConfigValue(WORKBENCH_APPROVAL_MODE_KEY)) === 'yolo';
+        } catch {
+            this.workbenchYoloMode = false;
+        } finally {
+            this.approvalModeLoaded = true;
+        }
+    }
+
+    handleToggleYolo = async () => {
+        if (!this.showWorkbenchApprovalMode || this.isApprovalModeDisabled) return;
+        this.workbenchYoloMode = !this.workbenchYoloMode;
+        this.isSavingApprovalMode = true;
+        try {
+            await cacheManager.setConfigValue(
+                WORKBENCH_APPROVAL_MODE_KEY,
+                this.workbenchYoloMode ? 'yolo' : 'ask'
+            );
+        } catch {
+            Toast.show({
+                label: 'Mode changed for this chat, but the preference could not be saved.',
+                variant: 'error',
+            });
+        } finally {
+            this.isSavingApprovalMode = false;
+        }
+    };
+
+    get newConversationClass() {
+        return this.showWorkbenchApprovalMode
+            ? 'chat-action chat-action_icon'
+            : 'chat-action chat-action_new';
+    }
 
     get quickPromptSuggestions() {
         return this.browserAgentEnabled
@@ -196,6 +271,7 @@ export default class App extends ToolkitElement {
     // Better to use a constant than a getter ! (renderCallback is called too many times)
     welcomeMessage = Constants.WELCOME_MESSAGE;
     _shouldFocusPublisher = false;
+    _shouldFocusTitle = false;
 
     // UI
     @wire(connectStore, { store })
@@ -253,6 +329,9 @@ export default class App extends ToolkitElement {
             isOpenAiCompatibleGateway(activeProvider, activeProviderConfig?.baseUrl)
         );
         if (agent) {
+            this.isAnyConversationRunning = Object.values(agent.runStateById || {}).some(
+                (run: { running?: boolean }) => run.running
+            );
             this._setIfChanged('selectedModel', agent.selectedModel);
             this._setIfChanged('selectedReasoning', agent.selectedReasoning ?? DEFAULT_REASONING);
             const convs = agent.conversations || [];
@@ -311,6 +390,7 @@ export default class App extends ToolkitElement {
 
     connectedCallback() {
         Analytics.trackAppOpen('agent', { alias: this.alias });
+        if (this.showWorkbenchApprovalMode) void this.loadApprovalMode();
         store.dispatch(AGENT.loadCacheSettingsAsync());
         window.addEventListener('agent:ask_user', this._handleAskUserEvent);
         window.addEventListener('agent:question_closed', this._handleQuestionClosed);
@@ -342,8 +422,12 @@ export default class App extends ToolkitElement {
     };
 
     renderedCallback() {
-        if (this.isEditingTitle && this.refs && this.refs.titleInput) {
-            this.refs.titleInput.focus();
+        if (this.isEditingTitle && this._shouldFocusTitle) {
+            const input = this.template.querySelector('[data-conversation-title]');
+            if (input instanceof HTMLInputElement) {
+                input.focus();
+                this._shouldFocusTitle = false;
+            }
         }
         const messageCount = Array.isArray(this.displayedMessages)
             ? this.displayedMessages.length
@@ -467,7 +551,10 @@ export default class App extends ToolkitElement {
     async buildAgentExecutionContext(model = this.selectedModel) {
         const conversationId = this.activeConversationId;
         const browserTabId = this.browserTabId;
-        const approvalMode = this.browserAgentEnabled && this.yoloMode ? 'yolo' : 'ask';
+        const yolo = this.browserAgentEnabled
+            ? this.yoloMode
+            : this.allowYoloMode && this.approvalModeLoaded && this.workbenchYoloMode;
+        const approvalMode = yolo ? 'yolo' : 'ask';
         const state = store.getState();
         const activeProvider = getProviderForModel(model, this.availableModels);
         const activeProviderConfig = state.application?.providerConfigs?.[activeProvider];
@@ -510,7 +597,7 @@ export default class App extends ToolkitElement {
                     getDefaultModelForAgentProvider(activeProvider, isInternal),
                 selectedReasoning: state.agent?.selectedReasoning ?? DEFAULT_REASONING,
                 modelContextWindow: getContextWindowForModel(model, this.availableModels),
-                systemPrompt: `${browserAgentInstructions}${await this._buildRunningEnvironmentContext()}${browserContext?.instructions || ''}${this.browserAgentEnabled ? `\nBrowser target tab ID captured for this run: ${browserTabId ?? 'none selected'}.\n${BROWSER_APPROVAL_INSTRUCTIONS[approvalMode]}` : ''}`,
+                systemPrompt: `${browserAgentInstructions}${await this._buildRunningEnvironmentContext()}${browserContext?.instructions || ''}${this.browserAgentEnabled ? `\nBrowser target tab ID captured for this run: ${browserTabId ?? 'none selected'}.` : ''}${this.browserAgentEnabled || this.allowYoloMode ? `\n${TOOL_APPROVAL_INSTRUCTIONS[approvalMode]}` : ''}`,
                 isStoreEnabled: true,
                 store,
                 extraTools: [
@@ -907,6 +994,7 @@ export default class App extends ToolkitElement {
     startEditingTitle = () => {
         const conv = this.conversations.find(c => c.id === this.activeConversationId);
         this.pendingTitle = conv ? conv.title : '';
+        this._shouldFocusTitle = true;
         this.isEditingTitle = true;
     };
 
