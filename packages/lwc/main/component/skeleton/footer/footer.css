@@ -50,6 +50,20 @@
     z-index: var(--lwc-zIndexModal, 9000);
 }
 
+.footer-panel-trigger {
+    border: 0;
+    padding: 0;
+    background: transparent;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.footer-panel-trigger:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
+}
+
 .footer-error-message {
     font-weight: bold;
     color: var(--slds-g-color-error-base-50, #ea001e);
@@ -66,7 +80,8 @@
     position: fixed;
     bottom: var(--slds-g-spacing-large, 1.5rem);
     right: var(--slds-g-spacing-medium, 1rem);
-    min-width: 520px;
+    width: min(520px, calc(100vw - 32px));
+    min-width: 0;
     max-width: 520px;
     max-height: 72vh;
     min-height: 72vh;
@@ -86,7 +101,8 @@
     position: fixed;
     bottom: var(--slds-g-spacing-large, 1.5rem);
     right: var(--slds-g-spacing-medium, 1rem);
-    min-width: 520px;
+    width: min(520px, calc(100vw - 32px));
+    min-width: 0;
     max-width: 520px;
     max-height: 72vh;
     min-height: 72vh;
@@ -182,9 +198,11 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
+    gap: 6px;
+    flex-shrink: 0;
+    min-width: 76px;
     height: 32px;
-    padding: 0;
+    padding: 0 8px;
     border: none;
     border-radius: 6px;
     background: transparent;
@@ -199,9 +217,11 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
+    gap: 6px;
+    flex-shrink: 0;
+    min-width: 76px;
     height: 32px;
-    padding: 0;
+    padding: 0 8px;
     border: none;
     border-radius: 6px;
     background: transparent;
@@ -220,6 +240,17 @@
 .footer-job-panel-close:hover {
     background: var(--slds-g-color-neutral-base-90, #e5e5e5);
     color: var(--slds-g-color-neutral-base-10, #181818);
+}
+
+.footer-error-panel-close:focus-visible,
+.footer-job-panel-close:focus-visible {
+    outline: 2px solid var(--slds-g-color-brand-base-50, #0176d3);
+    outline-offset: 2px;
+}
+
+.footer-error-panel-close > *,
+.footer-job-panel-close > * {
+    pointer-events: none;
 }
 
 .footer-error-filter {

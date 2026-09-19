@@ -1,6 +1,6 @@
 {
     "chrome": {
-        "announce": "Workbench <bold>2.1.2</bold> リリース — Chrome 拡張が大幅に軽量化され、VS Code は引き続きホストされたワークベンチから読み込まれます",
+        "announce": "Workbench <bold>2.1.4</bold> リリース — BlackTab など更新できない Salesforce 401 は最初の応答で停止します",
         "nav": {
             "github": "GitHub",
             "docs": "ドキュメント",

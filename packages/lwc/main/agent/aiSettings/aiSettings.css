@@ -170,3 +170,259 @@
     overflow: auto;
     padding: 0.75rem;
 }
+
+/* Opt-in chat settings. The original settings template keeps its existing styles. */
+.assistant-settings {
+    color: #28283d;
+    font-size: 0.8125rem;
+}
+.connections-intro {
+    padding: 0.5rem 0.15rem 1rem;
+}
+.settings-eyebrow {
+    color: #77758b;
+    font-size: 0.625rem;
+    letter-spacing: 0.12em;
+    font-weight: 650;
+}
+.connections-intro h2 {
+    margin: 0.3rem 0;
+    font-size: 1.25rem;
+    font-weight: 650;
+    letter-spacing: -0.025em;
+}
+.connections-intro p,
+.connection-name p {
+    margin: 0;
+    color: #747287;
+    font-size: 0.75rem;
+    line-height: 1.5;
+}
+.subscription-cards {
+    display: grid;
+    gap: 0.65rem;
+}
+.connection-card {
+    border: 1px solid #e4e2ef;
+    border-radius: 0.85rem;
+    background: #fff;
+    padding: 0.85rem;
+}
+.connection-card_connected {
+    border-color: #bfdecf;
+}
+.connection-heading {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    flex-wrap: wrap;
+}
+.connection-mark {
+    display: grid;
+    place-items: center;
+    width: 2.2rem;
+    height: 2.2rem;
+    flex-shrink: 0;
+    background: #f1f0f8;
+    color: #51459e;
+    border-radius: 0.65rem;
+    font-size: 1.15rem;
+    font-weight: 650;
+}
+.connection-name {
+    flex: 1;
+    min-width: 9rem;
+}
+.connection-name h3 {
+    margin: 0 0 0.1rem;
+    font-weight: 650;
+    font-size: 0.875rem;
+}
+.connection-status {
+    color: #25745b;
+    font-size: 0.6875rem;
+    font-weight: 600;
+}
+.connection-signin,
+.settings-secondary-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border: 1px solid #d8d3ef;
+    border-radius: 0.5rem;
+    background: #f7f5ff;
+    color: #5144a3;
+    padding: 0.45rem 0.7rem;
+    font: inherit;
+    font-weight: 600;
+    min-height: 2.125rem;
+    cursor: pointer;
+}
+.connection-signin {
+    width: 100%;
+    margin-top: 0.8rem;
+}
+.connection-signin:hover,
+.settings-secondary-button:hover {
+    background: #eeebfc;
+    border-color: #b9aee6;
+}
+.assistant-settings button:disabled {
+    cursor: default;
+    opacity: 0.5;
+}
+.assistant-settings button:focus-visible,
+.assistant-settings summary:focus-visible,
+.assistant-settings input:focus-visible {
+    outline: 2px solid #7763d1;
+    outline-offset: 3px;
+}
+.connection-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem 0.7rem;
+    margin-top: 0.65rem;
+}
+.connection-models {
+    color: #747287;
+    font-size: 0.6875rem;
+    flex: 1;
+}
+.settings-text-button {
+    border: 0;
+    background: none;
+    padding: 0.3rem 0;
+    color: #6251b5;
+    font: inherit;
+    font-size: 0.6875rem;
+    cursor: pointer;
+    text-align: left;
+}
+.settings-text-button:hover {
+    text-decoration: underline;
+}
+.settings-hint {
+    color: #77758b;
+    font-size: 0.6875rem;
+    line-height: 1.5;
+    margin: 0.5rem 0;
+}
+.connection-autosave {
+    margin: 0.6rem 0.15rem 1.1rem;
+}
+.settings-disclosure {
+    border: 1px solid #e7e5ef;
+    border-radius: 0.65rem;
+    margin-top: 0.5rem;
+    background: #fff;
+}
+.settings-disclosure > summary {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.75rem;
+    color: #514b70;
+    cursor: pointer;
+    list-style: none;
+}
+.settings-disclosure > summary::after {
+    content: '›';
+    margin-left: auto;
+    font-size: 1.2rem;
+}
+.settings-disclosure[open] > summary::after {
+    transform: rotate(90deg);
+}
+.settings-disclosure summary::-webkit-details-marker {
+    display: none;
+}
+.settings-disclosure > summary span {
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+.settings-disclosure summary small {
+    display: block;
+    font-size: 0.625rem;
+    color: #807d90;
+    font-weight: 400;
+    margin-top: 0.1rem;
+}
+.settings-disclosure-body {
+    padding: 0 0.75rem 0.75rem;
+}
+.api-provider {
+    border-top: 1px solid #efedf4;
+}
+.api-provider > summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    padding: 0.65rem 0;
+    font-size: 0.75rem;
+}
+.api-provider > summary::after {
+    content: '+';
+    margin-left: 0.5rem;
+    color: #807d90;
+}
+.api-provider[open] > summary::after {
+    content: '−';
+}
+.api-provider > summary small {
+    margin: 0 0 0 auto;
+}
+.api-provider-fields {
+    padding-bottom: 0.75rem;
+}
+.settings-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    font-size: 0.6875rem;
+    margin: 0.6rem 0;
+}
+.settings-field input {
+    min-width: 0;
+    width: 100%;
+    border: 1px solid #d9d5e7;
+    border-radius: 0.4rem;
+    background: #fff;
+    padding: 0.5rem;
+    font: inherit;
+    color: #28283d;
+}
+.connection-waiting {
+    color: #65579a;
+    font-size: 0.6875rem;
+    margin: 0.65rem 0;
+}
+.code-fallback {
+    font-size: 0.6875rem;
+    color: #747287;
+}
+.code-fallback summary {
+    cursor: pointer;
+}
+.connection-error {
+    background: #fff4f3;
+    color: #a52b26;
+    border-radius: 0.5rem;
+    padding: 0.65rem;
+    margin-bottom: 0.75rem;
+    overflow-wrap: anywhere;
+}
+.tool-settings h3 {
+    font-size: 0.75rem;
+    font-weight: 650;
+    margin: 0.65rem 0;
+}
+.settings-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin: 0.5rem 0;
+    font-size: 0.75rem;
+}

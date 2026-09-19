@@ -1,0 +1,344 @@
+* {
+    box-sizing: border-box;
+}
+html,
+body {
+    margin: 0;
+    padding: 0;
+}
+body {
+    font-family:
+        'Inter',
+        -apple-system,
+        BlinkMacSystemFont,
+        'Segoe UI',
+        Arial,
+        sans-serif;
+}
+.art {
+    position: relative;
+    overflow: hidden;
+    color: #ffffff;
+    background: #032d60;
+}
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.brand img {
+    width: 32px;
+    height: 32px;
+    object-fit: contain;
+}
+.brand strong {
+    font-size: 24px;
+    font-weight: 750;
+    letter-spacing: -1px;
+}
+.brand strong > span {
+    color: #90d0fe;
+}
+h1,
+p {
+    margin: 0;
+}
+.screenshot {
+    width: 1280px;
+    height: 800px;
+}
+.screenshot-header {
+    position: absolute;
+    inset: 0 0 auto;
+    height: calc(800px - 575px * 1280 / 1100);
+    background: radial-gradient(ellipse at 90% 0, #0176d3, transparent 60%), #032d60;
+    border-top: 3px solid var(--accent);
+}
+.screenshot-header .brand {
+    position: absolute;
+    left: 28px;
+    top: 9px;
+    gap: 8px;
+}
+.screenshot-header .brand img {
+    width: 25px;
+    height: 25px;
+}
+.screenshot-header .brand strong {
+    font-size: 19px;
+    letter-spacing: -0.5px;
+}
+.scene-label {
+    position: absolute;
+    right: 30px;
+    top: 17px;
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    font-size: 11px;
+    color: var(--accent);
+}
+.scene-label > span {
+    color: #aacbff;
+    font-size: 10px;
+    letter-spacing: 1px;
+}
+.screenshot h1 {
+    position: absolute;
+    left: 30px;
+    top: 46px;
+    font-size: 34px;
+    line-height: 1.15;
+    letter-spacing: -1.1px;
+    font-weight: 720;
+}
+.screenshot-header p {
+    position: absolute;
+    left: 31px;
+    top: 91px;
+    color: #cfe9fe;
+    font-size: 15px;
+    line-height: 20px;
+}
+.sample-label {
+    position: absolute;
+    right: 30px;
+    top: 97px;
+    color: #aacbff;
+    font-size: 10px;
+    letter-spacing: 0.3px;
+}
+.screen-image {
+    display: block;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 1280px;
+    height: auto;
+}
+.promo-small {
+    width: 440px;
+    height: 280px;
+    background: radial-gradient(ellipse at 100% 50%, #0176d3 0%, transparent 70%), #032d60;
+}
+.promo-small::before,
+.promo-marquee::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: 0.15;
+    background-image:
+        linear-gradient(#90d0fe1a 1px, transparent 1px),
+        linear-gradient(90deg, #90d0fe1a 1px, transparent 1px);
+    background-size: 40px 40px;
+}
+.promo-small .brand {
+    position: absolute;
+    left: 28px;
+    top: 17px;
+}
+.promo-small .brand img {
+    width: 39px;
+    height: 39px;
+}
+.promo-small .brand strong {
+    font-size: 31px;
+    letter-spacing: -1.2px;
+}
+.promo-small h1 {
+    position: absolute;
+    left: 31px;
+    top: 78px;
+    font-size: 36px;
+    line-height: 1.08;
+    letter-spacing: -1.5px;
+    font-weight: 740;
+}
+.promo-small h1 span,
+.promo-marquee h1 span {
+    color: #90d0fe;
+}
+.promo-small p {
+    position: absolute;
+    top: 167px;
+    left: 32px;
+    font-size: 15px;
+    color: #cfe9fe;
+}
+.tool-icons {
+    display: flex;
+    gap: 15px;
+}
+.tool-icons > span {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 52px;
+    height: 52px;
+    color: var(--accent);
+    border: 1px solid #1b96ff80;
+    border-radius: 12px;
+    background: #014486;
+    box-shadow: 0 6px 20px #0002;
+}
+.tool-icons svg {
+    width: 26px;
+    height: 26px;
+}
+.promo-small .tool-icons {
+    position: absolute;
+    top: 205px;
+    left: 32px;
+    gap: 23px;
+}
+.promo-marquee {
+    width: 1400px;
+    height: 560px;
+    background: radial-gradient(ellipse at 75% 45%, #0176d3 0%, transparent 65%), #032d60;
+}
+.marquee-copy {
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 650px;
+    padding: 43px 0 0 60px;
+    z-index: 2;
+}
+.marquee-copy .brand img {
+    width: 46px;
+    height: 46px;
+}
+.marquee-copy .brand strong {
+    font-size: 33px;
+}
+.marquee-copy h1 {
+    position: absolute;
+    left: 60px;
+    top: 145px;
+    font-size: 64px;
+    line-height: 1.06;
+    letter-spacing: -3px;
+    font-weight: 750;
+}
+.marquee-copy > p {
+    position: absolute;
+    top: 314px;
+    left: 63px;
+    font-size: 24px;
+    line-height: 1.4;
+    color: #cfe9fe;
+    letter-spacing: -0.3px;
+}
+.marquee-copy .tool-icons {
+    position: absolute;
+    left: 63px;
+    top: 436px;
+}
+.marquee-art {
+    position: absolute;
+    inset: 0;
+}
+.marquee-art img {
+    position: absolute;
+    border: 1px solid #ffffff90;
+    box-shadow: 0 25px 60px #0007;
+    border-radius: 8px;
+}
+.marquee-editor {
+    width: 560px;
+    top: 68px;
+    left: 820px;
+    transform: rotate(5deg);
+    opacity: 0.85;
+}
+.marquee-soql {
+    width: 650px;
+    top: 180px;
+    left: 695px;
+    transform: rotate(-3deg);
+}
+.orbit {
+    position: absolute;
+    border: 1px solid #90d0fe33;
+    border-radius: 50%;
+    transform: rotate(-20deg);
+}
+.orbit-one {
+    width: 730px;
+    height: 650px;
+    left: 665px;
+    top: -65px;
+}
+.orbit-two {
+    width: 875px;
+    height: 780px;
+    left: 600px;
+    top: -128px;
+}
+.marquee-caption {
+    position: absolute;
+    top: 528px;
+    right: 75px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: #cfe9fe;
+}
+.marquee-caption i {
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: #90d0fe;
+}
+.review {
+    background: #e9eef1;
+    color: #152f40;
+    padding: 36px;
+    width: 1400px;
+}
+.review h1 {
+    font-size: 34px;
+    margin: 0 0 8px;
+}
+.review > p {
+    color: #536977;
+    margin: 0 0 28px;
+    font-size: 17px;
+}
+.review-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 25px;
+}
+.review figure {
+    margin: 0;
+    border: 1px solid #d0dbe0;
+    background: #fff;
+}
+.review figure > div {
+    height: 399px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #dce6eb;
+}
+.review img {
+    display: block;
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+.review figcaption {
+    padding: 12px 15px;
+    font-size: 15px;
+    font-weight: 650;
+    display: flex;
+    justify-content: space-between;
+}
+.review figcaption > span {
+    font-weight: 400;
+    color: #627c8d;
+}

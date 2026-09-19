@@ -1187,3 +1187,132 @@ img {
     text-decoration: none;
     color: var(--slds-g-color-brand-base-20, #014486);
 }
+
+/* Chat uses native code blocks; other markdown surfaces retain their existing styling. */
+.chat-markdown {
+    min-width: 0;
+}
+.chat-markdown :not(pre) > code {
+    padding: 0.15em 0.35em;
+    border: 1px solid var(--assistant-line, #e6e5ed);
+    border-radius: 0.3rem;
+    background: var(--assistant-code-surface, #f3f3f6);
+    color: var(--assistant-ink, #292b3b);
+    font-size: 0.9em;
+}
+.chat-markdown .chat-code {
+    margin: 0.85rem 0;
+    min-width: 0;
+    overflow: hidden;
+    border: 1px solid var(--assistant-line, #e6e5ed);
+    border-radius: 0.65rem;
+    background: #f6f8fa;
+}
+.chat-code-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.4rem 0.65rem;
+    border-bottom: 1px solid var(--assistant-line, #e6e5ed);
+    background: var(--assistant-surface, #fff);
+    color: var(--assistant-muted, #727487);
+    font-size: 0.7rem;
+    line-height: 1.5;
+}
+.chat-code-language {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 600;
+    color: var(--assistant-ink, #292b3b);
+}
+.chat-code-toolbar button {
+    flex-shrink: 0;
+    border: 0;
+    border-radius: 0.3rem;
+    padding: 0.25rem 0.4rem;
+    font: inherit;
+    color: inherit;
+    background: transparent;
+    cursor: pointer;
+}
+.chat-code-toolbar button:hover,
+.chat-code-toolbar button[aria-pressed='true'] {
+    color: var(--assistant-accent, #6357bd);
+    background: var(--assistant-soft, #f4f2fb);
+}
+.chat-code-toolbar button:focus-visible,
+.chat-markdown .chat-code pre:focus-visible {
+    outline: 2px solid var(--assistant-accent, #6357bd);
+    outline-offset: -2px;
+}
+.chat-markdown .chat-code pre {
+    max-height: 28rem;
+    margin: 0;
+    padding: 0.85rem 1rem;
+    overflow: auto;
+    border-radius: 0;
+    background: #f6f8fa;
+    color: #24292f;
+    font-size: 0.75rem;
+    line-height: 1.65;
+    tab-size: 4;
+    text-shadow: none;
+}
+.chat-markdown .chat-code pre,
+.chat-markdown .chat-code pre code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    white-space: pre;
+    overflow-wrap: normal;
+    word-break: normal;
+}
+.chat-markdown .chat-code pre code {
+    display: block;
+    background: transparent;
+    color: inherit;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    font-size: inherit;
+    text-shadow: none;
+}
+.chat-markdown .chat-code_wrapped pre,
+.chat-markdown .chat-code_wrapped pre code {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+.chat-code .token.comment,
+.chat-code .token.prolog,
+.chat-code .token.doctype,
+.chat-code .token.cdata {
+    color: #6e7781;
+}
+.chat-code .token.punctuation,
+.chat-code .token.operator {
+    color: #57606a;
+    background: transparent;
+}
+.chat-code .token.keyword,
+.chat-code .token.tag,
+.chat-code .token.atrule {
+    color: #cf222e;
+}
+.chat-code .token.string,
+.chat-code .token.attr-value,
+.chat-code .token.char,
+.chat-code .token.regex {
+    color: #0a3069;
+}
+.chat-code .token.function,
+.chat-code .token.class-name {
+    color: #8250df;
+}
+.chat-code .token.number,
+.chat-code .token.boolean,
+.chat-code .token.constant,
+.chat-code .token.property,
+.chat-code .token.attr-name {
+    color: #0550ae;
+}

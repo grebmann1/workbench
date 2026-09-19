@@ -94,7 +94,15 @@ type SobjectExplorerState = {
 
 // Faithful clone of the exported `formatTab` pure function.
 export const formatTab = (payload: Record<string, unknown>): Tab => {
-    const validParams = ['id', 'label', 'details', 'rawName', 'useToolingApi', 'source'];
+    const validParams = [
+        'id',
+        'label',
+        'details',
+        'rawName',
+        'useToolingApi',
+        'source',
+        'investigation',
+    ];
     const tab: Record<string, unknown> = {};
     validParams.forEach(key => {
         if (key in payload && payload[key] !== undefined) {
@@ -463,7 +471,7 @@ test('loadCacheSettings: a malformed cache entry is caught and reported, state u
 // Source contract — pin the real file's policy so drift is caught.
 // ---------------------------------------------------------------------------
 
-test('source contract: formatTab whitelists the same six keys', async () => {
+test('source contract: formatTab whitelists the same seven keys', async () => {
     const fs = await import('node:fs');
     const path = await import('node:path');
     const url = await import('node:url');
@@ -472,7 +480,7 @@ test('source contract: formatTab whitelists the same six keys', async () => {
 
     assert.match(
         src,
-        /const validParams = \[\s*'id',\s*'label',\s*'details',\s*'rawName',\s*'useToolingApi',\s*'source',?\s*\];/,
+        /const validParams = \[\s*'id',\s*'label',\s*'details',\s*'rawName',\s*'useToolingApi',\s*'source',\s*'investigation',?\s*\];/,
         'formatTab whitelist must stay in sync with the clone'
     );
 });

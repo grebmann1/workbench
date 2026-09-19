@@ -297,12 +297,14 @@ const sharedModules = [
     { name: 'shared/logger', path: getSharedModulePath('logger') },
     { name: 'shared/metadataApi', path: getSharedModulePath('metadataApi') },
     { name: 'shared/markdown', path: getSharedModulePath('markdown') },
+    { name: 'shared/safeMarkdown', path: getSharedModulePath('safeMarkdown') },
     { name: 'shared/middleware', path: getSharedModulePath('middleware') },
     { name: 'shared/sf', path: getSharedModulePath('sf') },
     { name: 'shared/store', path: getSharedModulePath('store') },
     { name: 'shared/types', path: r('../../packages/lwc/shared/modules/types/index.ts') },
     { name: 'shared/utils', path: getSharedModulePath('utils') },
     { name: 'shared/salesforceUrl', path: getSharedModulePath('salesforceUrl') },
+    { name: 'shared/recordInvestigation', path: getSharedModulePath('recordInvestigation') },
     { name: 'shared/pageReference/pageReference', path: r('../../packages/lwc/shared/modules/pageReference/pageReference.ts') },
     { name: 'shared/sf/setupUrl', path: r('../../packages/lwc/shared/modules/sf/setupUrl.ts') },
     { name: 'shared/sliceHelpers/handleSliceError', path: r('../../packages/lwc/shared/modules/sliceHelpers/handleSliceError.ts') },
@@ -429,6 +431,7 @@ export const getChromeCopyTargets = ({
 ];
 
 export const getChromeChatCopyTargets = (isProduction) => [
+    { src: r('../../packages/extension/src/views/oauth-success.html'), dest: r('../../dist/extension-chat/views') },
     { src: r('../../packages/extension-chat/src/views/chat.html'), dest: r('../../dist/extension-chat/views') },
     { src: r('../../packages/extension-chat/src/views/sandbox.html'), dest: r('../../dist/extension-chat/views') },
     { src: r('../../packages/extension-chat/src/views/sandbox-render.html'), dest: r('../../dist/extension-chat/views') },
@@ -589,6 +592,12 @@ const coreStoreToLightStoreAlias = alias({
 });
 
 const onwarn = (warning, warn) => {
+    if (
+        warning.code === 'UNRESOLVED_IMPORT' &&
+        /^(agent|shared|core|host-api)\//.test(warning.exporter || warning.source || '')
+    ) {
+        throw new Error(`Unresolved Workbench module: ${warning.exporter || warning.source}`);
+    }
     if (warning.code === 'CIRCULAR_DEPENDENCY') {
         const ids = warning.ids || [];
         const isThirdParty = ids.some(id => id.includes('/node_modules/'));
@@ -859,6 +868,7 @@ export default (args) => {
             [
                 { name: 'shared/cacheManager', path: r('../../packages/lwc/shared/dist/modules/cacheManager/cacheManager.js') },
                 { name: 'shared/llm', path: r('../../packages/lwc/shared/dist/modules/llm/llm.js') },
+                { name: 'shared/oauth', path: r('../../packages/lwc/shared/dist/modules/oauth/oauth.js') },
                 { name: 'shared/logger', path: r('../../packages/lwc/shared/dist/modules/logger/logger.js') },
                 { name: 'shared/utils', path: r('../../packages/lwc/shared/dist/modules/utils/utils.js') },
             ]

@@ -86,3 +86,56 @@
     /* border-right: 1px solid var(--slds-g-color-border-base-1, #e5e5e5);
     background-color: var(--slds-g-color-neutral-base-100, #fff); */
 }
+
+.workspace {
+    min-height: 0;
+    overflow: hidden;
+}
+.shell-toolbar {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid #d8dde6;
+}
+.assistant-surface {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+.assistant-content {
+    flex: 1;
+    min-height: 0;
+}
+.assistant-return {
+    flex: none;
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid #d8dde6;
+}
+.navigation-focused .home__navigation {
+    width: 100%;
+}
+.navigation-focused .main-app-container,
+.navigation-focused .assistant-pane,
+.assistant-focused .main-app-container,
+.assistant-focused .home__navigation {
+    display: none;
+}
+.assistant-focused .assistant-pane {
+    width: 100%;
+    flex: 1;
+    min-width: 0;
+}
+.minimum-width-notice {
+    padding: 1.25rem;
+    line-height: 1.6;
+}
+.narrow-tool .main-app-container .section {
+    display: none;
+}
+
+@media (max-width: 767px) {
+    .main-app-container {
+        padding: 0.25rem;
+    }
+}

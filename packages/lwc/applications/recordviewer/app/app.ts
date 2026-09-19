@@ -1,4 +1,5 @@
 import ToolkitElement from 'host-api/element';
+import { currentInvestigation } from 'shared/recordInvestigation';
 import { store, connectStore, injectReducer, DOCUMENT } from 'host-api/store';
 import Toast from 'lightning/toast';
 import { api, track, wire } from 'lwc';
@@ -139,6 +140,14 @@ export default class App extends ToolkitElement {
 
     loadFromNavigation = ({ state }: { state: any }): void => {
         const { recordId } = state;
+        const context = currentInvestigation(state.investigation, this.connector);
+        if (state.investigation && (!context || context.recordId !== recordId)) {
+            Toast.show({
+                label: 'This investigation belongs to another org or has invalid record context.',
+                variant: 'warning',
+            });
+            return;
+        }
         if (isNotUndefinedOrNull(recordId)) {
             this.hasError = false;
             const tab = RECORDVIEWER.formatTab({ id: recordId });

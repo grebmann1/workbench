@@ -225,6 +225,7 @@ test('executeApiRequest: injects Bearer Authorization from accessToken when abse
         method: 'GET',
         url: 'https://ex/api',
         accessToken: 'TOKEN',
+        instanceUrl: 'https://ex',
         fetchImpl: fakeFetch as typeof fetch,
     });
     assert.equal(seen.Authorization, 'Bearer TOKEN');
@@ -244,6 +245,7 @@ test('executeApiRequest: does not override an existing Authorization header', as
         url: 'https://ex/api',
         headers: { Authorization: 'Bearer EXPLICIT' },
         accessToken: 'TOKEN',
+        instanceUrl: 'https://ex',
         fetchImpl: fakeFetch as typeof fetch,
     });
     assert.equal(seen.Authorization, 'Bearer EXPLICIT');
@@ -304,4 +306,52 @@ test('executeApiRequest: missing URL throws', async () => {
             }),
         /Missing request URL/
     );
+});
+
+test('Salesforce credentials never reach untrusted URLs, including explicit auth headers', async () => {
+    for (const url of [
+        'https://external.example/collect',
+        'https://org.example.attacker.test/collect',
+        'https://org.example:444/collect',
+        'http://org.example/collect',
+        'https://user:password@org.example/collect',
+    ]) {
+        await executeApiRequest({
+            method: 'GET',
+            url,
+            instanceUrl: 'https://org.example',
+            accessToken: 'secret',
+            headers: {
+                aUtHoRiZaTiOn: 'Bearer secret',
+                'Proxy-Authorization': 'secret',
+                Accept: 'application/json',
+            },
+            fetchImpl: async (_input, init) => {
+                assert.equal(new Headers(init?.headers).has('authorization'), false, url);
+                assert.equal(new Headers(init?.headers).has('proxy-authorization'), false, url);
+                assert.equal(init?.redirect, 'error');
+                assert.equal(init?.credentials, 'omit');
+                return new Response('{}');
+            },
+        });
+    }
+});
+
+test('unscoped Salesforce tokens fail closed and trusted requests reject redirects', async () => {
+    for (const instanceUrl of [undefined, 'https://org.example']) {
+        await executeApiRequest({
+            method: 'GET',
+            url: 'https://org.example/services/data',
+            accessToken: 'secret',
+            instanceUrl,
+            fetchImpl: async (_input, init) => {
+                assert.equal(
+                    new Headers(init?.headers).get('authorization'),
+                    instanceUrl ? 'Bearer secret' : null
+                );
+                assert.equal(init?.redirect, 'error');
+                return new Response('{}');
+            },
+        });
+    }
 });

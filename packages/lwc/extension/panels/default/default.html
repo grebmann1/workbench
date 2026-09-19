@@ -4,13 +4,11 @@
         <extension-header is-toggle-visible={isToggleVisible} onsearch={handleSearch}>
             <lightning-button-group slot="action">
                 <!-- Actions for connections -->
-                <template lwc:if={isAgentDisplayed}>
-                    <lightning-button-icon
-                        icon-name="utility:einstein"
-                        onclick={openAgentClick}
-                        title="Agent"
-                        variant={agentVariant}></lightning-button-icon>
-                </template>
+                <lightning-button-icon
+                    icon-name="utility:einstein"
+                    onclick={openAgentClick}
+                    title="Agent"
+                    variant={agentVariant}></lightning-button-icon>
                 <lightning-button-icon
                     class={openAppButtonClass}
                     icon-name="utility:open"
@@ -71,8 +69,11 @@
                 </template>
                 <template lwc:elseif={isAgent}>
                     <agent-app
+                        assistant-style
+                        assistant-theme="workbench"
                         class="slds-full-height slds-flex-column"
                         is-audio-recorder-disabled
+                        onopensettings={handleOpenAiSettings}
                         lwc:ref="agent"></agent-app>
                 </template>
 

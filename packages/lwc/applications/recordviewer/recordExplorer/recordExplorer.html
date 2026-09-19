@@ -201,8 +201,8 @@
             <template lwc:elseif={isPanel}>
                 <!-- Place Holder -->
                 <illustration-empty
-                    title="No record"
-                    sub-title="The extension only support standard record pages."></illustration-empty>
+                    title="Record unavailable"
+                    sub-title={errorMessage}></illustration-empty>
             </template>
         </div>
 

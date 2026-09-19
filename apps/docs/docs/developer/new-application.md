@@ -137,7 +137,7 @@ manifest verbatim as a starting template:
 | `description` | yes | string | Shown in Quick Actions and tooltips. |
 | `path` | yes | `^[a-z][a-z0-9-]*$` | Value of `?applicationName=<path>` and the URL router key. Must be unique. |
 | `type` | yes | enum | One of `developer`, `explorer`, `data`, `utility`. Drives the menu section the app appears in (utilities are grouped together under *Utilities*) and the quick-action filter chip. |
-| `menuGroup` | yes | enum | One of `data`, `code`, `explorers`, `deploy`. |
+| `menuGroup` | yes | enum | One of `data`, `code`, `agentforce`, `admin`, `utilities`. |
 | `menuOrder` | yes | integer ≥ 0 | Sort order within the menu group (lower = higher in list). |
 | `quickActionIcon` | yes | `namespace:icon_name` | SLDS icon. Namespace one of `standard`, `utility`, `custom`, `action`, `doctype`. |
 | `menuIcon` | no | same as `quickActionIcon` | Optional distinct icon shown in the side menu. |

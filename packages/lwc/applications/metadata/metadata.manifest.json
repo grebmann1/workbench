@@ -7,7 +7,7 @@
     "path": "metadata",
     "quickActionIcon": "standard:knowledge",
     "type": "admin",
-    "menuGroup": "deploy",
+    "menuGroup": "admin",
     "menuOrder": 10,
     "flags": {
         "isFullHeight": true,

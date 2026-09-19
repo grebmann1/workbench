@@ -463,3 +463,107 @@
     z-index: 20;
     border-radius: 8px;
 }
+
+.assistant-composer {
+    padding: 0.5rem 0.85rem 0.75rem;
+}
+.assistant-composer .chat-input-container {
+    border: 1px solid var(--assistant-input-line, #dcd9e9);
+    border-radius: 0.9rem;
+    background: #fff;
+    padding: 0.4rem;
+    gap: 0.25rem;
+    box-shadow: 0 2px 6px #292b3b05;
+}
+.assistant-composer .chat-input-container:focus-within {
+    border-color: var(--assistant-focus-line, #aaa0da);
+    box-shadow: 0 0 0 3px var(--assistant-focus-ring, #f2effb);
+}
+.assistant-composer .chat-input-container > .slds-flex-column {
+    order: 3;
+    border-top: 1px solid var(--assistant-divider, #f0eef5);
+    padding-top: 0.25rem;
+}
+.assistant-composer .chat-textarea {
+    order: 1;
+    width: 100%;
+    min-height: 4rem;
+    max-height: 10rem;
+    padding: 0.4rem 0.45rem;
+    font-size: 0.82rem;
+    line-height: 1.6;
+    color: var(--assistant-ink, #292b3b);
+}
+.assistant-composer .chat-textarea::placeholder {
+    color: var(--assistant-placeholder, #858297);
+}
+.assistant-composer .chat-input-actions-row {
+    order: 2;
+    gap: 0.25rem;
+}
+.assistant-composer .chat-input-pills-row {
+    padding: 0.25rem;
+}
+.assistant-composer .chat-select {
+    background: transparent;
+    border-color: transparent;
+    color: var(--assistant-muted, #727487);
+    font-size: 0.7rem;
+    max-width: min(15rem, 65vw);
+}
+.assistant-composer .chat-select:hover {
+    background: var(--assistant-soft, #f4f2fb);
+}
+.composer-hint {
+    flex: 1;
+    min-width: 0;
+    font-size: 0.6rem;
+    color: var(--assistant-muted, #727487);
+}
+.composer-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 2.2rem;
+    height: 2.2rem;
+    padding: 0;
+    border: 0;
+    border-radius: 0.6rem;
+    background: transparent;
+    color: var(--assistant-muted, #727487);
+    cursor: pointer;
+}
+.composer-action slds-lucide-icon {
+    display: flex;
+}
+.composer-action:hover:not(:disabled) {
+    color: var(--assistant-accent, #6357bd);
+    background: var(--assistant-soft, #f4f2fb);
+}
+.composer-action:focus-visible {
+    outline: 2px solid var(--assistant-accent, #6357bd);
+    outline-offset: 2px;
+}
+.composer-send {
+    color: #fff;
+    background: var(--assistant-accent, #6357bd);
+}
+.composer-send:hover:not(:disabled) {
+    background: var(--assistant-accent-hover, #5045a0);
+    color: #fff;
+}
+.composer-send:disabled {
+    background: var(--assistant-disabled-surface, #eeecf5);
+    color: var(--assistant-disabled-ink, #a7a0bf);
+    cursor: default;
+}
+.composer-stop {
+    border: 1px solid var(--assistant-input-line, #d9d5e7);
+    color: var(--assistant-ink, #292b3b);
+}
+@media (max-width: 340px) {
+    .composer-hint {
+        font-size: 0.55rem;
+    }
+}

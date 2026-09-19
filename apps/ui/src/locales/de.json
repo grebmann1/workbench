@@ -1,6 +1,6 @@
 {
     "chrome": {
-        "announce": "Workbench <bold>2.1.2</bold> ist da — die Chrome-Erweiterung ist deutlich kleiner, und VS Code lädt weiterhin aus dem gehosteten Workbench",
+        "announce": "Workbench <bold>2.1.4</bold> ist da — nicht erneuerbare Salesforce-401s (BlackTab) werden nach der ersten Antwort abgebrochen",
         "nav": {
             "github": "GitHub",
             "docs": "Docs",

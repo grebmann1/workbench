@@ -113,7 +113,7 @@ New apps live under `packages/lwc/applications/<id>/` and are discovered from a 
 - **Canonical walkthrough:** `apps/docs/docs/developer/new-application.md`.
 - **Scaffolding skill:** `.claude/skills/new-workbench-app/SKILL.md` — invoke when asked to create/scaffold a new app; it collects the required manifest fields, wires tsconfig, and runs the generator.
 - Starting template: copy `packages/lwc/applications/urlencoder/` (minimal reference). Use `packages/lwc/applications/soql/` for richer patterns (Redux slices, slash commands).
-- Validator enums: `type` ∈ `developer|admin|data|utility`; `menuGroup` ∈ `data|code|admin|deploy|utilities`. Typos silently drop the app from the menu — the validator is the source of truth (`tools/scripts/generate_application_manifest.js`).
+- Validator enums: `type` ∈ `developer|admin|data|utility`; `menuGroup` ∈ `data|code|agentforce|admin|utilities`. Typos silently drop the app from the menu — the validator is the source of truth (`tools/scripts/generate_application_manifest.js`).
 - Rebuild with `npm run build:extension:main` after the generator succeeds.
 
 ### Runtime targets

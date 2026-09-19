@@ -32,20 +32,24 @@
             <!-- Right side of the utility bar -->
             <li class="slds-utility-bar__item custom-utility-text custom-utility-right">
                 <template lwc:if={hasJobs}>
-                    <span
-                        class="slds-truncate footer-job-message"
+                    <button
+                        type="button"
+                        class="slds-truncate footer-panel-trigger footer-job-message"
                         onclick={handleJobClick}
-                        style="cursor: pointer">
+                        aria-expanded={isJobPanelOpen}
+                        aria-controls="footer-job-panel">
                         Jobs: {formattedJobCount} | {latestJobMessage}
-                    </span>
+                    </button>
                 </template>
                 <template lwc:if={hasErrors}>
-                    <span
-                        class="slds-truncate slds-text-color_error footer-error-message"
+                    <button
+                        type="button"
+                        class="slds-truncate slds-text-color_error footer-panel-trigger footer-error-message"
                         onclick={handleErrorClick}
-                        style="cursor: pointer">
+                        aria-expanded={isErrorPanelOpen}
+                        aria-controls="footer-error-panel">
                         Errors: {formattedErrorCount} | {latestErrorMessage}
-                    </span>
+                    </button>
                 </template>
                 <h2 class="slds-truncate slds-m-left_x-small">
                     {versionFormatted} {salesforceVersionFormatted}
@@ -54,8 +58,10 @@
         </ul>
         <template lwc:if={isErrorPanelOpen}>
             <div
+                id="footer-error-panel"
                 class="slds-utility-panel slds-grid slds-grid_vertical slds-is-open footer-error-panel"
                 role="dialog"
+                onkeydown={handlePanelKeydown}
                 aria-labelledby="panel-heading-01">
                 <header class="footer-error-panel-header">
                     <div class="footer-error-panel-header-inner">
@@ -70,12 +76,13 @@
                     <button
                         type="button"
                         class="footer-error-panel-close"
-                        title="Close Panel"
+                        title="Close error log (Esc)"
                         onclick={handleClosePanel}
-                        aria-label="Close panel">
+                        aria-label="Close error log">
+                        <span>Close</span>
                         <svg class="slds-button__icon" aria-hidden="true">
                             <use
-                                xlink:href="/assets/icons/utility-sprite/svg/symbols.svg#minimize_window"></use>
+                                xlink:href="/assets/icons/utility-sprite/svg/symbols.svg#close"></use>
                         </svg>
                     </button>
                 </header>
@@ -163,8 +170,10 @@
         </template>
         <template lwc:if={isJobPanelOpen}>
             <div
+                id="footer-job-panel"
                 class="slds-utility-panel slds-grid slds-grid_vertical slds-is-open footer-job-panel"
                 role="dialog"
+                onkeydown={handlePanelKeydown}
                 aria-labelledby="panel-heading-jobs">
                 <header class="footer-job-panel-header">
                     <div class="footer-job-panel-header-inner">
@@ -181,12 +190,13 @@
                     <button
                         type="button"
                         class="footer-job-panel-close"
-                        title="Close Panel"
+                        title="Close background jobs (Esc)"
                         onclick={handleClosePanel}
-                        aria-label="Close panel">
+                        aria-label="Close background jobs">
+                        <span>Close</span>
                         <svg class="slds-button__icon" aria-hidden="true">
                             <use
-                                xlink:href="/assets/icons/utility-sprite/svg/symbols.svg#minimize_window"></use>
+                                xlink:href="/assets/icons/utility-sprite/svg/symbols.svg#close"></use>
                         </svg>
                     </button>
                 </header>

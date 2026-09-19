@@ -5,10 +5,17 @@
     "version": "__buildVersion__",
     "description": "AI chat-first Salesforce workbench assistant with browser tools",
     "icons": {
+        "16": "images/sf-toolkit-chat-icon-16.png",
+        "32": "images/sf-toolkit-chat-icon-32.png",
+        "48": "images/sf-toolkit-chat-icon-48.png",
         "128": "__buildLogo__"
     },
     "action": {
-        "default_title": "Click to open Workbench Chat"
+        "default_title": "Click to open Workbench Chat",
+        "default_icon": {
+            "16": "images/sf-toolkit-chat-icon-16.png",
+            "32": "images/sf-toolkit-chat-icon-32.png"
+        }
     },
     "side_panel": {
         "default_path": "views/chat.html"
@@ -33,6 +40,7 @@
         "cookies",
         "storage",
         "tabs",
+        "webNavigation",
         "tabGroups",
         "sidePanel",
         "unlimitedStorage",

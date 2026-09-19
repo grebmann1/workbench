@@ -26,12 +26,6 @@ const APPLICATION_MENU_GROUPS = [
         order: 40,
     },
     {
-        key: 'deploy',
-        label: 'Deploy',
-        iconName: 'standard:maintenance_asset',
-        order: 50,
-    },
-    {
         key: 'utilities',
         label: 'Utilities',
         iconName: 'utility:magicwand',

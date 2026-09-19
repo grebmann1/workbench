@@ -230,6 +230,25 @@ function extractModels(
 
 const DEFAULT_MAX_OUTPUT_TOKENS = 8192;
 
+/** Prefer provider metadata; conservative defaults remain overridable for custom gateways. */
+export function getContextWindowForModel(
+    model: unknown,
+    options: LlmModelOption[] = [
+        ...Object.values(PROVIDER_MODEL_OPTIONS).flat(),
+        ...INTERNAL_MODEL_OPTIONS,
+    ]
+): number {
+    const id = normalizeString(model);
+    const configured = options.find(option => option.value === id)?.contextWindow;
+    if (typeof configured === 'number' && Number.isFinite(configured) && configured >= 4096) {
+        return Math.floor(configured);
+    }
+    if (/^gpt-4-32k(?:-|$)/.test(id)) return 32768;
+    if (/^gpt-4(?:-\d{4})?$/.test(id)) return 8192;
+    if (/^gpt-3\.5-turbo/.test(id)) return 16384;
+    return 128000;
+}
+
 export function getMaxOutputTokensForModel(
     model: unknown,
     options: LlmModelOption[] = [
@@ -448,6 +467,12 @@ function parseModelCatalogResponse(data: unknown, provider: LlmProvider): LlmMod
                 value: id,
                 provider,
                 maxOutputTokens: LIVE_MODEL_MAX_OUTPUT_TOKENS,
+                contextWindow:
+                    typeof entry.contextWindow === 'number'
+                        ? entry.contextWindow
+                        : typeof entry.context_length === 'number'
+                          ? entry.context_length
+                          : undefined,
             });
         }
     }
@@ -484,6 +509,8 @@ function parseGeminiModelsResponse(data: unknown, provider: LlmProvider): LlmMod
             value: id,
             provider,
             maxOutputTokens,
+            contextWindow:
+                typeof entry.inputTokenLimit === 'number' ? entry.inputTokenLimit : undefined,
         });
     }
     return options;

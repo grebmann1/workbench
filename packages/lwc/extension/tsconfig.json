@@ -6,6 +6,7 @@
         "lib": ["ES2020", "DOM"],
         "baseUrl": ".",
         "paths": {
+            "host-api/commands": ["../main/host-api/commands"],
             "core/*": ["../main/core/*"],
             "editor/*": ["../main/editor/*"],
             "slds/*": ["../main/component/slds/*"],
@@ -18,6 +19,9 @@
             "editor/languages": ["../main/editor/languages/languages"],
             "editor/promptWidget": ["../main/editor/promptWidget/promptWidget"],
             "editor/utils": ["../main/editor/utils/utils"],
+            "shared/recordInvestigation": [
+                "../shared/modules/recordInvestigation/recordInvestigation"
+            ],
             "shared/analytics": ["../shared/modules/analytics/analytics"],
             "shared/llm": ["../shared/modules/llm/llm"],
             "shared/loader": ["../shared/modules/loader/loader"],

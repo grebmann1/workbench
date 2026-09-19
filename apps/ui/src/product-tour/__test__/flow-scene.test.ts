@@ -191,7 +191,7 @@ test('slidePlayForElapsed: agent fills the Acme support form', () => {
 });
 
 test('cursorTargetForScene: follows the beat and hides while loading', () => {
-    assert.equal(sceneForElapsed(0).cursorTarget, 'dock-vscode');
+    assert.equal(sceneForElapsed(0).cursorTarget, 'overlay-toggle');
     assert.equal(sceneForElapsed(T.typeSearch + 10).cursorTarget, 'overlay-search');
     assert.equal(sceneForElapsed(T_VSCODE_PULSE + 10).cursorTarget, 'dock-vscode');
     assert.equal(sceneForElapsed(T_LOADING_EDITOR + 10).cursorTarget, null);

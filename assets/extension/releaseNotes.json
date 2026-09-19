@@ -1,5 +1,46 @@
 [
     {
+        "version": "2.1.4",
+        "date": "September 18th, 2026",
+        "sections": [
+            {
+                "title": "Bug Fixes",
+                "categories": [
+                    {
+                        "category": "Salesforce Connections",
+                        "items": [
+                            "Fixed BlackTab (BT) and expired Salesforce session handling. Blocked connection attempts now stop with a visible error instead of repeatedly retrying or loading org metadata after authentication fails."
+                        ]
+                    },
+                    {
+                        "category": "AI Settings & Panels",
+                        "items": [
+                            "The Open Settings → AI button in the side panel now opens AI provider settings in Workbench.",
+                            "Error Log and Jobs panels now have an explicit Close button and can also be dismissed with Escape."
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "version": "2.1.3",
+        "date": "September 17th, 2026",
+        "sections": [
+            {
+                "title": "Bug Fixes",
+                "categories": [
+                    {
+                        "category": "Connector & Overlay",
+                        "items": [
+                            "Non-refreshable Salesforce 401s such as BlackTab no longer retry endlessly. The first blocked response latches the connection and the overlay stops without a metadata/org fetch storm."
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    {
         "version": "2.1.2",
         "date": "September 7th, 2026",
         "sections": [

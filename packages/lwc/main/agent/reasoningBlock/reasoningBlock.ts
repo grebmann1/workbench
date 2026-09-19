@@ -5,6 +5,7 @@ const TICK_MS = 1000;
 const MAX_LIVE_SECONDS = 120;
 
 export default class ReasoningBlock extends LightningElement {
+    @api assistantStyle = false;
     @api content = '';
     @api startedAt: number | string | null | undefined;
     @api endedAt: number | string | null | undefined;
@@ -82,7 +83,7 @@ export default class ReasoningBlock extends LightningElement {
     }
 
     get blockClass() {
-        return 'reasoning-block';
+        return `reasoning-block${this.assistantStyle ? ' assistant-reasoning' : ''}`;
     }
 
     get isRunning() {
@@ -170,6 +171,10 @@ export default class ReasoningBlock extends LightningElement {
 
     get caretIcon() {
         return this.expanded ? 'utility:chevrondown' : 'utility:chevronright';
+    }
+
+    get assistantCaretIcon() {
+        return this.expanded ? 'chevron-down' : 'chevron-right';
     }
 
     get ariaLabel() {

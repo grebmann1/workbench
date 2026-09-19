@@ -165,6 +165,7 @@ export const executeApiRequest = createAsyncThunk(
                 // caller did not provide an execution body at all.
                 body: executionBody !== undefined ? executionBody : formattedRequest?.body,
                 accessToken: connector?.conn?.accessToken,
+                instanceUrl: connector?.conn?.instanceUrl,
                 signal,
             });
             // Add to Recent Panel :

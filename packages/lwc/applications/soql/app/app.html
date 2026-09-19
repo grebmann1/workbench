@@ -1,5 +1,18 @@
 <template>
     <div class={pageClass}>
+        <template lwc:if={investigationContext}>
+            <section
+                class="slds-p-around_small slds-theme_shade slds-shrink-none"
+                aria-label="Record investigation">
+                <p class="slds-text-title_bold">Record investigation</p>
+                <p>{investigationSummary}</p>
+                <p>Query draft prepared. Use Run when ready. Returning keeps this draft.</p>
+                <lightning-button
+                    class="slds-m-top_x-small"
+                    label="Return to record"
+                    onclick={handleReturnToRecord}></lightning-button>
+            </section>
+        </template>
         <builder-editor
             is-left-panel-toggled={isLeftToggled}
             is-left-panel-resizable

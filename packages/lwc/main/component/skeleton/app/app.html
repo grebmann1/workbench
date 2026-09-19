@@ -1,5 +1,17 @@
 <template>
-    <div class="l-container-vertical">
+    <div
+        class="l-container-vertical"
+        onrequestconnection={handleConnectRequest}
+        onkeydown={handleShellKeydown}>
+        <div lwc:if={connectionError} class="l-cell-content-size slds-p-around_small" role="alert">
+            {connectionError}
+        </div>
+        <div lwc:if={pendingTaskMessage} class="l-cell-content-size slds-p-around_small">
+            <span role="status">{pendingTaskMessage}</span>
+            <button class="slds-button slds-m-left_small" type="button" onclick={cancelPendingTask}>
+                Cancel task
+            </button>
+        </div>
         <template lwc:if={isAnnouncementBannerDisplayed}>
             <div class="l-cell-content-size">
                 <skeleton-announcement-banner></skeleton-announcement-banner>
@@ -40,6 +52,9 @@
                     <template lwc:if={isApplicationTabVisible}>
                         <div class="l-cell-content-size">
                             <skeleton-header
+                                managed-layout
+                                is-menu-small={layout.menuCollapsed}
+                                onmenutoggle={handleMenuToggle}
                                 current-application-name="Org"
                                 current-tab-name="Home"
                                 applications={applications}
@@ -51,11 +66,30 @@
                                 is-agent-chat-expanded={isAgentChatExpanded}></skeleton-header>
                         </div>
                     </template>
-                    <div
-                        class="slds-show_medium l-cell-auto-size l-container-horizontal slds-fill-height">
+                    <div lwc:if={showCompactToolbar} class="l-cell-content-size shell-toolbar">
+                        <button
+                            class="slds-button"
+                            type="button"
+                            data-shell-toggle="navigation"
+                            onclick={handleMenuToggle}>
+                            {menuToggleLabel}
+                        </button>
+                        <button
+                            lwc:if={isAgentVisible}
+                            class="slds-button"
+                            type="button"
+                            data-shell-toggle="assistant"
+                            onclick={toggleAssistant}>
+                            {assistantToggleLabel}
+                        </button>
+                    </div>
+                    <div lwc:ref="workspace" class={workspaceClass}>
                         <!-- Menu -->
                         <div class={menuClass}>
                             <skeleton-menu
+                                managed-layout
+                                is-menu-small={layout.menuCollapsed}
+                                onmenutoggle={handleMenuToggle}
                                 class={uiMenuClass}
                                 is-user-logged-in={isUserLoggedIn}
                                 onapplicationselection={handleApplicationSelection}></skeleton-menu>
@@ -63,6 +97,18 @@
                         <!-- Container - START -->
                         <div class="l-cell-auto-size main-app-container">
                             <div class="l-container-vertical">
+                                <div
+                                    lwc:if={requiresWiderWindow}
+                                    class="minimum-width-notice"
+                                    role="status">
+                                    <h2 class="slds-text-heading_small">
+                                        This tool needs a wider window
+                                    </h2>
+                                    <p>
+                                        Resize the window to at least 640 pixels wide. Home and
+                                        Connections are available at this size.
+                                    </p>
+                                </div>
                                 <!-- Page - START -->
                                 <div class={dynamicAppContainerClass}>
                                     <section class="slds-full-height section">
@@ -72,11 +118,12 @@
                                             <!-- [Electron only] SFDX Installation required  -->
                                             <template lwc:if={isSFDXMissing}>
                                                 <slds-information-block
-                                                    title="CLI Missing"
+                                                    title="Salesforce CLI not found"
                                                     variant="error">
                                                     <p>
-                                                        You need to install the SFDX/SF CLI before
-                                                        being able to use this app.
+                                                        Install the Salesforce CLI for CLI-based
+                                                        connections and desktop tools. Quick Connect
+                                                        and offline tools are still available.
                                                         <a
                                                             href="https://developer.salesforce.com/tools/salesforcecli">
                                                             https://developer.salesforce.com/tools/salesforcecli
@@ -121,22 +168,34 @@
                         <!-- Side Panel container for the Next Gen Agent-->
                         <template lwc:if={isAgentVisible}>
                             <slds-vertical-panel
-                                size="slds-size_x-large"
+                                class="assistant-pane"
+                                size={assistantPanelSize}
+                                max-width={assistantPanelMaxWidth}
+                                disable-resize={isAssistantResizeDisabled}
                                 title="Next Gen Agent"
                                 position="right"
                                 is-open={isAgentChatExpanded}
                                 is-header-hidden>
                                 <!-- Agent App -->
-                                <agent-app class="slds-full-height slds-flex-column"></agent-app>
+                                <div class="assistant-surface">
+                                    <div lwc:if={layout.assistantFocused} class="assistant-return">
+                                        <button
+                                            type="button"
+                                            class="slds-button"
+                                            data-return-to-tool
+                                            onclick={closeAssistant}>
+                                            Back to tool
+                                        </button>
+                                    </div>
+                                    <agent-app
+                                        assistant-style
+                                        assistant-theme="workbench"
+                                        class="assistant-content slds-flex-column"
+                                        onopensettings={handleOpenAiSettings}></agent-app>
+                                </div>
                             </slds-vertical-panel>
                         </template>
                     </div>
-
-                    <!-- Mobile Illustration -->
-                    <slds-preview-illustration
-                        class="slds-p-top_x-large slds-hide_medium l-container-horizonta"
-                        title="Screen view is too small"
-                        sub-title="Workbench does not support mobile devices."></slds-preview-illustration>
                 </div>
             </div>
         </div>

@@ -29,8 +29,10 @@ export function TourCursor({
             if (!(el instanceof HTMLElement)) return;
             const stageBox = stage.getBoundingClientRect();
             const box = el.getBoundingClientRect();
-            const x = box.left - stageBox.left + box.width * 0.65;
-            const y = box.top - stageBox.top + box.height * 0.55;
+            const scaleX = stageBox.width / stage.offsetWidth || 1;
+            const scaleY = stageBox.height / stage.offsetHeight || 1;
+            const x = (box.left - stageBox.left + box.width * 0.65) / scaleX;
+            const y = (box.top - stageBox.top + box.height * 0.55) / scaleY;
             setPos(current =>
                 Math.abs(current.x - x) < 0.5 && Math.abs(current.y - y) < 0.5 ? current : { x, y }
             );

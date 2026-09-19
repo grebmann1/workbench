@@ -2,12 +2,21 @@
     <li class={itemClass}>
         <div class="slds-chat-message">
             <div class="slds-chat-message__body">
+                <template lwc:if={showSpeakerLabel}>
+                    <div class="assistant-speaker">
+                        <template lwc:if={isAssistant}>
+                            <slds-lucide-icon name="sparkles" size="14"></slds-lucide-icon>
+                        </template>
+                        {originMessage}
+                    </div>
+                </template>
                 <div class={itemMessageClass}>
                     <template for:each={renderedParts} for:item="part">
                         <template lwc:if={part.isReasoning}>
                             <agent-reasoning-block
                                 key={part.key}
                                 class="reasoning-block-item"
+                                assistant-style={assistantStyle}
                                 content={part.text}
                                 state={part.state}
                                 is-pulsing={isReasoningStreaming}></agent-reasoning-block>
@@ -15,6 +24,7 @@
                         <template lwc:elseif={part.isTool}>
                             <agent-tool-message
                                 key={part.key}
+                                assistant-style={assistantStyle}
                                 tool-part={part.toolPart}
                                 tool-call={part.toolCall}
                                 tool-result={part.toolResult}></agent-tool-message>
@@ -46,6 +56,8 @@
                                 <template lwc:if={isUser}>{part.text}</template>
                                 <template lwc:else>
                                     <slds-markdown-viewer
+                                        chat-code
+                                        block-remote-images
                                         class="slds-flex-column slds-full-height"
                                         value={part.text}
                                         salesforce-instance-url={salesforceInstanceUrl}
@@ -60,14 +72,27 @@
                 </div>
                 <template lwc:if={canCopyMessage}>
                     <div class="message-actions-row slds-m-top_xx-small">
-                        <lightning-button-icon
-                            icon-name="utility:copy"
-                            variant="bare"
-                            size="small"
-                            title="Copy message"
-                            alternative-text="Copy message"
-                            class="message-copy-button"
-                            onclick={handleCopyMessage}></lightning-button-icon>
+                        <template lwc:if={assistantStyle}>
+                            <button
+                                class="assistant-copy"
+                                type="button"
+                                title="Copy message"
+                                aria-label="Copy message"
+                                onclick={handleCopyMessage}>
+                                <slds-lucide-icon name="copy" size="13"></slds-lucide-icon>
+                                Copy
+                            </button>
+                        </template>
+                        <template lwc:else>
+                            <lightning-button-icon
+                                icon-name="utility:copy"
+                                variant="bare"
+                                size="small"
+                                title="Copy message"
+                                alternative-text="Copy message"
+                                class="message-copy-button"
+                                onclick={handleCopyMessage}></lightning-button-icon>
+                        </template>
                     </div>
                 </template>
             </div>

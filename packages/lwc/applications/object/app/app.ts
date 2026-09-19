@@ -1,4 +1,6 @@
 import ToolkitElement from 'host-api/element';
+import Toast from 'lightning/toast';
+import { currentInvestigation } from 'shared/recordInvestigation';
 import { connectStore, store, injectReducer, DESCRIBE } from 'host-api/store';
 import { wire, api, track } from 'lwc';
 import { CurrentPageReference, NavigationContext, navigate } from 'lwr/navigation';
@@ -158,6 +160,17 @@ export default class App extends ToolkitElement {
     loadFromNavigation = async ({ state }: { state: any }): Promise<void> => {
         const { applicationName, attribute1, attribute2 } = state;
         if (applicationName != 'sobject') return;
+        const context = currentInvestigation(state.investigation, this.connector);
+        if (
+            state.investigation &&
+            (!context || context.objectName !== attribute1 || context.useToolingApi)
+        ) {
+            Toast.show({
+                label: 'Open this investigation in its original org. Automation requires a data object.',
+                variant: 'warning',
+            });
+            return;
+        }
         if (attribute1) {
             const source = attribute2 === SOURCE.TOOLING ? SOURCE.TOOLING : SOURCE.STANDARD;
             const useToolingApi = source === SOURCE.TOOLING;
@@ -167,6 +180,7 @@ export default class App extends ToolkitElement {
                 rawName: attribute1,
                 source,
                 useToolingApi,
+                investigation: context ? JSON.stringify(context) : '',
             });
             store.dispatch(SOBJECTEXPLORER.reduxSlice.actions.upsertTab({ tab }));
         }
@@ -297,6 +311,10 @@ export default class App extends ToolkitElement {
                     ? `${tab.label} (${tab.source === SOURCE.TOOLING ? 'Tooling' : 'Standard'})`
                     : tab.label || tab.id,
         }));
+    }
+
+    get activeInvestigation() {
+        return this.currentTab?.investigation || '';
     }
 
     get activeTabId() {

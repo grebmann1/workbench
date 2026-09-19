@@ -15,3 +15,84 @@
     font-size: 0.75rem;
     color: var(--slds-g-color-neutral-base-50, #747474);
 }
+
+.assistant-transcript {
+    margin: 0;
+    padding: 1.1rem 1.25rem 0.25rem;
+    min-width: 0;
+}
+.assistant-latest {
+    position: sticky;
+    bottom: 0.65rem;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    width: max-content;
+    margin: -2rem auto 0;
+    min-height: 2rem;
+    padding: 0.35rem 0.75rem;
+    border: 1px solid var(--assistant-line, #e6e5ed);
+    border-radius: 2rem;
+    background: #fff;
+    color: var(--assistant-accent, #6357bd);
+    box-shadow: 0 2px 10px #292b3b14;
+    font: inherit;
+    font-size: 0.72rem;
+    cursor: pointer;
+}
+.assistant-latest:focus-visible {
+    outline: 2px solid var(--assistant-accent, #6357bd);
+    outline-offset: 2px;
+}
+
+.assistant-activity-group {
+    list-style: none;
+    margin: 0 0 0.8rem;
+    min-width: 0;
+}
+.assistant-activity-summary {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    min-height: 2.25rem;
+    padding: 0.45rem 0.55rem;
+    border: 1px solid var(--assistant-line, #e6e5ed);
+    border-radius: 0.45rem;
+    background: var(--assistant-tool-surface, #fcfbfe);
+    color: var(--assistant-muted, #727487);
+    font-size: 0.72rem;
+    line-height: 1.4;
+    cursor: pointer;
+    list-style: none;
+}
+.assistant-activity-summary::-webkit-details-marker {
+    display: none;
+}
+.assistant-activity-summary:hover {
+    background: var(--assistant-soft, #f4f2fb);
+}
+.assistant-activity-summary:focus-visible {
+    outline: 2px solid var(--assistant-accent, #6357bd);
+    outline-offset: 2px;
+}
+.assistant-activity-summary slds-lucide-icon {
+    display: flex;
+    flex-shrink: 0;
+}
+.activity-complete {
+    color: #33735d;
+}
+.activity-issues {
+    color: #a53636;
+}
+.activity-caret {
+    margin-left: auto;
+}
+details[open] .activity-caret {
+    transform: rotate(90deg);
+}
+.assistant-activity-details {
+    margin: 0.55rem 0 0.2rem 0.4rem;
+    padding-left: 0.65rem;
+    border-left: 1px solid var(--assistant-line, #e6e5ed);
+}

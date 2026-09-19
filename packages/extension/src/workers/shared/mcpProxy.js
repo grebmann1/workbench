@@ -1,3 +1,5 @@
+const activeRequests = new Map();
+
 function normalizeMcpUrl(value) {
     try {
         const url = new URL(typeof value === 'string' ? value.trim() : '');
@@ -62,6 +64,14 @@ export async function handleMcpHttpRequest({
         safeDebug('[MCP] background rejected: untrusted sender');
         return { error: 'Untrusted sender' };
     }
+    const requestId = typeof message?.requestId === 'string' ? message.requestId : '';
+    const owner =
+        sender.documentId || `${senderUrl}:${sender.tab?.id || ''}:${sender.frameId || ''}`;
+    const requestKey = requestId ? `${owner}:${requestId}` : null;
+    if (message?.action === 'mcp_http_cancel') {
+        if (requestKey) activeRequests.get(requestKey)?.abort();
+        return { ok: true };
+    }
 
     const requestUrl = typeof message?.url === 'string' ? message.url : '';
     const method = typeof message?.method === 'string' ? message.method.toUpperCase() : 'GET';
@@ -70,31 +80,38 @@ export async function handleMcpHttpRequest({
         return { error: 'Invalid MCP request' };
     }
 
-    const storedConfig = await chrome.storage.local.get([cacheConfigKey]);
-    if (!isMcpRequestUrlAllowed(requestUrl, storedConfig[cacheConfigKey])) {
-        safeDebug('[MCP] background rejected: URL not configured', { requestUrl });
-        return { error: 'MCP server URL is not configured' };
-    }
-
-    const headers =
-        message?.headers && typeof message.headers === 'object' && !Array.isArray(message.headers)
-            ? message.headers
-            : {};
-    const body = typeof message?.body === 'string' ? message.body : undefined;
-    const timeoutMs =
-        typeof message?.timeoutMs === 'number' && Number.isFinite(message.timeoutMs)
-            ? Math.max(1000, Math.min(message.timeoutMs, 120000))
-            : 30000;
-
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    if (requestKey && activeRequests.has(requestKey)) return { error: 'Duplicate MCP request id' };
+    if (requestKey) activeRequests.set(requestKey, controller);
+    let timeoutId;
     try {
+        const storedConfig = await chrome.storage.local.get([cacheConfigKey]);
+        if (!isMcpRequestUrlAllowed(requestUrl, storedConfig[cacheConfigKey])) {
+            safeDebug('[MCP] background rejected: URL not configured', { requestUrl });
+            return { error: 'MCP server URL is not configured' };
+        }
+
+        const headers =
+            message?.headers &&
+            typeof message.headers === 'object' &&
+            !Array.isArray(message.headers)
+                ? message.headers
+                : {};
+        const body = typeof message?.body === 'string' ? message.body : undefined;
+        const timeoutMs =
+            typeof message?.timeoutMs === 'number' && Number.isFinite(message.timeoutMs)
+                ? Math.max(1000, Math.min(message.timeoutMs, 120000))
+                : 30000;
+
+        timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+        controller.signal.throwIfAborted();
         const response = await fetch(requestUrl, {
             method,
             headers,
             body,
             redirect: 'error',
             signal: controller.signal,
+            credentials: 'omit',
         });
         const responseBody = await response.text();
         return {
@@ -108,5 +125,6 @@ export async function handleMcpHttpRequest({
         return { error: e?.message || String(e) };
     } finally {
         clearTimeout(timeoutId);
+        if (requestKey) activeRequests.delete(requestKey);
     }
 }

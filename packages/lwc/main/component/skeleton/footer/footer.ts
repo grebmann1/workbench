@@ -19,6 +19,7 @@ export default class Footer extends LightningElement {
     selectedError = null;
     errors = [];
     filterText = '';
+    pendingPanelFocus: 'error' | 'job' | null = null;
 
     // Job panel state
     isJobPanelOpen = false;
@@ -39,6 +40,17 @@ export default class Footer extends LightningElement {
         if (this.timerIntervalId) {
             window.clearInterval(this.timerIntervalId);
             this.timerIntervalId = null;
+        }
+    }
+
+    renderedCallback() {
+        if (!this.pendingPanelFocus) return;
+        const closeButton = this.template.querySelector(
+            `.footer-${this.pendingPanelFocus}-panel-close`
+        ) as HTMLButtonElement | null;
+        if (closeButton) {
+            this.pendingPanelFocus = null;
+            closeButton.focus();
         }
     }
 
@@ -92,6 +104,7 @@ export default class Footer extends LightningElement {
         this.isErrorPanelOpen = !this.isErrorPanelOpen;
         this.isJobPanelOpen = false;
         this.selectedError = null;
+        this.pendingPanelFocus = this.isErrorPanelOpen ? 'error' : null;
     };
 
     handleErrorItemClick = event => {
@@ -105,10 +118,26 @@ export default class Footer extends LightningElement {
     };
 
     handleClosePanel = () => {
+        const trigger = this.isErrorPanelOpen ? 'error' : this.isJobPanelOpen ? 'job' : null;
         this.isErrorPanelOpen = false;
         this.isJobPanelOpen = false;
         this.selectedError = null;
         this.selectedJob = null;
+        this.pendingPanelFocus = null;
+        if (trigger) {
+            (
+                this.template.querySelector(
+                    `.footer-${trigger}-message`
+                ) as HTMLButtonElement | null
+            )?.focus();
+        }
+    };
+
+    handlePanelKeydown = (event: KeyboardEvent) => {
+        if (event.key !== 'Escape') return;
+        event.preventDefault();
+        event.stopPropagation();
+        this.handleClosePanel();
     };
 
     handleFilterInput = event => {
@@ -124,6 +153,7 @@ export default class Footer extends LightningElement {
         this.isJobPanelOpen = !this.isJobPanelOpen;
         this.isErrorPanelOpen = false;
         this.selectedJob = null;
+        this.pendingPanelFocus = this.isJobPanelOpen ? 'job' : null;
     };
 
     handleJobItemClick = event => {

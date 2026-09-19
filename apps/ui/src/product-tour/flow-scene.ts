@@ -25,6 +25,7 @@ export type PalettePhase = 'command' | 'name' | null;
 export type FormFocus = 'name' | 'email' | 'order' | 'message' | 'submit' | null;
 
 export type CursorTarget =
+    | 'overlay-toggle'
     | 'dock-vscode'
     | 'overlay-search'
     | 'palette'
@@ -198,7 +199,7 @@ export function cursorTargetForScene(scene: {
     if (scene.caret === 'palette' || scene.paletteOpen) return 'palette';
     if (scene.vscodeHot) return 'dock-vscode';
     if (scene.caret === 'search' || scene.overlayOpen) return 'overlay-search';
-    return 'dock-vscode';
+    return scene.view === 'salesforce' ? 'overlay-toggle' : null;
 }
 
 export function sceneForElapsed(ms: number): FlowScene {

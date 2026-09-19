@@ -967,7 +967,7 @@ async function handleRuntimeMessage(message, sender) {
     if (message.action === 'smartinput_enhance_single') {
         return await handleSmartInputMessage(message, sender);
     }
-    if (message.action === 'mcp_http_request') {
+    if (message.action === 'mcp_http_request' || message.action === 'mcp_http_cancel') {
         return await handleMcpHttpRequestMessage(message, sender);
     }
     if (message.action.startsWith('chrome_')) {

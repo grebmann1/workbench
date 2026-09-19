@@ -6,9 +6,9 @@
     "description": "",
     "path": "package",
     "quickActionIcon": "standard:maintenance_asset",
-    "type": "data",
-    "menuGroup": "deploy",
-    "menuOrder": 10,
+    "type": "admin",
+    "menuGroup": "admin",
+    "menuOrder": 20,
     "flags": {
         "isFullHeight": true,
         "isDeletable": true,

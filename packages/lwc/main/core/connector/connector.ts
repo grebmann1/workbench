@@ -13,6 +13,7 @@ export * from './base';
 export * from './backgroundSession';
 export * from './connectionRegistry';
 export { Connector } from './connectorClass';
+export { applySessionRefreshLimit, isSalesforceApiBlocked } from './sessionRefreshLimit';
 export * from './redirectCredential';
 
 export const credentialStrategies = {

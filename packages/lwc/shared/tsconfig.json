@@ -7,11 +7,13 @@
         "baseUrl": ".",
         "paths": {
             "shared/*": ["modules/*"],
+            "shared/recordInvestigation": ["modules/recordInvestigation/recordInvestigation"],
             "shared/analytics": ["modules/analytics/analytics"],
             "shared/llm": ["modules/llm/llm"],
             "shared/oauth": ["modules/oauth/oauth"],
             "shared/loader": ["modules/loader/loader"],
             "shared/markdown": ["modules/markdown/markdown"],
+            "shared/safeMarkdown": ["modules/safeMarkdown/safeMarkdown"],
             "shared/sf": ["modules/sf/sf"],
             "shared/salesforceUrl": ["modules/salesforceUrl/salesforceUrl"]
         },

@@ -1,4 +1,4 @@
-import { credentialStrategies } from 'core/connector';
+import { credentialStrategies, isSalesforceApiBlocked } from 'core/connector';
 import { connectStore, store, APPLICATION } from 'core/store';
 import ToolkitElement from 'core/toolkitElement';
 import jsforce from 'imported/jsforce';
@@ -508,6 +508,15 @@ export default class Overlay extends ToolkitElement {
         };
         try {
             const connector = await credentialStrategies.SESSION.connect(params);
+            if (connector.hasError || isSalesforceApiBlocked(connector.conn)) {
+                this._setOverlayError({
+                    message: 'Overlay injection failed (session connect)',
+                    details:
+                        connector.configuration?._errorMessage ||
+                        'Salesforce blocked API access for this session.',
+                });
+                return;
+            }
             this.clearOverlayError();
             store.dispatch(APPLICATION.reduxSlice.actions.login({ connector }));
         } catch (e) {

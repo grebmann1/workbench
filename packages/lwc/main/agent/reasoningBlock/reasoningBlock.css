@@ -69,6 +69,42 @@
     animation: reasoningBlockPulse 1.2s ease-in-out infinite;
 }
 
+.assistant-reasoning .reasoning-block-header {
+    min-height: 1.75rem;
+    padding: 0.2rem 0.1rem;
+    border-radius: 0.3rem;
+    font-size: 0.7rem;
+    line-height: 1.4;
+    color: var(--assistant-muted, #727487);
+}
+.assistant-reasoning .reasoning-block-header:hover:not(:disabled) {
+    background: var(--assistant-soft, #f4f2fb);
+}
+.assistant-reasoning .reasoning-block-header:focus-visible {
+    outline: 2px solid var(--assistant-accent, #6357bd);
+    outline-offset: 1px;
+}
+.assistant-reasoning .reasoning-status {
+    gap: 0.4rem;
+    min-width: 0;
+}
+.assistant-reasoning slds-lucide-icon {
+    display: flex;
+    flex-shrink: 0;
+}
+.assistant-reasoning .reasoning-block-header-label {
+    font-style: normal;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.assistant-reasoning .reasoning-block-body {
+    margin: 0.2rem 0 0.35rem 0.5rem;
+    padding: 0.4rem 0.55rem;
+    background: var(--assistant-tool-surface, #f8f7fb);
+    border-color: var(--assistant-line, #e6e5ed);
+}
+
 @keyframes reasoningBlockPulse {
     0%,
     100% {

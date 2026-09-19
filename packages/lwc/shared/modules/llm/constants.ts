@@ -53,6 +53,7 @@ export type LlmModelOption = {
     value: string;
     provider: LlmProvider;
     maxOutputTokens?: number;
+    contextWindow?: number;
 };
 
 export type LlmCatalogStatus =

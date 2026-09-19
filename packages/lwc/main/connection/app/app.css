@@ -78,7 +78,7 @@
 
 .browser-sessions__desc {
     margin: 0;
-    font-size: 0.75rem;
+    font-size: 0.8125rem;
     color: #706e6b;
 }
 
@@ -181,17 +181,15 @@
     font-size: 0.8125rem;
     font-weight: 600;
     color: #181818;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    white-space: normal;
+    overflow-wrap: anywhere;
 }
 
 .session-item__detail {
-    font-size: 0.6875rem;
-    color: #a8a29e;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    font-size: 0.8125rem;
+    color: var(--slds-g-color-neutral-base-30, #444);
+    white-space: normal;
+    overflow-wrap: anywhere;
 }
 
 .session-item__chevron {
@@ -223,7 +221,16 @@
 
 .sessions-empty__hint {
     margin: 0;
-    font-size: 0.75rem;
-    color: #a8a29e;
+    font-size: 0.8125rem;
+    color: var(--slds-g-color-neutral-base-30, #444);
     line-height: 1.45;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .sessions-skeleton__row {
+        animation: none;
+    }
+    .session-item {
+        transition: none;
+    }
 }

@@ -1,6 +1,12 @@
 export const GITHUB_DISCUSSIONS_URL = 'https://github.com/grebmann1/workbench/discussions';
 export const AI_DOC_URL = 'ai-agent/setup';
 
+export const HOME_TASKS = [
+    { path: 'soql', title: 'Query data' },
+    { path: 'sobject', title: 'Inspect objects' },
+    { path: 'anonymousapex', title: 'Run Apex' },
+];
+
 export const QUICK_TIPS = [
     {
         id: 'tip-register-org',

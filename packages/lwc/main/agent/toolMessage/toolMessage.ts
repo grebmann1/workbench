@@ -48,6 +48,7 @@ function pickResultTextFromOutput(output) {
 }
 
 export default class ToolMessage extends LightningElement {
+    @api assistantStyle = false;
     @api toolCall: any;
     @api toolResult: any;
     @api isRunning = false;
@@ -55,6 +56,49 @@ export default class ToolMessage extends LightningElement {
     expanded = false;
     copied = false;
     _copyResetKey = `tool-copy-${guid()}`;
+
+    get containerClass() {
+        return `slds-m-top_x-small tool-message-item${this.assistantStyle ? ' assistant-tool-card' : ''}${this.assistantStyle && this.expanded ? ' assistant-tool-card_expanded' : ''}`;
+    }
+
+    get toolName() {
+        return (
+            normalizeText(this._effectiveToolCall?.toolName || this._effectiveToolCall?.name) ||
+            'tool'
+        );
+    }
+
+    get isBashTool() {
+        return ['exec', 'bash', 'shell'].includes(this.toolName);
+    }
+
+    get toolCategory() {
+        if (this.isBashTool) return 'Bash';
+        if (this.toolName.startsWith('browser_')) return 'Browser';
+        if (this.toolName === 'js') return 'JavaScript';
+        return 'Tool';
+    }
+
+    get toolKindIcon() {
+        if (this.isBashTool || this.toolName === 'js') return 'terminal';
+        return this.toolName.startsWith('browser_') ? 'globe' : 'wrench';
+    }
+
+    get toolStatusLabel() {
+        if (this.toolPart?.state === 'output-denied') return 'Denied';
+        if (this.isErrorResult) return 'Failed';
+        if (this.hasToolResult) return 'Complete';
+        if (this.toolPart?.state === 'approval-requested') return 'Awaiting approval';
+        return this._effectiveIsRunning ? 'Running' : 'Pending';
+    }
+
+    get toolStateClass() {
+        return `assistant-tool-state${this.isErrorResult ? ' assistant-tool-state_error' : this.hasSuccessfulResult ? ' assistant-tool-state_complete' : ''}`;
+    }
+
+    get showCommandPreview() {
+        return this.assistantStyle && this.isBashTool && !this.expanded;
+    }
 
     get _effectiveToolCall() {
         const part = this.toolPart;
@@ -205,7 +249,13 @@ export default class ToolMessage extends LightningElement {
     }
 
     get toggleAriaLabel() {
+        if (this.assistantStyle)
+            return `${this.expanded ? 'Collapse' : 'Expand'} ${this.toolName} details`;
         return this.expanded ? 'Collapse tool details' : 'Expand tool details';
+    }
+
+    get assistantToggleIcon() {
+        return this.expanded ? 'chevron-down' : 'chevron-right';
     }
 
     get commandLabel() {
@@ -233,6 +283,21 @@ export default class ToolMessage extends LightningElement {
     get resultText() {
         if (this._effectiveIsRunning) return 'Running...';
         const output = this._effectiveToolResult?.output;
+        if (this.assistantStyle && this.isBashTool && output && typeof output === 'object') {
+            const shell =
+                output.type === 'json' || output.type === 'error-json' ? output.value : output;
+            if (shell && (typeof shell.stdout === 'string' || typeof shell.stderr === 'string')) {
+                return [
+                    typeof shell.stdout === 'string' ? `stdout:\n${shell.stdout}` : '',
+                    typeof shell.stderr === 'string' && shell.stderr
+                        ? `stderr:\n${shell.stderr}`
+                        : '',
+                    typeof shell.exitCode === 'number' ? `Exit code: ${shell.exitCode}` : '',
+                ]
+                    .filter(Boolean)
+                    .join('\n\n');
+            }
+        }
         if (typeof output === 'string' && output.trim().length > 0) return output;
         if (output && typeof output === 'object') {
             const chosenText = pickResultTextFromOutput(output);
