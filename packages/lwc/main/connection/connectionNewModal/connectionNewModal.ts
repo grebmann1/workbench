@@ -272,15 +272,12 @@ export default class ConnectionNewModal extends LightningModal {
 
     electron_usernamePassword = async () => {
         try {
-            const connector: ConnectorLike = await credentialStrategies.USERNAME.directConnect(
-                {
-                    username: this.username,
-                    password: this.password,
-                    loginUrl: this.loginUrl,
-                    alias: this.alias,
-                },
-                { saveFullConfiguration: false }
-            );
+            const connector: ConnectorLike = await credentialStrategies.USERNAME.directConnect({
+                username: this.username,
+                password: this.password,
+                loginUrl: this.loginUrl,
+                alias: this.alias,
+            });
             const result = await setDesktopStoredOrg({
                 alias: this.alias,
                 configuration: connector.configuration,

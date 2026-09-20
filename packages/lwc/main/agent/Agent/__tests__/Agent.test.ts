@@ -27,6 +27,9 @@ function harness(streamText) {
         '../runController/stepCheckpoint': { StepCheckpoint },
         '../runController/runStatistics': { createRunStatistics },
         '../tools/modules/toolPolicy': { approveToolCall },
+        '../memory/memory': { memoryContext: async () => '' },
+        '../memory/tools': { createMemoryTools: () => [] },
+        '../googleWorkspace/tools': { createGoogleWorkspaceTools: () => [] },
         'agent/tools': {
             filterToolsByModel: tools => tools,
             createBashTools: () => [{ name: 'bash', execute: () => executed.push('bash') }],

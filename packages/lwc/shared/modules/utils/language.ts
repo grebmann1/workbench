@@ -32,7 +32,7 @@ export function getLanguage(extension?: string | null): string | null {
 
 export function formatFiles<T extends { name?: string }>(
     files: Iterable<T>,
-    defaultLanguage: string
+    defaultLanguage: string | null = null
 ): Array<T & { extension: string | null; language: string | null }> {
     return Array.from(files).map(file => {
         const name = file?.name;

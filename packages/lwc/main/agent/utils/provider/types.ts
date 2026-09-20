@@ -1,4 +1,4 @@
-import type { LanguageModelV3 } from '@ai-sdk/provider';
+import type { LanguageModelV3, SharedV3ProviderOptions } from '@ai-sdk/provider';
 import type { OAuthCredentials } from 'shared/llm';
 import type { FormattedRequest } from './shared/fetch';
 
@@ -52,7 +52,7 @@ export type TransformResponse = (response: Response) => Promise<Response>;
 export interface ProviderRuntime {
     createInstance(args: CreateInstanceArgs): ProviderInstance;
     resolveModel(instance: ProviderInstance, args: ResolveModelArgs): LanguageModelV3;
-    resolveOptions(args: ResolveOptionsArgs): Record<string, unknown> | undefined;
+    resolveOptions(args: ResolveOptionsArgs): SharedV3ProviderOptions | undefined;
     supportsReasoning(): boolean;
     /**
      * Optional per-runtime request/response hooks. When a runtime declares these,

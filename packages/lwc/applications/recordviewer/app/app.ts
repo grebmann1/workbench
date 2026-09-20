@@ -32,6 +32,12 @@ bootstrapRecordViewerExtension();
 import { CATEGORY_STORAGE } from 'host-api/builder';
 
 export default class App extends ToolkitElement {
+    declare refs: {
+        recordViewerTab?: HTMLElement &
+            import('../../../main/component/slds/tabset/tabset').default;
+        recordViewerExplorer?: HTMLElement & import('../recordExplorer/recordExplorer').default;
+    };
+
     _hasRendered = false;
     isLoading = false;
     _loadingMessage: string | null = null;

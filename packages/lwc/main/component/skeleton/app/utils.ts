@@ -21,6 +21,6 @@ export const handleRedirect = (navContext, redirectUrl) => {
             },
         });
     } else {
-        window.location = `/app/${stringUrl}`;
+        window.location.href = `/app/${stringUrl}`;
     }
 };

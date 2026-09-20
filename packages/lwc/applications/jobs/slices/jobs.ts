@@ -126,9 +126,7 @@ async function fetchAllBulkPages(connector: ConnectorLike, firstUrl: string): Pr
 }
 
 async function toolingQuery<T>(connector: ConnectorLike, soql: string): Promise<T[]> {
-    const tooling = (
-        connector as { conn?: { tooling?: { query?: (soql: string) => Promise<unknown> } } }
-    )?.conn?.tooling;
+    const tooling = connector.conn?.tooling;
     if (!tooling?.query) {
         throw new Error('Tooling API is not available for this connection.');
     }
@@ -139,9 +137,7 @@ async function toolingQuery<T>(connector: ConnectorLike, soql: string): Promise<
 export const fetchScheduled = createAsyncThunk(
     'jobs/fetchScheduled',
     async ({ connector }: { connector: ConnectorLike }) => {
-        const res = await (
-            connector as { conn: { query: (soql: string) => Promise<unknown> } }
-        ).conn.query(SCHEDULED_SOQL);
+        const res = await connector.conn.query(SCHEDULED_SOQL);
         return { records: normalizeQueryRecords<ScheduledJob>(res) };
     }
 );
@@ -149,9 +145,7 @@ export const fetchScheduled = createAsyncThunk(
 export const fetchAsyncApex = createAsyncThunk(
     'jobs/fetchAsyncApex',
     async ({ connector, offset = 0 }: { connector: ConnectorLike; offset?: number }) => {
-        const res = await (
-            connector as { conn: { query: (soql: string) => Promise<unknown> } }
-        ).conn.query(asyncApexSoql(offset));
+        const res = await connector.conn.query(asyncApexSoql(offset));
         const records = normalizeQueryRecords<AsyncApexJob>(res);
         return {
             records,
@@ -164,9 +158,7 @@ export const fetchAsyncApex = createAsyncThunk(
 export const fetchMoreAsyncApex = createAsyncThunk(
     'jobs/fetchMoreAsyncApex',
     async ({ connector, offset }: { connector: ConnectorLike; offset: number }) => {
-        const res = await (
-            connector as { conn: { query: (soql: string) => Promise<unknown> } }
-        ).conn.query(asyncApexSoql(offset));
+        const res = await connector.conn.query(asyncApexSoql(offset));
         const records = normalizeQueryRecords<AsyncApexJob>(res);
         return {
             records,
@@ -179,9 +171,7 @@ export const fetchMoreAsyncApex = createAsyncThunk(
 export const fetchFlexQueue = createAsyncThunk(
     'jobs/fetchFlexQueue',
     async ({ connector }: { connector: ConnectorLike }) => {
-        const res = await (
-            connector as { conn: { query: (soql: string) => Promise<unknown> } }
-        ).conn.query(FLEX_QUEUE_SOQL);
+        const res = await connector.conn.query(FLEX_QUEUE_SOQL);
         const records = normalizeQueryRecords<FlexQueueJob>(res).map(record => ({
             ...record,
             Status: 'Queued',
@@ -373,13 +363,13 @@ const jobsSlice = createSlice({
     extraReducers: builder => {
         const wire = <T>(
             thunk: ReturnType<typeof createAsyncThunk>,
-            key: 'scheduled' | 'asyncApex' | 'flexQueue' | 'bulk'
+            getTab: (state: JobsState) => TabState<T>
         ) => {
             builder
                 .addCase(thunk.pending, state => {
-                    state[key].isFetching = true;
-                    state[key].error = null;
-                    state[key].warnings = [];
+                    getTab(state).isFetching = true;
+                    getTab(state).error = null;
+                    getTab(state).warnings = [];
                 })
                 .addCase(
                     thunk.fulfilled,
@@ -394,24 +384,25 @@ const jobsSlice = createSlice({
                             };
                         }
                     ) => {
-                        state[key].isFetching = false;
-                        state[key].data = action.payload?.records ?? [];
-                        state[key].fetchedAt = Date.now();
-                        state[key].error = null;
-                        state[key].warnings = action.payload?.warnings ?? [];
-                        state[key].hasMore = action.payload?.hasMore;
-                        state[key].offset = (action.payload?.offset ?? 0) + state[key].data.length;
+                        getTab(state).isFetching = false;
+                        getTab(state).data = action.payload?.records ?? [];
+                        getTab(state).fetchedAt = Date.now();
+                        getTab(state).error = null;
+                        getTab(state).warnings = action.payload?.warnings ?? [];
+                        getTab(state).hasMore = action.payload?.hasMore;
+                        getTab(state).offset =
+                            (action.payload?.offset ?? 0) + getTab(state).data.length;
                     }
                 )
                 .addCase(thunk.rejected, (state, action: { error?: { message?: string } }) => {
-                    state[key].isFetching = false;
-                    state[key].error = action.error?.message || 'Fetch failed';
+                    getTab(state).isFetching = false;
+                    getTab(state).error = action.error?.message || 'Fetch failed';
                 });
         };
-        wire(fetchScheduled, 'scheduled');
-        wire(fetchAsyncApex, 'asyncApex');
-        wire(fetchFlexQueue, 'flexQueue');
-        wire(fetchBulk, 'bulk');
+        wire(fetchScheduled, state => state.scheduled);
+        wire(fetchAsyncApex, state => state.asyncApex);
+        wire(fetchFlexQueue, state => state.flexQueue);
+        wire(fetchBulk, state => state.bulk);
 
         builder
             .addCase(fetchMoreAsyncApex.pending, state => {

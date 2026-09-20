@@ -9,6 +9,7 @@ export const TYPE = {
     OBJECT: 'Object',
     PROFILE: 'Profile',
     PERMISSION_SET: 'Permission Set',
+    PERMISSION_SET_GROUP: 'Permission Set Group',
     USER: 'User',
     FLOW: 'Flow',
     AGENTFORCE: 'Agentforce',

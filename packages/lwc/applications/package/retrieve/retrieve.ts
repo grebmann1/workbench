@@ -32,7 +32,11 @@ function getXmlError(doc) {
     }
 }
 
-function getElementsByTagNameSafe(parent, ns, tagName) {
+function getElementsByTagNameSafe(
+    parent: Element | Document,
+    ns: string | null,
+    tagName: string
+): Element[] {
     if (!parent) return [];
     try {
         if (ns) return Array.from(parent.getElementsByTagNameNS(ns, tagName) || []);
@@ -93,6 +97,17 @@ const TESTLEVEL = {
 };
 
 export default class Retrieve extends ToolkitElement {
+    declare refs: {
+        uploader?: HTMLElement &
+            import('../../../main/component/slds/fileUploader/fileUploader').default;
+        manifest?: HTMLElement & import('../../../main/editor/default/default').default;
+        response?: HTMLElement & import('../../../main/editor/default/default').default;
+    };
+
+    declare _body: string;
+    declare _hasRendered: boolean;
+    declare testLevel_value: string;
+
     isRunning = false;
     file: File | null = null;
 
@@ -400,7 +415,7 @@ export default class Retrieve extends ToolkitElement {
         if (this.file && this.file.type === 'text/xml') {
             const reader = new FileReader();
             reader.onload = () => {
-                const textXml = reader.result;
+                const textXml = typeof reader.result === 'string' ? reader.result : '';
                 this.body = prettifyXml(textXml);
             };
             reader.readAsText(this.file);

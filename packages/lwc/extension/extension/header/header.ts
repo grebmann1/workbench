@@ -5,6 +5,16 @@ import { connectStore, store as legacyStore, store_application } from 'shared/st
 import { classSet, isNotUndefinedOrNull, runActionAfterTimeOut } from 'shared/utils';
 
 export default class Header extends LightningElement {
+    declare refs: {
+        searchInput?: HTMLElement & {
+            value: string;
+            checked: boolean;
+            reportValidity(): boolean;
+            checkValidity(): boolean;
+            setCustomValidity(message: string): void;
+        };
+    };
+
     @api currentApplicationName = 'App Name';
     @api currentTabName = 'Home';
     @api applications;

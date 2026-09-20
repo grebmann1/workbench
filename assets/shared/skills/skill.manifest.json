@@ -13,6 +13,7 @@
     "general/skillCreator.SKILL.md",
     "google/gmail.SKILL.md",
     "google/sheets.SKILL.md",
+    "google/slides.SKILL.md",
     "salesforce/agentforce.SKILL.md",
     "salesforce/apex.SKILL.md",
     "salesforce/api.SKILL.md",

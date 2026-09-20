@@ -1,4 +1,4 @@
-import { GOOGLE_DRIVE_SCOPES } from 'agent/googleAuth';
+import { executeGoogleOperation, getGoogleAccessToken } from '../googleWorkspace/googleWorkspace';
 import LOGGER from 'shared/logger';
 
 import { decodeExecStdout } from '../tools/modules/execStdout';
@@ -102,7 +102,7 @@ function createSandboxIframe() {
 }
 
 function waitForIframeLoad(iframe: HTMLIFrameElement, timeoutMs = IFRAME_LOAD_TIMEOUT_MS) {
-    return new Promise((resolve, reject) => {
+    return new Promise<void>((resolve, reject) => {
         if (!iframe) {
             reject(new Error('Iframe not created'));
             return;
@@ -402,7 +402,7 @@ export class CdpHandler {
     }
 
     waitForSandboxReady(timeoutMs = SANDBOX_READY_TIMEOUT_MS) {
-        return new Promise((resolve, reject) => {
+        return new Promise<void>((resolve, reject) => {
             LOGGER.log('waitForSandboxReady called');
 
             if (!this.getSandboxWindow()) {
@@ -1133,7 +1133,15 @@ export class CdpHandler {
 
     async handleWorkspaceRequest(message) {
         LOGGER.log('### [CdpHandler] handleWorkspaceRequest', message.operation);
-        const respond = ({ success, result, error }) => {
+        const respond = ({
+            success,
+            result,
+            error,
+        }: {
+            success: boolean;
+            result?: unknown;
+            error?: string;
+        }) => {
             this.postToSandbox({
                 type: 'WORKSPACE_RESPONSE',
                 id: message.id,
@@ -1186,6 +1194,13 @@ export class CdpHandler {
                 );
             }
 
+            if (typeof operation === 'string' && /^(drive|slides)\./.test(operation)) {
+                if (!this.deps?.googleSheetEnabled)
+                    throw new Error('Enable Google Workspace in AI settings first.');
+                const result = await executeGoogleOperation(operation, input);
+                respond({ success: true, result });
+                return;
+            }
             switch (operation) {
                 case 'status': {
                     const cwd = typeof bash.getCwd === 'function' ? bash.getCwd() : '/workspace';
@@ -1273,22 +1288,14 @@ export class CdpHandler {
                     return;
                 }
                 case 'sheets.requestAccess': {
-                    console.log(
-                        '### [CdpHandler] sheets.requestAccess 1',
-                        this.deps?.googleSheetEnabled
-                    );
                     if (!this.deps?.googleSheetEnabled) {
                         respond({ success: true, result: { authorized: false } });
                         return;
                     }
                     try {
-                        console.log('### [CdpHandler] sheets.requestAccess 2');
                         const token = await this._getGoogleAccessToken(false);
-                        console.log('### [CdpHandler] sheets.requestAccess 3', token);
                         respond({ success: true, result: { authorized: !!token } });
                     } catch (error) {
-                        console.log('### [CdpHandler] sheets.requestAccess 4', error);
-                        console.log('### [CdpHandler] sheets.requestAccess 3');
                         respond({ success: true, result: { authorized: false } });
                     }
                     return;
@@ -1512,23 +1519,7 @@ export class CdpHandler {
     }
 
     async _getGoogleAccessToken(interactive = false): Promise<string> {
-        if (typeof chrome === 'undefined' || typeof chrome?.identity?.getAuthToken !== 'function') {
-            throw new Error('Google sign-in is only available in the Chrome extension.');
-        }
-        return new Promise((resolve, reject) => {
-            chrome.identity.getAuthToken({ interactive, scopes: GOOGLE_DRIVE_SCOPES }, token => {
-                if (chrome.runtime.lastError || !token) {
-                    reject(
-                        new Error(
-                            chrome.runtime.lastError?.message ||
-                                'Not authorized. Please connect to Google in Settings.'
-                        )
-                    );
-                } else {
-                    resolve(token as string);
-                }
-            });
-        });
+        return getGoogleAccessToken(interactive);
     }
 
     async _googleSheetsRequest(method: string, url: string, body?: object): Promise<any> {
@@ -1603,7 +1594,7 @@ export class CdpHandler {
             const img = new Image();
             img.decoding = 'async';
 
-            const decoded = new Promise((resolve, reject) => {
+            const decoded = new Promise<void>((resolve, reject) => {
                 img.onload = () => resolve();
                 img.onerror = () => reject(new Error('Failed to decode image'));
             });

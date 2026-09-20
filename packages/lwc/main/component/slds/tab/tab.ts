@@ -6,6 +6,23 @@ import { LightningElement, api, track } from 'lwc';
 import { normalizeBoolean } from 'shared/utils';
 
 export default class sldsTab extends LightningElement {
+    declare _connected: boolean;
+    declare _deRegistrationCallback: () => void;
+    declare _isDraft: boolean;
+    declare _isCloseable: boolean;
+    declare _value: string;
+    declare _label: string;
+    declare _title: string;
+    declare _counter: number | string;
+    declare _badgeBackgroundColor: string;
+    declare _badgeTextColor: string;
+    declare _badgePosition: string;
+    declare _iconName: string;
+    declare _iconAlernativeText: string;
+    declare _endIconName: string;
+    declare _endIconAlternativeText: string;
+    declare _showErrorIndicator: boolean;
+
     @track _loadContent = false;
 
     @api isAddTabEnabled = false;
@@ -194,3 +211,23 @@ export default class sldsTab extends LightningElement {
         this.counter = event.detail.value;
     }
 }
+
+export type TabElement = HTMLElement & sldsTab & { dataTabValue: string; ariaLabelledBy: string };
+type ReadonlyTabHeader = Pick<
+    sldsTab,
+    | 'value'
+    | 'label'
+    | 'title'
+    | 'iconName'
+    | 'isCloseable'
+    | 'isDraft'
+    | 'counter'
+    | 'badgeColor'
+    | 'badgePositionClass'
+    | 'endIconName'
+    | 'endIconAlternativeText'
+    | 'showErrorIndicator'
+    | 'isAddTabEnabled'
+> & { domId: string; iconAlternativeText: string };
+
+export type TabHeader = { -readonly [K in keyof ReadonlyTabHeader]: ReadonlyTabHeader[K] };

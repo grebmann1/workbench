@@ -49,8 +49,8 @@ export default class UserExplorerNetworkModal extends LightningModal {
         chromeOpenInWindow(
             `${this.frontDoorUrl}&retURL=${encodeURIComponent(targetUrl)}`,
             this.username,
-            configuration[CACHE_CONFIG.EXPERIENCE_CLOUD_LOGINAS_INCOGNITO.key],
-            configuration[CACHE_CONFIG.EXPERIENCE_CLOUD_LOGINAS_INCOGNITO.key]
+            configuration[CACHE_CONFIG.EXPERIENCE_CLOUD_LOGINAS_INCOGNITO.key] === true,
+            configuration[CACHE_CONFIG.EXPERIENCE_CLOUD_LOGINAS_INCOGNITO.key] === true
         );
     };
 }

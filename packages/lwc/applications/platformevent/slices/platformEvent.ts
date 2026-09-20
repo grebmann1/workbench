@@ -48,7 +48,17 @@ function saveCacheSettings(alias, state) {
 
 /** Redux */
 
-export const platformEventAdapter = createEntityAdapter();
+type Entry = {
+    id: string;
+    name?: string;
+    type?: string;
+    replayId?: number;
+    status?: string;
+    lastModifiedDate?: Date;
+    error?: unknown;
+    messages?: Array<{ id: string; isRead?: boolean; content?: unknown; _searchText?: string }>;
+};
+export const platformEventAdapter = createEntityAdapter<Entry>();
 
 // Create a slice with reducers and extraReducers
 const platformEventSlice = createSlice({
@@ -193,3 +203,9 @@ const platformEventSlice = createSlice({
 });
 
 export const reduxSlice = platformEventSlice;
+
+declare module 'host-api/types' {
+    interface InjectedState {
+        platformEvent?: ReturnType<typeof reduxSlice.reducer>;
+    }
+}

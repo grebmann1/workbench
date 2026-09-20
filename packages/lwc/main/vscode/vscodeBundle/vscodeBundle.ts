@@ -71,7 +71,14 @@ export async function initializeVscodeApi(apiConfig, startInstructions) {
     return apiWrapper;
 }
 
-export async function initializeVscodeApiWithDefaults(options = {}) {
+export async function initializeVscodeApiWithDefaults(
+    options: {
+        vscodeApiConfig?: Record<string, unknown>;
+        logLevel?: number;
+        startInstructions?: Record<string, unknown>;
+        caller?: string;
+    } = {}
+) {
     const { vscodeApiConfig, logLevel = LogLevel.Off, startInstructions, caller } = options;
 
     const vscodeBundle = await getVscodeBundle();

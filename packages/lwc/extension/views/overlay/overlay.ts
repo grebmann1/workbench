@@ -52,6 +52,13 @@ const TABS = {
 };
 
 export default class Overlay extends ToolkitElement {
+    _lastAccessToken: string | undefined;
+
+    declare refs: {
+        container?: HTMLElementTagNameMap['div'];
+        header?: HTMLElement & import('../../extension/header/header').default;
+    };
+
     @api isProxyDisabled = false;
 
     recordId;
@@ -126,16 +133,17 @@ export default class Overlay extends ToolkitElement {
         if (
             isNotUndefinedOrNull(application.connector) &&
             isNotUndefinedOrNull(this.connector) &&
-            application.connector?.conn?.accessToken != this.connector.connector?.conn?.accessToken
+            application.connector?.conn?.accessToken != this._lastAccessToken
         ) {
             //console.log('Connected');
             this.clearOverlayError();
+            this._lastAccessToken = application.connector.conn.accessToken;
             this.isConnectorLoaded = true;
             this.init();
         }
     }
 
-    _setOverlayError = ({ message, details } = {}) => {
+    _setOverlayError = ({ message, details }: { message?: string; details?: unknown } = {}) => {
         const safeMessage =
             typeof message === 'string' && message.trim().length > 0
                 ? message.trim()
@@ -144,7 +152,7 @@ export default class Overlay extends ToolkitElement {
         let safeDetails = null;
         if (typeof details === 'string' && details.trim().length > 0) {
             safeDetails = details.trim();
-        } else if (details && typeof details === 'object') {
+        } else if (details && typeof details === 'object' && 'message' in details) {
             const msg = details?.message;
             safeDetails = typeof msg === 'string' && msg.trim().length > 0 ? msg.trim() : null;
         }
@@ -251,6 +259,7 @@ export default class Overlay extends ToolkitElement {
             sessionId: this.connector.conn.accessToken,
             serverUrl: this.connector.conn.instanceUrl,
             baseUrl: chrome.runtime.getURL('/views/app.html'),
+            redirectUrl: undefined as string | undefined,
         };
         if (application) {
             const params = new URLSearchParams({
@@ -364,15 +373,17 @@ export default class Overlay extends ToolkitElement {
     }*/
 
     viewerTab_setValue = async () => {
-        const cached = (await window.defaultStore.getItem(CACHE_TAB_SETTINGS)) || TABS.ORGANIZATION;
+        const cached =
+            (await window.defaultStore.getItem<string>(CACHE_TAB_SETTINGS)) || TABS.ORGANIZATION;
         this.viewerTab = Object.values(TABS).includes(cached) ? cached : TABS.QUICKLINK;
     };
 
     objectFilter_setValue = async () => {
         try {
             const cached =
-                (await window.defaultStore.getItem(`${OBJECT_FILTER_KEY}-${this.currentDomain}`)) ||
-                OBJECT_FILTER.ALL;
+                (await window.defaultStore.getItem<string>(
+                    `${OBJECT_FILTER_KEY}-${this.currentDomain}`
+                )) || OBJECT_FILTER.ALL;
             this.objectFilter = Object.values(OBJECT_FILTER).includes(cached)
                 ? cached
                 : OBJECT_FILTER.ALL;
@@ -383,7 +394,7 @@ export default class Overlay extends ToolkitElement {
 
     recentObjects_setValue = async () => {
         try {
-            const cached = await window.defaultStore.getItem(
+            const cached = await window.defaultStore.getItem<string>(
                 `${RECENT_OBJECTS_KEY}-${this.currentDomain}`
             );
             const parsed = cached ? JSON.parse(cached) : [];
@@ -395,10 +406,10 @@ export default class Overlay extends ToolkitElement {
 
     recentlyViewedObjects_setValue = async () => {
         try {
-            const cached = await window.defaultStore.getItem(
+            const cached = await window.defaultStore.getItem<string>(
                 `${RECENTLY_VIEWED_KEY}-${this.currentDomain}`
             );
-            const expiry = await window.defaultStore.getItem(
+            const expiry = await window.defaultStore.getItem<string>(
                 `${RECENTLY_VIEWED_EXPIRY_KEY}-${this.currentDomain}`
             );
             if (cached && expiry && Date.now() < parseInt(expiry)) {
@@ -443,7 +454,7 @@ export default class Overlay extends ToolkitElement {
     };
 
     filter_setValue = async () => {
-        const cachedData = await window.defaultStore.getItem(CACHE_FILTER_SETTINGS);
+        const cachedData = await window.defaultStore.getItem<string[]>(CACHE_FILTER_SETTINGS);
         if (cachedData) {
             this.filter_value = cachedData;
         } else {
@@ -607,7 +618,14 @@ export default class Overlay extends ToolkitElement {
         try {
             if (!this.connector?.conn) return;
             this.isFetchingUsers = true;
-            const result = await this.connector.conn.query(
+            const result = await this.connector.conn.query<{
+                Id: string;
+                Name: string;
+                Username?: string;
+                Email?: string;
+                Profile?: { Name: string };
+                IsActive?: boolean;
+            }>(
                 'SELECT Id, Name, Username, Email, Profile.Name, IsActive FROM User ORDER BY Name LIMIT 50'
             );
             const records = result?.records || [];
@@ -667,7 +685,7 @@ export default class Overlay extends ToolkitElement {
         try {
             const version = this.connector?.conn?.version;
             if (this.isBlankValue(version)) return undefined;
-            const me = await this.connector.conn.request(
+            const me = await this.connector.conn.request<{ id?: string }>(
                 `/services/data/v${version}/chatter/users/me`
             );
             const id = me?.id;
@@ -690,7 +708,7 @@ export default class Overlay extends ToolkitElement {
             // stalled identity endpoint can't hang the org/user resolution.
             const identity = await Promise.race([
                 this.connector.conn.identity(),
-                new Promise(resolve => setTimeout(() => resolve(undefined), 8000)),
+                new Promise<undefined>(resolve => setTimeout(() => resolve(undefined), 8000)),
             ]);
             const id = identity?.user_id || identity?.id;
             if (!this.isBlankValue(id)) return id;
@@ -719,11 +737,15 @@ export default class Overlay extends ToolkitElement {
             const domainKey = this.currentDomain || this.connector?.conn?.instanceUrl || 'unknown';
 
             this.isFetchingOrgInfo = true;
-            const cached = await window.defaultStore.getItem(`${ORG_CACHE_KEY}-${domainKey}`);
-            const expiry = await window.defaultStore.getItem(
+            const cached = await window.defaultStore.getItem<string>(
+                `${ORG_CACHE_KEY}-${domainKey}`
+            );
+            const expiry = await window.defaultStore.getItem<string>(
                 `${ORG_CACHE_EXPIRY_KEY}-${domainKey}`
             );
-            const last = await window.defaultStore.getItem(`${ORG_CACHE_LAST_KEY}-${domainKey}`);
+            const last = await window.defaultStore.getItem<string>(
+                `${ORG_CACHE_LAST_KEY}-${domainKey}`
+            );
             if (!this._forceOrgRefresh && cached && expiry && Date.now() < parseInt(expiry)) {
                 const parsed = JSON.parse(cached);
                 // Only trust the cache if it actually resolved a user. Older
@@ -861,7 +883,14 @@ export default class Overlay extends ToolkitElement {
             if (!isEmpty(lowerCaseTerm) && this.checkCategory(TYPE.USER)) {
                 const escapedTerm = searchTerm.replace(/'/g, "\\'"); // Escape single quotes
                 const query = `SELECT Id, Name, Username,Email,Profile.Name,IsActive FROM User WHERE Name LIKE '%${escapedTerm}%' OR Username LIKE '%${escapedTerm}%' LIMIT 50`;
-                const result = await this.connector.conn.query(query);
+                const result = await this.connector.conn.query<{
+                    Id: string;
+                    Name: string;
+                    Username?: string;
+                    Email?: string;
+                    Profile?: { Name: string };
+                    IsActive?: boolean;
+                }>(query);
                 //console.log('result',result);
                 combinedResults.push(
                     ...result.records.map(x => ({
@@ -1221,11 +1250,13 @@ export default class Overlay extends ToolkitElement {
     };
 
     loadCachedData = async () => {
-        const cachedData = await window.defaultStore.getItem(`${CACHE_KEY}-${this.currentDomain}`);
-        const cacheExpiry = await window.defaultStore.getItem(
+        const cachedData = await window.defaultStore.getItem<string>(
+            `${CACHE_KEY}-${this.currentDomain}`
+        );
+        const cacheExpiry = await window.defaultStore.getItem<string>(
             `${CACHE_EXPIRY_KEY}-${this.currentDomain}`
         );
-        this.lastRefreshDate = await window.defaultStore.getItem(
+        this.lastRefreshDate = await window.defaultStore.getItem<string>(
             `${CACHE_LAST_KEY}-${this.currentDomain}`
         );
         this.header_formatDate(); // direct reformating of the dates
@@ -1799,10 +1830,10 @@ export default class Overlay extends ToolkitElement {
             if (this.isFetchingRecentlyViewed) return this.recentlyViewedObjects;
             this.isFetchingRecentlyViewed = true;
 
-            const cached = await window.defaultStore.getItem(
+            const cached = await window.defaultStore.getItem<string>(
                 `${RECENTLY_VIEWED_KEY}-${this.currentDomain}`
             );
-            const expiry = await window.defaultStore.getItem(
+            const expiry = await window.defaultStore.getItem<string>(
                 `${RECENTLY_VIEWED_EXPIRY_KEY}-${this.currentDomain}`
             );
             if (cached && expiry && Date.now() < parseInt(expiry)) {
@@ -1813,7 +1844,10 @@ export default class Overlay extends ToolkitElement {
             }
 
             // Recently viewed records in Salesforce (we extract distinct sObject types)
-            const result = await this.connector.conn.query(
+            const result = await this.connector.conn.query<{
+                Type: string;
+                LastViewedDate: string;
+            }>(
                 'SELECT Type, LastViewedDate FROM RecentlyViewed WHERE Type != null ORDER BY LastViewedDate DESC LIMIT 200'
             );
             const types = [];

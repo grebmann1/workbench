@@ -2,6 +2,8 @@ import { LightningElement } from 'lwc';
 import { classSet } from 'shared/utils';
 
 export default class HeaderLight extends LightningElement {
+    declare isMenuSmall: boolean;
+
     /** Getters */
 
     get collapseClass() {

@@ -46,7 +46,7 @@ const proto = {
     },
 };
 
-export function classSet(config: string | ClassSetValue): ClassSet {
+export function classSet(config: string | ClassSetValue = {}): ClassSet {
     const initial: ClassSetValue = typeof config === 'string' ? { [config]: true } : config;
     return Object.assign(Object.create(proto), initial) as ClassSet;
 }

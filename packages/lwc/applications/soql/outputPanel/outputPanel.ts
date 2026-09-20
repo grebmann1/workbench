@@ -8,6 +8,10 @@ import { UI, QUERY } from 'soql/slices';
 import { querySelectors } from 'soql/slices/query';
 
 export default class OutputPanel extends ToolkitElement {
+    declare refs: {
+        maintable?: HTMLElement & import('../outputTable/outputTable').default;
+    };
+
     response: Record<string, any> | null = null;
     sobjectName: string | null = null;
     childResponse: Record<string, any> | null = null;
@@ -34,7 +38,7 @@ export default class OutputPanel extends ToolkitElement {
         // Pending inline edits for the active tab.
         const tabId = ui?.currentTab?.id;
         const tabBucket = (tabId && ui?.pendingEdits?.[tabId]) || {};
-        this._pendingEditCount = Object.values(tabBucket).reduce(
+        this._pendingEditCount = Object.values(tabBucket).reduce<number>(
             (acc: number, entry: any) => acc + Object.keys(entry?.changes || {}).length,
             0
         );
@@ -177,12 +181,6 @@ export default class OutputPanel extends ToolkitElement {
 
     get isResponseTableDisplayed() {
         return !this.hasError && this.response;
-    }
-
-    get childRelationshipPanelClass() {
-        return this.childResponse
-            ? 'child-relationship-panel slds-height-30'
-            : 'child-relationship-panel';
     }
 
     get childRelationshipPanelClass() {

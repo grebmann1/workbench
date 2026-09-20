@@ -79,7 +79,23 @@ function normalizeCompoundFieldValues(originalValue, changedValues, fieldPrefix)
 /**
  * Represents an editable input for a field on a Salesforce object.
  */
+type UiField = {
+    type?: string;
+    label?: string;
+    extraTypeInfo?: string;
+    compound?: boolean;
+    htmlFormatted?: boolean;
+    scale?: string;
+    referenceTo?: string[];
+};
+type FieldValue = string | number | boolean | Record<string, unknown> | unknown[];
+
 export default class InputField extends LightningElement {
+    declare liveValue: FieldValue;
+    declare objectInfo: { fields: Array<{ name: string }> };
+    declare fieldPrefix: string;
+    declare _picklistValues: Record<string, Array<{ label: string; value: string }>>;
+
     /**
      * The variant changes the appearance of an input field. Accepted variants include standard and label-hidden. This value defaults to standard.
      * @type {string}
@@ -94,7 +110,7 @@ export default class InputField extends LightningElement {
      */
     @api readonly = false;
 
-    @track uiField = {};
+    @track uiField: UiField = {};
     @track failed = false;
     @track errorMessage = '';
 
@@ -512,7 +528,7 @@ export default class InputField extends LightningElement {
         }
     }
 
-    setCustomValidity(message) {
+    setCustomValidity(message = '') {
         const input = this.getInputComponent();
         if (input && input.setCustomValidity) {
             input.setCustomValidity(message ? message : '');

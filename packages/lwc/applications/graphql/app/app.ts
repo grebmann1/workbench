@@ -51,6 +51,13 @@ function bootstrapGraphqlExtension() {
 bootstrapGraphqlExtension();
 
 export default class App extends ToolkitElement {
+    declare refs: {
+        tabs?: HTMLElement & import('../../../main/component/slds/tabset/tabset').default;
+        editor?: HTMLElement & import('../../../main/editor/default/default').default;
+        variablesEditor?: HTMLElement & import('../../../main/editor/default/default').default;
+        responseEditor?: HTMLElement & import('../../../main/editor/default/default').default;
+    };
+
     _hasRendered = false;
 
     @track tabs: AnyRecord[] = [];
@@ -273,7 +280,7 @@ export default class App extends ToolkitElement {
         const variables = this.refs?.variablesEditor?.currentModel?.getValue() || '{}';
 
         const parse = validateVariablesJson(variables);
-        if (!parse.ok) {
+        if (parse.ok === false) {
             Toast.show({
                 label: 'Invalid variables JSON',
                 message: parse.error,

@@ -68,8 +68,9 @@ export default class ModalUserSelector extends LightningModal {
             this.tableInstance.destroy();
         }
 
-        const colModel = [
+        const colModel: import('tabulator-tables').ColumnDefinition[] = [
             {
+                title: '',
                 formatter: 'rowSelection',
                 titleFormatter: 'rowSelection',
                 hozAlign: 'center',
@@ -166,7 +167,7 @@ export default class ModalUserSelector extends LightningModal {
                 return "<input type='checkbox' />" + value + "<span style='color:#d00; margin-left:10px;'>(" + count + " item)</span>";
             },
             */
-            selectableCheck: function (row) {
+            selectableRowsCheck: function (row) {
                 return row.getData()['label'] != null;
             },
         });

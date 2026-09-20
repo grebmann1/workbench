@@ -6,6 +6,8 @@ const recordsPerPage = [10, 25, 50, 100, 150];
 const pageNumber = 1;
 
 export default class Paginator extends LightningElement {
+    declare delayTimeout: ReturnType<typeof setTimeout>;
+
     @api showSearchBox = false; //Show/hide search box; valid values are true/false
     @api filterField = 'Name';
     @api autoHide = false;

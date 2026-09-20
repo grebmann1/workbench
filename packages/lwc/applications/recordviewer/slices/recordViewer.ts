@@ -133,3 +133,9 @@ const recordViewerSlice = createSlice({
 });
 
 export const reduxSlice = recordViewerSlice;
+
+declare module 'host-api/types' {
+    interface InjectedState {
+        recordViewer?: ReturnType<typeof reduxSlice.reducer>;
+    }
+}

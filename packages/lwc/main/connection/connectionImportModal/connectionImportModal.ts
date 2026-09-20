@@ -46,7 +46,13 @@ export default class ConnectionImportModal extends LightningModal {
                 if (!params.instanceUrl.startsWith('http')) {
                     params.instanceUrl = `https://${params.instanceUrl}`;
                 }
-                const newConn = {
+                const newConn: {
+                    alias: string;
+                    clientId?: string;
+                    refreshToken: string;
+                    instanceUrl: string;
+                    username?: string;
+                } = {
                     ...params,
                     alias: item.alias,
                 };
@@ -66,7 +72,13 @@ export default class ConnectionImportModal extends LightningModal {
     buildNormalizedImportedConfiguration = settings => {
         // Imported org.json entries contain a refresh token (sfdxAuthUrl).
         // Persist as an OAuth config so the OAuth strategy can refresh silently (no interactive login).
-        const config = {
+        const config: {
+            credentialType: string;
+            alias: string;
+            refreshToken: string;
+            instanceUrl: string;
+            username?: string;
+        } = {
             credentialType: OAUTH_TYPES.OAUTH,
             alias: settings.alias,
             refreshToken: settings.refreshToken,
@@ -101,7 +113,13 @@ export default class ConnectionImportModal extends LightningModal {
             if (!params.instanceUrl.startsWith('http')) {
                 params.instanceUrl = `https://${params.instanceUrl}`;
             }
-            const newConn = {
+            const newConn: {
+                alias: string;
+                clientId?: string;
+                refreshToken: string;
+                instanceUrl: string;
+                username?: string;
+            } = {
                 ...params,
                 alias: item.alias,
             };

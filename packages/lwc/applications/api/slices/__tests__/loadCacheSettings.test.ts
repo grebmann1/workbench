@@ -156,6 +156,6 @@ test('source contract: loadCacheSettings queries CACHE_CONFIG.API_SPLITTER_IS_HO
 test('source contract: loadCacheSettings re-parses the alias value via hasOwnProperty + safeParseJson', () => {
     assert.match(
         SRC,
-        /if \(configMap && configMap\.hasOwnProperty\(key\)\) \{\s*configMap\[key\] = safeParseJson\(configMap\[key\]\) \|\| null;\s*\}/
+        /if \(configMap && configMap\.hasOwnProperty\(key\)\) \{\s*configMap\[key\] =\s*safeParseJson\(typeof configMap\[key\] === 'string' \? configMap\[key\] : ''\) \|\| null;\s*\}/
     );
 });

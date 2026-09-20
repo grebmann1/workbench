@@ -21,6 +21,11 @@
                                         ↑
                                     </span>
                                 </template>
+                                <template lwc:if={msg.recovered}>
+                                    <span class="chat-queue-item-badge">
+                                        Recovered · review before resume
+                                    </span>
+                                </template>
                                 <span class="chat-queue-item-text">{msg.prompt}</span>
                                 <button
                                     class="chat-queue-item-action"

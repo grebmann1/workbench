@@ -15,7 +15,22 @@ export function normalizeForSearch(input) {
         .trim();
 }
 
-export function searchDirectories(searchTerm, tree, expandedMap = {}, options = {}) {
+export type SearchOptions = {
+    searchFields?: string[];
+    minSearchLength?: number;
+    caseInsensitive?: boolean;
+    includeFoldersInResults?: boolean;
+};
+export function searchDirectories(
+    searchTerm,
+    tree,
+    expandedMap: Record<string, boolean> = {},
+    options: SearchOptions = {}
+): {
+    expandedMap: Record<string, boolean>;
+    matchedIds: Set<string>;
+    nonMatchesInDirectory?: Set<string>;
+} {
     const {
         searchFields = ['name', 'id'],
         minSearchLength = 3,
@@ -74,7 +89,7 @@ export function searchDirectories(searchTerm, tree, expandedMap = {}, options = 
         return getItemSearchString(item).includes(normalizedTerm);
     });
     // 3. Collect all parentIds to expand (ancestors of matches)
-    const expandedSet = new Set();
+    const expandedSet = new Set<string>();
     filtered.forEach(item => {
         item.parentIds.forEach(pid => expandedSet.add(pid));
     });
@@ -86,7 +101,7 @@ export function searchDirectories(searchTerm, tree, expandedMap = {}, options = 
         newExpandedMap[id] = true;
     });
     // 6. nonMatchesInDirectory: leaf nodes in expanded folders that don't match (reference visibility)
-    const nonMatchesInDirectory = new Set();
+    const nonMatchesInDirectory = new Set<string>();
     flatList.forEach(entry => {
         const isLeaf = !(entry.children && entry.children.length > 0);
         const parentId =

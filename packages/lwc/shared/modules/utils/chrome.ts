@@ -160,6 +160,7 @@ export const refreshCurrentTab = (): void => {
     if (!isChromeExtension() || !tabs?.query || !tabs?.reload) return;
 
     tabs.query({ active: true, currentWindow: true }, function (result) {
-        tabs.reload(result[0]?.id);
+        const tabId = result[0]?.id;
+        if (typeof tabId === 'number') tabs.reload(tabId);
     });
 };

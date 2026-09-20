@@ -24,6 +24,13 @@ const APPLICATIONS = {
 };
 
 export default class Default extends LightningElement {
+    declare refs: {
+        connection?: HTMLElement & import('../../../main/connection/app/app').default;
+        documentation?: HTMLElement &
+            import('../../../main/pages/documentation/doc/app/app').default;
+        agent?: HTMLElement & import('../../../main/agent/app/app').default;
+    };
+
     @api isToggleVisible = false;
 
     _currentApplication; //APPLICATIONS.ASSISTANT;//

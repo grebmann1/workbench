@@ -166,14 +166,16 @@ export default class RecordExplorer extends ToolkitElement {
             let conn = useToolingApi ? connector.conn.tooling : connector.conn;
             let [metadata, record] = await Promise.all([
                 conn.sobject(sobjectName).describe$(),
-                conn.sobject(sobjectName).retrieve(recordId, { headers: NO_CACHE_HEADERS }),
+                conn.sobject(sobjectName).retrieve(String(recordId), { headers: NO_CACHE_HEADERS }),
             ]);
             if (!metadata && !useToolingApi) {
                 useToolingApi = true;
                 conn = connector.conn.tooling;
                 [metadata, record] = await Promise.all([
                     conn.sobject(sobjectName).describe$(),
-                    conn.sobject(sobjectName).retrieve(recordId, { headers: NO_CACHE_HEADERS }),
+                    conn
+                        .sobject(sobjectName)
+                        .retrieve(String(recordId), { headers: NO_CACHE_HEADERS }),
                 ]);
             }
             if (!isCurrent()) return;
@@ -192,7 +194,7 @@ export default class RecordExplorer extends ToolkitElement {
             const recordType = record.RecordTypeId
                 ? await connector.conn
                       .sobject('RecordType')
-                      .retrieve(record.RecordTypeId, { headers: NO_CACHE_HEADERS })
+                      .retrieve(String(record.RecordTypeId), { headers: NO_CACHE_HEADERS })
                 : null;
             if (!isCurrent()) return;
             this.currentTab = currentTab;
@@ -332,7 +334,7 @@ export default class RecordExplorer extends ToolkitElement {
             const res = await _connector.sobject(this.sobjectName).update([toUpdate]);
             const response = res[0];
             //console.log('###### response ######', response);
-            if (response.success) {
+            if (response.success === true) {
                 Toast.show({
                     label: 'Record saved successfully',
                     variant: 'success',
@@ -487,10 +489,10 @@ export default class RecordExplorer extends ToolkitElement {
     };
 
     handleInfoToggle = () => {
-        this.isloading = true;
+        this.isLoading = true;
         window.setTimeout(() => {
             this.isInfoDisplayed = !this.isInfoDisplayed;
-            this.isloading = false;
+            this.isLoading = false;
         }, 1);
     };
 
@@ -599,7 +601,7 @@ export default class RecordExplorer extends ToolkitElement {
     get linkConfig() {
         return {
             host: this.currentOrigin,
-            needEncoding: this.needEncoding,
+            needEncoding: true,
             sobjectName: this.sobjectName,
             durableId: this.metadata?.durableId,
             isCustomSetting: this.metadata?.IsCustomSetting,

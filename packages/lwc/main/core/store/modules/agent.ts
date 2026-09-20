@@ -1,3 +1,4 @@
+import { castDraft, type Draft } from 'immer';
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import type {
     ProcessMessageStepStart,
@@ -210,7 +211,7 @@ function applyLegacySelectionOverrides(baseData, legacyData) {
     };
 }
 
-const initialState = {
+const initialState: AgentState = {
     conversations: [{ ...DEFAULT_CONVERSATION }],
     activeConversationId: DEFAULT_CONVERSATION.id,
     selectedModel: DEFAULT_MODEL,
@@ -231,13 +232,15 @@ const initialState = {
     runStatisticsById: {} as Record<string, RunStatistics>,
 };
 
-function conversationsWithSyncedStreamHistory(state: AgentState): Conversation[] {
+function conversationsWithSyncedStreamHistory(
+    state: AgentState | Draft<AgentState>
+): Conversation[] {
     const messagesById = state.messagesById || {};
     return (state.conversations || []).map(conversation => {
         const live = messagesById[conversation.id];
-        if (!Array.isArray(live)) return conversation;
+        if (!Array.isArray(live)) return normalizeConversation(conversation);
         return {
-            ...conversation,
+            ...normalizeConversation(conversation),
             streamHistory: sanitizeMessagesForCache(live),
             contextMessages: state.contextById[conversation.id]
                 ? sanitizeMessagesForCache(state.contextById[conversation.id])
@@ -246,7 +249,7 @@ function conversationsWithSyncedStreamHistory(state: AgentState): Conversation[]
     });
 }
 
-function saveCacheSettings(state: AgentState) {
+function saveCacheSettings(state: Draft<AgentState>) {
     // Persist only cache-relevant fields; avoid serializing the full redux slice,
     // which may include non-serializable debug/runtime data.
     // Saves are fired immediately (not queued) so that writes reach chrome.storage
@@ -254,7 +257,7 @@ function saveCacheSettings(state: AgentState) {
     // Skip until the first cache load finishes so the empty initial state cannot
     // overwrite persisted conversation history.
     if (!state.hasHydrated) return;
-    state.conversations = conversationsWithSyncedStreamHistory(state);
+    state.conversations = castDraft(conversationsWithSyncedStreamHistory(state));
     const payload = buildConversationDataFromState(state);
     saveSingleExtensionConfigToCache(CACHE_CONFIG.EINSTEIN_AGENT_CONVERSATION_DATA.key, payload)
         .then(() => {
@@ -292,8 +295,13 @@ function loadCacheSettings(cachedConfig, state) {
  * extension storage and stops stale malformed parts from being replayed to the
  * LLM on the next session.
  */
-function sanitizeMessagesForCache(messages: ModelMessage[]): ModelMessage[] {
-    return messages.map(message => {
+function sanitizeMessagesForCache(
+    messages: Array<ModelMessage | Draft<ModelMessage>>
+): ModelMessage[] {
+    return messages.map(value => {
+        // Immer does not draft URL or typed-array instances, although its mapped
+        // type treats the SDK's binary content as draftable objects.
+        const message = value as ModelMessage;
         const content = (message as { content?: unknown }).content;
         if (!Array.isArray(content)) return message;
         const sanitized = content.map(part => {
@@ -313,18 +321,18 @@ function sanitizeMessagesForCache(messages: ModelMessage[]): ModelMessage[] {
     });
 }
 
-function hydrateMessagesFromConversations(state: AgentState) {
+function hydrateMessagesFromConversations(state: Draft<AgentState>) {
     if (!Array.isArray(state.conversations) || state.conversations.length === 0) return;
     if (!state.messagesById) state.messagesById = {};
     for (const c of state.conversations) {
         const history = Array.isArray(c.streamHistory) ? c.streamHistory : [];
         const filtered = history.filter(
-            (m: ModelMessage) => (m as { id?: string }).id !== Constants.WELCOME_MESSAGE.id
+            m => (m as { id?: string }).id !== Constants.WELCOME_MESSAGE.id
         );
         // Strip any lingering binary image/file blobs that were cached in previous sessions
-        state.messagesById[c.id] = sanitizeMessagesForCache(filtered);
+        state.messagesById[c.id] = castDraft(sanitizeMessagesForCache(filtered));
         if (Array.isArray(c.contextMessages))
-            state.contextById[c.id] = sanitizeMessagesForCache(c.contextMessages);
+            state.contextById[c.id] = castDraft(sanitizeMessagesForCache(c.contextMessages));
     }
 }
 
@@ -393,11 +401,11 @@ const agentSlice = createSlice({
             action: { payload: { id: string; messages: ModelMessage[] } }
         ) => {
             if (!state.conversations.some(c => c.id === action.payload.id)) return;
-            state.contextById[action.payload.id] = action.payload.messages;
+            state.contextById[action.payload.id] = castDraft(action.payload.messages);
             saveCacheSettings(state);
         },
         addConversation: (state, action) => {
-            const conversation = normalizeConversation(action.payload?.conversation);
+            const conversation = castDraft(normalizeConversation(action.payload?.conversation));
             state.conversations = [...state.conversations, conversation];
             if (!Array.isArray(state.messagesById[conversation.id])) {
                 state.messagesById[conversation.id] = [];
@@ -459,7 +467,9 @@ const agentSlice = createSlice({
             if (idx !== -1) {
                 state.conversations[idx] = {
                     ...state.conversations[idx],
-                    streamHistory: sanitizeMessagesForCache(state.messagesById[id] || []),
+                    streamHistory: castDraft(
+                        sanitizeMessagesForCache(state.messagesById[id] || [])
+                    ),
                 };
             }
             saveCacheSettings(state);
@@ -528,7 +538,7 @@ const agentSlice = createSlice({
             const { id, messages } = action.payload;
             if (!state.conversations.some(c => c.id === id)) return;
             const incoming: ModelMessage[] = Array.isArray(messages) ? messages : [];
-            state.messagesById[id] = [...(state.messagesById[id] || []), ...incoming];
+            state.messagesById[id] = [...(state.messagesById[id] || []), ...castDraft(incoming)];
         },
         clearMessages: (state, action) => {
             delete state.contextById[action.payload.id];
@@ -570,7 +580,7 @@ const agentSlice = createSlice({
             .addCase(loadConversationsFromCache.fulfilled, (state, action) => {
                 if (isNotUndefinedOrNull(action.payload)) {
                     const normalized = normalizeAgentConversationData(action.payload);
-                    state.conversations = normalized.conversations;
+                    state.conversations = castDraft(normalized.conversations);
                     state.activeConversationId = normalized.activeConversationId;
                     state.selectedModel = normalized.selectedModel;
                     state.selectedReasoning = normalized.selectedReasoning;
@@ -611,7 +621,7 @@ export const loadConversationsFromCache = createAsyncThunk(
 export const saveConversationsToCache = createAsyncThunk(
     'agent/saveConversationsToCache',
     async (_, { getState }) => {
-        const state = getState();
+        const state = getState() as { agent: AgentState };
         if (!state.agent?.hasHydrated) {
             return { count: 0 };
         }

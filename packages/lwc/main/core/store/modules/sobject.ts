@@ -3,8 +3,14 @@ import type { ConnectionLike } from 'core/connector';
 import { cacheManager, CACHE_ORG_DATA_TYPES } from 'shared/cacheManager';
 import LOGGER from 'shared/logger';
 import { lowerCaseKey, isUndefinedOrNull } from 'shared/utils';
+type SObjectEntry = {
+    id: string;
+    data?: import('shared/types/jsforce').JsforceDescribeSObjectResult;
+    isFetching: boolean;
+    error?: unknown;
+};
 // Create an entity adapter for sObjects
-export const sObjectsAdapter = createEntityAdapter({
+export const sObjectsAdapter = createEntityAdapter<SObjectEntry, string>({
     selectId: sobject => lowerCaseKey(sobject?.id),
 });
 
@@ -34,18 +40,17 @@ export const describeSObject = createAsyncThunk(
             cacheManager.saveOrgData(
                 connector.alias,
                 CACHE_ORG_DATA_TYPES.DESCRIBE,
-                sObjectName,
-                result
+                result,
+                sObjectName
             );
             return result;
         };
 
         try {
-            const cachedDescribe = await cacheManager.loadOrgData(
-                connector.alias,
-                CACHE_ORG_DATA_TYPES.DESCRIBE,
-                sObjectName
-            );
+            const cachedDescribe = await cacheManager.loadOrgData<{
+                sObjectName: string;
+                data: import('shared/types/jsforce').JsforceDescribeSObjectResult;
+            }>(connector.alias, CACHE_ORG_DATA_TYPES.DESCRIBE, sObjectName);
             if (cachedDescribe) {
                 LOGGER.debug('cachedDescribe', cachedDescribe);
                 fetchDescribeAndSave(sObjectName);
@@ -59,7 +64,7 @@ export const describeSObject = createAsyncThunk(
     },
     {
         condition: (payload, { getState, extra }) => {
-            const { sobject } = getState();
+            const { sobject } = getState() as { sobject: typeof initialState };
             LOGGER.log('condition', !sobject.ids.includes(lowerCaseKey(payload.sObjectName)));
             return true; //!sobject.ids.includes(lowerCaseKey(payload.sObjectName)); // missing force refresh and disabled for now as we are using caching
         },
@@ -70,6 +75,7 @@ export const describeSObject = createAsyncThunk(
 const sObjectsSlice = createSlice({
     name: 'sObject',
     initialState,
+    reducers: {},
     extraReducers: builder => {
         builder
             .addCase(describeSObject.pending, (state, action) => {

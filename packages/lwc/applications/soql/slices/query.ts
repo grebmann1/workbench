@@ -1,3 +1,4 @@
+import type { RootState } from 'host-api/types';
 import { createSlice, createAsyncThunk, createEntityAdapter } from '@reduxjs/toolkit';
 import { getStore } from 'core/store/storeRef';
 import type { ConnectorLike } from 'host-api/connector';
@@ -25,6 +26,7 @@ export const executeQuery = createAsyncThunk(
             connector: ConnectorLike;
             soql: string;
             rawSoql?: string;
+            sobjectName?: string;
             tabId: string;
             createdDate: string | number | Date;
             useToolingApi?: boolean;
@@ -118,7 +120,7 @@ export const loadMoreRecords = createAsyncThunk(
     ) => {
         const conn = connector.conn;
         let cursor: string | null | undefined = querySelectors.selectById(
-            getState() as any,
+            getState() as RootState as any,
             lowerCaseKey(tabId)
         )?.data?.nextRecordsUrl;
 
@@ -328,3 +330,9 @@ const queriesSlice = createSlice({
 
 export const reduxSlice = queriesSlice;
 export const querySelectors = queryAdapter.getSelectors((state: any) => state.query);
+
+declare module 'host-api/types' {
+    interface InjectedState {
+        query?: ReturnType<typeof reduxSlice.reducer>;
+    }
+}

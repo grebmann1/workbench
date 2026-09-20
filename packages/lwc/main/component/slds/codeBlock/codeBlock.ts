@@ -5,6 +5,8 @@ import { isEmpty, runActionAfterTimeOut, guid } from 'shared/utils';
 let prismWrapHookInstalled = false;
 
 export default class CodeBlock extends LightningElement {
+    declare _language: string;
+
     prismInitialized = false;
     prism;
     isLight = false;

@@ -21,7 +21,7 @@ test('LUCIDE_ICONS: every entry is a non-empty array of svg elements', () => {
         'ellipse',
     ]);
     let sampled = 0;
-    for (const [name, shapes] of Object.entries(LUCIDE_ICONS)) {
+    for (const [name, shapes] of Object.entries<ReadonlyArray<{ key: string }>>(LUCIDE_ICONS)) {
         assert.ok(Array.isArray(shapes), `${name} must be an array`);
         assert.ok(shapes.length > 0, `${name} must have shapes`);
         for (const shape of shapes) {
@@ -36,7 +36,7 @@ test('LUCIDE_ICONS: every entry is a non-empty array of svg elements', () => {
 
 test('LUCIDE_ICONS: shape keys within an icon are unique', () => {
     let sampled = 0;
-    for (const [name, shapes] of Object.entries(LUCIDE_ICONS)) {
+    for (const [name, shapes] of Object.entries<ReadonlyArray<{ key: string }>>(LUCIDE_ICONS)) {
         const keys = shapes.map(s => s.key);
         assert.equal(
             keys.length,

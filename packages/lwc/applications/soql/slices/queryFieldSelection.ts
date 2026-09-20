@@ -125,6 +125,7 @@ export function toggleRelationship(state = INITIAL_QUERY, action) {
             ...state,
             fields: state.fields.filter(
                 field =>
+                    !('subquery' in field) ||
                     !field.subquery ||
                     normalizeApiPathForComparison(field.subquery.relationshipName) !==
                         normalizedRelationship

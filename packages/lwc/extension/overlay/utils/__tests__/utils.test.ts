@@ -14,6 +14,7 @@ test('TYPE: contains expected Salesforce entity labels', () => {
     assert.equal(TYPE.OBJECT, 'Object');
     assert.equal(TYPE.PROFILE, 'Profile');
     assert.equal(TYPE.PERMISSION_SET, 'Permission Set');
+    assert.equal(TYPE.PERMISSION_SET_GROUP, 'Permission Set Group');
     assert.equal(TYPE.CUSTOM, 'Custom');
 });
 
@@ -29,6 +30,7 @@ test('TYPE: keys are stable (guard against typos)', () => {
         'OBJECT',
         'PROFILE',
         'PERMISSION_SET',
+        'PERMISSION_SET_GROUP',
         'USER',
         'FLOW',
         'AGENTFORCE',

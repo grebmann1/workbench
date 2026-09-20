@@ -3,6 +3,18 @@ declare module 'lwc' {
         dispatchEvent: (event: Event) => boolean;
         template: any;
         refs?: Record<string, Element>;
+        classList: HTMLElement['classList'];
+        setAttribute: HTMLElement['setAttribute'];
+        getAttribute: HTMLElement['getAttribute'];
+        removeAttribute: HTMLElement['removeAttribute'];
+        querySelector: HTMLElement['querySelector'];
+        querySelectorAll: HTMLElement['querySelectorAll'];
+        getBoundingClientRect: HTMLElement['getBoundingClientRect'];
+        addEventListener: HTMLElement['addEventListener'];
+        removeEventListener: HTMLElement['removeEventListener'];
+        style: HTMLElement['style'];
+        isConnected: HTMLElement['isConnected'];
+        ownerDocument: HTMLElement['ownerDocument'];
     }
     export const api: any;
     export const track: any;
@@ -61,4 +73,9 @@ declare module 'lwr/router' {
     }
 
     export function createRouter(config?: RouterConfig<PageReference>): Router<PageReference>;
+}
+
+declare module 'imported/openapi-parser' {
+    export function dereference(schema: unknown): Promise<{ schema: Record<string, unknown> }>;
+    export function validate(schema: unknown): Promise<{ valid: boolean; errors?: unknown[] }>;
 }

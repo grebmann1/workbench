@@ -8,6 +8,9 @@ import { isUndefinedOrNull, isNotUndefinedOrNull } from 'shared/utils';
 import { getMetadataTypeIcon, METADATA_RECORD_ICON } from './constants';
 
 export default class Menu extends ToolkitElement {
+    declare _hasRendered: boolean;
+    declare _pageRef: import('lwr/navigation').PageReference;
+
     @wire(NavigationContext) navContext;
 
     @track metadata_global = null;

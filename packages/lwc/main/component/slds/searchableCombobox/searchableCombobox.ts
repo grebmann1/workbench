@@ -1,6 +1,10 @@
 import { LightningElement, api, track } from 'lwc';
 
 export default class InputWithDropDown extends LightningElement {
+    declare _inputHasFocus: boolean;
+    declare showList: boolean;
+    declare _cancelBlur: boolean;
+
     isOpen = false;
     highlightCounter = null;
     _value = '';

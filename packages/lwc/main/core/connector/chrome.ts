@@ -10,7 +10,7 @@ import { getSalesforceURL } from './base';
 
 // --- Salesforce Domain Regex Utilities ---
 
-const getHostAndSession = async paramTab => {
+const getHostAndSession = async (paramTab?: chrome.tabs.Tab) => {
     try {
         const tab = paramTab || (await getCurrentTab());
         if (!tab.url) return;

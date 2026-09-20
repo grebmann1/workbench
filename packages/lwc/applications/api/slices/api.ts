@@ -1,8 +1,11 @@
+import type { RootState } from 'host-api/types';
 import { createSlice, createAsyncThunk, createEntityAdapter } from '@reduxjs/toolkit';
 import { getStore } from 'core/store/storeRef';
 import { DOCUMENT, ERROR } from 'host-api/store';
 
-const apiFilesSelectors = DOCUMENT.apiFileAdapter.getSelectors(s => s.apiFiles);
+const apiFilesSelectors = DOCUMENT.apiFileAdapter.getSelectors(
+    (s: Pick<RootState, 'apiFiles'>) => s.apiFiles
+);
 import {
     loadExtensionConfigFromCache,
     saveExtensionConfigToCache,
@@ -23,7 +26,8 @@ export async function loadCacheSettings(alias) {
     const configMap = await loadExtensionConfigFromCache(arr);
     LOGGER.log('configMap', configMap);
     if (configMap && configMap.hasOwnProperty(key)) {
-        configMap[key] = safeParseJson(configMap[key]) || null;
+        configMap[key] =
+            safeParseJson(typeof configMap[key] === 'string' ? configMap[key] : '') || null;
     }
     return configMap;
 }
@@ -132,7 +136,16 @@ function addAction({ state, tabId, request, response }) {
     }
 }
 
-export const apiAdapter = createEntityAdapter();
+type Entry = {
+    id: string;
+    response?: Awaited<ReturnType<typeof API.executeApiRequest>>;
+    request?: Record<string, unknown>;
+    formattedRequest?: Record<string, unknown>;
+    createdDate?: string | number | Date;
+    isFetching?: boolean;
+    error?: import('@reduxjs/toolkit').SerializedError;
+};
+export const apiAdapter = createEntityAdapter<Entry>();
 
 export const executeApiRequest = createAsyncThunk(
     'api/callRequest',
@@ -215,6 +228,8 @@ const apiSlice = createSlice({
         recentPanelToggled: false,
         tabs: [],
         currentTab: null,
+        currentFileId: null,
+        bodyMode: 'raw',
         api: apiAdapter.getInitialState(),
         body: null,
         method: null,
@@ -506,3 +521,9 @@ const apiSlice = createSlice({
 });
 
 export const reduxSlice = apiSlice;
+
+declare module 'host-api/types' {
+    interface InjectedState {
+        api?: ReturnType<typeof reduxSlice.reducer>;
+    }
+}

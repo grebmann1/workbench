@@ -1,0 +1,112 @@
+<template>
+    <section class="memory-manager" aria-label="Memory and knowledge">
+        <details>
+            <summary>Memory &amp; knowledge</summary>
+            <p>
+                Preferences and org notes are recalled automatically. These notes and selected
+                documents stay in this browser profile and extension.
+            </p>
+            <template lwc:if={error}><p role="alert" class="error">{error}</p></template>
+            <p role="status">{status}</p>
+            <button type="button" onclick={refresh} disabled={busy}>Reload notes</button>
+            <template for:each={memories} for:item="memory">
+                <div key={memory.path} class="memory-file">
+                    <label>
+                        <span>{memory.label}</span>
+                        <textarea
+                            data-path={memory.path}
+                            data-memory-editor="true"
+                            oninput={handleMemoryChange}
+                            maxlength="24000"
+                            disabled={busy}></textarea>
+                    </label>
+                    <div class="actions">
+                        <button
+                            type="button"
+                            data-path={memory.path}
+                            onclick={handleSave}
+                            disabled={busy}>
+                            Save notes
+                        </button>
+                        <button
+                            type="button"
+                            data-path={memory.path}
+                            onclick={handleForget}
+                            disabled={busy}>
+                            Forget these notes
+                        </button>
+                    </div>
+                </div>
+            </template>
+            <h3>Knowledge documents</h3>
+            <p>
+                Add documents the agent may search and cite. Supported: TXT, Markdown, CSV, JSON,
+                Google Docs and Slides. Drive imports are snapshots.
+            </p>
+            <label>
+                Add local files
+                <input
+                    type="file"
+                    accept=".txt,.md,.csv,.json"
+                    multiple
+                    onchange={handleFiles}
+                    disabled={busy} />
+            </label>
+            <ul>
+                <template for:each={documents} for:item="document">
+                    <li key={document.id}>
+                        <span>{document.title}</span>
+                        <button
+                            type="button"
+                            data-id={document.id}
+                            onclick={handleRemove}
+                            disabled={busy}>
+                            Remove
+                        </button>
+                    </li>
+                </template>
+            </ul>
+            <template lwc:if={googleEnabled}>
+                <label>
+                    Find a Drive document
+                    <input
+                        type="search"
+                        oninput={handleDriveQuery}
+                        placeholder="Document or template name" />
+                </label>
+                <button type="button" onclick={handleDriveSearch} disabled={busy}>
+                    Search Drive
+                </button>
+                <ul>
+                    <template for:each={driveFiles} for:item="file">
+                        <li key={file.id}>
+                            <span>{file.name}</span>
+                            <button
+                                type="button"
+                                data-id={file.id}
+                                onclick={handleDriveAdd}
+                                disabled={busy}>
+                                Add or refresh
+                            </button>
+                        </li>
+                    </template>
+                </ul>
+            </template>
+            <label>
+                Search your knowledge
+                <input
+                    type="search"
+                    oninput={handleQuery}
+                    placeholder="Find an org convention or project fact" />
+            </label>
+            <button type="button" onclick={handleSearch} disabled={busy}>Search documents</button>
+            <template for:each={results} for:item="result">
+                <article key={result.key}>
+                    <strong>{result.title}</strong>
+                    <p>Lines {result.lineStart}–{result.lineEnd} · {result.updatedAt}</p>
+                    <pre>{result.text}</pre>
+                </article>
+            </template>
+        </details>
+    </section>
+</template>

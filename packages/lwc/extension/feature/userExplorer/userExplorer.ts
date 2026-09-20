@@ -46,7 +46,7 @@ export default class UserExplorer extends ToolkitElement {
             .add({
                 //'slds-m-top_small':!this.isResponsive,
                 'slds-25-width': this.displayQuickLinkPanel,
-                'slds-100-width': !this.displayFilter,
+                'slds-100-width': true,
                 //'slds-scrollable_y':this.isResponsive
                 //'slds-show_large':this.displayFilter || this.displayMenu
             })

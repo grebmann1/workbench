@@ -18,20 +18,23 @@ const DESCRIBE_SOURCE = {
     STANDARD: 'standard',
 } as const;
 
-type DescribeEntry = Record<string, unknown> & {
+type DescribeObject = { name: string; label?: string; keyPrefix?: string; [key: string]: unknown };
+type DescribeGlobal = { sobjects: DescribeObject[] };
+type DescribeSnapshot = { standard: DescribeGlobal; tooling: DescribeGlobal };
+type DescribeEntry = DescribeObject & {
     useToolingApi: boolean;
     source: string;
     sourceScopedId: string;
 };
 
 const buildDescribeEntriesMap = (
-    items: Array<Record<string, unknown>> = [],
+    items: DescribeObject[] = [],
     idField: string,
     baseAttributes: { useToolingApi: boolean; source: string }
 ): Record<string, DescribeEntry[]> => {
     return items.reduce<Record<string, DescribeEntry[]>>((acc, item) => {
         if (!item?.hasOwnProperty?.(idField)) return acc;
-        const key = lowerCaseKey(item[idField]);
+        const key = lowerCaseKey(typeof item[idField] === 'string' ? item[idField] : '');
         if (!key) return acc;
         const entry: DescribeEntry = {
             ...item,
@@ -62,10 +65,10 @@ export const describeSObjects = createAsyncThunk(
             // jsforce's request() for /sobjects is identical to describeGlobal().
             const result = forceRefresh
                 ? {
-                      standard: await connector.request(
+                      standard: await connector.request<DescribeGlobal>(
                           `/services/data/v${connector.version}/sobjects?_=${Date.now()}`
                       ),
-                      tooling: await connector.request(
+                      tooling: await connector.request<DescribeGlobal>(
                           `/services/data/v${connector.version}/tooling/sobjects?_=${Date.now()}`
                       ),
                   }
@@ -104,7 +107,7 @@ export const describeSObjects = createAsyncThunk(
             // On a user-initiated refresh, surface the error instead of silently
             // returning stale cached data.
             if (!forceRefresh) {
-                const cachedDescribe = await cacheManager.loadOrgData(
+                const cachedDescribe = await cacheManager.loadOrgData<DescribeSnapshot>(
                     connector.alias,
                     CACHE_ORG_DATA_TYPES.DESCRIBE_GLOBAL
                 );
@@ -144,10 +147,9 @@ export const describeVersion = createAsyncThunk(
         };
 
         try {
-            const cachedDescribe = await cacheManager.loadOrgData(
-                connector.alias,
-                CACHE_ORG_DATA_TYPES.DESCRIBE_VERSION
-            );
+            const cachedDescribe = await cacheManager.loadOrgData<
+                Awaited<ReturnType<ConnectionLike['metadata']['describe']>>
+            >(connector.alias, CACHE_ORG_DATA_TYPES.DESCRIBE_VERSION);
             LOGGER.debug('cachedDescribe', cachedDescribe);
             if (cachedDescribe) {
                 fetchDescribeAndSave();
@@ -171,16 +173,26 @@ export const getDescribeTableName = useToolingApi =>
     useToolingApi ? DESCRIBE_ID.TOOLING : DESCRIBE_ID.STANDARD;
 
 // Create a slice with reducers
+const initialState: {
+    prefixMap: Record<string, DescribeEntry>;
+    nameMap: Record<string, DescribeEntry>;
+    prefixEntriesMap: Record<string, DescribeEntry[]>;
+    nameEntriesMap: Record<string, DescribeEntry[]>;
+    error: string | null;
+    isFetching: boolean;
+} = {
+    prefixMap: {},
+    nameMap: {},
+    prefixEntriesMap: {},
+    nameEntriesMap: {},
+    error: null,
+    isFetching: false,
+};
+
 const describeSlice = createSlice({
     name: 'describe',
-    initialState: {
-        prefixMap: {},
-        nameMap: {},
-        prefixEntriesMap: {},
-        nameEntriesMap: {},
-        error: null,
-        isFetching: false,
-    },
+    initialState,
+    reducers: {},
     extraReducers: builder => {
         builder
             .addCase(describeSObjects.pending, (state, action) => {
@@ -191,7 +203,7 @@ const describeSlice = createSlice({
                 const { standard, tooling } = action.payload;
                 // On a force-refresh, rebuild from scratch so deleted/renamed
                 // SObjects also drop out of state.
-                if ((action.meta as any)?.arg?.forceRefresh) {
+                if (action.meta?.arg?.forceRefresh) {
                     state.prefixMap = {};
                     state.nameMap = {};
                     state.nameEntriesMap = {};

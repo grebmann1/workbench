@@ -1,3 +1,4 @@
+import type { RootState } from 'host-api/types';
 import { createSlice, createAsyncThunk, createEntityAdapter } from '@reduxjs/toolkit';
 import { getStore } from 'core/store/storeRef';
 import type { ConnectorLike, ConnectionLike } from 'host-api/connector';
@@ -93,9 +94,11 @@ export const executePackageDeploy = createAsyncThunk(
         });
         dispatch(BACKGROUNDJOB.reduxSlice.actions.upsertJob(job));
         try {
-            const result = await new Promise((resolve, reject) => {
+            const result = await new Promise<
+                Partial<import('jsforce/lib/api/metadata').DeployResult>
+            >((resolve, reject) => {
                 const asyncResult = connector.conn.metadata.deploy(zip64, options);
-                asyncResult.then(res => resolve(res)).catch(e => reject(e));
+                Promise.resolve(asyncResult).then(resolve, reject);
             });
             dispatch(
                 BACKGROUNDJOB.reduxSlice.actions.completeJob({
@@ -128,44 +131,46 @@ const _retrievePackage = (
     request: Record<string, any>,
     proxyUrl?: string | null
 ) => {
-    return new Promise((resolve, reject) => {
-        const metadataApi = connector.conn.metadata;
-        metadataApi.pollTimeout = 1200000; // 20 min
+    return new Promise<{ zipFile: string; id: string; success: string; status: string }>(
+        (resolve, reject) => {
+            const metadataApi = connector.conn.metadata;
+            metadataApi.pollTimeout = 1200000; // 20 min
 
-        const requestPromise = metadataApi.retrieve(request);
-        // Temporary solution as JSFORCE is crashing when the zip file is too large.
-        requestPromise.on('complete', async res => {
-            const body = `<?xml version="1.0" encoding="UTF-8"?><soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><soapenv:Header xmlns="http://soap.sforce.com/2006/04/metadata"><SessionHeader><sessionId>${connector.conn.accessToken}</sessionId></SessionHeader></soapenv:Header><soapenv:Body xmlns="http://soap.sforce.com/2006/04/metadata"><checkRetrieveStatus><asyncProcessId>${res.id}</asyncProcessId></checkRetrieveStatus></soapenv:Body></soapenv:Envelope>`;
+            const requestPromise = metadataApi.retrieve(request);
+            // Temporary solution as JSFORCE is crashing when the zip file is too large.
+            requestPromise.on('complete', async res => {
+                const body = `<?xml version="1.0" encoding="UTF-8"?><soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><soapenv:Header xmlns="http://soap.sforce.com/2006/04/metadata"><SessionHeader><sessionId>${connector.conn.accessToken}</sessionId></SessionHeader></soapenv:Header><soapenv:Body xmlns="http://soap.sforce.com/2006/04/metadata"><checkRetrieveStatus><asyncProcessId>${res.id}</asyncProcessId></checkRetrieveStatus></soapenv:Body></soapenv:Envelope>`;
 
-            // Fetch metadata using SOAP API
-            const targetUrl = `${connector.conn.instanceUrl}/services/Soap/m/${connector.conn.version}`;
-            const url = proxyUrl ? proxyUrl : targetUrl;
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'text/xml',
-                    SOAPAction: '""',
-                    'salesforceproxy-endpoint': targetUrl,
-                },
-                body,
+                // Fetch metadata using SOAP API
+                const targetUrl = `${connector.conn.instanceUrl}/services/Soap/m/${connector.conn.version}`;
+                const url = proxyUrl ? proxyUrl : targetUrl;
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'text/xml',
+                        SOAPAction: '""',
+                        'salesforceproxy-endpoint': targetUrl,
+                    },
+                    body,
+                });
+
+                if (!response.ok) {
+                    reject(response.status);
+                }
+
+                const responseText = await response.text();
+                const parser = new DOMParser();
+                const xmlDoc = parser.parseFromString(responseText, 'text/xml');
+                const zipFile = xmlDoc.getElementsByTagName('zipFile')[0]?.textContent;
+                const id = xmlDoc.getElementsByTagName('id')[0]?.textContent;
+                const success = xmlDoc.getElementsByTagName('success')[0]?.textContent;
+                const status = xmlDoc.getElementsByTagName('status')[0]?.textContent;
+                resolve({ zipFile, id, success, status });
             });
-
-            if (!response.ok) {
-                reject(response.status);
-            }
-
-            const responseText = await response.text();
-            const parser = new DOMParser();
-            const xmlDoc = parser.parseFromString(responseText, 'text/xml');
-            const zipFile = xmlDoc.getElementsByTagName('zipFile')[0]?.textContent;
-            const id = xmlDoc.getElementsByTagName('id')[0]?.textContent;
-            const success = xmlDoc.getElementsByTagName('success')[0]?.textContent;
-            const status = xmlDoc.getElementsByTagName('status')[0]?.textContent;
-            resolve({ zipFile, id, success, status });
-        });
-        requestPromise.on('error', e => reject(e));
-        requestPromise.poll(3000, metadataApi.pollTimeout);
-    });
+            requestPromise.on('error', e => reject(e));
+            requestPromise.poll(3000, metadataApi.pollTimeout);
+        }
+    );
 };
 export const executePackageRetrieve = createAsyncThunk(
     'package/retrieve',
@@ -252,23 +257,27 @@ const fetchMenuGlobalMetadata = createAsyncThunk(
     'package/menu/fetchGlobalMetadata',
     async (_, { dispatch, getState, rejectWithValue }) => {
         try {
-            const { application } = getState() as any;
-            const { tooling } = (
-                await dispatch(
-                    DESCRIBE.describeSObjects({
-                        connector: application.connector.conn,
-                    })
-                )
-            ).payload;
+            const { application } = getState() as RootState as any;
+            const { tooling } = await dispatch(
+                DESCRIBE.describeSObjects({
+                    connector: application.connector.conn,
+                })
+            ).unwrap();
             const sobjects = tooling.sobjects.map(obj => obj.name);
-            const { metadataObjects } = (
-                await dispatch(
-                    DESCRIBE.describeVersion({
-                        connector: application.connector.conn,
-                    })
-                )
-            ).payload;
-            let result = metadataObjects
+            const { metadataObjects } = await dispatch(
+                DESCRIBE.describeVersion({
+                    connector: application.connector.conn,
+                })
+            ).unwrap();
+            let result: Array<
+                | (typeof METADATA_UTILS.METADATA_EXCEPTION_LIST)[number]
+                | (Partial<import('jsforce/lib/api/metadata').DescribeMetadataObject> & {
+                      name: string;
+                      label: string;
+                      key: string;
+                      isSobject: boolean;
+                  })
+            > = metadataObjects
                 .filter(obj => !METADATA_UTILS.METADATA_EXCLUDE_LIST.includes(obj.xmlName))
                 .map(obj => ({
                     ...obj,
@@ -302,7 +311,7 @@ const fetchMenuSpecificMetadata = createAsyncThunk(
     ) => {
         try {
             await dispatch(packageSlice.actions.setMenuAttributes({ sobject }));
-            const { application, package2 } = getState() as any;
+            const { application, package2 } = getState() as RootState as any;
             const exceptionMetadata =
                 METADATA_UTILS.METADATA_EXCEPTION_LIST.find(x => x.name === sobject) || null;
             if (
@@ -395,7 +404,7 @@ const packageSlice = createSlice({
                 saveCacheSettings(alias, state);
             }
         },
-        clearCurrentDeploymentJob: (state, action) => {
+        clearCurrentDeploymentJob: state => {
             state.currentDeploymentJob = null;
         },
         clearCurrentRetrieveJob: (state, action) => {
@@ -494,3 +503,9 @@ const packageSlice = createSlice({
 
 export const reduxSlice = packageSlice;
 export { fetchMenuGlobalMetadata, fetchMenuSpecificMetadata };
+
+declare module 'host-api/types' {
+    interface InjectedState {
+        package2?: ReturnType<typeof reduxSlice.reducer>;
+    }
+}

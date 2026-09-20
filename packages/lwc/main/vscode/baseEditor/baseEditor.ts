@@ -86,7 +86,14 @@ function buildDefaultVscodeApiConfig(userConfig, logLevel = LogLevel.Off) {
  * @returns {Promise<Object>} Promise that resolves to the MonacoVscodeApiWrapper instance if initialized, or undefined if already initialized
  * @throws {Error} If vscodeBundle is not available or initialization fails
  */
-export async function initializeVscodeApiWithDefaults(options = {}) {
+export async function initializeVscodeApiWithDefaults(
+    options: {
+        vscodeApiConfig?: Record<string, unknown>;
+        logLevel?: number;
+        startInstructions?: Record<string, unknown>;
+        caller?: string;
+    } = {}
+) {
     const { vscodeApiConfig, logLevel = LogLevel.Off, startInstructions, caller } = options;
 
     const vscodeBundle = await getVscodeBundle();
@@ -113,6 +120,8 @@ export async function initializeVscodeApiWithDefaults(options = {}) {
 }
 
 export default class BaseEditor extends LightningElement {
+    declare _disposeTimeoutId: ReturnType<typeof setTimeout>;
+
     _editorId;
     @api
     get editorId() {
@@ -416,6 +425,19 @@ export default class BaseEditor extends LightningElement {
         }
 
         await this.setupDiagnosticsListener();
+    }
+
+    async setupDiagnosticsListener() {
+        this.diagnosticsDisposable?.dispose();
+        const { monaco } = await getVscodeBundle();
+        const update = () => {
+            const model = this.modelRefs.modified?.object?.textEditorModel;
+            this.currentDiagnostics = model
+                ? monaco.editor.getModelMarkers({ resource: model.uri })
+                : [];
+        };
+        this.diagnosticsDisposable = monaco.editor.onDidChangeMarkers(update);
+        update();
     }
 
     async buildModelReference(codeContent) {
@@ -762,7 +784,7 @@ export default class BaseEditor extends LightningElement {
     }
 
     async delayDispose(disposeRefs) {
-        return new Promise(resolve => {
+        return new Promise<void>(resolve => {
             const timeoutId = setTimeout(async () => {
                 await disposeRefs();
                 resolve();

@@ -96,14 +96,19 @@ const applicationSlice = createSlice({
         updateCurrentApplication: (state, action) => {
             state.currentApplication = action.payload?.application || null;
         },
-        startLoading: (state, action) => {
-            state.isLoading = true;
-            state.isLoadingMessage = action.payload?.message || null;
+        startLoading: {
+            reducer(state, action: import('@reduxjs/toolkit').PayloadAction<{ message?: string }>) {
+                state.isLoading = true;
+                state.isLoadingMessage = action.payload.message || null;
+            },
+            prepare(payload: { message?: string } = {}) {
+                return { payload };
+            },
         },
-        stopLoading: (state, action) => {
+        stopLoading: state => {
             state.isLoading = false;
         },
-        setIsSidePanel: (state, action) => {
+        setIsSidePanel: state => {
             state.isSidePanel = true;
         },
         login: (state, action) => {
@@ -123,7 +128,7 @@ const applicationSlice = createSlice({
                 refreshToken,
             });
         },
-        logout: (state, action) => {
+        logout: state => {
             state.connector = null;
             state.isLoggedIn = false;
             state.currentApplication = null;

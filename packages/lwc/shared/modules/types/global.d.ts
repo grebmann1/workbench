@@ -1,32 +1,3 @@
-type ChromeStorageArea = {
-    get: (keys: string[], callback: (result: Record<string, unknown>) => void) => void;
-    remove: (key: string, callback: () => void) => void;
-    set: (items: Record<string, unknown>, callback: () => void) => void;
-};
-
-declare const chrome: {
-    runtime?: {
-        getURL: (path: string) => string;
-        id?: string;
-        lastError?: { message?: string };
-    };
-    storage: {
-        local: ChromeStorageArea;
-        sync: ChromeStorageArea;
-    };
-    tabs?: {
-        query: (
-            queryInfo: {
-                active?: boolean;
-                lastFocusedWindow?: boolean;
-                currentWindow?: boolean;
-            },
-            callback?: (tabs: Array<{ id?: number }>) => void
-        ) => Promise<Array<{ id?: number }>>;
-        reload: (tabId?: number) => void;
-    };
-};
-
 declare const browser: {
     runtime?: {
         id?: string;
@@ -37,21 +8,41 @@ declare const process: {
     env?: Record<string, string | undefined>;
 };
 
-type JsforceConnectionConstructor = new (
-    options: Record<string, unknown>
-) => Record<string, unknown>;
-
-type JsforceWindow = Window &
-    typeof globalThis & {
-        jsforceSettings?: {
-            apiVersion?: string;
-        };
-        jsforce: {
-            Connection: JsforceConnectionConstructor;
-        };
-    };
+type JsforceBrowserClient = import('jsforce/lib/browser/client').BrowserClient;
+type JsforceNativeConnection = import('jsforce').Connection;
+type JsforceWindow = Window & typeof globalThis;
 
 interface Window {
+    defaultStore?: {
+        getItem<T = unknown>(key: string): Promise<T | null>;
+        setItem<T>(key: string, value: T): Promise<T>;
+        removeItem(key: string): Promise<void>;
+    };
+    navContext?: unknown;
+    isLimitedMode?: boolean;
+    runSandboxEvalSmokeTest?: (options: { code: string; timeoutMs?: number }) => Promise<unknown>;
+    Prism?: {
+        languages: Record<string, unknown>;
+        highlight(code: string, grammar: unknown, language: string): string;
+        highlightAllUnder(element: Element): void;
+    };
+    jsforceSettings?: import('jsforce/lib/connection').ConnectionConfig & {
+        apiVersion?: string;
+        clientId?: string;
+        redirectUri?: string;
+        loginUrl?: string;
+        proxyUrl?: string;
+    };
+    jsforce: {
+        Connection: new (
+            ...args: ConstructorParameters<typeof import('jsforce').Connection>
+        ) => import('./jsforce').JsforceConnection &
+            Pick<JsforceNativeConnection, 'authorize' | 'login' | 'logout' | '_establish'>;
+        OAuth2: typeof import('jsforce').OAuth2;
+        BrowserClient: typeof import('jsforce/lib/browser/client').BrowserClient;
+        browserClient?: JsforceBrowserClient;
+    };
+
     desktop?: {
         getAppInfo: () => Promise<{
             appName: string;
@@ -160,8 +151,8 @@ interface Window {
         setChannel?: (channel: string) => void;
         getChannel?: () => string | null;
     };
-    monaco?: unknown;
-    mermaid?: unknown;
+    monaco?: typeof import('monaco-editor');
+    mermaid?: typeof import('mermaid').default;
     _monacoCompletionProviders?: Record<string, boolean>;
 }
 

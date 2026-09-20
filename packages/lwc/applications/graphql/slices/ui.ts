@@ -239,3 +239,9 @@ const uiSlice = createSlice({
 
 export const reduxSlice = uiSlice;
 export { INITIAL_BODY, INITIAL_VARIABLES };
+
+declare module 'host-api/types' {
+    interface InjectedState {
+        graphqlUi?: ReturnType<typeof reduxSlice.reducer>;
+    }
+}

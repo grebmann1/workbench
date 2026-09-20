@@ -1,3 +1,4 @@
+import type { RootState } from 'host-api/types';
 import { composeQuery, parseQuery, isQueryValid } from '@jetstreamapp/soql-parser-js';
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import type { ConnectorLike, ConnectionLike } from 'host-api/connector';
@@ -16,7 +17,7 @@ import {
 import * as QUERY from './query';
 import { stripSoqlComments } from './stripSoqlComments';
 
-const queryFilesSelectors = DOCUMENT.queryFileAdapter.getSelectors(s => s);
+const queryFilesSelectors = DOCUMENT.queryFileAdapter.getSelectors();
 
 const SETTINGS_KEY = 'SETTINGS_KEY';
 
@@ -72,7 +73,7 @@ function loadCacheSettings(alias) {
     return null;
 }
 
-function updateCurrentTab(state, attributes) {
+function updateCurrentTab(state, attributes = undefined) {
     const tabIndex = state.tabs.findIndex(x => x.id === state.currentTab.id);
     if (tabIndex > -1) {
         state.tabs[tabIndex].body = state.soql;
@@ -214,7 +215,7 @@ export const saveAllPendingEdits = createAsyncThunk(
         { connector, tabId }: { connector: { conn: ConnectionLike }; tabId: string },
         { getState, dispatch }
     ) => {
-        const state: any = getState();
+        const state: any = getState() as RootState;
         const tabEdits = state.ui.pendingEdits?.[tabId] || {};
         const describeState = state.describe || {};
 
@@ -300,6 +301,7 @@ const uiSlice = createSlice({
         recentQueries: [],
         tabs: INITIAL_TABS,
         currentTab: INITIAL_TABS[0],
+        currentFileId: null,
         selectedSObject: undefined,
         query: INITIAL_QUERY,
         soql: '',
@@ -354,7 +356,7 @@ const uiSlice = createSlice({
         },
         clearTabs: (state, action) => {
             const { alias } = action.payload;
-            state.tabs = enrichTabs(INITIAL_TABS);
+            state.tabs = enrichTabs(INITIAL_TABS, state);
             if (isNotUndefinedOrNull(alias)) {
                 saveCacheSettings(alias, state);
             }
@@ -450,7 +452,7 @@ const uiSlice = createSlice({
             }
         },
         updateApiLimit: (state, action: { payload: { connector: ConnectorLike } }) => {
-            const { limitInfo } = action.payload?.connector;
+            const { limitInfo } = action.payload?.connector.conn;
             state.apiUsage = limitInfo ? limitInfo.apiUsage : undefined;
         },
         selectSObject: (state, action) => {
@@ -665,3 +667,9 @@ function _valuesEqual(a, b) {
 
 export const SORT = { ORDER: { ASC: 'ASC', DESC: 'DESC' } };
 export const reduxSlice = uiSlice;
+
+declare module 'host-api/types' {
+    interface InjectedState {
+        ui?: ReturnType<typeof reduxSlice.reducer>;
+    }
+}

@@ -15,15 +15,15 @@ type FakeNavigateAction = { type: typeof CONST.FAKE_NAVIGATE; payload: { target:
 type OpenAction = { type: typeof CONST.OPEN; payload: { target: NavigateTarget } };
 type MenuHideAction = { type: typeof CONST.MENU_HIDE };
 type MenuShowAction = { type: typeof CONST.MENU_SHOW };
-type MenuCollapseAction = { type: typeof CONST.MENU_COLLAPSE; payload: { source: ActionSource } };
-type MenuExpandAction = { type: typeof CONST.MENU_EXPAND; payload: { source: ActionSource } };
+type MenuCollapseAction = { type: typeof CONST.MENU_COLLAPSE; payload: { source?: ActionSource } };
+type MenuExpandAction = { type: typeof CONST.MENU_EXPAND; payload: { source?: ActionSource } };
 type AgentChatCollapseAction = {
     type: typeof CONST.AGENT_CHAT_COLLAPSE;
-    payload: { source: ActionSource };
+    payload: { source?: ActionSource };
 };
 type AgentChatExpandAction = {
     type: typeof CONST.AGENT_CHAT_EXPAND;
-    payload: { source: ActionSource };
+    payload: { source?: ActionSource };
 };
 
 export type ApplicationAction =
@@ -92,28 +92,28 @@ export function showMenu(): MenuShowAction {
     };
 }
 
-export function collapseMenu(source: ActionSource): MenuCollapseAction {
+export function collapseMenu(source?: ActionSource): MenuCollapseAction {
     return {
         type: CONST.MENU_COLLAPSE,
         payload: { source },
     };
 }
 
-export function expandMenu(source: ActionSource): MenuExpandAction {
+export function expandMenu(source?: ActionSource): MenuExpandAction {
     return {
         type: CONST.MENU_EXPAND,
         payload: { source },
     };
 }
 
-export function collapseAgentChat(source: ActionSource): AgentChatCollapseAction {
+export function collapseAgentChat(source?: ActionSource): AgentChatCollapseAction {
     return {
         type: CONST.AGENT_CHAT_COLLAPSE,
         payload: { source },
     };
 }
 
-export function expandAgentChat(source: ActionSource): AgentChatExpandAction {
+export function expandAgentChat(source?: ActionSource): AgentChatExpandAction {
     return {
         type: CONST.AGENT_CHAT_EXPAND,
         payload: { source },

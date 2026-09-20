@@ -170,7 +170,7 @@ export default class ModalDeploy extends LightningModal {
         if (this.file && this.file.type === 'application/zip') {
             const reader = new FileReader();
             reader.onload = () => {
-                const base64 = reader.result.split(',')[1];
+                const base64 = String(reader.result || '').split(',')[1];
                 //this.deployMetadata(base64, this.file.name);
                 this.zip64 = base64; //this.base64ToBlob(base64, 'application/zip');
             };

@@ -10,6 +10,11 @@ export type ToolPolicy = {
 
 const READ_TOOLS = new Set([
     'readFile',
+    'read_memory',
+    'search_documents',
+    'google_drive_search',
+    'google_slides_get',
+    'google_slides_preview',
     'loadSkill',
     'discoverSkills',
     'fetchSkill',
@@ -25,7 +30,7 @@ const READ_TOOLS = new Set([
 export function getToolPolicy(name: string): ToolPolicy {
     if (READ_TOOLS.has(name))
         return { access: 'read', credentialScope: 'none', requiresApproval: false };
-    if (name === 'writeFile' || name === 'saveSkill') {
+    if (name === 'writeFile' || name === 'saveSkill' || name === 'update_memory') {
         return { access: 'write', credentialScope: 'none', requiresApproval: false };
     }
     // Arbitrary shell/JS and server tools cannot safely be classified from their names or text.

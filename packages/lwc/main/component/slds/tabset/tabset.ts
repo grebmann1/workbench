@@ -1,3 +1,4 @@
+import type { TabElement, TabHeader } from '../tab/tab';
 import { LightningElement, api, track } from 'lwc';
 import { normalizeString, generateUniqueId } from 'shared/utils';
 
@@ -8,6 +9,10 @@ const tabClassPrefixByVariant = {
 };
 
 export default class SldsTabset extends LightningElement {
+    declare _connected: boolean;
+    declare _tabByValue: Record<string, TabElement>;
+    declare _activeTabValue: string;
+
     @api title;
 
     @api isAddTabEnabled = false;
@@ -16,7 +21,7 @@ export default class SldsTabset extends LightningElement {
 
     @track _variant = 'standard';
 
-    @track _tabHeaders = [];
+    @track _tabHeaders: TabHeader[] = [];
     connectedCallback() {
         this._tabByValue = {};
         this._connected = true;
@@ -81,7 +86,7 @@ export default class SldsTabset extends LightningElement {
         tab.classList.add('slds-hide');
         tab.classList.remove('slds-show');
 
-        const tabs = this.querySelectorAll(`[role='tabpanel']`);
+        const tabs = this.querySelectorAll<TabElement>(`[role='tabpanel']`);
         let tabIndex;
         for (tabIndex = 0; tabIndex < tabs.length; tabIndex++) {
             if (tabs[tabIndex].dataTabValue === tabValue) {

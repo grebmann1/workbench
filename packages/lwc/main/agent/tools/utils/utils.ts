@@ -63,7 +63,7 @@ export async function openToolkit({
                 sessionId: connector.conn.accessToken,
                 serverUrl: connector.conn.instanceUrl,
             };
-            const params = {
+            const params: { type: string; state?: { applicationName: string } } = {
                 type: 'application',
             };
             if (redirect) {

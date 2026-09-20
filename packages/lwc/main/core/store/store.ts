@@ -1,3 +1,4 @@
+import type { InjectedState } from 'host-api/types';
 import logger from 'shared/middleware';
 
 import { configureStore, createInjectableStore } from './createInjectableStore';
@@ -39,7 +40,11 @@ const staticReducers = {
     textCompare: TEXTCOMPARE.reduxSlice.reducer,
 };
 
-const { store, injectReducer, removeReducer } = createInjectableStore(staticReducers, rootReducer =>
+const {
+    store: configuredStore,
+    injectReducer,
+    removeReducer,
+} = createInjectableStore(staticReducers, rootReducer =>
     configureStore({
         reducer: rootReducer,
         middleware: getDefaultMiddleware => {
@@ -88,9 +93,9 @@ const { store, injectReducer, removeReducer } = createInjectableStore(staticRedu
     })
 );
 
+type RootState = ReturnType<typeof configuredStore.getState> & InjectedState;
+const store: Omit<typeof configuredStore, 'getState'> & { getState(): RootState } = configuredStore;
 storeRef.current = store;
-
-type RootState = ReturnType<typeof store.getState>;
 type AppDispatch = typeof store.dispatch;
 
 if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'production') {
@@ -123,14 +128,24 @@ export type { RootState, AppDispatch };
 export { connectStore } from './wire-adapter';
 
 export const SELECTORS = {
-    sobject: SOBJECT.sObjectsAdapter.getSelectors(state => state.sobject),
+    sobject: SOBJECT.sObjectsAdapter.getSelectors(
+        (state: Pick<RootState, 'sobject'>) => state.sobject
+    ),
     describe: state => state.describe,
-    einstein: EINSTEIN.einsteinModelAdapter.getSelectors(state => state.einstein.dialog),
-    queryFiles: DOCUMENT.queryFileAdapter.getSelectors(state => state.queryFiles),
-    apexFiles: DOCUMENT.apexFileAdapter.getSelectors(state => state.apexFiles),
-    apiFiles: DOCUMENT.apiFileAdapter.getSelectors(state => state.apiFiles),
+    einstein: EINSTEIN.einsteinModelAdapter.getSelectors(
+        (state: Pick<RootState, 'einstein'>) => state.einstein.dialog
+    ),
+    queryFiles: DOCUMENT.queryFileAdapter.getSelectors(
+        (state: Pick<RootState, 'queryFiles'>) => state.queryFiles
+    ),
+    apexFiles: DOCUMENT.apexFileAdapter.getSelectors(
+        (state: Pick<RootState, 'apexFiles'>) => state.apexFiles
+    ),
+    apiFiles: DOCUMENT.apiFileAdapter.getSelectors(
+        (state: Pick<RootState, 'apiFiles'>) => state.apiFiles
+    ),
     openapiSchemaFiles: DOCUMENT.openapiSchemaFileAdapter.getSelectors(
-        state => state.openapiSchemaFiles
+        (state: Pick<RootState, 'openapiSchemaFiles'>) => state.openapiSchemaFiles
     ),
     agent: state => state.agent,
     smartInput: state => state.smartInput,
@@ -147,5 +162,5 @@ export const SELECTORS = {
         }
         return shell;
     },
-    //errors: ERROR.errorAdapter.getSelectors(state => state.errors),
+    //errors: ERROR.errorAdapter.getSelectors((state: RootState) => state.errors),
 };

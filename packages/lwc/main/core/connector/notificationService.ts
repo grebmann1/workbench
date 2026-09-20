@@ -3,13 +3,23 @@
 import { reportError } from 'core/store';
 import Toast from 'lightning/toast';
 
-export function showToast({ label, message, variant = 'info' }) {
+export function showToast({
+    label,
+    message = '',
+    variant = 'info',
+    mode = 'dismissible',
+}: {
+    label: string;
+    message?: string;
+    variant?: string;
+    mode?: string;
+}) {
     // TODO: Implement toast logic
     Toast.show({
         label: label,
         message: message,
         variant: variant,
-        mode: 'dismissible',
+        mode,
     });
     switch (variant) {
         case 'info':

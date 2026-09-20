@@ -73,7 +73,11 @@ export default class FileTree extends LightningElement {
                 }
                 this.searchValue = value;
                 this.pageNumber = 1;
-                const options = {
+                const options: {
+                    searchFields: string[];
+                    minSearchLength: number;
+                    includeFoldersInResults?: boolean;
+                } = {
                     searchFields: this.searchFields,
                     minSearchLength: this.minSearchLength,
                 };

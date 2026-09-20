@@ -48,7 +48,7 @@ export async function ensureMonacoLoaded(): Promise<unknown> {
     return window.monaco;
 }
 
-export async function ensureMermaidLoaded(): Promise<unknown> {
+export async function ensureMermaidLoaded(): Promise<typeof import('mermaid').default | undefined> {
     if (typeof window !== 'undefined' && window.mermaid) {
         return window.mermaid;
     }

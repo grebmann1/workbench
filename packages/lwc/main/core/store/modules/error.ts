@@ -1,4 +1,4 @@
-import { createSlice } from '@reduxjs/toolkit';
+import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import { guid } from 'shared/utils';
 
 function normalizeErrorPayload(error) {
@@ -36,13 +36,13 @@ function normalizeErrorPayload(error) {
 // Error slice for global error logging
 const errorSlice = createSlice({
     name: 'errors',
-    initialState: [], // Array of { id, message, details, time, source? }
+    initialState: [] as ReturnType<typeof normalizeErrorPayload>[], // Array of { id, message, details, time, source? }
     reducers: {
         addError: {
-            reducer(state, action) {
+            reducer(state, action: PayloadAction<ReturnType<typeof normalizeErrorPayload>>) {
                 state.push(action.payload);
             },
-            prepare(error) {
+            prepare(error: unknown = undefined) {
                 return {
                     payload: normalizeErrorPayload(error),
                 };

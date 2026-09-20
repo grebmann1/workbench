@@ -66,10 +66,9 @@ const utf8Decoder = new TextDecoder('utf-8');
 const latin1Decoder = new TextDecoder('iso-8859-1');
 const asciiDecoder = new TextDecoder('ascii');
 
-function createFsError(code, message, path) {
+function createFsError(code: string, message: string, path?: string) {
     const suffix = path ? `: '${path}'` : '';
-    const error = new Error(`${code}: ${message}${suffix}`);
-    error.code = code;
+    const error = Object.assign(new Error(`${code}: ${message}${suffix}`), { code });
     return error;
 }
 
@@ -151,7 +150,7 @@ function base64ToUint8Array(base64) {
     return bytes;
 }
 
-function bytesToHex(bytes) {
+function bytesToHex(bytes: Uint8Array) {
     return Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
 }
 
@@ -247,15 +246,15 @@ function toUint8Array(content, options) {
     }
 }
 
-function requestToPromise(request) {
-    return new Promise((resolve, reject) => {
+function requestToPromise<T>(request: IDBRequest<T>): Promise<T> {
+    return new Promise<T>((resolve, reject) => {
         request.onsuccess = () => resolve(request.result);
         request.onerror = () => reject(request.error || new Error('IndexedDB request failed'));
     });
 }
 
-function transactionDonePromise(transaction) {
-    return new Promise((resolve, reject) => {
+function transactionDonePromise(transaction: IDBTransaction) {
+    return new Promise<void>((resolve, reject) => {
         transaction.oncomplete = () => resolve();
         transaction.onabort = () =>
             reject(transaction.error || new Error('IndexedDB transaction aborted'));
@@ -367,7 +366,7 @@ export class IndexedDbFileSystem {
     }
 
     openDatabase() {
-        return new Promise((resolve, reject) => {
+        return new Promise<IDBDatabase>((resolve, reject) => {
             const request = indexedDB.open(this.dbName, 1);
             request.onupgradeneeded = () => {
                 const db = request.result;
@@ -384,7 +383,9 @@ export class IndexedDbFileSystem {
     async ensureBaseDirectories() {
         await this.runWrite(async store => {
             for (const dirPath of this.ensureDirectories) {
-                const existing = await requestToPromise(store.get(dirPath));
+                const existing = await requestToPromise<StoredEntry | undefined>(
+                    store.get(dirPath)
+                );
                 if (!existing) {
                     store.put(toStoredDirectoryEntry(dirPath));
                 } else if (existing.type !== 'directory') {
@@ -573,7 +574,7 @@ export class IndexedDbFileSystem {
         return this.toFsStat(entry);
     }
 
-    async mkdir(path, options = {}) {
+    async mkdir(path, options: { recursive?: boolean; force?: boolean } = {}) {
         await this.ready;
         const normalized = normalizeAbsolutePath(path);
         const recursive = !!options?.recursive;
@@ -657,7 +658,7 @@ export class IndexedDbFileSystem {
         return output;
     }
 
-    async rm(path, options = {}) {
+    async rm(path, options: { recursive?: boolean; force?: boolean } = {}) {
         await this.ready;
         const normalized = normalizeAbsolutePath(path);
         const recursive = !!options?.recursive;
@@ -667,7 +668,7 @@ export class IndexedDbFileSystem {
         });
     }
 
-    async cp(src, dest, options = {}) {
+    async cp(src, dest, options: { recursive?: boolean; force?: boolean } = {}) {
         await this.ready;
         const normalizedSrc = normalizeAbsolutePath(src);
         const normalizedDest = normalizeAbsolutePath(dest);
@@ -1098,7 +1099,10 @@ export class IndexedDbFileSystem {
         });
     }
 
-    async removePathInternal(normalizedPath, options = {}) {
+    async removePathInternal(
+        normalizedPath: string,
+        options: { recursive?: boolean; force?: boolean } = {}
+    ) {
         const recursive = !!options?.recursive;
         const force = !!options?.force;
         if (normalizedPath === ROOT_PATH) {

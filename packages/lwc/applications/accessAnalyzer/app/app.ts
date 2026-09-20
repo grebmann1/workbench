@@ -1,3 +1,5 @@
+import type { AccessMetadata, AccessRow, MetadataEntry } from '../utils/types';
+import type { ColumnDefinition } from 'tabulator-tables';
 import ModalPermissionSetFilter from 'accessAnalyzer/modalPermissionSetFilter';
 import ModalProfileFilter from 'accessAnalyzer/modalProfileFilter';
 //import ModalPermissionSelector from "slds/modalPermissionSelector";
@@ -23,8 +25,8 @@ import { currentInvestigation } from 'shared/recordInvestigation';
 import { TabulatorFull as Tabulator } from 'tabulator-tables';
 
 type AnyRecord = Record<string, any>;
-type PermissionSetLike = AnyRecord;
-type MetadataLike = AnyRecord;
+type PermissionSetLike = Parameters<typeof setFieldPermission>[1][string] & { fullName?: string };
+type MetadataLike = AccessMetadata;
 
 const SVG_CHECKED =
     '<svg enable-background="new 0 0 24 24" height="14" width="14" viewBox="0 0 24 24" xml:space="preserve" lwc-1ctolp3d4fm=""><path fill="#2DC214" clip-rule="evenodd" d="M21.652,3.211c-0.293-0.295-0.77-0.295-1.061,0L9.41,14.34  c-0.293,0.297-0.771,0.297-1.062,0L3.449,9.351C3.304,9.203,3.114,9.13,2.923,9.129C2.73,9.128,2.534,9.201,2.387,9.351  l-2.165,1.946C0.078,11.445,0,11.63,0,11.823c0,0.194,0.078,0.397,0.223,0.544l4.94,5.184c0.292,0.296,0.771,0.776,1.062,1.07  l2.124,2.141c0.292,0.293,0.769,0.293,1.062,0l14.366-14.34c0.293-0.294,0.293-0.777,0-1.071L21.652,3.211z" fill-rule="evenodd" lwc-1ctolp3d4fm=""></path></svg>';
@@ -124,7 +126,7 @@ const CONFIG = [
         },
         key: 'tab',
     },
-];
+] satisfies Array<{ metadataName: keyof AccessMetadata; [key: string]: unknown }>;
 
 const DIFF = {
     ALL: 'All',
@@ -189,7 +191,7 @@ export default class App extends ToolkitElement {
     metadataFilter_value = Object.values(CONFIG).map(x => x.key); // Default select all
     namespaceFiltering_value = 'excluded';
     userLicenseFiltering_value = 'all';
-    selectedObject: AnyRecord | null = null;
+    selectedObject: AccessMetadata['sobjects'][string] | null = null;
 
     /* Compare */
     diff_value = DIFF.ALL;
@@ -879,11 +881,13 @@ export default class App extends ToolkitElement {
                         .filter(
                             x =>
                                 (this.namespaceFiltering_isExcluded &&
-                                    (x.namespacePrefix == null || x.namespacePrefix === '')) ||
+                                    (!('namespacePrefix' in x) ||
+                                        x.namespacePrefix == null ||
+                                        x.namespacePrefix === '')) ||
                                 !this.namespaceFiltering_isExcluded
                         )
                         .forEach(item => {
-                            const data = {};
+                            const data: AccessRow = {};
                             data['label'] = item.label || item.name;
                             data['name'] = item.name;
                             data['namespacePrefix'] = item.namespacePrefix || 'Default';
@@ -905,7 +909,9 @@ export default class App extends ToolkitElement {
                             if (configItem.key === 'layouts' && item?.recordTypes) {
                                 // TODO: Check why we can have item.recordTypes === undefined
                                 // Run special logic for layouts
-                                const children = Object.values(item.recordTypes).map(recordType => {
+                                const children = Object.values<
+                                    import('shared/sf/mapping').RecordType
+                                >(item.recordTypes).map(recordType => {
                                     const permissionKey = `${item.name}-${recordType.id}`; // to be replaced in the SF method
                                     const subData = {
                                         name: `${data.name}.${recordType.name}`,
@@ -970,7 +976,7 @@ export default class App extends ToolkitElement {
     calculateMatrixData = () => {
         const _dataList = this.generateFullDataList(this.metadataFilter_value);
         // Create Matrix
-        const matrix = {};
+        const matrix: Record<string, AccessRow> = {};
         this.filteredPermissions.forEach(perm1 => {
             matrix[perm1.id] = { name: perm1.name, id: perm1.id };
             this.filteredPermissions.forEach(perm2 => {
@@ -1019,16 +1025,15 @@ export default class App extends ToolkitElement {
         return Object.values(matrix).sort((a, b) => (a.name || '').localeCompare(b.name));
     };
 
-    setMatrixReport = async metadataFilter => {
+    setMatrixReport = async (metadataFilter = undefined) => {
         //console.log('setMatrixReport');
 
-        const colModel = [
+        const colModel: ColumnDefinition[] = [
             {
                 title: 'Permission',
                 field: 'name',
                 resizable: true,
                 headerHozAlign: 'center',
-                resizable: true,
                 responsive: 0,
                 frozen: true,
                 headerFilter: 'input',
@@ -1079,14 +1084,14 @@ export default class App extends ToolkitElement {
                                 } else if (total < this.orangeTreshold) {
                                     cell.getElement().style.backgroundColor = '#ff5d2d';
                                 }
-                                return total;
+                                return String(total);
                             }
                         }
                     },
                 });
             });
 
-        this.dataList = this.calculateMatrixData(metadataFilter);
+        this.dataList = this.calculateMatrixData();
         //console.log('this.dataList',this.dataList);
         this.tableInstance = new Tabulator(this.template.querySelector('.custom-table'), {
             height: this.calculatedHeight,
@@ -1109,10 +1114,10 @@ export default class App extends ToolkitElement {
         });
     };
 
-    setFullViewReport = async metadataFilter => {
+    setFullViewReport = async (metadataFilter = undefined) => {
         //console.log('setFullViewReport');
 
-        const colModel = [
+        const colModel: ColumnDefinition[] = [
             {
                 title: 'Developer Name',
                 field: 'name',
@@ -1181,7 +1186,7 @@ export default class App extends ToolkitElement {
             data: _dataList,
             dataTree: true,
             dataTreeStartExpanded: true,
-            selectable: true,
+            selectableRows: true,
             layout: 'fitDataFill',
             columns: colModel,
             columnHeaderVertAlign: 'middle',
@@ -1202,7 +1207,7 @@ export default class App extends ToolkitElement {
         });
     };
 
-    setFieldLevelSecurityReport = async updateData => {
+    setFieldLevelSecurityReport = async (updateData = false) => {
         if (
             isUndefinedOrNull(this.selectedObject) &&
             Object.values(this.metadata.sobjects).length > 0
@@ -1210,12 +1215,20 @@ export default class App extends ToolkitElement {
             this.selectedObject = this.metadata.sobjects[this.sobject_options[0].value];
         }
 
-        await setFieldPermission(this.connector.conn, this.permissionSets, {
-            targetObject: this.selectedObject,
-        });
+        await setFieldPermission(
+            {
+                query: <T>(soql: string) => this.connector.conn.query<T>(soql),
+                tooling: this.connector.conn.tooling,
+                sobject: (name: string) => this.connector.conn.sobject(name),
+            },
+            this.permissionSets,
+            {
+                targetObject: this.selectedObject,
+            }
+        );
 
         const dataList = [];
-        const colModel = [
+        const colModel: ColumnDefinition[] = [
             {
                 title: 'Developer Name',
                 field: 'api',
@@ -1289,11 +1302,13 @@ export default class App extends ToolkitElement {
             .filter(
                 x =>
                     (this.namespaceFiltering_isExcluded &&
-                        (x.namespacePrefix == null || x.namespacePrefix === '')) ||
+                        (!('namespacePrefix' in x) ||
+                            x.namespacePrefix == null ||
+                            x.namespacePrefix === '')) ||
                     !this.namespaceFiltering_isExcluded
             )
             .forEach(field => {
-                const data = {};
+                const data: AccessRow = {};
                 data['api'] = field.name;
                 data['label'] = field.label;
                 data['type'] = field.type;
@@ -1323,7 +1338,7 @@ export default class App extends ToolkitElement {
             this.tableInstance = new Tabulator(this.template.querySelector('.custom-table'), {
                 height: this.calculatedHeight,
                 data: _dataList,
-                selectable: true,
+                selectableRows: true,
                 layout: 'fitDataFill',
                 columns: colModel,
                 columnHeaderVertAlign: 'middle',
@@ -1346,7 +1361,7 @@ export default class App extends ToolkitElement {
         const permissionGroups = Object.values(this.metadata.permissionGroups);
         const dataList = [];
 
-        const colModel = [
+        const colModel: ColumnDefinition[] = [
             {
                 title: 'DeveloperName',
                 field: 'name',
@@ -1386,11 +1401,13 @@ export default class App extends ToolkitElement {
             .filter(
                 x =>
                     (this.namespaceFiltering_isExcluded &&
-                        (x.namespacePrefix == null || x.namespacePrefix === '')) ||
+                        (!('namespacePrefix' in x) ||
+                            x.namespacePrefix == null ||
+                            x.namespacePrefix === '')) ||
                     !this.namespaceFiltering_isExcluded
             )
             .forEach(item => {
-                const data = {};
+                const data: AccessRow = {};
                 data['label'] = item.label || item.name;
                 data['name'] = item.name;
                 data['namespacePrefix'] = item.namespacePrefix || 'Default';
@@ -1408,7 +1425,7 @@ export default class App extends ToolkitElement {
         this.tableInstance = new Tabulator(this.template.querySelector('.custom-table'), {
             height: this.calculatedHeight,
             data: dataList,
-            selectable: true,
+            selectableRows: true,
             layout: 'fitDataFill',
             columns: colModel,
             groupBy: 'namespacePrefix',
@@ -1425,7 +1442,7 @@ export default class App extends ToolkitElement {
 
     setCustomObjectReport = async () => {
         const dataList = [];
-        const colModel = [
+        const colModel: ColumnDefinition[] = [
             {
                 title: 'Developer Name',
                 field: 'name',
@@ -1446,7 +1463,7 @@ export default class App extends ToolkitElement {
         ];
 
         this.filteredPermissions.forEach(permission => {
-            const subCols = [
+            const subCols: import('tabulator-tables').ColumnDefinition[] = [
                 {
                     title: 'Read',
                     field: permission.id + '_r',
@@ -1532,11 +1549,13 @@ export default class App extends ToolkitElement {
             .filter(
                 x =>
                     (this.namespaceFiltering_isExcluded &&
-                        (x.namespacePrefix == null || x.namespacePrefix === '')) ||
+                        (!('namespacePrefix' in x) ||
+                            x.namespacePrefix == null ||
+                            x.namespacePrefix === '')) ||
                     !this.namespaceFiltering_isExcluded
             )
             .forEach(sObject => {
-                const data = {};
+                const data: AccessRow = {};
                 data['label'] = sObject.label;
                 data['name'] = sObject.name;
                 data['namespacePrefix'] = sObject.namespacePrefix || 'Default';
@@ -1560,7 +1579,7 @@ export default class App extends ToolkitElement {
         this.tableInstance = new Tabulator(this.template.querySelector('.custom-table'), {
             height: this.calculatedHeight,
             data: dataList,
-            selectable: true,
+            selectableRows: true,
             layout: 'fitDataFill',
             columns: colModel,
             columnHeaderVertAlign: 'middle',

@@ -6,28 +6,28 @@
  */
 
 type OverflowItem = {
-    width: number;
+    width?: number;
     value: string | number;
 };
 
-type OverflowParams = {
-    items: OverflowItem[];
-    activeItem?: OverflowItem;
+type OverflowParams<T extends OverflowItem> = {
+    items: T[];
+    activeItem?: T;
     containerWidth: number;
     overflowWidth: number;
 };
 
-export function calculateOverflow({
+export function calculateOverflow<T extends OverflowItem>({
     items,
     activeItem,
     containerWidth,
     overflowWidth,
-}: OverflowParams): { visibleItems: OverflowItem[]; overflowItems: OverflowItem[] } {
-    const visibleItems: OverflowItem[] = [];
-    const overflowItems: OverflowItem[] = [];
+}: OverflowParams<T>): { visibleItems: T[]; overflowItems: T[] } {
+    const visibleItems: T[] = [];
+    const overflowItems: T[] = [];
     const itemsLength = items.length;
 
-    const allItemsWidth = items.reduce((totalWidth, item) => totalWidth + item.width, 0);
+    const allItemsWidth = items.reduce((totalWidth, item) => totalWidth + (item.width || 0), 0);
 
     if (allItemsWidth <= containerWidth || containerWidth <= 0) {
         return { visibleItems: items, overflowItems };
@@ -36,7 +36,7 @@ export function calculateOverflow({
     let totalWidth = overflowWidth;
 
     if (activeItem) {
-        totalWidth += activeItem.width;
+        totalWidth += activeItem.width || 0;
     }
 
     let activeItemFitsWithoutRearrangement = false;
@@ -49,9 +49,9 @@ export function calculateOverflow({
                 visibleItems.push(activeItem);
             }
         } else {
-            const itemFits = item.width + totalWidth <= containerWidth;
+            const itemFits = (item.width || 0) + totalWidth <= containerWidth;
             if (itemFits && overflowItems.length === 0) {
-                totalWidth += item.width;
+                totalWidth += item.width || 0;
                 visibleItems.push(item);
             } else {
                 overflowItems.push(item);

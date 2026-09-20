@@ -2,6 +2,8 @@ import { LightningElement, api } from 'lwc';
 import { classSet, normalizeString as normalize } from 'shared/utils';
 
 export default class Illustration extends LightningElement {
+    declare _size: string;
+
     @api title;
     @api subTitle;
 

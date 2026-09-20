@@ -28,6 +28,12 @@ import {
 type AnyRecord = Record<string, any>;
 
 export default class App extends ToolkitElement {
+    declare refs: {
+        menu?: HTMLElement & import('../menu/menu').default;
+        deploy?: HTMLElement & import('../deploy/deploy').default;
+        retrieve?: HTMLElement & import('../retrieve/retrieve').default;
+    };
+
     isLoading = false;
     isDeploymentRunning = false;
     isRetrieveRunning = false;
@@ -177,7 +183,7 @@ export default class App extends ToolkitElement {
 
     handleNewDeployment = (e: any): void => {
         if (this.currentMethod === super.i18n.TAB_DEPLOY) {
-            this.refs.deploy.reset();
+            this.refs.deploy.run();
         }
     };
 

@@ -215,7 +215,11 @@ export default class ToolMessage extends LightningElement {
 
     get title() {
         const parsed = this._parsedArguments;
-        const description = normalizeText(parsed?.description);
+        const description = normalizeText(
+            parsed && typeof parsed === 'object' && 'description' in parsed
+                ? parsed.description
+                : undefined
+        );
         if (description) return description;
         const call = this._effectiveToolCall;
         const fromName = normalizeText(call?.name || call?.toolName);

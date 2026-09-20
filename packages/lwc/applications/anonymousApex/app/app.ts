@@ -72,7 +72,7 @@ function bootstrapAnonymousApexExtension() {
                 body: payload?.body,
             })
         );
-        return { payload: res.payload, error: res.error };
+        return { payload: res.payload, error: 'error' in res ? res.error : undefined };
     });
 }
 bootstrapAnonymousApexExtension();
@@ -87,6 +87,12 @@ function normalizeApexResponseData(data: AnyRecord | null | undefined): AnyRecor
 }
 
 export default class App extends ToolkitElement {
+    declare refs: {
+        apexTab?: HTMLElement & import('../../../main/component/slds/tabset/tabset').default;
+        editor?: HTMLElement & import('../../../main/editor/default/default').default;
+        apexLog?: HTMLElement & import('../../../main/editor/default/default').default;
+    };
+
     _hasRendered = false;
     isLoading = false;
     _loadingMessage: string | null = null;
@@ -164,8 +170,12 @@ export default class App extends ToolkitElement {
         Analytics.trackAppOpen('anonymousApex', { alias: this.alias });
         this.isLoading = true;
         store.dispatch(async (dispatch, getState) => {
+            const alias = this.alias;
+            const cachedConfig = await APEX.loadCacheSettings(alias);
+            if (this.alias !== alias) return;
             await dispatch(
                 APEX.reduxSlice.actions.loadCacheSettings({
+                    cachedConfig,
                     alias: this.alias,
                     apexFiles: getState().apexFiles,
                 })
@@ -356,9 +366,9 @@ export default class App extends ToolkitElement {
             async lastEvent => {
                 const { value } = lastEvent.detail;
                 const _newDraft = (this.currentFile && this.currentFile.content != value) === true; // enforce boolean
-                if (this._body !== value || this.draft != _newDraft) {
+                if (this._body !== value || this.isDraft != _newDraft) {
                     this._body = value;
-                    this.draft = _newDraft;
+                    this.isDraft = _newDraft;
                     store.dispatch(
                         APEX.reduxSlice.actions.updateBody({
                             connector: this.connector,
@@ -543,17 +553,6 @@ export default class App extends ToolkitElement {
             body: `System.debug(System.now());`,
             language: 'apex',
         };
-    };
-
-    initEditor = () => {
-        //console.log('initEditor');
-        // Load from cache
-        const initFiles = this._cacheFiles || [];
-        if (initFiles.length == 0) {
-            initFiles.push(this.generateEmptyFile());
-        }
-        // init by default
-        this.refs.editor.displayFiles('ApexClass', initFiles);
     };
 
     filterLog = item => {

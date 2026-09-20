@@ -10,7 +10,7 @@ const store = configureStore({
         application: APPLICATION.reduxSlice.reducer,
     },
     middleware: getDefaultMiddleware => {
-        let middlewares = getDefaultMiddleware({
+        const middlewares = getDefaultMiddleware({
             serializableCheck: {
                 // Ignore these action types
                 ignoredActions: [
@@ -49,10 +49,7 @@ const store = configureStore({
                 ],
             },
         });
-        if (process.env.NODE_ENV !== 'production') {
-            middlewares = [...middlewares, logger];
-        }
-        return middlewares;
+        return process.env.NODE_ENV !== 'production' ? middlewares.concat(logger) : middlewares;
     },
     devTools: process.env.NODE_ENV !== 'production',
 });

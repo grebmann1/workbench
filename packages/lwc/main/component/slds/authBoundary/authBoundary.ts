@@ -65,7 +65,7 @@ export default class AuthBoundary extends ToolkitElement {
                     continue;
                 }
 
-                store.dispatch(APPLICATION.reduxSlice.actions.logout({}));
+                store.dispatch(APPLICATION.reduxSlice.actions.logout());
                 return;
             }
         } finally {

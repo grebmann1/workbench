@@ -349,9 +349,7 @@ export default class FileTreeItem extends LightningElement {
     get folderIcon() {
         return (
             this.item?.icon ||
-            (this.expanded && !this.isFolderIconExcluded
-                ? 'utility:opened_folder'
-                : 'utility:open_folder')
+            (this.expanded && !this.item?.icon ? 'utility:opened_folder' : 'utility:open_folder')
         );
     }
 

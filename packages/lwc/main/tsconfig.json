@@ -3,7 +3,7 @@
         "target": "ES2020",
         "module": "ESNext",
         "moduleResolution": "Node",
-        "lib": ["ES2020", "DOM"],
+        "lib": ["ES2022", "DOM", "DOM.Iterable"],
         "baseUrl": ".",
         "paths": {
             "application/*": ["application/*"],
@@ -172,30 +172,141 @@
                 "component/skeleton/sessionExpiredModal/sessionExpiredModal"
             ],
             "lwr/navigation": [
-                "../../node_modules/@lwrjs/router/build/es/modules/lwr/navigation/navigation"
+                "../../../node_modules/@lwrjs/router/build/es/modules/lwr/navigation/navigation"
             ],
-            "lwr/router": ["../../node_modules/@lwrjs/router/build/es/modules/lwr/router/router"],
+            "lwr/router": [
+                "../../../node_modules/@lwrjs/router/build/es/modules/lwr/router/router"
+            ],
             "lwr/navigationContext": [
-                "../../node_modules/@lwrjs/router/build/es/modules/lwr/navigationContext/navigationContext"
+                "../../../node_modules/@lwrjs/router/build/es/modules/lwr/navigationContext/navigationContext"
             ],
             "lwr/currentPageReference": [
-                "../../node_modules/@lwrjs/router/build/es/modules/lwr/currentPageReference/currentPageReference"
+                "../../../node_modules/@lwrjs/router/build/es/modules/lwr/currentPageReference/currentPageReference"
             ],
             "lwr/currentView": [
-                "../../node_modules/@lwrjs/router/build/es/modules/lwr/currentView/currentView"
+                "../../../node_modules/@lwrjs/router/build/es/modules/lwr/currentView/currentView"
             ],
             "lwr/routerUtils": [
-                "../../node_modules/@lwrjs/router/build/es/modules/lwr/routerUtils/routerUtils"
+                "../../../node_modules/@lwrjs/router/build/es/modules/lwr/routerUtils/routerUtils"
             ],
             "lwr/contextUtils": [
-                "../../node_modules/@lwrjs/router/build/es/modules/lwr/contextUtils/contextUtils"
+                "../../../node_modules/@lwrjs/router/build/es/modules/lwr/contextUtils/contextUtils"
             ],
             "slds/MarkdownViewerEditorModal": [
                 "component/slds/MarkdownViewerEditorModal/MarkdownViewerEditorModal"
             ],
             "slds/codeBlock": ["component/slds/codeBlock/codeBlock"],
             "slds/hashtagDropdown": ["component/slds/hashtagDropdown/hashtagDropdown"],
-            "slds/modalUserSelector": ["component/slds/modalUserSelector/modalUserSelector"]
+            "slds/modalUserSelector": ["component/slds/modalUserSelector/modalUserSelector"],
+            "agent/streamBuilder": ["agent/streamBuilder/streamBuilder"],
+            "agent/googleWorkspace": ["agent/googleWorkspace/googleWorkspace"],
+            "agent/cdpHandler": ["agent/cdpHandler/cdpHandler"],
+            "agent/messageList": ["agent/messageList/messageList"],
+            "agent/onboardaiProvider": ["agent/onboardaiProvider/onboardaiProvider"],
+            "agent/app": ["agent/app/app"],
+            "agent/memory": ["agent/memory/memory"],
+            "agent/skillsPanel": ["agent/skillsPanel/skillsPanel"],
+            "agent/aiSettings": ["agent/aiSettings/aiSettings"],
+            "agent/publisher": ["agent/publisher/publisher"],
+            "agent/compaction": ["agent/compaction/compaction"],
+            "agent/message": ["agent/message/message"],
+            "agent/utils": ["agent/utils/utils"],
+            "agent/reasoningBlock": ["agent/reasoningBlock/reasoningBlock"],
+            "agent/memoryManager": ["agent/memoryManager/memoryManager"],
+            "agent/questionPrompt": ["agent/questionPrompt/questionPrompt"],
+            "agent/audioRecorder": ["agent/audioRecorder/audioRecorder"],
+            "agent/googleAuth": ["agent/googleAuth/googleAuth"],
+            "agent/runtimeDeps": ["agent/runtimeDeps/runtimeDeps"],
+            "agent/toolMessage": ["agent/toolMessage/toolMessage"],
+            "application/applicationRegistry": [
+                "application/applicationRegistry/applicationRegistry"
+            ],
+            "connection/card": ["connection/card/card"],
+            "connection/app": ["connection/app/app"],
+            "connection/callback": ["connection/callback/callback"],
+            "connection/quickAuthorize": ["connection/quickAuthorize/quickAuthorize"],
+            "connection/cardItem": ["connection/cardItem/cardItem"],
+            "core/toolkitElement": ["core/toolkitElement/toolkitElement"],
+            "core/announcements": ["core/announcements/announcements"],
+            "core/bash": ["core/bash/bash"],
+            "core/connector": ["core/connector/connector"],
+            "core/i18n": ["core/i18n/i18n"],
+            "core/electron": ["core/electron/electron"],
+            "core/store": ["core/store/store"],
+            "vscode/baseEditor": ["vscode/baseEditor/baseEditor"],
+            "vscode/metadataApi": ["../shared/modules/metadataApi/metadataApi"],
+            "vscode/toolingApi": ["../shared/modules/toolingApi/toolingApi"],
+            "vscode/fullApp": ["vscode/fullApp/fullApp"],
+            "vscode/vscodeBundle": ["vscode/vscodeBundle/vscodeBundle"],
+            "builder/storagePanel": ["component/builder/storagePanel/storagePanel"],
+            "builder/saveModal": ["component/builder/saveModal/saveModal"],
+            "builder/toolbar": ["component/builder/toolbar/toolbar"],
+            "builder/rightPanel": ["component/builder/rightPanel/rightPanel"],
+            "builder/leftPanel": ["component/builder/leftPanel/leftPanel"],
+            "builder/header": ["component/builder/header/header"],
+            "builder/editor": ["component/builder/editor/editor"],
+            "skeleton/directView": ["component/skeleton/directView/directView"],
+            "skeleton/fullView": ["component/skeleton/fullView/fullView"],
+            "skeleton/announcementBanner": [
+                "component/skeleton/announcementBanner/announcementBanner"
+            ],
+            "skeleton/footer": ["component/skeleton/footer/footer"],
+            "skeleton/singleToolApp": ["component/skeleton/singleToolApp/singleToolApp"],
+            "skeleton/headerLight": ["component/skeleton/headerLight/headerLight"],
+            "skeleton/loadingOverlay": ["component/skeleton/loadingOverlay/loadingOverlay"],
+            "skeleton/welcome": ["component/skeleton/welcome/welcome"],
+            "skeleton/menu": ["component/skeleton/menu/menu"],
+            "skeleton/singleToolView": ["component/skeleton/singleToolView/singleToolView"],
+            "skeleton/applicationHandler": [
+                "component/skeleton/applicationHandler/applicationHandler"
+            ],
+            "skeleton/root": ["component/skeleton/root/root"],
+            "skeleton/header": ["component/skeleton/header/header"],
+            "skeleton/markdownView": ["component/skeleton/markdownView/markdownView"],
+            "extension/footer": ["../extension/extension/footer/footer"],
+            "extension/test": ["../extension/extension/test/test"],
+            "extension/utils": ["../extension/extension/utils/utils"],
+            "extension/root": ["../extension/extension/root/root"],
+            "extension/header": ["../extension/extension/header/header"],
+            "shared/swrCache": ["../shared/modules/swrCache/swrCache"],
+            "shared/middleware": ["../shared/modules/middleware/middleware"],
+            "shared/logger": ["../shared/modules/logger/logger"],
+            "shared/cacheManager": ["../shared/modules/cacheManager/cacheManager"],
+            "shared/sourceTracking": ["../shared/modules/sourceTracking/sourceTracking"],
+            "shared/salesforceUrl": ["../shared/modules/salesforceUrl/salesforceUrl"],
+            "shared/toolingApi": ["../shared/modules/toolingApi/toolingApi"],
+            "shared/utils": ["../shared/modules/utils/utils"],
+            "shared/soqlQuery": ["../shared/modules/soqlQuery/soqlQuery"],
+            "shared/pageReference": ["../shared/modules/pageReference/pageReference"],
+            "shared/metadataApi": ["../shared/modules/metadataApi/metadataApi"],
+            "shared/store": ["../shared/modules/store/store"],
+            "auditTrail/*": ["../applications/auditTrail/*"],
+            "auditTrail/app": ["../applications/auditTrail/app/app"],
+            "jobs/*": ["../applications/jobs/*"],
+            "jobs/app": ["../applications/jobs/app/app"],
+            "doc/app": ["pages/documentation/doc/app/app"],
+            "home/app": ["pages/home/app/app"],
+            "release/app": ["pages/release/app/app"],
+            "sarif/app": ["pages/sarif/app/app"],
+            "settings/app": ["pages/settings/app/app"],
+            "auditTrail/slices": ["../applications/auditTrail/slices/slices"],
+            "jobs/slices": ["../applications/jobs/slices/slices"],
+            "feature/tools": ["../extension/feature/tools/tools"],
+            "feature/test": ["../extension/feature/test/test"],
+            "feature/inputQuickPick": ["../extension/feature/inputQuickPick/inputQuickPick"],
+            "feature/userExplorerRow": ["../extension/feature/userExplorerRow/userExplorerRow"],
+            "feature/userExplorer": ["../extension/feature/userExplorer/userExplorer"],
+            "feature/userExplorerNetworkModal": [
+                "../extension/feature/userExplorerNetworkModal/userExplorerNetworkModal"
+            ],
+            "overlay/utils": ["../extension/overlay/utils/utils"],
+            "overlay/item": ["../extension/overlay/item/item"],
+            "panels/chat": ["../extension/panels/chat/chat"],
+            "panels/default": ["../extension/panels/default/default"],
+            "panels/salesforce": ["../extension/panels/salesforce/salesforce"],
+            "views/default": ["../extension/views/default/default"],
+            "views/overlay": ["../extension/views/overlay/overlay"],
+            "views/vscode": ["../extension/views/vscode/vscode"]
         },
         "outDir": ".",
         "allowJs": true,
@@ -207,7 +318,8 @@
         "skipLibCheck": true,
         "esModuleInterop": true,
         "resolveJsonModule": true,
-        "experimentalDecorators": true
+        "experimentalDecorators": true,
+        "allowImportingTsExtensions": true
     },
     "include": ["**/*.js", "**/*.ts", "types/**/*.d.ts", "../shared/modules/types/**/*.d.ts"],
     "exclude": ["node_modules", "dist"]

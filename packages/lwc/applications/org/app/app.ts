@@ -104,7 +104,7 @@ export default class App extends ToolkitElement {
 
     load_userInformations = async (): Promise<Record<string, number>> => {
         const responses = await Promise.all([
-            this.connector.conn.query(
+            this.connector.conn.query<{ total: number; IsActive: boolean }>(
                 'SELECT Count(Id) total,IsActive FROM User GROUP BY IsActive'
             ),
         ]);
