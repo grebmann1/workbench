@@ -21,6 +21,7 @@ import {
     type LlmProviderConfigMap,
 } from 'shared/llm';
 import LOGGER from 'shared/logger';
+import { ASSISTANT_API_PROVIDERS, ASSISTANT_SUBSCRIPTIONS } from './constants';
 
 // Subscription sign-in maps a UI provider id to the LLM provider whose config stores the
 // OAuth credentials (Codex is an auth-mode on `openai`, xAI on `grok`).
@@ -32,6 +33,7 @@ export default class AiSettings extends LightningElement {
     @api config = {};
     @api hideMcpCard = false;
     @api hideLlmSettingsCard = false;
+    @api assistantStyle = false;
 
     @track googleUser = null;
     @track googleDriveConnected = false;
@@ -43,6 +45,61 @@ export default class AiSettings extends LightningElement {
     @track isRefreshingModels = false;
     @track signingInProvider: string | null = null;
     @track pastedCode = '';
+    @track connectionError = '';
+    private pendingConnectionSave: Promise<void> = Promise.resolve();
+
+    @api
+    async flushConnectionChanges() {
+        await this.pendingConnectionSave;
+    }
+
+    get assistantSubscriptions() {
+        return ASSISTANT_SUBSCRIPTIONS.map(provider => {
+            const config = this.providerConfigs[provider.llmProvider];
+            const connected = config?.authMode === 'oauth' && !!config?.oauth?.access;
+            const modelCount = this.subscriptionModelsByProvider[provider.llmProvider]?.length || 0;
+            const pending = this.signingInProvider === provider.id;
+            return {
+                ...provider,
+                description: connected ? provider.connectedDescription : provider.description,
+                connected,
+                pending,
+                cardClass: `connection-card${connected ? ' connection-card_connected' : ''}`,
+                signInLabel: pending ? 'Try sign-in again' : provider.signInLabel,
+                customModel: config?.customModel || '',
+                needsModel: connected && !modelCount,
+                modelLabel: modelCount
+                    ? `${modelCount} ${modelCount === 1 ? 'model' : 'models'} available`
+                    : config?.customModel
+                      ? 'Custom model'
+                      : 'Model name needed',
+            };
+        });
+    }
+
+    get assistantApiProviders() {
+        return ASSISTANT_API_PROVIDERS.map(provider => ({
+            ...provider,
+            apiKey: this.config[provider.key],
+            endpoint: this.config[provider.url],
+            status: this.config[provider.key] ? 'Key added' : 'API key',
+            usesSubscription: this.providerConfigs[provider.id]?.authMode === 'oauth',
+        }));
+    }
+
+    notifyConnectionChange() {
+        if (this.assistantStyle) {
+            this.dispatchEvent(new CustomEvent('connectionchange'));
+        }
+    }
+
+    showConnectionError(message: string) {
+        if (this.assistantStyle) {
+            this.connectionError = message;
+        } else {
+            Toast.show({ label: message, variant: 'error' });
+        }
+    }
 
     @wire(connectStore, { store })
     storeChange({ application }) {
@@ -73,18 +130,20 @@ export default class AiSettings extends LightningElement {
         if (message?.action !== 'workbench_oauth_result') return;
         this.isSigningIn = false;
         if (message.ok) {
+            this.connectionError = '';
             this.signingInProvider = null;
             this.pastedCode = '';
+            this.notifyConnectionChange();
             this.reloadProviderConfigs()
                 .then(() => Toast.show({ label: 'Signed in.', variant: 'success' }))
                 .catch(err => LOGGER.error('Failed to reload provider configs', err));
         } else {
-            Toast.show({ label: message.message || 'Sign-in failed.', variant: 'error' });
+            this.showConnectionError(message.message || 'Sign-in failed.');
         }
     };
 
     handlePastedCodeChange = e => {
-        this.pastedCode = e.detail?.value ?? '';
+        this.pastedCode = e.detail?.value ?? e.target?.value ?? '';
     };
 
     // Manual-paste fallback: some providers (xAI) show the authorization code instead of
@@ -97,20 +156,27 @@ export default class AiSettings extends LightningElement {
             return;
         }
         this.isSigningIn = true;
+        this.connectionError = '';
         try {
-            const response = (await new Promise(resolve => {
+            const response = (await new Promise((resolve, reject) => {
                 chrome.runtime.sendMessage(
                     { action: 'providerOAuthSubmitCode', provider, code },
-                    resolve
+                    response => {
+                        if (chrome.runtime.lastError) {
+                            reject(new Error(chrome.runtime.lastError.message));
+                        } else {
+                            resolve(response);
+                        }
+                    }
                 );
             })) as { error?: string } | undefined;
             if (response?.error) {
-                Toast.show({ label: `Sign-in failed: ${response.error}`, variant: 'error' });
+                this.showConnectionError(`Sign-in failed: ${response.error}`);
             }
             // Success arrives via handleOAuthResultMessage (broadcast).
         } catch (err) {
             LOGGER.error('Provider OAuth code submit failed', err);
-            Toast.show({ label: `Sign-in failed: ${err.message}`, variant: 'error' });
+            this.showConnectionError(`Sign-in failed: ${err.message}`);
         } finally {
             this.isSigningIn = false;
         }
@@ -184,11 +250,23 @@ export default class AiSettings extends LightningElement {
         }
     };
 
-    handleCustomModelChange = async e => {
+    handleCustomModelChange = e => {
         const provider = e.currentTarget?.dataset?.provider;
         const llmProvider = OAUTH_PROVIDER_TO_LLM[provider];
         if (!llmProvider) return;
-        const value = (e.detail?.value ?? '').trim();
+        const value = (e.detail?.value ?? e.target?.value ?? '').trim();
+        if (this.assistantStyle) {
+            // Blur runs before the host's Save click. Serialize these immediate writes and
+            // let the host await them before reading the latest connection snapshot.
+            this.pendingConnectionSave = this.pendingConnectionSave.then(() =>
+                this.saveCustomModel(llmProvider, value)
+            );
+            return this.pendingConnectionSave;
+        }
+        return this.saveCustomModel(llmProvider, value);
+    };
+
+    async saveCustomModel(llmProvider: string, value: string) {
         try {
             const cached = await cacheManager.loadConfig(getLlmProviderConfigCacheKeys());
             const currentMap = resolveLlmProviderConfigMap(cached);
@@ -197,13 +275,14 @@ export default class AiSettings extends LightningElement {
                 [llmProvider]: { ...currentMap[llmProvider], customModel: value },
             });
             await cacheManager.saveConfig(buildProviderConfigCacheRecord(nextMap));
+            this.notifyConnectionChange();
             store.dispatch(
                 APPLICATION.reduxSlice.actions.updateProviderConfigs({ providerConfigs: nextMap })
             );
         } catch (err) {
             LOGGER.error('Failed to save custom model', err);
         }
-    };
+    }
 
     get codexCustomModel() {
         return this.providerConfigs?.openai?.customModel ?? '';
@@ -224,6 +303,7 @@ export default class AiSettings extends LightningElement {
             return;
         }
         this.isSigningIn = true;
+        this.connectionError = '';
         this.pastedCode = '';
         this.signingInProvider = provider; // reveal the manual-paste fallback
         try {
@@ -233,6 +313,8 @@ export default class AiSettings extends LightningElement {
                         reject(new Error(chrome.runtime.lastError.message));
                     } else if (response?.error) {
                         reject(new Error(response.error));
+                    } else if (this.assistantStyle && !response?.started) {
+                        reject(new Error('Reload the extension and try again.'));
                     } else {
                         resolve(response);
                     }
@@ -243,7 +325,7 @@ export default class AiSettings extends LightningElement {
         } catch (err) {
             this.signingInProvider = null;
             LOGGER.error('Provider OAuth start failed', err);
-            Toast.show({ label: `Sign-in failed: ${err.message}`, variant: 'error' });
+            this.showConnectionError(`Sign-in failed: ${err.message}`);
         } finally {
             this.isSigningIn = false;
         }
@@ -269,6 +351,7 @@ export default class AiSettings extends LightningElement {
                 },
             });
             await cacheManager.saveConfig(buildProviderConfigCacheRecord(nextMap));
+            this.notifyConnectionChange();
             // Mirror sign-in: refresh both catalogs so the now-stale subscription slot is cleared
             // (the subscription refetch returns [] for the disconnected provider) and the server /
             // API-key catalog repopulates. The agent app's storeChange then auto-corrects the
@@ -277,7 +360,11 @@ export default class AiSettings extends LightningElement {
             // Tell the host panel to re-read the cache, so its in-memory config snapshot drops the
             // OAuth blob too. Without this, a subsequent Save rebuilds the provider map from the
             // host's stale snapshot and resurrects the connection.
-            this.dispatchEvent(new CustomEvent('setupcomplete', { bubbles: true, composed: true }));
+            if (!this.assistantStyle) {
+                this.dispatchEvent(
+                    new CustomEvent('setupcomplete', { bubbles: true, composed: true })
+                );
+            }
             Toast.show({ label: 'Signed out.', variant: 'success' });
         } catch (err) {
             LOGGER.error('Provider OAuth disconnect failed', err);
@@ -341,7 +428,7 @@ export default class AiSettings extends LightningElement {
             this.emitInputChange(key, e.detail.value);
             return;
         }
-        if (inputField.type === 'toggle') {
+        if (inputField.type === 'toggle' || inputField.type === 'checkbox') {
             this.emitInputChange(key, inputField.checked);
             return;
         }

@@ -80,6 +80,29 @@ test('createOAuthFetch: proactively refreshes a stale token before the first req
     );
 });
 
+test('createOAuthFetch: does not keep retrying when the refreshed request still 401s', async () => {
+    let tokenHits = 0;
+    await withFetch(
+        url => {
+            if (url === CODEX_OAUTH.tokenUrl) {
+                tokenHits++;
+                return jsonResponse({ access_token: 'fresh', expires_in: 3600 });
+            }
+            return new Response('', { status: 401 });
+        },
+        async calls => {
+            const fetchImpl = createOAuthFetch({
+                provider: CODEX_OAUTH,
+                credentials: { access: 'stale', refresh: 'rt', expires: FAR_FUTURE },
+            });
+            const res = await fetchImpl(wham(), { method: 'POST', body: '{}' });
+            assert.equal(res.status, 401);
+            assert.equal(tokenHits, 1);
+            assert.equal(calls.filter(c => c.url.startsWith(wham())).length, 2);
+        }
+    );
+});
+
 test('createOAuthFetch: returns the 401 unchanged when there is no refresh token', async () => {
     await withFetch(
         () => new Response('', { status: 401 }),

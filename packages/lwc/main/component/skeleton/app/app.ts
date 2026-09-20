@@ -1,5 +1,8 @@
 import { APP_LIST } from 'core/applications';
+import ConnectPrompt from 'connection/connectPrompt';
+import { runQuickConnect } from 'connection/quickConnect';
 import {
+    getConfiguration,
     getConfigurations,
     setConfigurations,
     extractConfig,
@@ -15,6 +18,7 @@ import { connectStore, store, DOCUMENT, APPLICATION, SHELL } from 'core/store';
 import { LightningElement, track, api, wire } from 'lwc';
 import { NavigationContext, CurrentPageReference, navigate } from 'lwr/navigation';
 import LOGGER from 'shared/logger';
+import { cacheManager } from 'shared/cacheManager';
 import { store as legacyStore, store_application } from 'shared/store';
 import {
     guid,
@@ -33,6 +37,10 @@ import { connectToBackgroundWithIdentity, disconnectFromBackground } from './bac
 import { initCacheStorage, loadFromCache } from './cache';
 import { loadLimitedMode, loadFullMode } from './session';
 import { initShortcuts } from './shortcuts';
+import { resolveTabClose } from './tabNavigation';
+import { resolveTaskTarget } from './taskNavigation';
+import { getShellLayout } from './layout';
+import { MIN_TOOL_WIDTH } from './constants';
 
 /** Store **/
 
@@ -64,6 +72,13 @@ export default class App extends LightningElement {
     targetPage;
     _isLoggedIn = false;
     _removeDesktopLaunchIntentListener = null;
+    pendingTaskPath: string | null = null;
+    isConnecting = false;
+    connectionError = '';
+    shellWidth = window.innerWidth;
+    compactNavigationExpanded = false;
+    _resizeObserver: ResizeObserver | null = null;
+    _focusSurface: 'navigation' | 'assistant' | null = null;
 
     // Full App Loading
     _isFullAppLoading = false;
@@ -96,6 +111,13 @@ export default class App extends LightningElement {
 
         // Toggle Agent Chat
         if (isNotUndefinedOrNull(application.isAgentChatExpanded)) {
+            if (application.isAgentChatExpanded && !this.isAgentChatExpanded) {
+                this.compactNavigationExpanded = false;
+                this._focusSurface = 'assistant';
+                this.dom
+                    .querySelector<HTMLElement & { clearSearch(): void }>('skeleton-menu')
+                    ?.clearSearch();
+            }
             this.isAgentChatExpanded = application.isAgentChatExpanded;
         }
 
@@ -130,6 +152,9 @@ export default class App extends LightningElement {
         this.targetPage = pageRef;
         if (!this.pageHasLoaded) return;
         const { type, state = {} } = pageRef || {};
+        if (state.applicationName !== 'connections') {
+            this.pendingTaskPath = null;
+        }
         switch (type) {
             case 'home':
                 this.handleApplicationSelection(this.defaultLandingTarget);
@@ -175,10 +200,152 @@ export default class App extends LightningElement {
     };
 
     disconnectedCallback() {
+        this._resizeObserver?.disconnect();
         if (typeof this._removeDesktopLaunchIntentListener === 'function') {
             this._removeDesktopLaunchIntentListener();
         }
     }
+
+    get dom(): ShadowRoot {
+        return this.template;
+    }
+
+    renderedCallback() {
+        if (!this._resizeObserver && this.refs.workspace) {
+            this._resizeObserver = new ResizeObserver(entries => {
+                const width = entries[0]?.contentRect.width;
+                if (!width || width === this.shellWidth) return;
+                const wasFocused = this.layout.assistantFocused;
+                const wasReturnFocused = this.dom
+                    .querySelector('[data-return-to-tool]')
+                    ?.matches(':focus');
+                const wasCollapsed = this.layout.menuCollapsed;
+                this.shellWidth = width;
+                if (!this.layout.compact) this.compactNavigationExpanded = false;
+                if (wasReturnFocused && !this.layout.assistantFocused)
+                    this.focusHeaderControl('assistant');
+                if (!wasCollapsed && this.layout.menuCollapsed) {
+                    if (this.dom.activeElement?.tagName === 'SKELETON-MENU')
+                        this.focusHeaderControl('navigation');
+                    this.dom
+                        .querySelector<HTMLElement & { clearSearch(): void }>('skeleton-menu')
+                        ?.clearSearch();
+                }
+                if (!wasFocused && this.layout.assistantFocused) this._focusSurface = 'assistant';
+            });
+            this._resizeObserver.observe(this.refs.workspace);
+        }
+        if (this._focusSurface === 'navigation' && this.layout.navigationFocused) {
+            this.dom
+                .querySelector<HTMLElement & { focusSearch(): void }>('skeleton-menu')
+                ?.focusSearch();
+        }
+        if (this._focusSurface === 'assistant' && this.layout.assistantFocused) {
+            this.dom.querySelector<HTMLButtonElement>('[data-return-to-tool]')?.focus();
+        }
+        this._focusSurface = null;
+    }
+
+    get layout() {
+        return getShellLayout(
+            this.shellWidth,
+            this.isMenuCollapsed,
+            this.isAgentChatExpanded,
+            this.compactNavigationExpanded
+        );
+    }
+    get workspaceClass() {
+        return classSet('workspace l-cell-auto-size l-container-horizontal slds-fill-height')
+            .add({
+                'navigation-focused': this.layout.navigationFocused,
+                'assistant-focused': this.layout.assistantFocused,
+                'narrow-tool': this.requiresWiderWindow,
+            })
+            .toString();
+    }
+    get requiresWiderWindow() {
+        const app = this.applications.find(item => item.id === this.currentApplicationId);
+        return (
+            this.shellWidth < MIN_TOOL_WIDTH &&
+            app &&
+            !['home', 'connections', 'settings', 'release'].includes(app.path)
+        );
+    }
+    get assistantPanelMaxWidth() {
+        return this.layout.assistantFocused ? this.shellWidth : this.layout.assistantMaxWidth;
+    }
+    get assistantPanelSize() {
+        return this.layout.assistantFocused ? 'slds-size_full' : 'slds-size_x-large';
+    }
+    get isAssistantResizeDisabled() {
+        return this.layout.assistantFocused;
+    }
+    get showCompactToolbar() {
+        return !this.isApplicationTabVisible;
+    }
+    get menuToggleLabel() {
+        return this.layout.menuCollapsed ? 'Expand navigation' : 'Collapse navigation';
+    }
+    get assistantToggleLabel() {
+        return this.isAgentChatExpanded ? 'Close AI assistant' : 'Open AI assistant';
+    }
+
+    handleMenuToggle = event => {
+        event.stopPropagation();
+        const collapsed = event.detail?.collapsed ?? !this.layout.menuCollapsed;
+        this.dom
+            .querySelector<HTMLElement & { clearSearch(): void }>('skeleton-menu')
+            ?.clearSearch();
+        if (this.layout.compact) {
+            this.compactNavigationExpanded = !collapsed;
+            if (!collapsed) {
+                legacyStore.dispatch(store_application.collapseAgentChat('user'));
+                this._focusSurface = 'navigation';
+            } else {
+                this.focusHeaderControl('navigation');
+            }
+        } else {
+            this.isMenuCollapsed = collapsed;
+            legacyStore.dispatch(
+                collapsed
+                    ? store_application.collapseMenu('user')
+                    : store_application.expandMenu('user')
+            );
+            cacheManager.store.setItem('header-isMenuSmall', JSON.stringify(collapsed));
+        }
+    };
+    toggleAssistant = () => {
+        legacyStore.dispatch(
+            this.isAgentChatExpanded
+                ? store_application.collapseAgentChat('user')
+                : store_application.expandAgentChat('user')
+        );
+    };
+    closeAssistant = () => {
+        legacyStore.dispatch(store_application.collapseAgentChat('user'));
+        this.focusHeaderControl('assistant');
+    };
+    focusHeaderControl = (control: 'navigation' | 'assistant') => {
+        const header = this.dom.querySelector<
+            HTMLElement & { focusNavigationToggle(): void; focusAssistantToggle(): void }
+        >('skeleton-header');
+        if (header) {
+            if (control === 'navigation') header.focusNavigationToggle();
+            else header.focusAssistantToggle();
+        } else
+            this.dom.querySelector<HTMLButtonElement>(`[data-shell-toggle="${control}"]`)?.focus();
+    };
+    handleShellKeydown = event => {
+        if (event.key !== 'Escape' || event.defaultPrevented) return;
+        if (this.layout.navigationFocused) {
+            event.preventDefault();
+            this.compactNavigationExpanded = false;
+            this.focusHeaderControl('navigation');
+        } else if (this.layout.assistantFocused) {
+            event.preventDefault();
+            this.closeAssistant();
+        }
+    };
 
     prepareDesktopLaunchIntent = async () => {
         const launchIntent = await getDesktopLaunchIntent();
@@ -202,6 +369,7 @@ export default class App extends LightningElement {
                 return;
             }
 
+            this.pendingTaskPath = null;
             await saveSession({
                 ...configuration,
                 alias: configuration.alias,
@@ -279,7 +447,7 @@ export default class App extends LightningElement {
 
     handleLogin = async connector => {
         if (isUndefinedOrNull(connector)) {
-            store.dispatch(APPLICATION.reduxSlice.actions.stopLoading());
+            store.dispatch(APPLICATION.reduxSlice.actions.stopLoading({}));
             return;
         }
 
@@ -290,7 +458,7 @@ export default class App extends LightningElement {
         if (this.applications.filter(x => x.name == 'org/app').length == 0) {
             this.openSpecificModule('org/app');
         }
-        store.dispatch(APPLICATION.reduxSlice.actions.stopLoading());
+        store.dispatch(APPLICATION.reduxSlice.actions.stopLoading({}));
 
         // Load Cached data
         store.dispatch(
@@ -307,9 +475,19 @@ export default class App extends LightningElement {
         };
         connectToBackgroundWithIdentity(context);
         this._backgroundPort = context._backgroundPort;
+        const task = this.resolveTask(this.pendingTaskPath);
+        this.pendingTaskPath = null;
+        if (task) {
+            this.handleApplicationSelection(task.name);
+            navigate(this.navContext, {
+                type: 'application',
+                state: { applicationName: task.path },
+            });
+        }
     };
 
     handleLogout = () => {
+        this.pendingTaskPath = null;
         // Reset Applications
         this.applications = this.applications.filter(x => x.name == 'home/app');
         navigate(this.navContext, { type: 'application', state: { applicationName: 'home' } });
@@ -333,8 +511,83 @@ export default class App extends LightningElement {
         this.loadSpecificTab(applicationId);
     };
 
+    resolveTask = path =>
+        resolveTaskTarget(
+            APP_LIST,
+            path,
+            {
+                electron: isElectronApp(),
+                chrome: isChromeExtension(),
+            },
+            this.betaSmartInputEnabled
+        );
+
+    handleConnectRequest = async event => {
+        event.stopPropagation();
+        if (this.isConnecting) return;
+        const path = event.detail?.path;
+        const task = this.resolveTask(path);
+        if (path && !task) return;
+        if (task && this.isUserLoggedIn) {
+            navigate(this.navContext, {
+                type: 'application',
+                state: { applicationName: task.path },
+            });
+            return;
+        }
+        this.pendingTaskPath = null;
+        this.isConnecting = true;
+        this.connectionError = '';
+        try {
+            const choice = await ConnectPrompt.open({
+                size: 'small',
+                taskLabel: task?.label || '',
+            });
+            if (!choice) return;
+            this.pendingTaskPath = task?.path || null;
+            if (choice.manageConnections) {
+                navigate(this.navContext, {
+                    type: 'application',
+                    state: { applicationName: 'connections' },
+                });
+                return;
+            }
+            await runQuickConnect({
+                loginUrl: choice.loginUrl,
+                setLoading: message =>
+                    store.dispatch(APPLICATION.reduxSlice.actions.startLoading({ message })),
+                resetLoading: () => store.dispatch(APPLICATION.reduxSlice.actions.stopLoading({})),
+            });
+        } catch {
+            this.pendingTaskPath = null;
+            this.connectionError =
+                'Connection was not completed. Choose Connect again to retry, or use Manage connections.';
+        } finally {
+            this.isConnecting = false;
+        }
+    };
+
+    cancelPendingTask = () => {
+        this.pendingTaskPath = null;
+    };
+
+    get pendingTaskMessage() {
+        const task = this.resolveTask(this.pendingTaskPath);
+        return task ? `Connect to continue to ${task.label}.` : '';
+    }
+
     handleTabDelete = e => {
-        this.applications = this.applications.filter(x => x.id != e.detail.id);
+        const result = resolveTabClose(this.applications, e.detail.id, this.currentApplicationId);
+        if (!result) return;
+        this.applications = result.remaining;
+        if (result.nextPath) {
+            const target = APP_LIST.find(app => app.path === result.nextPath);
+            this.handleApplicationSelection(target?.name || 'home/app');
+            navigate(this.navContext, {
+                type: 'application',
+                state: { applicationName: result.nextPath },
+            });
+        }
     };
 
     handleNewApp = async e => {
@@ -366,6 +619,10 @@ export default class App extends LightningElement {
     };
 
     handleApplicationSelection = async eventOrTarget => {
+        if (this.compactNavigationExpanded) {
+            this.compactNavigationExpanded = false;
+            this.focusHeaderControl('navigation');
+        }
         let target =
             typeof eventOrTarget === 'object' && eventOrTarget?.detail?.target != null
                 ? eventOrTarget.detail.target
@@ -603,10 +860,10 @@ export default class App extends LightningElement {
     }
 
     get menuClass() {
-        return classSet('l-cell-content-size home__navigation slds-show_small slds-is-relative')
+        return classSet('l-cell-content-size home__navigation slds-is-relative')
             .add({
                 'slds-hide': this.isMenuHidden,
-                'slds-menu-collapsed': this.isMenuCollapsed,
+                'slds-menu-collapsed': this.layout.menuCollapsed,
             })
             .toString();
     }

@@ -167,3 +167,107 @@
         animation: none;
     }
 }
+
+.assistant-tool-card {
+    margin-top: 0;
+    border: 1px solid var(--assistant-line, #e6e5ed);
+    border-radius: 0.4rem;
+    background: var(--assistant-tool-surface, #fcfbfe);
+    overflow: hidden;
+    color: var(--assistant-ink, #292b3b);
+    min-width: 0;
+}
+.assistant-tool-card .tool-header-button {
+    display: block;
+    padding: 0.45rem 0.55rem;
+    min-height: 2.25rem;
+    color: inherit;
+}
+.assistant-tool-card .tool-header-button:hover {
+    background: var(--assistant-soft, #f4f2fb);
+    opacity: 1;
+}
+.assistant-tool-card .tool-header-button:focus-visible {
+    outline: 2px solid var(--assistant-accent, #6357bd);
+    outline-offset: -3px;
+}
+.assistant-tool-heading {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-size: 0.7rem;
+    color: var(--assistant-muted, #727487);
+    min-width: 0;
+}
+.assistant-tool-heading slds-lucide-icon,
+.assistant-tool-kind {
+    display: flex;
+    flex-shrink: 0;
+}
+.assistant-tool-kind {
+    color: var(--assistant-accent, #6357bd);
+}
+.assistant-tool-metadata {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem 0.55rem;
+    margin: 0 0.55rem 0.6rem;
+    color: var(--assistant-muted, #727487);
+    font-size: 0.65rem;
+    overflow-wrap: anywhere;
+}
+.assistant-tool-state {
+    display: flex;
+    flex: 0 0 auto;
+    margin-left: auto;
+    white-space: nowrap;
+    font-size: 0.65rem;
+}
+.assistant-tool-state_complete {
+    color: #33735d;
+}
+.assistant-tool-state_error {
+    color: #a53636;
+}
+.assistant-tool-description {
+    display: block;
+    flex: 1;
+    min-width: 0;
+    font-size: 0.75rem;
+    line-height: 1.4;
+    color: var(--assistant-ink, #292b3b);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.assistant-tool-card_expanded .assistant-tool-description {
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+.assistant-command-preview {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin: -0.1rem 0.55rem 0.45rem 1.85rem;
+    padding: 0;
+    white-space: nowrap;
+    background: transparent;
+    color: var(--assistant-code-ink, #55516c);
+    font-family: ui-monospace, monospace;
+    font-size: 0.67rem;
+    line-height: 1.5;
+}
+.assistant-tool-card .tool-section {
+    margin: 0 0.55rem 0.55rem;
+}
+.assistant-tool-card .tool-section-label {
+    font-size: 0.6rem;
+    color: var(--assistant-muted, #727487);
+}
+.assistant-tool-card .tool-section-body {
+    font-size: 0.72rem;
+    line-height: 1.6;
+    background: var(--assistant-code-surface, #f5f4f9);
+    border-left: 0;
+    border-radius: 0.35rem;
+}

@@ -17,7 +17,8 @@ import { CONFIG } from 'skeleton/app';
 
 export default class Menu extends ToolkitElement {
     @api isUserLoggedIn = false;
-    isMenuSmall = false;
+    @api isMenuSmall = false;
+    @api managedLayout = false;
     selectedItem = 'home';
     filterText = '';
 
@@ -31,8 +32,9 @@ export default class Menu extends ToolkitElement {
     applicationChange({ application }) {
         LOGGER.debug('applicationChange', application);
         // Toggle Menu
-        if (isNotUndefinedOrNull(application.isMenuExpanded)) {
+        if (!this.managedLayout && isNotUndefinedOrNull(application.isMenuExpanded)) {
             this.isMenuSmall = !application.isMenuExpanded;
+            if (this.isMenuSmall) this.filterText = '';
         }
     }
 
@@ -52,7 +54,7 @@ export default class Menu extends ToolkitElement {
     };
 
     connectedCallback() {
-        if (isElectronApp()) {
+        if (isElectronApp() && !this.managedLayout) {
             this.isMenuSmall = true; // by default it small for electron apps
             legacyStore.dispatch(store_application.collapseMenu());
         }
@@ -88,6 +90,15 @@ export default class Menu extends ToolkitElement {
     };
 
     handleCollapse = e => {
+        if (this.managedLayout) {
+            this.filterText = '';
+            this.dispatchEvent(
+                new CustomEvent('menutoggle', {
+                    detail: { collapsed: e.detail?.isCollapsed ?? false },
+                })
+            );
+            return;
+        }
         this.isMenuSmall = e.detail?.isCollapsed ?? false;
         if (this.isMenuSmall) {
             legacyStore.dispatch(store_application.collapseMenu());
@@ -97,6 +108,13 @@ export default class Menu extends ToolkitElement {
     };
 
     handleToggle = () => {
+        if (this.managedLayout) {
+            this.filterText = '';
+            this.dispatchEvent(
+                new CustomEvent('menutoggle', { detail: { collapsed: !this.isMenuSmall } })
+            );
+            return;
+        }
         this.isMenuSmall = !this.isMenuSmall;
         if (this.isMenuSmall) {
             legacyStore.dispatch(store_application.collapseMenu());
@@ -106,17 +124,42 @@ export default class Menu extends ToolkitElement {
     };
 
     handleSearchInput = e => {
-        this.filterText = (e.target.value || '').trim();
+        this.filterText = e.target.value || '';
+    };
+
+    @api clearSearch() {
+        this.filterText = '';
+    }
+    @api focusSearch() {
+        const search = this.refs.search;
+        if (search instanceof HTMLElement) search.focus();
+    }
+
+    handleClearSearch = () => {
+        this.filterText = '';
+        const search = this.refs.search;
+        if (search instanceof HTMLElement) search.focus();
+    };
+
+    handleSearchKeydown = e => {
+        if (e.key === 'Escape' && this.hasSearchText) {
+            e.preventDefault();
+            e.stopPropagation();
+            this.handleClearSearch();
+        }
     };
 
     /** Methods **/
 
     filterBySearch = (items, searchText) => {
         if (isEmpty(searchText)) return items;
-        const lower = searchText.toLowerCase();
+        const terms = searchText.trim().toLowerCase().split(/\s+/);
         return items.filter(x => {
-            const label = (x.menuLabel || x.label || x.name || '').toString().toLowerCase();
-            return label.includes(lower);
+            const text = [x.menuLabel, x.label, x.name, x.description]
+                .filter(Boolean)
+                .join(' ')
+                .toLowerCase();
+            return terms.every(term => text.includes(term));
         });
     };
 
@@ -382,6 +425,34 @@ export default class Menu extends ToolkitElement {
         return this.isMenuSmall ? 'utility:toggle_panel_left' : 'utility:toggle_panel_right';
     }
 
+    get toggleLabel() {
+        return this.isMenuSmall ? 'Expand navigation' : 'Collapse navigation';
+    }
+
+    get hasSearchText() {
+        return this.filterText.trim().length > 0;
+    }
+
+    get searchResultCount() {
+        return this.sections.reduce(
+            (count, section) =>
+                count +
+                section.items.reduce((total, item) => total + (item.children?.length || 1), 0),
+            0
+        );
+    }
+
+    get hasNoSearchResults() {
+        return this.searchResultCount === 0;
+    }
+
+    get searchSummary() {
+        const count = this.searchResultCount;
+        return count === 0
+            ? 'No matching tools or pages'
+            : `${count} ${count === 1 ? 'result' : 'results'}`;
+    }
+
     get isNotMenuSmall() {
         return !this.isMenuSmall;
     }
@@ -410,19 +481,18 @@ export default class Menu extends ToolkitElement {
     }
 
     get sections() {
-        const hasActiveSelection = !this.isMenuSmall;
-        const sel = hasActiveSelection ? this.selectedItem : null;
+        const sel = this.selectedItem;
         const toItem = x => ({
             name: x.path,
             label: x.menuLabel || x.label || '',
             iconName: x.menuIcon || x.quickActionIcon,
-            isSelected: hasActiveSelection && x.path === sel,
+            isSelected: x.path === sel,
             isLink: false,
         });
         const toChild = x => ({
             name: x.path,
             label: x.menuLabel || x.label || x.shortName || '',
-            isSelected: hasActiveSelection && x.path === sel,
+            isSelected: x.path === sel,
             isLink: false,
         });
         const toOtherItem = x => ({
@@ -495,6 +565,6 @@ export default class Menu extends ToolkitElement {
                 ? [{ label: 'Documentation', items: documentationItems }]
                 : []),
             { label: 'Others', items: othersItems },
-        ];
+        ].filter(section => section.items.length > 0);
     }
 }

@@ -1,17 +1,61 @@
 <template>
-    <div class="message-list-container">
+    <div class={listClass}>
         <ul class="slds-chat-list" style="overflow-y: auto; overflow-anchor: auto">
             <template lwc:if={showStandaloneWelcome}>
-                <agent-message item={welcomeMessage}></agent-message>
+                <agent-message
+                    assistant-style={assistantStyle}
+                    item={welcomeMessage}></agent-message>
             </template>
             <template for:each={listMessages} for:item="item">
-                <agent-message
-                    key={item.key}
-                    item={item.message}
-                    is-last-message={item.isLast}></agent-message>
+                <template lwc:if={item.isGroup}>
+                    <li key={item.key} class="assistant-activity-group">
+                        <details ontoggle={handleActivityToggle}>
+                            <summary class="assistant-activity-summary">
+                                <template lwc:if={item.hasIssues}>
+                                    <slds-lucide-icon
+                                        class="activity-issues"
+                                        name="circle-alert"
+                                        size="14"
+                                        aria-hidden="true"></slds-lucide-icon>
+                                </template>
+                                <template lwc:else>
+                                    <slds-lucide-icon
+                                        class="activity-complete"
+                                        name="circle-check"
+                                        size="14"
+                                        aria-hidden="true"></slds-lucide-icon>
+                                </template>
+                                <span>{item.label}</span>
+                                <slds-lucide-icon
+                                    class="activity-caret"
+                                    name="chevron-right"
+                                    size="14"
+                                    aria-hidden="true"></slds-lucide-icon>
+                            </summary>
+                            <ul class="slds-chat-list assistant-activity-details">
+                                <template for:each={item.messages} for:item="activity">
+                                    <agent-message
+                                        key={activity.key}
+                                        assistant-style={assistantStyle}
+                                        item={activity.message}
+                                        onretry={handleRetryEvent}></agent-message>
+                                </template>
+                            </ul>
+                        </details>
+                    </li>
+                </template>
+                <template lwc:else>
+                    <agent-message
+                        assistant-style={assistantStyle}
+                        key={item.key}
+                        item={item.message}
+                        onretry={handleRetryEvent}
+                        is-last-message={item.isLast}></agent-message>
+                </template>
             </template>
             <template lwc:if={visibleStreamingMessage}>
                 <agent-message
+                    assistant-style={assistantStyle}
                     class="chat-item is-current-message"
                     item={visibleStreamingMessage}
                     is-current-message
@@ -37,14 +81,22 @@
             </template>
         </ul>
         <template lwc:if={showScrollToBottomButton}>
-            <lightning-button-icon
-                class="scroll-to-bottom-button"
-                icon-name="utility:chevrondown"
-                size="small"
-                variant="border-filled"
-                alternative-text="Scroll to latest"
-                title="Scroll to latest"
-                onclick={handleScrollToBottom}></lightning-button-icon>
+            <template lwc:if={assistantStyle}>
+                <button class="assistant-latest" type="button" onclick={handleScrollToBottom}>
+                    <slds-lucide-icon name="arrow-down" size="14"></slds-lucide-icon>
+                    Latest message
+                </button>
+            </template>
+            <template lwc:else>
+                <lightning-button-icon
+                    class="scroll-to-bottom-button"
+                    icon-name="utility:chevrondown"
+                    size="small"
+                    variant="border-filled"
+                    alternative-text="Scroll to latest"
+                    title="Scroll to latest"
+                    onclick={handleScrollToBottom}></lightning-button-icon>
+            </template>
         </template>
     </div>
 </template>

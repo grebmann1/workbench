@@ -21,18 +21,23 @@ export const askUserTool = {
     execute: async ({
         question,
         options,
+        conversationId,
+        abortSignal,
     }: {
         description: string;
         question: string;
         options: string[];
+        conversationId?: string;
+        abortSignal?: AbortSignal;
     }) => {
+        abortSignal?.throwIfAborted();
         const id = `ask-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
         const normalizedOptions = Array.isArray(options) ? options.filter(Boolean) : [];
-        const questionPromise = createQuestion(id);
+        const questionPromise = createQuestion(id, abortSignal);
         if (typeof window !== 'undefined') {
             window.dispatchEvent(
                 new CustomEvent('agent:ask_user', {
-                    detail: { id, question, options: normalizedOptions },
+                    detail: { id, question, options: normalizedOptions, conversationId },
                 })
             );
         }
@@ -42,6 +47,7 @@ export const askUserTool = {
                 ? `${AGENT_TOOL_CONFIG.askUser.answerPrefix}${answer}`
                 : AGENT_TOOL_CONFIG.askUser.skippedAnswer;
         } catch {
+            abortSignal?.throwIfAborted();
             return AGENT_TOOL_CONFIG.askUser.skippedAnswer;
         }
     },

@@ -111,13 +111,16 @@ function bootstrapSoqlExtension() {
 
     registerCommand('soql.executeQueryIncognito', async (payload: any) => {
         const res: any = await store.dispatch(
-            QUERY.executeQueryIncognito({
-                connector: payload.connector,
-                soql: payload.soql,
-                tabId: payload.tabId,
-                useToolingApi: payload.useToolingApi,
-                includeDeletedRecords: payload.includeDeletedRecords,
-            } as any)
+            QUERY.executeQueryIncognito(
+                {
+                    connector: payload.connector,
+                    soql: payload.soql,
+                    tabId: payload.tabId,
+                    useToolingApi: payload.useToolingApi,
+                    includeDeletedRecords: payload.includeDeletedRecords,
+                } as any,
+                { signal: payload.signal }
+            )
         );
         return { payload: res.payload, error: res.error };
     });

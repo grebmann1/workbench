@@ -1,0 +1,40 @@
+<template>
+    <lightning-modal-header label={heading}></lightning-modal-header>
+    <lightning-modal-body>
+        <p class="slds-m-bottom_medium">
+            Quick Connect opens a temporary session. Your org will not be added to saved
+            connections.
+        </p>
+        <lightning-radio-group
+            label="Salesforce environment"
+            options={environments}
+            value={environment}
+            onchange={handleEnvironment}></lightning-radio-group>
+        <template lwc:if={isCustom}>
+            <lightning-input
+                class="slds-m-top_medium"
+                type="url"
+                label="My Domain URL"
+                placeholder="https://your-org.my.salesforce.com"
+                value={customDomain}
+                onchange={handleDomain}
+                required></lightning-input>
+        </template>
+        <p lwc:if={error} class="slds-text-color_error slds-m-top_small" role="alert">{error}</p>
+        <p class="slds-m-top_medium">
+            Already have an org saved, or need another connection method?
+        </p>
+        <lightning-button
+            variant="base"
+            label="Manage connections"
+            onclick={handleSaved}></lightning-button>
+    </lightning-modal-body>
+    <lightning-modal-footer>
+        <lightning-button label="Cancel" onclick={handleCancel}></lightning-button>
+        <lightning-button
+            class="slds-m-left_small"
+            variant="brand"
+            label="Connect"
+            onclick={handleConnect}></lightning-button>
+    </lightning-modal-footer>
+</template>

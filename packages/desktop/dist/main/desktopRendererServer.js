@@ -161,7 +161,12 @@ class DesktopRendererServer {
     }
     async resolveRequestPath(requestPath) {
         const decodedPath = decodeURIComponent(requestPath || '/');
-        const normalizedPath = decodedPath === '/' ? '/index.html' : decodedPath;
+        // The shared router uses /app in Electron. Serve its entry document on reload.
+        const normalizedPath = decodedPath === '/app' || decodedPath.startsWith('/app/')
+            ? '/views/app.html'
+            : decodedPath === '/'
+                ? '/index.html'
+                : decodedPath;
         const sanitizedPath = node_path_1.default
             .normalize(normalizedPath)
             .replace(/^(\.\.(\/|\\|$))+/, '')

@@ -28,7 +28,7 @@ import LOGGER from 'shared/logger';
 import {
     download,
     classSet,
-    runActionAfterTimeOut,
+    escapeRegExp,
     checkIfPresent,
     isEmpty,
     isUndefinedOrNull,
@@ -816,14 +816,23 @@ export default class App extends ToolkitElement {
     };
 
     handleFieldsFilter = e => {
-        runActionAfterTimeOut(
-            e.detail.value,
-            newValue => {
-                this.filter = newValue;
-                //this.updateFieldsTable();
-            },
-            { timeout: 300, key: 'connection.app.fieldsFilter' }
-        );
+        this.filter = e.detail.value;
+    };
+
+    handleClearFilters = async () => {
+        this.filter = '';
+        this.showOrgFarm = true;
+        this.showNonOrgFarm = true;
+        const search = this.refs.connectionSearch;
+        if (search instanceof HTMLElement) search.focus();
+        try {
+            await Promise.all([
+                cacheManager.saveGeneralData(CONNECTION_FILTER_SHOW_ORGFARM_KEY, true),
+                cacheManager.saveGeneralData(CONNECTION_FILTER_SHOW_NON_ORGFARM_KEY, true),
+            ]);
+        } catch (e) {
+            LOGGER.error('save connection filters failed', e);
+        }
     };
 
     handleOrgFarmFilterChange = async e => {
@@ -839,7 +848,8 @@ export default class App extends ToolkitElement {
     };
 
     formatSpecificField = content => {
-        const regex = new RegExp('(' + this.filter + ')', 'gi');
+        if (isEmpty(this.filter)) return content;
+        const regex = new RegExp('(' + escapeRegExp(this.filter) + ')', 'gi');
         if (regex.test(content)) {
             return content
                 .replace(/<?>?/, '')
@@ -897,7 +907,11 @@ export default class App extends ToolkitElement {
     /** Getters  */
 
     get isNoRecord() {
-        return this.filteredOriginal.length === 0;
+        return !this.isLoading && this.data.length === 0;
+    }
+
+    get isNoMatchingConnections() {
+        return !this.isLoading && this.data.length > 0 && this.filteredOriginal.length === 0;
     }
 
     get isSearchDisplayed() {

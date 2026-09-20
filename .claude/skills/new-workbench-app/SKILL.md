@@ -23,7 +23,7 @@ Collect the answers below in a **single `AskUserQuestion` call** (or a tight seq
 | `description` | string | One sentence, surfaces in Quick Actions |
 | `path` | lowercase + hyphens, `^[a-z][a-z0-9-]*$` | URL key for `?applicationName=<path>`. Must be globally unique. |
 | `type` | `developer` \| `admin` \| `data` \| `utility` | Drives Quick Action filter + the menu section (utilities cluster under *Utilities*) |
-| `menuGroup` | `data` \| `code` \| `admin` \| `deploy` \| `utilities` | **The validator accepts exactly these five.** The docs mention `explorers` — that's stale; don't use it. |
+| `menuGroup` | `data` \| `code` \| `agentforce` \| `admin` \| `utilities` | **The validator accepts exactly these five.** The docs mention `explorers` / `deploy` — those are stale; don't use them. |
 | `menuOrder` | integer ≥ 0 | Scan sibling manifests in the same `menuGroup` before picking so you don't collide |
 | `quickActionIcon` | `<ns>:<name>` where ns ∈ `standard,utility,custom,action,doctype` | SLDS icon |
 

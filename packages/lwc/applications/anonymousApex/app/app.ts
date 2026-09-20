@@ -40,7 +40,7 @@ function bootstrapAnonymousApexExtension() {
     _anonymousApexBootstrapped = true;
     injectReducer('apex', APEX.reduxSlice.reducer);
     registerCommand('anonymousApex.executeApex', async (payload: any) => {
-        const { connector, body, tabId, isNewTab, createdDate } = payload || {};
+        const { connector, body, tabId, isNewTab, createdDate, signal } = payload || {};
         if (isNewTab) {
             store.dispatch(APEX.reduxSlice.actions.addTab({ tab: { id: tabId, body } }));
         } else if (tabId) {
@@ -48,12 +48,15 @@ function bootstrapAnonymousApexExtension() {
             store.dispatch(APEX.reduxSlice.actions.updateBody({ body }));
         }
         const apexPromise = store.dispatch(
-            APEX.executeApexAnonymous({
-                connector,
-                body,
-                tabId,
-                createdDate: createdDate || Date.now(),
-            })
+            APEX.executeApexAnonymous(
+                {
+                    connector,
+                    body,
+                    tabId,
+                    createdDate: createdDate || Date.now(),
+                },
+                { signal }
+            )
         );
         store.dispatch(APEX.reduxSlice.actions.setAbortingPromise({ tabId, promise: apexPromise }));
         const res = await apexPromise;

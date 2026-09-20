@@ -12,6 +12,7 @@ import LOGGER from 'shared/logger';
 import { isEmpty, runActionAfterTimeOut } from 'shared/utils';
 import { APPLICATION_SLASH_COMMANDS } from 'application/applicationRegistry';
 import { getSlashCommands, onSlashCommandsChange } from 'host-api/slashCommands';
+import type { QueuedRun } from 'agent/runController';
 
 type SlashCommand = {
     command: string;
@@ -46,7 +47,25 @@ const BUILT_IN_SLASH_COMMANDS: SlashCommand[] = [
 const BUILT_IN_COMMAND_NAMES = new Set(BUILT_IN_SLASH_COMMANDS.map(c => c.command));
 
 export default class App extends ToolkitElement {
-    @track _queuedMessages: Array<{ id: string; prompt: string; isPush?: boolean }> = [];
+    @api queuedMessages: QueuedRun[] = [];
+    @api queuePaused = false;
+    @api assistantStyle = false;
+    @api inputPlaceholder = '';
+
+    get publisherClass() {
+        return `slds-publisher slds-is-active slds-p-left_small slds-p-right_small slds-p-bottom_x-small${this.assistantStyle ? ' assistant-composer' : ''}`;
+    }
+
+    get promptPlaceholder() {
+        if (this.assistantStyle && this.isLoading) return 'Write your next message…';
+        return (
+            this.inputPlaceholder ||
+            (this.assistantStyle ? 'Ask anything about this page…' : 'Write a prompt…')
+        );
+    }
+    get _queuedMessages() {
+        return this.queuedMessages;
+    }
     _isLoading = false;
 
     @api
@@ -54,13 +73,7 @@ export default class App extends ToolkitElement {
         return this._isLoading;
     }
     set isLoading(value) {
-        const prev = this._isLoading;
         this._isLoading = !!value;
-        if (prev && !this._isLoading && this._queuedMessages.length > 0) {
-            const [next, ...rest] = this._queuedMessages;
-            this._queuedMessages = rest;
-            this._fireEnqueuedSend(next.prompt);
-        }
     }
 
     @api openaiKey: string | undefined;
@@ -299,41 +312,33 @@ export default class App extends ToolkitElement {
         ) as HTMLTextAreaElement | null;
         const value = textarea?.value || '';
         if (isEmpty(value)) return;
-        // Push = priority queue item: inserted at the front so it executes first
-        this._queuedMessages = [
-            { id: Date.now().toString(), prompt: value.trim(), isPush: true },
-            ...this._queuedMessages,
-        ];
+        this.dispatchEvent(
+            new CustomEvent('send', {
+                detail: {
+                    prompt: value.trim(),
+                    files: [...this.selectedFiles],
+                    model: this.selectedModel,
+                    reasoning: this.selectedReasoning,
+                    priority: true,
+                },
+            })
+        );
         this.resetPrompt();
     };
 
     handleRemoveQueued = event => {
         const id = event.currentTarget?.dataset?.queueId;
         if (!id) return;
-        this._queuedMessages = this._queuedMessages.filter(m => m.id !== id);
+        this.dispatchEvent(new CustomEvent('queueremove', { detail: { id } }));
     };
 
     handlePromoteQueued = event => {
         const id = event.currentTarget?.dataset?.queueId;
         if (!id) return;
-        const item = this._queuedMessages.find(m => m.id === id);
-        if (!item) return;
-        const rest = this._queuedMessages.filter(m => m.id !== id);
-        this._queuedMessages = [{ ...item, isPush: true }, ...rest];
+        this.dispatchEvent(new CustomEvent('queuepromote', { detail: { id } }));
     };
 
-    _fireEnqueuedSend(prompt: string) {
-        this.dispatchEvent(
-            new CustomEvent('send', {
-                detail: {
-                    prompt,
-                    files: [],
-                    model: this.selectedModel,
-                    reasoning: this.selectedReasoning,
-                },
-            })
-        );
-    }
+    handleResumeQueue = () => this.dispatchEvent(new CustomEvent('queueresume'));
 
     @api
     focusInput() {
@@ -433,6 +438,7 @@ export default class App extends ToolkitElement {
     };
 
     handleKeyDown = e => {
+        if (this.assistantStyle && (e.isComposing || e.keyCode === 229)) return;
         if (this.slashSuggestions.length > 0) {
             if (e.key === 'ArrowDown') {
                 e.preventDefault();
@@ -658,18 +664,12 @@ export default class App extends ToolkitElement {
             return;
         }
 
-        if (this._isLoading) {
-            this._queuedMessages = [
-                ...this._queuedMessages,
-                { id: Date.now().toString(), prompt: value.trim() },
-            ];
-            this.resetPrompt();
-        } else {
+        {
             this.dispatchEvent(
                 new CustomEvent('send', {
                     detail: {
                         prompt: value.trim(),
-                        files: this.selectedFiles,
+                        files: [...this.selectedFiles],
                         model: this.selectedModel,
                         reasoning: this.selectedReasoning,
                     },

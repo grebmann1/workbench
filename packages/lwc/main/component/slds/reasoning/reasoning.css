@@ -1,9 +1,12 @@
 :host {
     display: inline-block;
 
-    --reasoning-primary: hsl(247 76% 58%);
-    --reasoning-primary-soft: hsl(247 76% 58% / 0.1);
-    --reasoning-primary-soft-hover: hsl(247 76% 58% / 0.15);
+    --reasoning-primary: var(--slds-c-reasoning-color, hsl(247 76% 58%));
+    --reasoning-primary-soft: var(--slds-c-reasoning-background, hsl(247 76% 58% / 0.1));
+    --reasoning-primary-soft-hover: var(
+        --slds-c-reasoning-background-hover,
+        hsl(247 76% 58% / 0.15)
+    );
     --reasoning-muted: hsl(240 20% 95% / 0.5);
     --reasoning-muted-foreground: hsl(240 8% 45%);
     --reasoning-muted-foreground-soft: hsl(240 8% 45% / 0.5);
@@ -47,7 +50,7 @@
 
 .reasoning-button:focus-visible {
     outline: none;
-    box-shadow: 0 0 0 2px hsl(247 76% 58% / 0.3);
+    box-shadow: 0 0 0 2px var(--slds-c-reasoning-focus-ring, hsl(247 76% 58% / 0.3));
 }
 
 .reasoning-button:disabled {

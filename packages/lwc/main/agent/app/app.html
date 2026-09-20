@@ -1,106 +1,273 @@
 <template>
-    <div class="slds-full-height slds-is-relative slds-flex-row">
-        <!-- Side Panel -->
-        <slds-vertical-panel
-            size="slds-size_x-small"
-            min-width="400"
-            title="Conversations"
-            position="left"
-            is-open={isSidePanelOpen}
-            is-header-hidden>
-            <div class="slds-full-height slds-flex-column">
-                <div
-                    class="side-panel-header slds-p-around_small slds-border_bottom side-panel-header-custom">
-                    <h2 class="slds-panel__header-title slds-text-heading_small slds-truncate">
-                        Conversations
-                    </h2>
-                    <div class="slds-panel__header-actions">
-                        <!-- First New Conversation Button -->
-                        <lightning-button-icon
-                            icon-name="utility:add"
-                            onclick={createNewConversation}
-                            title="New conversation"
-                            aria-label="New conversation"></lightning-button-icon>
+    <div class={agentRootClass}>
+        <template lwc:if={isAssistantStyle}>
+            <dialog
+                class="conversation-dialog"
+                aria-labelledby="history-title"
+                onkeydown={handleHistoryKeydown}
+                onclose={handleHistoryClosed}>
+                <div class="conversation-dialog-header">
+                    <h2 id="history-title">Conversations</h2>
+                    <button class="chat-action" type="button" onclick={createNewConversation}>
+                        <slds-lucide-icon name="plus" size="16"></slds-lucide-icon>
+                        New chat
+                    </button>
+                    <button
+                        class="chat-action chat-action_icon"
+                        type="button"
+                        aria-label="Close conversations"
+                        title="Close conversations"
+                        onclick={closeConversationHistory}>
+                        <slds-lucide-icon name="x" size="18"></slds-lucide-icon>
+                    </button>
+                </div>
+                <label class="slds-assistive-text" for="conversation-search">
+                    Search conversations
+                </label>
+                <input
+                    id="conversation-search"
+                    class="conversation-search"
+                    type="search"
+                    placeholder="Search conversations"
+                    value={conversationQuery}
+                    oninput={handleConversationSearch} />
+                <ul class="conversation-list" aria-label="Saved conversations">
+                    <template for:each={filteredConversations} for:item="conversation">
+                        <li key={conversation.id} class={conversation.rowClass}>
+                            <button
+                                type="button"
+                                class="conversation-select"
+                                data-id={conversation.id}
+                                onclick={handleHistorySelect}
+                                aria-current={conversation.ariaCurrent}
+                                title={conversation.title}>
+                                <slds-lucide-icon
+                                    name="message-square"
+                                    size="16"></slds-lucide-icon>
+                                <span>{conversation.title}</span>
+                                <template lwc:if={conversation.isActive}>
+                                    <span class="conversation-current">Current</span>
+                                </template>
+                            </button>
+                            <button
+                                type="button"
+                                class="chat-action chat-action_icon conversation-delete"
+                                data-id={conversation.id}
+                                onclick={handleHistoryDelete}
+                                aria-label={conversation.deleteLabel}
+                                title={conversation.deleteLabel}>
+                                <slds-lucide-icon name="trash-2" size="15"></slds-lucide-icon>
+                            </button>
+                        </li>
+                    </template>
+                </ul>
+                <template lwc:if={hasNoMatchingConversations}>
+                    <p class="conversation-empty" role="status">No matching conversations.</p>
+                </template>
+            </dialog>
+        </template>
+        <template lwc:else>
+            <!-- Side Panel -->
+            <slds-vertical-panel
+                size="slds-size_x-small"
+                min-width="400"
+                title="Conversations"
+                position="left"
+                is-open={isSidePanelOpen}
+                is-header-hidden>
+                <div class="slds-full-height slds-flex-column">
+                    <div
+                        class="side-panel-header slds-p-around_small slds-border_bottom side-panel-header-custom">
+                        <h2 class="slds-panel__header-title slds-text-heading_small slds-truncate">
+                            Conversations
+                        </h2>
+                        <div class="slds-panel__header-actions">
+                            <!-- First New Conversation Button -->
+                            <lightning-button-icon
+                                icon-name="utility:add"
+                                onclick={createNewConversation}
+                                title="New conversation"
+                                aria-label="New conversation"></lightning-button-icon>
+                        </div>
+                    </div>
+
+                    <div class="slds-scrollable_y" style="max-height: 60vh; min-height: 120px">
+                        <slds-file-tree
+                            tree={conversationTree}
+                            selected-id={activeConversationId}
+                            onselect={handleConversationSelect}
+                            ondeletefile={handleDeleteConversation}
+                            search-fields={conversationSearchFields}
+                            min-search-length={minSearchLengthForConversations}
+                            hide-search-input={hideSearchInputForConversations}
+                            include-folders-in-results={includeFoldersInResultsForConversations}></slds-file-tree>
                     </div>
                 </div>
-
-                <div class="slds-scrollable_y" style="max-height: 60vh; min-height: 120px">
-                    <slds-file-tree
-                        tree={conversationTree}
-                        selected-id={activeConversationId}
-                        onselect={handleConversationSelect}
-                        ondeletefile={handleDeleteConversation}
-                        search-fields={conversationSearchFields}
-                        min-search-length={minSearchLengthForConversations}
-                        hide-search-input={hideSearchInputForConversations}
-                        include-folders-in-results={includeFoldersInResultsForConversations}></slds-file-tree>
-                </div>
-            </div>
-        </slds-vertical-panel>
+            </slds-vertical-panel>
+        </template>
 
         <!-- Side Panel Toggle Button -->
         <div class="slds-full-height slds-is-relative slds-flex-column slds-full-width">
-            <div
-                class="slds-p-around_x-small slds-border_bottom slds-grid slds-grid_align-spread slds-grid_vertical-align-center">
-                <div class="slds-flex-row">
-                    <lightning-button-icon-stateful
-                        icon-name="utility:side_list"
-                        selected={isSidePanelOpen}
-                        alternative-text="Toggle conversations"
-                        variant="border-filled"
-                        onclick={toggleSidePanel}></lightning-button-icon-stateful>
-                    <!-- Second New Conversation Button -->
-                    <lightning-button-icon
-                        class="slds-m-left_x-small"
-                        icon-name="utility:add"
-                        onclick={createNewConversation}
-                        title="New conversation"
-                        aria-label="New conversation"></lightning-button-icon>
-                    <lightning-button-icon-stateful
-                        class="slds-m-left_x-small agent-debug-toggle"
-                        icon-name="utility:bug"
-                        selected={isDebugMode}
-                        variant="border-filled"
-                        onclick={toggleDebugMode}
-                        title="Toggle debug mode"
-                        alternative-text="Toggle debug mode"></lightning-button-icon-stateful>
-                </div>
-                <div class={inputSectionClass}>
+            <template lwc:if={isAssistantStyle}>
+                <div class="conversation-toolbar">
                     <template lwc:if={isEditingTitle}>
+                        <label class="slds-assistive-text" for="conversation-title">
+                            Conversation title
+                        </label>
                         <input
-                            class="slds-input slds-m-right_x-small"
+                            id="conversation-title"
+                            class="conversation-title-input"
                             type="text"
                             value={pendingTitle}
                             oninput={handleConversationTitleChange}
                             onkeydown={handleConversationTitleKeydown}
-                            lwc:ref="titleInput" />
-                        <lightning-button-icon
-                            icon-name="utility:check"
-                            onclick={saveConversationTitle}
-                            title="Save"
-                            aria-label="Save"></lightning-button-icon>
-                        <lightning-button-icon
-                            icon-name="utility:close"
-                            onclick={cancelEditingTitle}
-                            title="Cancel"
-                            aria-label="Cancel"></lightning-button-icon>
+                            data-conversation-title />
+                        <button
+                            class="chat-action chat-action_icon"
+                            type="button"
+                            aria-label="Save title"
+                            title="Save title"
+                            onclick={saveConversationTitle}>
+                            <slds-lucide-icon name="check" size="18"></slds-lucide-icon>
+                        </button>
+                        <button
+                            class="chat-action chat-action_icon"
+                            type="button"
+                            aria-label="Cancel rename"
+                            title="Cancel rename"
+                            onclick={cancelEditingTitle}>
+                            <slds-lucide-icon name="x" size="18"></slds-lucide-icon>
+                        </button>
                     </template>
                     <template lwc:else>
-                        <span
-                            class="slds-text-title_bold slds-m-right_x-small"
-                            onclick={startEditingTitle}>
-                            {conversationTitle}
-                        </span>
-                        <lightning-button-icon
-                            class="edit-title-button"
-                            icon-name="utility:edit"
-                            variant="bare"
-                            onclick={startEditingTitle}
-                            title="Edit title"
-                            aria-label="Edit title"></lightning-button-icon>
+                        <button
+                            class="chat-action conversation-picker"
+                            type="button"
+                            aria-label="Toggle conversations"
+                            aria-haspopup="dialog"
+                            aria-expanded={isSidePanelOpen}
+                            title={conversationTitle}
+                            onclick={toggleSidePanel}>
+                            <slds-lucide-icon name="history" size="16"></slds-lucide-icon>
+                            <span>{conversationTitle}</span>
+                            <slds-lucide-icon name="chevron-down" size="14"></slds-lucide-icon>
+                        </button>
+                        <button
+                            class={newConversationClass}
+                            type="button"
+                            aria-label="New conversation"
+                            title="New conversation"
+                            onclick={createNewConversation}>
+                            <slds-lucide-icon name="plus" size="16"></slds-lucide-icon>
+                            <span lwc:if={showWorkbenchApprovalMode} class="slds-assistive-text">
+                                New chat
+                            </span>
+                            <span lwc:else>New chat</span>
+                        </button>
+                        <button
+                            lwc:if={showWorkbenchApprovalMode}
+                            type="button"
+                            class={approvalModeClass}
+                            role="switch"
+                            aria-label="YOLO mode"
+                            aria-checked={workbenchYoloMode}
+                            title={approvalModeHint}
+                            disabled={isApprovalModeDisabled}
+                            onclick={handleToggleYolo}>
+                            <slds-lucide-icon
+                                name={approvalModeIcon}
+                                size="13"
+                                aria-hidden="true"></slds-lucide-icon>
+                            {approvalModeLabel}
+                        </button>
+                        <lightning-button-menu
+                            class="conversation-options"
+                            icon-name="utility:threedots"
+                            alternative-text="Conversation options"
+                            title="Conversation options"
+                            variant="border-filled"
+                            internal-datatable-actions-menu
+                            menu-alignment="right"
+                            onselect={handleConversationMenu}>
+                            <lightning-menu-item
+                                value="rename"
+                                prefix-icon-name="utility:edit"
+                                label="Rename conversation"></lightning-menu-item>
+                            <lightning-menu-item
+                                value="clear"
+                                prefix-icon-name="utility:delete"
+                                label="Clear messages"></lightning-menu-item>
+                            <lightning-menu-item
+                                value="debug"
+                                label="Debug mode"
+                                checked={isDebugMode}></lightning-menu-item>
+                        </lightning-button-menu>
                     </template>
                 </div>
-            </div>
+            </template>
+            <template lwc:else>
+                <div
+                    class="slds-p-around_x-small slds-border_bottom slds-grid slds-grid_align-spread slds-grid_vertical-align-center">
+                    <div class="slds-flex-row">
+                        <lightning-button-icon-stateful
+                            icon-name="utility:side_list"
+                            selected={isSidePanelOpen}
+                            alternative-text="Toggle conversations"
+                            variant="border-filled"
+                            onclick={toggleSidePanel}></lightning-button-icon-stateful>
+                        <!-- Second New Conversation Button -->
+                        <lightning-button-icon
+                            class="slds-m-left_x-small"
+                            icon-name="utility:add"
+                            onclick={createNewConversation}
+                            title="New conversation"
+                            aria-label="New conversation"></lightning-button-icon>
+                        <lightning-button-icon-stateful
+                            class="slds-m-left_x-small agent-debug-toggle"
+                            icon-name="utility:bug"
+                            selected={isDebugMode}
+                            variant="border-filled"
+                            onclick={toggleDebugMode}
+                            title="Toggle debug mode"
+                            alternative-text="Toggle debug mode"></lightning-button-icon-stateful>
+                    </div>
+                    <div class={inputSectionClass}>
+                        <template lwc:if={isEditingTitle}>
+                            <input
+                                class="slds-input slds-m-right_x-small"
+                                type="text"
+                                value={pendingTitle}
+                                oninput={handleConversationTitleChange}
+                                onkeydown={handleConversationTitleKeydown}
+                                data-conversation-title />
+                            <lightning-button-icon
+                                icon-name="utility:check"
+                                onclick={saveConversationTitle}
+                                title="Save"
+                                aria-label="Save"></lightning-button-icon>
+                            <lightning-button-icon
+                                icon-name="utility:close"
+                                onclick={cancelEditingTitle}
+                                title="Cancel"
+                                aria-label="Cancel"></lightning-button-icon>
+                        </template>
+                        <template lwc:else>
+                            <span
+                                class="slds-text-title_bold slds-m-right_x-small"
+                                onclick={startEditingTitle}>
+                                {conversationTitle}
+                            </span>
+                            <lightning-button-icon
+                                class="edit-title-button"
+                                icon-name="utility:edit"
+                                variant="bare"
+                                onclick={startEditingTitle}
+                                title="Edit title"
+                                aria-label="Edit title"></lightning-button-icon>
+                        </template>
+                    </div>
+                </div>
+            </template>
             <template lwc:if={hasError}>
                 <div class="agent-error-panel slds-p-around_x-small" role="alert">
                     <div
@@ -115,6 +282,12 @@
                         <span class="slds-col slds-grow slds-text-title_bold">{error_title}</span>
                         <div class="slds-col slds-no-flex">
                             <lightning-button-group>
+                                <lightning-button-icon
+                                    icon-name="utility:refresh"
+                                    alternative-text="Retry last prompt"
+                                    title="Retry last prompt"
+                                    disabled={isLoading}
+                                    onclick={handleRetry}></lightning-button-icon>
                                 <lightning-button-icon
                                     icon-name="utility:chevrondown"
                                     alternative-text={errorDetailsToggleLabel}
@@ -147,6 +320,11 @@
                 </div>
             </template>
             <template lwc:if={isAiProviderConfigured}>
+                <template for:each={runWarnings} for:item="warning">
+                    <p key={warning.key} role="status" class="slds-p-around_x-small">
+                        {warning.message}
+                    </p>
+                </template>
                 <template lwc:if={isDebugMode}>
                     <section
                         role="region"
@@ -154,6 +332,7 @@
                         class="agent-debug-panel slds-fill-height">
                         <div class="agent-debug-panel-header">
                             <h2 class="agent-debug-title">Debug</h2>
+                            <span>{runStatisticsText}</span>
                             <span class="agent-debug-badge">Inspector</span>
                         </div>
                         <template lwc:if={hasMultipleDebugTabs}>
@@ -374,6 +553,8 @@
                     </section>
                     <div class="slds-grid slds-wrap slds-grid_align-center">
                         <agent-publisher
+                            assistant-style={isAssistantStyle}
+                            input-placeholder={promptInputPlaceholder}
                             class="slds-size_1-of-1 slds-large-size_2-of-3"
                             is-audio-recorder-disabled={isAudioRecorderDisabled}
                             openai-key={openaiKey}
@@ -381,11 +562,16 @@
                             onsend={handleSendClick}
                             onstop={handleStopClick}
                             onclear={handleClearClick}
+                            onqueueremove={handleQueueRemove}
+                            onqueuepromote={handleQueuePromote}
+                            onqueueresume={handleQueueResume}
+                            queued-messages={queuedMessages}
+                            queue-paused={queuePaused}
                             onskillscommand={handleSkillsCommand}
                             onslashcommand={handleSlashCommand}
                             onmodelchange={handleModelChange}
                             onreasoningchange={handleReasoningChange}
-                            is-loading={isStreaming}
+                            is-loading={isLoading}
                             model={selectedModel}
                             available-models={availableModels}
                             reasoning={selectedReasoning}></agent-publisher>
@@ -399,10 +585,21 @@
                                 <template lwc:if={isQuickPromptDisplayed}>
                                     <section
                                         class="agent-quick-prompts slds-m-vertical_medium"
-                                        aria-label="Suggested Salesforce prompts">
-                                        <h2 class="agent-quick-prompts__title">
-                                            What can I do for you?
-                                        </h2>
+                                        aria-label={promptRegionLabel}>
+                                        <template lwc:if={isAssistantStyle}>
+                                            <span class="browser-welcome-mark" aria-hidden="true">
+                                                <slds-lucide-icon
+                                                    name="sparkles"
+                                                    size="25"></slds-lucide-icon>
+                                            </span>
+                                        </template>
+                                        <h2 class="agent-quick-prompts__title">{promptHeading}</h2>
+                                        <template lwc:if={browserAgentEnabled}>
+                                            <p class="browser-intro">
+                                                Give me a goal. I can read your page, work through
+                                                steps, and help you get things done.
+                                            </p>
+                                        </template>
                                         <div class="agent-quick-prompts__list">
                                             <template
                                                 for:each={quickPromptSuggestions}
@@ -415,14 +612,27 @@
                                                     title={suggestion.label}
                                                     aria-label={suggestion.label}
                                                     onclick={handleQuickPromptClick}>
-                                                    {suggestion.label}
+                                                    <span class="prompt-title">
+                                                        {suggestion.label}
+                                                    </span>
+                                                    <template lwc:if={browserAgentEnabled}>
+                                                        <span class="browser-prompt-detail">
+                                                            {suggestion.detail}
+                                                        </span>
+                                                        <slds-lucide-icon
+                                                            class="prompt-arrow"
+                                                            name="chevron-right"
+                                                            size="16"></slds-lucide-icon>
+                                                    </template>
                                                 </button>
                                             </template>
                                         </div>
                                     </section>
                                 </template>
                                 <agent-message-list
-                                    welcome-message={welcomeMessage}
+                                    conversation-id={activeConversationId}
+                                    assistant-style={isAssistantStyle}
+                                    welcome-message={displayedWelcomeMessage}
                                     displayed-messages={displayedMessages}
                                     streaming-message={streamingMessage}
                                     is-loading={isLoading}
@@ -450,6 +660,8 @@
                     <!-- Prompt Entry -->
                     <div class="slds-grid slds-wrap slds-grid_align-center">
                         <agent-publisher
+                            assistant-style={isAssistantStyle}
+                            input-placeholder={promptInputPlaceholder}
                             class="slds-size_1-of-1 slds-large-size_2-of-3"
                             is-audio-recorder-disabled={isAudioRecorderDisabled}
                             openai-key={openaiKey}
@@ -457,11 +669,16 @@
                             onsend={handleSendClick}
                             onstop={handleStopClick}
                             onclear={handleClearClick}
+                            onqueueremove={handleQueueRemove}
+                            onqueuepromote={handleQueuePromote}
+                            onqueueresume={handleQueueResume}
+                            queued-messages={queuedMessages}
+                            queue-paused={queuePaused}
                             onskillscommand={handleSkillsCommand}
                             onslashcommand={handleSlashCommand}
                             onmodelchange={handleModelChange}
                             onreasoningchange={handleReasoningChange}
-                            is-loading={isStreaming}
+                            is-loading={isLoading}
                             model={selectedModel}
                             available-models={availableModels}
                             reasoning={selectedReasoning}></agent-publisher>

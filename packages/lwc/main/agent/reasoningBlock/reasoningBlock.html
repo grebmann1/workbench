@@ -6,26 +6,42 @@
             onclick={handleToggle}
             aria-expanded={expanded}
             aria-label={ariaLabel}
+            title={headerLabel}
             disabled={isBriefThought}>
             <span class={statusClass}>
-                <lightning-icon
-                    icon-name={statusIconName}
-                    class={statusIconClass}
-                    size="xx-small"
-                    alternative-text="Reasoning status"></lightning-icon>
+                <template lwc:if={assistantStyle}>
+                    <slds-lucide-icon name="brain" size="13" aria-hidden="true"></slds-lucide-icon>
+                </template>
+                <template lwc:else>
+                    <lightning-icon
+                        icon-name={statusIconName}
+                        class={statusIconClass}
+                        size="xx-small"
+                        alternative-text="Reasoning status"></lightning-icon>
+                </template>
                 <span class="reasoning-block-header-label">{headerLabel}</span>
                 <template lwc:if={notBriefThought}>
-                    <lightning-icon
-                        icon-name={caretIcon}
-                        class="reasoning-toggle-icon"
-                        size="xx-small"
-                        alternative-text="Toggle"></lightning-icon>
+                    <template lwc:if={assistantStyle}>
+                        <slds-lucide-icon
+                            name={assistantCaretIcon}
+                            size="12"
+                            aria-hidden="true"></slds-lucide-icon>
+                    </template>
+                    <template lwc:else>
+                        <lightning-icon
+                            icon-name={caretIcon}
+                            class="reasoning-toggle-icon"
+                            size="xx-small"
+                            alternative-text="Toggle"></lightning-icon>
+                    </template>
                 </template>
             </span>
         </button>
         <template lwc:if={expanded}>
             <div class="reasoning-block-body">
                 <slds-markdown-viewer
+                    chat-code
+                    block-remote-images
                     class="reasoning-block-markdown"
                     value={content}
                     onchange={handleChange}></slds-markdown-viewer>

@@ -1,28 +1,68 @@
 <template>
-    <div class="slds-m-top_x-small tool-message-item">
+    <div class={containerClass} data-tool={toolName}>
         <button
             type="button"
             class="tool-header-button"
             onclick={handleToggle}
             aria-expanded={expanded}
             aria-label={toggleAriaLabel}>
-            <span class={statusClass}>
-                <lightning-icon
-                    icon-name={statusIconName}
-                    variant={statusIconVariant}
-                    class={statusIconClass}
-                    size="xx-small"
-                    alternative-text="Tool status"></lightning-icon>
-                <span class="tool-title">{title}</span>
-                <lightning-icon
-                    icon-name={toggleIconName}
-                    class="tool-toggle-icon"
-                    size="xx-small"
-                    alternative-text="Toggle tool details"></lightning-icon>
-            </span>
+            <template lwc:if={assistantStyle}>
+                <span class="assistant-tool-heading">
+                    <span class="assistant-tool-kind" title={toolCategory}>
+                        <slds-lucide-icon
+                            name={toolKindIcon}
+                            size="14"
+                            aria-hidden="true"></slds-lucide-icon>
+                        <span class="slds-assistive-text">{toolCategory}</span>
+                    </span>
+                    <span class="assistant-tool-description" title={title}>{title}</span>
+                    <span class={toolStateClass} title={toolStatusLabel}>
+                        <template lwc:if={hasSuccessfulResult}>
+                            <slds-lucide-icon
+                                name="check"
+                                size="13"
+                                aria-hidden="true"></slds-lucide-icon>
+                            <span class="slds-assistive-text">{toolStatusLabel}</span>
+                        </template>
+                        <template lwc:else>{toolStatusLabel}</template>
+                    </span>
+                    <slds-lucide-icon
+                        name={assistantToggleIcon}
+                        size="13"
+                        aria-hidden="true"></slds-lucide-icon>
+                </span>
+            </template>
+            <template lwc:else>
+                <span class={statusClass}>
+                    <lightning-icon
+                        icon-name={statusIconName}
+                        variant={statusIconVariant}
+                        class={statusIconClass}
+                        size="xx-small"
+                        alternative-text="Tool status"></lightning-icon>
+                    <span class="tool-title">{title}</span>
+                    <lightning-icon
+                        icon-name={toggleIconName}
+                        class="tool-toggle-icon"
+                        size="xx-small"
+                        alternative-text="Toggle tool details"></lightning-icon>
+                </span>
+            </template>
         </button>
 
+        <template lwc:if={showCommandPreview}>
+            <pre
+                class="assistant-command-preview"
+                title={commandText}><code>{commandText}</code></pre>
+        </template>
         <template lwc:if={expanded}>
+            <template lwc:if={assistantStyle}>
+                <div class="assistant-tool-metadata">
+                    <span>{toolCategory}</span>
+                    <code>{toolName}</code>
+                    <span>{toolStatusLabel}</span>
+                </div>
+            </template>
             <div class="tool-section">
                 <div class="tool-section-label">{commandLabel}</div>
                 <pre class="tool-section-body"><code>{commandText}</code></pre>

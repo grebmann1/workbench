@@ -23,6 +23,67 @@ const EXTENSION_SENDER = { url: 'chrome-extension://abc123/panel.html' };
 
 const { handleMcpHttpRequest } = await import('../mcpProxy.js');
 
+test('cancellation aborts only requests owned by the same extension document', async () => {
+    makeChrome({ storedConfig: { mcp_servers: [{ url: 'https://mcp.example.com/api' }] } });
+    let started;
+    const ready = new Promise(resolve => {
+        started = resolve;
+    });
+    let signal;
+    await withFetch(
+        (url, init) => {
+            signal = init.signal;
+            started();
+            return new Promise((resolve, reject) => {
+                signal.addEventListener('abort', () => reject(signal.reason), { once: true });
+            });
+        },
+        async () => {
+            const owner = { ...EXTENSION_SENDER, documentId: 'owner' };
+            const pending = handleMcpHttpRequest({
+                message: { url: 'https://mcp.example.com/api', requestId: 'cancel-me' },
+                sender: owner,
+            });
+            await ready;
+            await handleMcpHttpRequest({
+                message: { action: 'mcp_http_cancel', requestId: 'cancel-me' },
+                sender: { ...EXTENSION_SENDER, documentId: 'other' },
+            });
+            assert.equal(signal.aborted, false);
+            await handleMcpHttpRequest({
+                message: { action: 'mcp_http_cancel', requestId: 'cancel-me' },
+                sender: owner,
+            });
+            assert.equal(signal.aborted, true);
+            assert.match((await pending).error, /abort/i);
+        }
+    );
+});
+
+test('cancellation during configuration loading prevents any network request', async () => {
+    makeChrome();
+    let release;
+    chrome.storage.local.get = () =>
+        new Promise(resolve => {
+            release = resolve;
+        });
+    await withFetch(
+        () => assert.fail('cancelled request reached the network'),
+        async () => {
+            const pending = handleMcpHttpRequest({
+                message: { url: 'https://mcp.example.com/api', requestId: 'setup' },
+                sender: EXTENSION_SENDER,
+            });
+            await handleMcpHttpRequest({
+                message: { action: 'mcp_http_cancel', requestId: 'setup' },
+                sender: EXTENSION_SENDER,
+            });
+            release({ mcp_servers: [{ url: 'https://mcp.example.com/api' }] });
+            assert.match((await pending).error, /abort/i);
+        }
+    );
+});
+
 function makeFetchSpy({ response, throws } = {}) {
     const calls = [];
     const fetchSpy = (url, init) => {

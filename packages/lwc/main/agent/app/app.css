@@ -1,4 +1,116 @@
+/* Workbench opts into the shared chat presentation with its existing SLDS palette. */
+.assistant-workbench {
+    --assistant-ink: var(--slds-g-color-neutral-base-10, #181818);
+    --assistant-muted: var(--slds-g-color-neutral-base-40, #5c5c5c);
+    --assistant-accent: var(--slds-g-color-brand-base-50, #0176d3);
+    --assistant-accent-hover: var(--slds-g-color-brand-base-40, #0b5cab);
+    --assistant-line: var(--slds-g-color-border-base-1, #e5e5e5);
+    --assistant-soft: var(--slds-g-color-brand-base-95, #eef4ff);
+    --assistant-surface: var(--slds-g-color-neutral-base-100, #fff);
+    --assistant-hover-line: var(--slds-g-color-brand-base-50, #0176d3);
+    --assistant-input-line: var(--slds-g-color-neutral-base-70, #aeaeae);
+    --assistant-focus-line: var(--slds-g-color-brand-base-50, #0176d3);
+    --assistant-focus-ring: var(--slds-g-color-brand-base-95, #eef4ff);
+    --assistant-placeholder: var(--slds-g-color-neutral-base-40, #5c5c5c);
+    --assistant-divider: var(--slds-g-color-border-base-1, #e5e5e5);
+    --assistant-disabled-surface: var(--slds-g-color-neutral-base-95, #f3f3f3);
+    --assistant-disabled-ink: var(--slds-g-color-neutral-base-50, #747474);
+    --assistant-message-line: var(--slds-g-color-brand-base-90, #d8e6fe);
+    --assistant-tool-surface: var(--slds-g-color-neutral-base-98, #fafafa);
+    --assistant-code-surface: var(--slds-g-color-neutral-base-95, #f3f3f3);
+    --assistant-code-ink: var(--slds-g-color-neutral-base-30, #444);
+    --slds-c-reasoning-color: var(--assistant-accent);
+    --slds-c-reasoning-background: var(--assistant-soft);
+    --slds-c-reasoning-background-hover: var(--slds-g-color-brand-base-90, #d8e6fe);
+    --slds-c-reasoning-focus-ring: var(--assistant-focus-line);
+    color: var(--assistant-ink);
+    background: var(--assistant-surface);
+}
+
 /* Skills overlay — takes over the chat area while keeping left conversations panel visible */
+.assistant-style {
+    min-width: 0;
+}
+.assistant-style .agent-quick-prompts {
+    align-items: stretch;
+    padding: 1.5rem 1.25rem;
+    gap: 0.7rem;
+}
+.browser-welcome-mark {
+    display: grid;
+    place-items: center;
+    width: 3rem;
+    height: 3rem;
+    margin-bottom: 0.4rem;
+    border-radius: 1rem;
+    border: 1px solid var(--assistant-line, #e6e5ed);
+    color: var(--assistant-accent, #6357bd);
+    background: var(--assistant-soft, #f4f2fb);
+}
+.assistant-style .agent-quick-prompts__title {
+    font-size: 1.4rem;
+    font-weight: 600;
+    line-height: 1.3;
+    letter-spacing: -0.035em;
+    color: var(--assistant-ink, #292b3b);
+    max-width: 17rem;
+}
+.browser-intro {
+    color: var(--assistant-muted, #727487);
+    font-size: 0.8rem;
+    line-height: 1.65;
+    margin-bottom: 0.5rem;
+}
+.assistant-style .agent-quick-prompts__list {
+    align-items: stretch;
+    gap: 0.55rem;
+}
+.assistant-style .agent-quick-prompts__item {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.2rem 0.5rem;
+    min-width: 0;
+    width: 100%;
+    padding: 0.75rem 0.85rem;
+    text-align: left;
+    border: 1px solid var(--assistant-line, #e6e5ed);
+    border-radius: 0.7rem;
+    background: var(--assistant-surface, #fefeff);
+    color: var(--assistant-ink, #292b3b);
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+.assistant-style .agent-quick-prompts__item:hover {
+    background: var(--assistant-soft, #f4f2fb);
+    border-color: var(--assistant-hover-line, #c5bee9);
+    transform: none;
+}
+.browser-prompt-detail {
+    grid-column: 1;
+    font-size: 0.7rem;
+    color: var(--assistant-muted, #727487);
+    font-weight: 400;
+    line-height: 1.5;
+}
+.prompt-arrow {
+    grid-column: 2;
+    grid-row: 1 / 3;
+    align-self: center;
+    color: var(--assistant-accent, #6357bd);
+}
+.assistant-style .slds-large-size_4-of-5,
+.assistant-style .slds-large-size_2-of-3 {
+    width: 100%;
+}
+@media (prefers-reduced-motion: reduce) {
+    .assistant-style .agent-quick-prompts__item {
+        transition: none;
+    }
+    .assistant-style .agent-quick-prompts__item:hover {
+        transform: none;
+    }
+}
+
 .agent-skills-overlay {
     position: absolute;
     inset: 0.5rem;
@@ -664,4 +776,227 @@
     to {
         background-color: var(--slds-g-color-neutral-base-80, #c9c9c9);
     }
+}
+
+/* Compact navigation follows presentation, independently of browser capabilities. */
+.assistant-style > .slds-full-width {
+    min-width: 0;
+}
+.conversation-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    min-width: 0;
+    padding: 0.25rem 0.75rem;
+    border-bottom: 1px solid #e8edf2;
+    color: #435b70;
+}
+.chat-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    min-height: 2rem;
+    padding: 0.25rem 0.5rem;
+    border: 0;
+    border-radius: 0.4rem;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    font-size: 0.75rem;
+    cursor: pointer;
+}
+.chat-action:hover {
+    background: #eef3f7;
+    color: #123d61;
+}
+.chat-action:focus-visible,
+.conversation-select:focus-visible,
+.conversation-search:focus-visible,
+.conversation-title-input:focus-visible {
+    outline: 2px solid #0176d3;
+    outline-offset: 2px;
+}
+.chat-action slds-lucide-icon,
+.conversation-select slds-lucide-icon {
+    display: flex;
+    flex-shrink: 0;
+}
+.chat-action_icon {
+    flex-shrink: 0;
+    width: 2rem;
+    padding: 0;
+}
+.chat-action_new {
+    flex-shrink: 0;
+    color: #164a71;
+    font-weight: 600;
+}
+.conversation-options {
+    flex-shrink: 0;
+    --slds-c-button-radius-border: 0.65rem;
+    --slds-c-button-color-border: var(--assistant-line, #e6e5ed);
+    --slds-c-button-color-border-hover: var(--assistant-hover-line, #b5acd9);
+    --slds-c-button-color-background: var(--assistant-surface, #fff);
+    --slds-c-button-color-background-hover: var(--assistant-soft, #f4f2fb);
+    --slds-c-button-text-color: var(--assistant-muted, #727487);
+    --slds-c-button-text-color-hover: var(--assistant-accent, #6357bd);
+    --slds-c-button-shadow-focus: 0 0 0 2px var(--assistant-soft, #f4f2fb);
+    --slds-c-button-line-height: 1.875rem;
+}
+.chat-approval-mode {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    gap: 0.25rem;
+    min-height: 2rem;
+    padding: 0.25rem 0.45rem;
+    border: 1px solid var(--assistant-line, #e5e5e5);
+    border-radius: 0.65rem;
+    background: var(--assistant-surface, #fff);
+    color: var(--assistant-muted, #5c5c5c);
+    font: inherit;
+    font-size: 0.625rem;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+}
+.chat-approval-mode:hover {
+    background: var(--assistant-soft, #eef4ff);
+}
+.chat-approval-mode_yolo {
+    color: #915900;
+    background: #fff5de;
+    border-color: #ead29d;
+}
+.chat-approval-mode_yolo:hover {
+    background: #ffedc2;
+}
+.chat-approval-mode:focus-visible {
+    outline: 2px solid var(--assistant-accent, #0176d3);
+    outline-offset: 2px;
+}
+.chat-approval-mode:disabled {
+    cursor: default;
+    opacity: 0.65;
+}
+.conversation-picker {
+    flex: 1;
+    min-width: 0;
+    justify-content: flex-start;
+    padding-left: 0.25rem;
+}
+.conversation-picker > span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.conversation-title-input,
+.conversation-search {
+    min-width: 0;
+    min-height: 2rem;
+    padding: 0.4rem 0.6rem;
+    border: 1px solid #cbd8e3;
+    border-radius: 0.4rem;
+    color: #243d55;
+    background: #fff;
+    font: inherit;
+    font-size: 0.8rem;
+}
+.conversation-title-input {
+    flex: 1;
+    width: 100%;
+}
+.conversation-dialog {
+    width: calc(100% - 1.5rem);
+    max-width: 30rem;
+    max-height: calc(100dvh - 3rem);
+    padding: 0.75rem;
+    margin: auto;
+    border: 1px solid #dce5ed;
+    border-radius: 0.8rem;
+    background: #fff;
+    color: #243d55;
+    box-shadow: 0 12px 48px #123d6126;
+}
+.conversation-dialog[open] {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+.conversation-dialog::backdrop {
+    background: #182d4240;
+}
+.conversation-dialog-header {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+.conversation-dialog-header h2 {
+    flex: 1;
+    font-size: 0.95rem;
+    font-weight: 650;
+}
+.conversation-search {
+    width: 100%;
+    flex-shrink: 0;
+}
+.conversation-list {
+    list-style: none;
+    padding: 0.15rem;
+    margin: 0;
+    overflow: auto;
+    min-height: 0;
+}
+.conversation-row {
+    display: flex;
+    align-items: center;
+    border-radius: 0.4rem;
+    margin-bottom: 0.15rem;
+}
+.conversation-row:hover {
+    background: #f5f8fb;
+}
+.conversation-row_active {
+    background: #edf5fc;
+}
+.conversation-select {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    min-width: 0;
+    gap: 0.5rem;
+    padding: 0.65rem 0.5rem;
+    border: 0;
+    border-radius: 0.4rem;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    font-size: 0.8rem;
+    text-align: left;
+    cursor: pointer;
+}
+.conversation-select > span:first-of-type {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.conversation-current {
+    font-size: 0.65rem;
+    color: #436781;
+}
+.conversation-delete {
+    color: #738496;
+}
+.conversation-delete:hover {
+    color: #a33122;
+    background: #fff0ee;
+}
+.conversation-empty {
+    padding: 1rem 0.5rem;
+    color: #607487;
+    font-size: 0.8rem;
+    text-align: center;
 }

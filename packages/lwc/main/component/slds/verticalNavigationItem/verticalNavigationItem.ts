@@ -68,9 +68,6 @@ export default class VerticalNavigationItem extends LightningElement {
     }
     _isCollapsed = false;
 
-    _hasRendered = false;
-    _wasActive = false;
-
     i18n = i18n;
     areChildrenExpanded = false;
 
@@ -94,7 +91,7 @@ export default class VerticalNavigationItem extends LightningElement {
     // parent items cannot be selected directly when the left nav is expanded.
     get navigationItemClass() {
         return classSet('slds-nav-vertical__item').add({
-            //'slds-is-active': this.isActive,
+            'slds-is-active': this.isActive,
         });
     }
 
@@ -170,17 +167,6 @@ export default class VerticalNavigationItem extends LightningElement {
 
     get computedTooltipLabel() {
         return this.label || this.name || 'Menu item';
-    }
-
-    renderedCallback() {
-        // If the item has just become active, focus the action element
-        if (this._hasRendered && this.isActive && !this._wasActive) {
-            this.refs.action?.focus();
-        }
-        this._wasActive = this.isActive;
-        if (!this._hasRendered) {
-            this._hasRendered = true;
-        }
     }
 
     handleClick(event) {

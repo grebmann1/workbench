@@ -3,6 +3,9 @@ import { API } from 'api/slices';
 import { registerCommand } from 'host-api/commands';
 import { injectReducer, store } from 'host-api/store';
 import { QUERY } from 'soql/slices';
+import { createBrowserTools } from './browser/browserTools.js';
+import { listBrowserTabs } from './browser/browserRuntime.js';
+import { BROWSER_INSTRUCTIONS } from './browser/constants.js';
 
 let hasBootstrappedChatCommands = false;
 
@@ -12,12 +15,18 @@ export function bootstrapChatCommands() {
     }
     hasBootstrappedChatCommands = true;
 
+    registerCommand('chat.browserTabs', () => listBrowserTabs());
+    registerCommand('chat.browserTools', ({ tabId }) => ({
+        tools: createBrowserTools(tabId),
+        instructions: BROWSER_INSTRUCTIONS,
+    }));
+
     injectReducer('apex', APEX.reduxSlice.reducer);
     injectReducer('api', API.reduxSlice.reducer);
     injectReducer('query', QUERY.reduxSlice.reducer);
 
     registerCommand('anonymousApex.executeApex', async (payload = {}) => {
-        const { connector, body, tabId, isNewTab, createdDate } = payload;
+        const { connector, body, tabId, isNewTab, createdDate, signal } = payload;
         if (isNewTab) {
             store.dispatch(APEX.reduxSlice.actions.addTab({ tab: { id: tabId, body } }));
         } else if (tabId) {
@@ -25,12 +34,15 @@ export function bootstrapChatCommands() {
             store.dispatch(APEX.reduxSlice.actions.updateBody({ body }));
         }
         const apexPromise = store.dispatch(
-            APEX.executeApexAnonymous({
-                connector,
-                body,
-                tabId,
-                createdDate: createdDate || Date.now(),
-            })
+            APEX.executeApexAnonymous(
+                {
+                    connector,
+                    body,
+                    tabId,
+                    createdDate: createdDate || Date.now(),
+                },
+                { signal }
+            )
         );
         store.dispatch(APEX.reduxSlice.actions.setAbortingPromise({ tabId, promise: apexPromise }));
         const res = await apexPromise;
@@ -50,7 +62,8 @@ export function bootstrapChatCommands() {
     });
 
     registerCommand('api.executeRequest', async (payload = {}) => {
-        const { connector, request, formattedRequest, tabId, isNewTab, tab, createdDate } = payload;
+        const { connector, request, formattedRequest, tabId, isNewTab, tab, createdDate, signal } =
+            payload;
         if (isNewTab && tab) {
             store.dispatch(API.reduxSlice.actions.addTab({ tab }));
         } else if (tabId) {
@@ -66,13 +79,16 @@ export function bootstrapChatCommands() {
             );
         }
         const apiPromise = store.dispatch(
-            API.executeApiRequest({
-                connector,
-                request,
-                formattedRequest,
-                tabId,
-                createdDate: createdDate || Date.now(),
-            })
+            API.executeApiRequest(
+                {
+                    connector,
+                    request,
+                    formattedRequest,
+                    tabId,
+                    createdDate: createdDate || Date.now(),
+                },
+                { signal }
+            )
         );
         store.dispatch(API.reduxSlice.actions.setAbortingPromise({ tabId, promise: apiPromise }));
         const res = await apiPromise;
@@ -84,13 +100,16 @@ export function bootstrapChatCommands() {
 
     registerCommand('soql.executeQueryIncognito', async (payload = {}) => {
         const res = await store.dispatch(
-            QUERY.executeQueryIncognito({
-                connector: payload.connector,
-                soql: payload.soql,
-                tabId: payload.tabId,
-                useToolingApi: payload.useToolingApi,
-                includeDeletedRecords: payload.includeDeletedRecords,
-            })
+            QUERY.executeQueryIncognito(
+                {
+                    connector: payload.connector,
+                    soql: payload.soql,
+                    tabId: payload.tabId,
+                    useToolingApi: payload.useToolingApi,
+                    includeDeletedRecords: payload.includeDeletedRecords,
+                },
+                { signal: payload.signal }
+            )
         );
         return { payload: res.payload, error: res.error };
     });

@@ -53,8 +53,15 @@ async function bodyToString(body: BodyInit | null | undefined): Promise<string |
     throw new Error('Unsupported MCP request body type');
 }
 
-function sendMcpProxyMessage(message: Record<string, unknown>): Promise<McpProxyResponse> {
+function sendMcpProxyMessage(
+    message: Record<string, unknown>,
+    signal?: AbortSignal | null
+): Promise<McpProxyResponse> {
     return new Promise((resolve, reject) => {
+        if (signal?.aborted) {
+            reject(signal.reason);
+            return;
+        }
         const runtime = chrome.runtime as typeof chrome.runtime & {
             sendMessage: (
                 payload: Record<string, unknown>,
@@ -62,7 +69,15 @@ function sendMcpProxyMessage(message: Record<string, unknown>): Promise<McpProxy
             ) => void;
             lastError?: { message?: string };
         };
+        const onAbort = () => {
+            runtime.sendMessage({ action: 'mcp_http_cancel', requestId: message.requestId }, () => {
+                void runtime.lastError;
+            });
+            reject(signal?.reason || new DOMException('Cancelled', 'AbortError'));
+        };
+        signal?.addEventListener('abort', onAbort, { once: true });
         runtime.sendMessage(message, response => {
+            signal?.removeEventListener('abort', onAbort);
             const runtimeError = runtime.lastError;
             if (runtimeError) {
                 reject(new Error(runtimeError.message));
@@ -81,7 +96,12 @@ async function resolveRequestParts(input: RequestInfo | URL, init?: RequestInit)
         ...headersToRecord(request?.headers),
         ...headersToRecord(init?.headers),
     };
-    const body = await bodyToString((init?.body as BodyInit | null | undefined) ?? null);
+    const body =
+        init?.body != null
+            ? await bodyToString(init.body)
+            : request && !['GET', 'HEAD'].includes(method.toUpperCase())
+              ? await request.clone().text()
+              : undefined;
     return { url, method, headers, body };
 }
 
@@ -92,14 +112,19 @@ export function createMcpFetch(timeoutMs = 30000): typeof fetch {
         }
 
         const { url, method, headers, body } = await resolveRequestParts(input, init);
-        const response = await sendMcpProxyMessage({
-            action: 'mcp_http_request',
-            url,
-            method,
-            headers,
-            body,
-            timeoutMs,
-        });
+        const signal = init?.signal || (input instanceof Request ? input.signal : undefined);
+        const response = await sendMcpProxyMessage(
+            {
+                action: 'mcp_http_request',
+                requestId: crypto.randomUUID(),
+                url,
+                method,
+                headers,
+                body,
+                timeoutMs,
+            },
+            signal
+        );
 
         if (response.error) {
             throw new Error(response.error);

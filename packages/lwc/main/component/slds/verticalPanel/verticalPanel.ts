@@ -1,5 +1,6 @@
 import { LightningElement, api } from 'lwc';
 import { normalizeString as normalize, classSet } from 'shared/utils';
+import { clampPanelWidth, resizeWithKeyboard } from './resize';
 
 export default class VerticalPanel extends LightningElement {
     @api position;
@@ -7,11 +8,13 @@ export default class VerticalPanel extends LightningElement {
     @api size = 'slds-size_medium';
     @api title = 'Filter';
     @api minWidth = 260;
+    @api maxWidth: number | undefined;
+    @api disableResize = false;
 
     @api isHeaderHidden = false;
     @api hasBorder = false;
 
-    manualPanelWidth;
+    manualPanelWidth: number | undefined;
 
     hasLoaded = false;
 
@@ -63,12 +66,11 @@ export default class VerticalPanel extends LightningElement {
     }
 
     get panelStyle() {
-        const minWidthPx = this.normalizedMinWidth;
-        // If panelWidth is set, use it as the width; otherwise, fallback to SLDS size classes.
-        // Keep a minimum width so drag resize cannot collapse the panel too far.
-        return this.manualPanelWidth
-            ? `width: ${this.manualPanelWidth}; min-width: ${minWidthPx}px;`
-            : `min-width: ${minWidthPx}px;`;
+        const width =
+            !this.disableResize && this.manualPanelWidth
+                ? `width: ${clampPanelWidth(this.manualPanelWidth, this.effectiveMinWidth, this.normalizedMaxWidth)}px;`
+                : '';
+        return `${width} min-width: ${this.effectiveMinWidth}px; max-width: ${this.normalizedMaxWidth}px;`;
     }
 
     get normalizedMinWidth() {
@@ -76,30 +78,99 @@ export default class VerticalPanel extends LightningElement {
         return Number.isFinite(parsed) && parsed > 0 ? parsed : 260;
     }
 
-    /** Drag handle logic */
-    handleDragHandleMouseDown = event => {
+    /** Pointer capture keeps drag cleanup local to the resize handle. */
+    _drag: { x: number; width: number; pointerId: number; target: HTMLElement } | null = null;
+    _observer: ResizeObserver | null = null;
+    renderedWidth = 0;
+    viewportWidth = window.innerWidth;
+
+    connectedCallback() {
+        window.addEventListener('resize', this.handleWindowResize);
+    }
+    disconnectedCallback() {
+        this.finishResize();
+        this._observer?.disconnect();
+        window.removeEventListener('resize', this.handleWindowResize);
+    }
+    renderedCallback() {
+        if (!this._observer && this.refs.panel) {
+            this._observer = new ResizeObserver(entries => {
+                const width = Math.round(
+                    entries[0]?.borderBoxSize?.[0]?.inlineSize || entries[0]?.contentRect.width || 0
+                );
+                if (width !== this.renderedWidth) this.renderedWidth = width;
+            });
+            this._observer.observe(this.refs.panel);
+        }
+    }
+    handleWindowResize = () => {
+        this.viewportWidth = window.innerWidth;
+    };
+    get normalizedMaxWidth() {
+        const parsed = Number(this.maxWidth);
+        return Number.isFinite(parsed) && parsed > 0 ? parsed : this.viewportWidth;
+    }
+    get effectiveMinWidth() {
+        return Math.min(this.normalizedMinWidth, this.normalizedMaxWidth);
+    }
+    get showResizeHandle() {
+        return this.isOpen && !this.disableResize;
+    }
+    get resizeLabel() {
+        return `${this.title} width`;
+    }
+    get resizeValue() {
+        return this.renderedWidth || this.effectiveMinWidth;
+    }
+    get resizeValueText() {
+        return `${this.resizeValue} pixels`;
+    }
+
+    setPanelWidth(width: number) {
+        this.manualPanelWidth = clampPanelWidth(
+            width,
+            this.effectiveMinWidth,
+            this.normalizedMaxWidth
+        );
+        window.dispatchEvent(new Event('resize'));
+    }
+    handleResizeStart = event => {
+        if (event.button !== 0) return;
         event.preventDefault();
-        const panel = this.template.querySelector('.slds-panel');
-        const startX = event.clientX;
-        const startWidth = panel.offsetWidth;
-        const isRight = this.normalizedPosition === 'right';
-
-        const handleMouseMove = moveEvent => {
-            const dx = moveEvent.clientX - startX;
-            const newWidth = isRight ? startWidth - dx : startWidth + dx;
-            const clampedWidth = Math.max(this.normalizedMinWidth, newWidth);
-            this.manualPanelWidth = `${clampedWidth}px`;
-            // Force re-render
-            this.requestUpdate && this.requestUpdate();
-            window.dispatchEvent(new Event('resize'));
+        const target = event.currentTarget;
+        target.focus();
+        target.setPointerCapture(event.pointerId);
+        this._drag = {
+            x: event.clientX,
+            width: this.renderedWidth,
+            pointerId: event.pointerId,
+            target,
         };
-
-        const handleMouseUp = () => {
-            window.removeEventListener('mousemove', handleMouseMove);
-            window.removeEventListener('mouseup', handleMouseUp);
-        };
-
-        window.addEventListener('mousemove', handleMouseMove);
-        window.addEventListener('mouseup', handleMouseUp);
+    };
+    handleResizeMove = event => {
+        if (!this._drag || event.pointerId !== this._drag.pointerId) return;
+        const change = event.clientX - this._drag.x;
+        this.setPanelWidth(
+            this._drag.width + (this.normalizedPosition === 'right' ? -change : change)
+        );
+    };
+    finishResize = () => {
+        const drag = this._drag;
+        this._drag = null;
+        if (drag?.target.hasPointerCapture(drag.pointerId))
+            drag.target.releasePointerCapture(drag.pointerId);
+    };
+    handleResizeKeydown = event => {
+        const width = resizeWithKeyboard(
+            this.resizeValue,
+            event.key,
+            this.normalizedPosition,
+            event.shiftKey,
+            this.effectiveMinWidth,
+            this.normalizedMaxWidth
+        );
+        if (width === null) return;
+        event.preventDefault();
+        this.setPanelWidth(width);
     };
 }

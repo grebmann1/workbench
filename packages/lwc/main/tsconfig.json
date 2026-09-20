@@ -6,19 +6,17 @@
         "lib": ["ES2020", "DOM"],
         "baseUrl": ".",
         "paths": {
-            "accessAnalyzer/investigation": [
-                "../applications/accessAnalyzer/investigation/investigation"
-            ],
-            "shared/recordInvestigation": [
-                "../shared/modules/recordInvestigation/recordInvestigation"
-            ],
             "application/*": ["application/*"],
             "component/*": ["component/*"],
             "connection/*": ["connection/*"],
+            "connection/connectPrompt": ["connection/connectPrompt/connectPrompt"],
             "core/*": ["core/*"],
             "editor/*": ["editor/*"],
             "pages/*": ["pages/*"],
             "agent/*": ["agent/*"],
+            "agent/runController": ["agent/runController/runController"],
+            "agent/Agent": ["agent/Agent/Agent"],
+            "agent/tools": ["agent/tools/tools"],
             "ai/*": ["ai/*"],
             "host-api/store": ["host-api/store"],
             "host-api/types": ["host-api/types"],
@@ -62,6 +60,9 @@
             "api/slices/api": ["../applications/api/slices/api"],
             "accessAnalyzer/*": ["../applications/accessAnalyzer/*"],
             "accessAnalyzer/app": ["../applications/accessAnalyzer/app/app"],
+            "accessAnalyzer/investigation": [
+                "../applications/accessAnalyzer/investigation/investigation"
+            ],
             "accessAnalyzer/modalProfileFilter": [
                 "../applications/accessAnalyzer/modalProfileFilter/modalProfileFilter"
             ],
@@ -154,11 +155,15 @@
             "editor/promptWidget": ["editor/promptWidget/promptWidget"],
             "editor/utils": ["editor/utils/utils"],
             "illustration/illustration": ["component/illustration/illustration/illustration"],
+            "shared/recordInvestigation": [
+                "../shared/modules/recordInvestigation/recordInvestigation"
+            ],
             "shared/analytics": ["../shared/modules/analytics/analytics"],
             "shared/llm": ["../shared/modules/llm/llm"],
             "shared/oauth": ["../shared/modules/oauth/oauth"],
             "shared/loader": ["../shared/modules/loader/loader"],
             "shared/markdown": ["../shared/modules/markdown/markdown"],
+            "shared/safeMarkdown": ["../shared/modules/safeMarkdown/safeMarkdown"],
             "shared/sf": ["../shared/modules/sf/sf"],
             "skeleton/app": ["component/skeleton/app/app"],
             "skeleton/modalLauncher": ["component/skeleton/modalLauncher/modalLauncher"],

@@ -41,6 +41,38 @@ async function flushPromises() {
 const HISTORY_MESSAGE = { role: 'user', content: 'hello from cache' };
 const LIVE_MESSAGE = { role: 'user', content: 'typed after load' };
 
+test('agent: clearing a hydrated conversation removes its persisted model context', async () => {
+    const { local } = installStorage();
+    try {
+        const { reduxSlice, loadCacheSettingsAsync } = await import('../agent');
+        const reduce = reduxSlice.reducer;
+        let state = reduce(undefined, {
+            type: loadCacheSettingsAsync.fulfilled.type,
+            payload: {
+                conversations: [
+                    {
+                        id: 'context-test',
+                        title: 'Context',
+                        streamHistory: [HISTORY_MESSAGE],
+                        contextMessages: [HISTORY_MESSAGE],
+                    },
+                ],
+                activeConversationId: 'context-test',
+            },
+        });
+        assert.equal(state.contextById['context-test'].length, 1);
+        state = reduce(state, reduxSlice.actions.clearMessages({ id: 'context-test' }));
+        await flushPromises();
+        assert.equal(state.contextById['context-test'], undefined);
+        const saved = readCachedConversationData(local);
+        assert.equal(saved.schemaVersion, 1);
+        assert.equal(saved.conversations[0].contextMessages, undefined);
+        assert.deepEqual(saved.conversations[0].streamHistory, []);
+    } finally {
+        removeStorage();
+    }
+});
+
 test('agent: initial state is not hydrated and has an empty default conversation', async () => {
     installStorage();
     try {

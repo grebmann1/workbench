@@ -10,6 +10,11 @@ import {
 import { safeDebug, safeLog } from '../../../extension/src/workers/utils/utils.js';
 import { handleMcpHttpRequest } from '../../../extension/src/workers/shared/mcpProxy.js';
 import { handleLaunchWebAuthFlow } from '../../../extension/src/workers/shared/oauth.js';
+import {
+    startProviderOAuth,
+    handleOAuthRedirect,
+    submitProviderOAuthCode,
+} from '../../../extension/src/workers/shared/providerOAuth.js';
 
 const PORT_INSTANCE = 'sf-toolkit-instance';
 const STABLE_SIDEPANEL_PATH = 'views/chat.html';
@@ -105,6 +110,17 @@ chrome.runtime.onConnect.addListener(port => {
 });
 
 async function handleRuntimeMessage(message, sender) {
+    if (message.action === 'providerOAuthStart') {
+        return startProviderOAuth({ provider: message.provider });
+    }
+    if (message.action === 'providerOAuthSubmitCode') {
+        const result = await submitProviderOAuthCode({
+            provider: message.provider,
+            code: message.code,
+        });
+        await broadcastOAuthResult({ ok: true, provider: result.provider });
+        return { ok: true };
+    }
     if (message.action === 'launchWebAuthFlow') {
         return handleLaunchWebAuthFlow(message);
     }
@@ -114,7 +130,7 @@ async function handleRuntimeMessage(message, sender) {
     if (message.action === 'findExistingSession') {
         return findExistingSession({ alias: message.alias, instanceUrl: message.instanceUrl });
     }
-    if (message.action === 'mcp_http_request') {
+    if (message.action === 'mcp_http_request' || message.action === 'mcp_http_cancel') {
         return handleMcpHttpRequest({
             message,
             sender,
@@ -126,6 +142,28 @@ async function handleRuntimeMessage(message, sender) {
 }
 
 chrome.runtime.onMessage.addListener(wrapAsyncFunction(handleRuntimeMessage));
+
+// Keep token exchange, PKCE/state validation and credential storage in the shared flow.
+// Only the result is sent to the panel; credentials never travel in runtime messages.
+async function broadcastOAuthResult(result) {
+    await chrome.runtime
+        .sendMessage({ action: 'workbench_oauth_result', ...result })
+        .catch(() => {});
+}
+
+chrome.webNavigation.onBeforeNavigate.addListener(
+    details => {
+        if (details.frameId !== 0) return;
+        handleOAuthRedirect(details)
+            .then(result => {
+                if (result) return broadcastOAuthResult({ ok: true, provider: result.provider });
+            })
+            .catch(error =>
+                broadcastOAuthResult({ ok: false, message: error?.message || 'Sign-in failed.' })
+            );
+    },
+    { url: [{ hostEquals: 'localhost' }, { hostEquals: '127.0.0.1' }] }
+);
 
 const init = async () => {
     chrome.sidePanel

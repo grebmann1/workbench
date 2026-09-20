@@ -4,6 +4,13 @@ import { createUserModelMessage } from 'agent/utils';
 import { persistPromptImageFiles } from 'agent/utils';
 import { getIndexedDbFileSystem } from 'core/fs';
 import { Agent } from 'agent/Agent';
+import {
+    BROWSER_PROMPT_SUGGESTIONS,
+    TOOL_APPROVAL_INSTRUCTIONS,
+    WORKBENCH_APPROVAL_MODE_KEY,
+} from './constants';
+import { ConversationRunController, type QueuedRun } from 'agent/runController';
+import { prepareRetry } from '../runController/retry';
 import { browserAgentInstructions } from 'agent/agents';
 import {
     askUserTool,
@@ -29,9 +36,10 @@ import ToolkitElement from 'core/toolkitElement';
 import Toast from 'lightning/toast';
 import { api, track, wire } from 'lwc';
 import { NavigationContext } from 'lwr/navigation';
-import { CACHE_CONFIG, saveSingleExtensionConfigToCache } from 'shared/cacheManager';
+import { cacheManager, CACHE_CONFIG, saveSingleExtensionConfigToCache } from 'shared/cacheManager';
 import {
     buildAvailableAgentModelOptions,
+    getContextWindowForModel,
     getProviderForModel,
     getProviderLabel,
     hasUsableProviderCredentials,
@@ -39,12 +47,24 @@ import {
     normalizeLlmProvider,
 } from 'shared/llm';
 import LOGGER from 'shared/logger';
-import { isEmpty, isNotUndefinedOrNull, classSet, getCurrentTab } from 'shared/utils';
+import { isEmpty, isNotUndefinedOrNull, classSet, getCurrentTab, guid } from 'shared/utils';
 
 import { normalizeMcpServerConfigs } from '../mcp/mcpJsonParser';
 
+const chatRuns = new ConversationRunController(
+    state => store.dispatch(AGENT.reduxSlice.actions.setRunState(state)),
+    (id, error) =>
+        store.dispatch(
+            AGENT.reduxSlice.actions.setError({
+                id,
+                title: 'Agent error',
+                message: error instanceof Error ? error.message : String(error),
+            })
+        )
+);
+
 export default class App extends ToolkitElement {
-    quickPromptSuggestions = [
+    salesforcePromptSuggestions = [
         {
             key: 'soql-opportunities',
             label: 'Write a SOQL query for QTD opportunities',
@@ -63,7 +83,6 @@ export default class App extends ToolkitElement {
     ];
 
     navContext: any;
-    refs: Record<string, HTMLElement> | undefined;
     @wire(NavigationContext)
     updateNavigationContext(navContext) {
         this.navContext = navContext;
@@ -74,6 +93,7 @@ export default class App extends ToolkitElement {
     @track selectedReasoning = DEFAULT_REASONING;
     @track availableModels = [];
     @track isSidePanelOpen = false;
+    @track conversationQuery = '';
     @track conversations = [{ id: 'default', title: 'Conversation 1', streamHistory: [] }];
     @track activeConversationId = 'default';
     @track isEditingTitle = false;
@@ -81,6 +101,10 @@ export default class App extends ToolkitElement {
     @track streamingMessage = null;
     @track isLoading = false;
     @track isStreaming = false;
+    @track queuedMessages: QueuedRun[] = [];
+    @track queuePaused = false;
+    @track runWarnings: Array<{ key: string; message: string }> = [];
+    @track runStatisticsText = '';
     @track loadingStatus = '';
     @track displayedMessages = [];
     @track isDebugMode = false;
@@ -91,7 +115,12 @@ export default class App extends ToolkitElement {
     @track debugStreamHistory = [];
     debugLastRunDebug = null;
 
-    @track pendingQuestions: Array<{ id: string; question: string; options: string[] }> = [];
+    @track pendingQuestions: Array<{
+        id: string;
+        question: string;
+        options: string[];
+        conversationId?: string;
+    }> = [];
 
     _lastScrolledMessageCount = 0;
     _lastActiveConversationId = null;
@@ -100,6 +129,124 @@ export default class App extends ToolkitElement {
 
     @api connector: ConnectorLike | null = null;
     @api isAudioRecorderDisabled = false;
+    @api browserAgentEnabled = false;
+    @api assistantStyle = false;
+    @api assistantTheme = 'chat';
+    @api yoloMode = false;
+    @api allowYoloMode = false;
+    @api browserTabId: number | undefined;
+
+    @track workbenchYoloMode = false;
+    @track approvalModeLoaded = false;
+    @track isSavingApprovalMode = false;
+    @track isAnyConversationRunning = false;
+
+    get showWorkbenchApprovalMode() {
+        return this.allowYoloMode && !this.browserAgentEnabled;
+    }
+
+    get isApprovalModeDisabled() {
+        return (
+            !this.approvalModeLoaded || this.isSavingApprovalMode || this.isAnyConversationRunning
+        );
+    }
+
+    get approvalModeClass() {
+        return `chat-approval-mode${this.workbenchYoloMode ? ' chat-approval-mode_yolo' : ''}`;
+    }
+
+    get approvalModeLabel() {
+        return this.workbenchYoloMode ? 'YOLO on' : 'YOLO off';
+    }
+
+    get approvalModeIcon() {
+        return this.workbenchYoloMode ? 'zap' : 'shield-check';
+    }
+
+    get approvalModeHint() {
+        if (this.isAnyConversationRunning)
+            return 'Stop the active run before changing approval mode.';
+        return this.workbenchYoloMode
+            ? 'YOLO: Salesforce actions, Bash, and connected tools run without approval. Applies to new requests.'
+            : 'Ask first: guarded tools ask for approval. Click to enable YOLO.';
+    }
+
+    async loadApprovalMode() {
+        try {
+            this.workbenchYoloMode =
+                (await cacheManager.getConfigValue(WORKBENCH_APPROVAL_MODE_KEY)) === 'yolo';
+        } catch {
+            this.workbenchYoloMode = false;
+        } finally {
+            this.approvalModeLoaded = true;
+        }
+    }
+
+    handleToggleYolo = async () => {
+        if (!this.showWorkbenchApprovalMode || this.isApprovalModeDisabled) return;
+        this.workbenchYoloMode = !this.workbenchYoloMode;
+        this.isSavingApprovalMode = true;
+        try {
+            await cacheManager.setConfigValue(
+                WORKBENCH_APPROVAL_MODE_KEY,
+                this.workbenchYoloMode ? 'yolo' : 'ask'
+            );
+        } catch {
+            Toast.show({
+                label: 'Mode changed for this chat, but the preference could not be saved.',
+                variant: 'error',
+            });
+        } finally {
+            this.isSavingApprovalMode = false;
+        }
+    };
+
+    get newConversationClass() {
+        return this.showWorkbenchApprovalMode
+            ? 'chat-action chat-action_icon'
+            : 'chat-action chat-action_new';
+    }
+
+    get quickPromptSuggestions() {
+        return this.browserAgentEnabled
+            ? BROWSER_PROMPT_SUGGESTIONS
+            : this.salesforcePromptSuggestions;
+    }
+
+    get isAssistantStyle() {
+        return this.assistantStyle || this.browserAgentEnabled;
+    }
+
+    get promptInputPlaceholder() {
+        return this.isAssistantStyle && !this.browserAgentEnabled
+            ? 'Ask about Salesforce, your data, or your tools…'
+            : '';
+    }
+
+    get agentRootClass() {
+        const presentation = this.isAssistantStyle ? ' assistant-style' : '';
+        const theme =
+            this.isAssistantStyle && this.assistantTheme === 'workbench'
+                ? ' assistant-workbench'
+                : '';
+        return `slds-full-height slds-is-relative slds-flex-row${presentation}${theme}`;
+    }
+
+    get promptHeading() {
+        return this.browserAgentEnabled
+            ? 'Your browser. A helping hand.'
+            : 'What can I do for you?';
+    }
+
+    get promptRegionLabel() {
+        return this.browserAgentEnabled
+            ? 'Suggested browser tasks'
+            : 'Suggested Salesforce prompts';
+    }
+
+    get displayedWelcomeMessage() {
+        return this.isAssistantStyle ? null : this.welcomeMessage;
+    }
 
     // FileTree search config for conversations
     conversationSearchFields = ['name', 'id', 'title', 'keywords', 'searchText'];
@@ -124,6 +271,7 @@ export default class App extends ToolkitElement {
     // Better to use a constant than a getter ! (renderCallback is called too many times)
     welcomeMessage = Constants.WELCOME_MESSAGE;
     _shouldFocusPublisher = false;
+    _shouldFocusTitle = false;
 
     // UI
     @wire(connectStore, { store })
@@ -181,6 +329,9 @@ export default class App extends ToolkitElement {
             isOpenAiCompatibleGateway(activeProvider, activeProviderConfig?.baseUrl)
         );
         if (agent) {
+            this.isAnyConversationRunning = Object.values(agent.runStateById || {}).some(
+                (run: { running?: boolean }) => run.running
+            );
             this._setIfChanged('selectedModel', agent.selectedModel);
             this._setIfChanged('selectedReasoning', agent.selectedReasoning ?? DEFAULT_REASONING);
             const convs = agent.conversations || [];
@@ -191,7 +342,10 @@ export default class App extends ToolkitElement {
                 this._setIfChanged('activeConversationId', agent.activeConversationId);
             }
             // Loading/Streaming flags for current conversation
-            const isLoading = !!(agent.loadingById && agent.loadingById[this.activeConversationId]);
+            const runState = agent.runStateById?.[this.activeConversationId];
+            const isLoading = !!(
+                runState?.running || agent.loadingById?.[this.activeConversationId]
+            );
             const isStreaming = !!(
                 agent.streamingById && agent.streamingById[this.activeConversationId]
             );
@@ -200,6 +354,15 @@ export default class App extends ToolkitElement {
             );
 
             this._setIfChanged('isLoading', isLoading);
+            this._setIfChanged('queuedMessages', runState?.queue || []);
+            this._setIfChanged('queuePaused', !!runState?.paused);
+            this.runWarnings = (agent.warningsById?.[this.activeConversationId] || []).map(
+                (message, index) => ({ key: String(index), message })
+            );
+            const stats = agent.runStatisticsById?.[this.activeConversationId];
+            this.runStatisticsText = stats
+                ? `${stats.model} · ${stats.steps} steps · ${stats.inputTokens + stats.outputTokens} tokens · ${(stats.durationMs / 1000).toFixed(1)}s`
+                : '';
             this._setIfChanged('isStreaming', isStreaming);
             this._setIfChanged('loadingStatus', isSummarizing ? 'Summarizing conversation...' : '');
             const rawMessages =
@@ -227,8 +390,10 @@ export default class App extends ToolkitElement {
 
     connectedCallback() {
         Analytics.trackAppOpen('agent', { alias: this.alias });
+        if (this.showWorkbenchApprovalMode) void this.loadApprovalMode();
         store.dispatch(AGENT.loadCacheSettingsAsync());
         window.addEventListener('agent:ask_user', this._handleAskUserEvent);
+        window.addEventListener('agent:question_closed', this._handleQuestionClosed);
         window.addEventListener('pagehide', this._flushConversationCache);
         document.addEventListener('visibilitychange', this._handleVisibilityChange);
         // Session hydration is handled by storeChange once loadFromCache populates the store.
@@ -238,6 +403,7 @@ export default class App extends ToolkitElement {
         this._flushConversationCache();
         this._teardownStreamingSubscription();
         window.removeEventListener('agent:ask_user', this._handleAskUserEvent);
+        window.removeEventListener('agent:question_closed', this._handleQuestionClosed);
         window.removeEventListener('pagehide', this._flushConversationCache);
         document.removeEventListener('visibilitychange', this._handleVisibilityChange);
         // Reject any outstanding questions so the tool's promise doesn't leak.
@@ -256,8 +422,12 @@ export default class App extends ToolkitElement {
     };
 
     renderedCallback() {
-        if (this.isEditingTitle && this.refs && this.refs.titleInput) {
-            this.refs.titleInput.focus();
+        if (this.isEditingTitle && this._shouldFocusTitle) {
+            const input = this.template.querySelector('[data-conversation-title]');
+            if (input instanceof HTMLInputElement) {
+                input.focus();
+                this._shouldFocusTitle = false;
+            }
         }
         const messageCount = Array.isArray(this.displayedMessages)
             ? this.displayedMessages.length
@@ -266,7 +436,10 @@ export default class App extends ToolkitElement {
             this._lastActiveConversationId !== this.activeConversationId ||
             messageCount > this._lastScrolledMessageCount
         ) {
-            this._scrollChatToBottom();
+            this._scrollChatToBottom(
+                this.browserAgentEnabled &&
+                    this._lastActiveConversationId === this.activeConversationId
+            );
         }
         this._lastActiveConversationId = this.activeConversationId;
         this._lastScrolledMessageCount = messageCount;
@@ -277,12 +450,16 @@ export default class App extends ToolkitElement {
     /** Ask-user question handling **/
 
     _handleAskUserEvent = (event: CustomEvent) => {
-        const { id, question, options } = event.detail || {};
+        const { id, question, options, conversationId } = event.detail || {};
         if (!id || !question) return;
         this.pendingQuestions = [
             ...this.pendingQuestions,
-            { id, question, options: Array.isArray(options) ? options : [] },
+            { id, question, options: Array.isArray(options) ? options : [], conversationId },
         ];
+    };
+
+    _handleQuestionClosed = (event: CustomEvent) => {
+        this.pendingQuestions = this.pendingQuestions.filter(q => q.id !== event.detail?.id);
     };
 
     handleQuestionAnswered = (event: CustomEvent) => {
@@ -297,11 +474,13 @@ export default class App extends ToolkitElement {
     };
 
     get hasPendingQuestions() {
-        return this.pendingQuestions.length > 0;
+        return this.pendingQuestionsWithKeys.length > 0;
     }
 
     get pendingQuestionsWithKeys() {
-        return this.pendingQuestions.map(q => ({ ...q, key: q.id }));
+        return this.pendingQuestions
+            .filter(q => !q.conversationId || q.conversationId === this.activeConversationId)
+            .map(q => ({ ...q, key: q.id }));
     }
 
     resetError = () => {
@@ -333,11 +512,11 @@ export default class App extends ToolkitElement {
         }
     };
 
-    _scrollChatToBottom = () => {
+    _scrollChatToBottom = (preservePosition = false) => {
         const messageList = this.template?.querySelector('agent-message-list');
         if (messageList && typeof messageList.scrollToBottom === 'function') {
             requestAnimationFrame(() => {
-                messageList.scrollToBottom();
+                messageList.scrollToBottom(preservePosition);
             });
             return;
         }
@@ -371,6 +550,11 @@ export default class App extends ToolkitElement {
 
     async buildAgentExecutionContext(model = this.selectedModel) {
         const conversationId = this.activeConversationId;
+        const browserTabId = this.browserTabId;
+        const yolo = this.browserAgentEnabled
+            ? this.yoloMode
+            : this.allowYoloMode && this.approvalModeLoaded && this.workbenchYoloMode;
+        const approvalMode = yolo ? 'yolo' : 'ask';
         const state = store.getState();
         const activeProvider = getProviderForModel(model, this.availableModels);
         const activeProviderConfig = state.application?.providerConfigs?.[activeProvider];
@@ -384,11 +568,22 @@ export default class App extends ToolkitElement {
             (appSettings[CACHE_CONFIG.TOOL_BRIGHT_DATA_KEY.key] as string) ?? null;
         const googleSheetEnabled = !!appSettings[CACHE_CONFIG.TOOL_GOOGLE_SHEET_ENABLED.key];
         const mcpServers = normalizeMcpServerConfigs(appSettings[CACHE_CONFIG.MCP_SERVERS.key]);
+        const browserContext = this.browserAgentEnabled
+            ? ((await invokeCommand('chat.browserTools', { tabId: browserTabId })) as
+                  | {
+                        tools: NonNullable<
+                            Parameters<typeof Agent.create>[0]['settings']['extraTools']
+                        >;
+                        instructions: string;
+                    }
+                  | undefined)
+            : undefined;
 
         return {
             conversationId,
             currentMessages,
             settings: {
+                approvalMode,
                 provider: activeProvider,
                 apiKey: activeProviderConfig?.apiKey ?? '',
                 baseUrl: activeProviderConfig?.baseUrl,
@@ -401,66 +596,124 @@ export default class App extends ToolkitElement {
                     state.agent?.selectedModel ||
                     getDefaultModelForAgentProvider(activeProvider, isInternal),
                 selectedReasoning: state.agent?.selectedReasoning ?? DEFAULT_REASONING,
-                systemPrompt: `${browserAgentInstructions}${await this._buildRunningEnvironmentContext()}`,
+                modelContextWindow: getContextWindowForModel(model, this.availableModels),
+                systemPrompt: `${browserAgentInstructions}${await this._buildRunningEnvironmentContext()}${browserContext?.instructions || ''}${this.browserAgentEnabled ? `\nBrowser target tab ID captured for this run: ${browserTabId ?? 'none selected'}.` : ''}${this.browserAgentEnabled || this.allowYoloMode ? `\n${TOOL_APPROVAL_INSTRUCTIONS[approvalMode]}` : ''}`,
                 isStoreEnabled: true,
                 store,
-                extraTools: [askUserTool, ...workbenchContextTools, ...agentforceTools],
+                extraTools: [
+                    askUserTool,
+                    ...workbenchContextTools,
+                    ...agentforceTools,
+                    ...(browserContext?.tools || []),
+                ],
                 brightDataApiKey: brightDataApiKey ?? null,
                 googleSheetEnabled: googleSheetEnabled ?? false,
                 mcpServers,
-            },
+                connector: state.application?.connector || null,
+            } satisfies Parameters<typeof Agent.create>[0]['settings'],
         };
     }
 
-    executeAgent = async (prompt, files = [], model = this.selectedModel) => {
-        const { conversationId, currentMessages, settings } =
-            await this.buildAgentExecutionContext(model);
-        const fs = getIndexedDbFileSystem();
-        let filesData = [];
-        if (files && files.length > 0) {
-            filesData = await Promise.all(files.map(readFileContent));
-            filesData = await persistPromptImageFiles(filesData, fs, conversationId, LOGGER);
-        }
+    executeAgent = (
+        prompt: string,
+        files: File[] = [],
+        model = this.selectedModel,
+        reasoning = this.selectedReasoning,
+        priority = false,
+        retry?: { history: ModelMessage[]; messages: ModelMessage[] }
+    ) => {
+        const id = this.activeConversationId;
+        const requestId = guid();
+        const attachments = [...files];
+        // Capture provider/org/model settings before queueing, then read history when this run starts.
+        const contextPromise = this.buildAgentExecutionContext(model);
+        void contextPromise.catch(() => {});
+        chatRuns.enqueue(
+            id,
+            {
+                id: requestId,
+                prompt,
+                fileNames: attachments.map(file => file.name),
+                model,
+                isPush: priority,
+            },
+            async signal => {
+                const { conversationId, settings } = await contextPromise;
+                signal.throwIfAborted();
+                store.dispatch(AGENT.reduxSlice.actions.resetError({ id }));
+                settings.selectedReasoning = reasoning;
+                if (!hasUsableProviderCredentials(settings)) {
+                    throw new Error(
+                        `Configure ${getProviderLabel(settings.provider)} credentials in AI settings.`
+                    );
+                }
+                if (retry)
+                    store.dispatch(
+                        AGENT.reduxSlice.actions.setMessages({ id, messages: retry.history })
+                    );
+                const currentMessages = store.getState().agent?.messagesById?.[id] || [];
+                const fs = getIndexedDbFileSystem();
+                let filesData = [];
+                if (attachments.length > 0) {
+                    filesData = await Promise.all(attachments.map(readFileContent));
+                    filesData = await persistPromptImageFiles(
+                        filesData,
+                        fs,
+                        conversationId,
+                        LOGGER,
+                        requestId
+                    );
+                }
+                signal.throwIfAborted();
 
-        // Auto-generate a title on the first message of a conversation
-        if (currentMessages.length === 0) {
-            const titleConversationId = conversationId;
-            generateConversationTitle(settings, prompt)
-                .then(title => {
-                    if (title) {
-                        store.dispatch(
-                            AGENT.reduxSlice.actions.updateConversationTitle({
-                                id: titleConversationId,
-                                title,
-                            })
-                        );
-                    }
-                })
-                .catch(err => {
-                    LOGGER.warn('[agent-app] Title generation failed (non-critical):', err);
+                // Auto-generate a title on the first message of a conversation
+                if (currentMessages.length === 0) {
+                    const titleConversationId = conversationId;
+                    generateConversationTitle(settings, prompt)
+                        .then(title => {
+                            if (title) {
+                                store.dispatch(
+                                    AGENT.reduxSlice.actions.updateConversationTitle({
+                                        id: titleConversationId,
+                                        title,
+                                    })
+                                );
+                            }
+                        })
+                        .catch(err => {
+                            LOGGER.warn('[agent-app] Title generation failed (non-critical):', err);
+                        });
+                }
+
+                const fileRefs = filesData
+                    .filter(f => f && f.path)
+                    .map(f => `- ${f.path}`)
+                    .join('\n');
+                const augmentedPrompt = fileRefs.length
+                    ? `${prompt}\n\n[Attached files written to workspace filesystem:\n${fileRefs}\nYou can read them with bash or the readFile tool.]`
+                    : prompt;
+                const userMessages = retry?.messages || [
+                    createUserModelMessage({ text: augmentedPrompt, filesData: [] }),
+                ];
+
+                const agent = await Agent.create({
+                    messages: (store.getState().agent?.contextById?.[id] ||
+                        currentMessages) as ModelMessage[],
+                    conversationId,
+                    settings: { ...settings, signal },
                 });
-        }
-
-        const fileRefs = filesData
-            .filter(f => f && f.path)
-            .map(f => `- ${f.path}`)
-            .join('\n');
-        const augmentedPrompt = fileRefs.length
-            ? `${prompt}\n\n[Attached files written to workspace filesystem:\n${fileRefs}\nYou can read them with bash or the readFile tool.]`
-            : prompt;
-        const userMessages = [createUserModelMessage({ text: augmentedPrompt, filesData: [] })];
-
-        const agent = await Agent.create({
-            messages: currentMessages as ModelMessage[],
-            conversationId,
-            settings,
-        });
-
-        await store.dispatch(
-            AGENT.executeAgent({
-                userMessages,
-                agent,
-            })
+                store.dispatch(
+                    AGENT.reduxSlice.actions.setRunWarnings({ id, warnings: agent.warnings })
+                );
+                await store
+                    .dispatch(
+                        AGENT.executeAgent({
+                            userMessages,
+                            agent,
+                        })
+                    )
+                    .unwrap();
+            }
         );
     };
 
@@ -468,20 +721,11 @@ export default class App extends ToolkitElement {
         directMessages: ModelMessage[],
         model = this.selectedModel
     ) => {
-        const { conversationId, currentMessages, settings } =
-            await this.buildAgentExecutionContext(model);
-        const agent = await Agent.create({
-            messages: currentMessages as ModelMessage[],
-            conversationId,
-            settings,
+        const history = store.getState().agent?.messagesById?.[this.activeConversationId] || [];
+        this.executeAgent('', [], model, this.selectedReasoning, false, {
+            history,
+            messages: directMessages,
         });
-
-        await store.dispatch(
-            AGENT.executeAgent({
-                messages: directMessages,
-                agent,
-            })
-        );
     };
 
     /** Agents Helpers **/
@@ -525,12 +769,17 @@ export default class App extends ToolkitElement {
 
     handleStopClick = async e => {
         const id = this.activeConversationId;
+        chatRuns.stop(id);
         Agent.stopAgent(id);
-        store.dispatch(AGENT.reduxSlice.actions.stopLoading({ id }));
-        store.dispatch(AGENT.reduxSlice.actions.stopStreaming({ id }));
     };
 
+    handleQueueRemove = event => chatRuns.remove(this.activeConversationId, event.detail.id);
+    handleQueuePromote = event => chatRuns.promote(this.activeConversationId, event.detail.id);
+    handleQueueResume = () => chatRuns.resume(this.activeConversationId);
+
     handleClearClick = async e => {
+        chatRuns.delete(this.activeConversationId);
+        Agent.cleanupConversationResources(this.activeConversationId);
         store.dispatch(AGENT.reduxSlice.actions.clearMessages({ id: this.activeConversationId }));
     };
 
@@ -569,31 +818,12 @@ export default class App extends ToolkitElement {
         const files = e.detail.files || [];
         const model = e.detail.model ?? this.selectedModel;
         const reasoning = e.detail.reasoning ?? this.selectedReasoning;
-        const { settings } = await this.buildAgentExecutionContext(model);
-        const activeProvider = normalizeLlmProvider(settings.provider);
-        const activeProviderLabel = getProviderLabel(activeProvider);
-        // OAuth-mode providers are configured via an access token, not an API key.
-        const isProviderConfigured = hasUsableProviderCredentials({
-            apiKey: settings.apiKey || null,
-            baseUrl: settings.baseUrl ?? '',
-            authMode: settings.authMode,
-            oauth: settings.oauth,
-        });
         store.dispatch(AGENT.reduxSlice.actions.updateSelectedModel({ model }));
         store.dispatch(AGENT.reduxSlice.actions.setSelectedReasoning({ reasoning }));
-        if (!isProviderConfigured) {
-            store.dispatch(
-                AGENT.reduxSlice.actions.setError({
-                    id: this.activeConversationId,
-                    title: 'Error',
-                    message: `No ${activeProviderLabel} API key found`,
-                })
-            );
-            return;
-        }
         if (!isEmpty(value) || files.length > 0) {
             this.resetError();
-            this.executeAgent(value.trim(), files, model);
+            if (this.isAssistantStyle) this._scrollChatToBottom();
+            this.executeAgent(value.trim(), files, model, reasoning, !!e.detail.priority);
         }
     };
 
@@ -635,24 +865,84 @@ export default class App extends ToolkitElement {
     };
 
     handleRetry = event => {
-        const { item } = event.detail;
-        if (item) {
-            const list = (
-                store.getState().agent?.messagesById?.[this.activeConversationId] || []
-            ).filter(m => !Message.areMessagesEqual(m, item));
-            store.dispatch(
-                AGENT.reduxSlice.actions.setMessages({
-                    id: this.activeConversationId,
-                    messages: list,
-                })
-            );
-            this.executeAgentWithDirectMessages([item]);
+        if (this.isLoading) return;
+        const list = store.getState().agent?.messagesById?.[this.activeConversationId] || [];
+        const item = event?.detail?.item;
+        const index = item
+            ? list.findIndex(m => Message.areMessagesEqual(m, item))
+            : list.length - 1;
+        const retry = prepareRetry(list, index);
+        if (retry) {
+            this.resetError();
+            this.executeAgent('', [], this.selectedModel, this.selectedReasoning, false, retry);
         }
     };
 
     toggleSidePanel = () => {
+        if (this.isAssistantStyle) {
+            this.conversationQuery = '';
+            this.template.querySelector('dialog')?.showModal();
+            this.isSidePanelOpen = true;
+            this.conversationSearchInput?.focus();
+            return;
+        }
         this.isSidePanelOpen = !this.isSidePanelOpen;
     };
+
+    closeConversationHistory = () => {
+        if (this.isAssistantStyle) this.template.querySelector('dialog')?.close();
+        this.isSidePanelOpen = false;
+    };
+
+    get conversationSearchInput(): HTMLInputElement | null {
+        return this.template.querySelector('.conversation-search');
+    }
+
+    handleHistoryClosed = () => {
+        this.isSidePanelOpen = false;
+    };
+
+    handleHistoryKeydown = (event: KeyboardEvent) => {
+        // Let the native dialog dismiss itself without closing its containing assistant panel.
+        if (event.key === 'Escape') event.stopPropagation();
+    };
+
+    handleConversationSearch = event => {
+        this.conversationQuery = event.target.value;
+    };
+
+    handleHistorySelect = event => {
+        this.handleConversationSelect({ detail: { item: { id: event.currentTarget.dataset.id } } });
+    };
+
+    handleHistoryDelete = async event => {
+        await this.deleteConversation(event.currentTarget.dataset.id);
+        this.conversationSearchInput?.focus();
+    };
+
+    handleConversationMenu = event => {
+        if (event.detail.value === 'rename') this.startEditingTitle();
+        if (event.detail.value === 'debug') this.toggleDebugMode();
+        if (event.detail.value === 'clear') this.handleClearClick(event);
+    };
+
+    get filteredConversations() {
+        const query = this.conversationQuery.trim().toLocaleLowerCase();
+        return this.conversationTree
+            .filter(conversation => conversation.title.toLocaleLowerCase().includes(query))
+            .reverse()
+            .map(conversation => ({
+                ...conversation,
+                isActive: conversation.id === this.activeConversationId,
+                ariaCurrent: conversation.id === this.activeConversationId ? 'page' : null,
+                rowClass: `conversation-row${conversation.id === this.activeConversationId ? ' conversation-row_active' : ''}`,
+                deleteLabel: `Delete ${conversation.title}`,
+            }));
+    }
+
+    get hasNoMatchingConversations() {
+        return this.filteredConversations.length === 0;
+    }
 
     handleSkillsCommand = event => {
         const query = event?.detail?.query || '';
@@ -683,7 +973,7 @@ export default class App extends ToolkitElement {
         const newConv = { id: newId, title: newTitle, streamHistory: [] };
         await store.dispatch(AGENT.reduxSlice.actions.addConversation({ conversation: newConv }));
         await store.dispatch(AGENT.reduxSlice.actions.setActiveConversationId({ id: newId }));
-        this.isSidePanelOpen = false;
+        this.closeConversationHistory();
     };
 
     handleConversationSelect = event => {
@@ -691,7 +981,7 @@ export default class App extends ToolkitElement {
         if (id && id !== this.activeConversationId) {
             store.dispatch(AGENT.reduxSlice.actions.setActiveConversationId({ id }));
         }
-        this.isSidePanelOpen = false;
+        this.closeConversationHistory();
     };
 
     handleDeleteConversation = event => {
@@ -704,6 +994,7 @@ export default class App extends ToolkitElement {
     startEditingTitle = () => {
         const conv = this.conversations.find(c => c.id === this.activeConversationId);
         this.pendingTitle = conv ? conv.title : '';
+        this._shouldFocusTitle = true;
         this.isEditingTitle = true;
     };
 
@@ -715,6 +1006,8 @@ export default class App extends ToolkitElement {
         if (event.key === 'Enter') {
             this.saveConversationTitle();
         } else if (event.key === 'Escape') {
+            event.preventDefault();
+            event.stopPropagation();
             this.cancelEditingTitle();
         }
     };
@@ -737,6 +1030,7 @@ export default class App extends ToolkitElement {
 
     deleteConversation = async id => {
         const wasActive = this.activeConversationId === id;
+        chatRuns.delete(id);
         Agent.cleanupConversationResources(id);
         try {
             const fs = getIndexedDbFileSystem();

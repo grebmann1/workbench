@@ -37,3 +37,18 @@ test('askUserBridge: once resolved, a second resolve for same id is a no-op', as
     resolveQuestion('once', 'second'); // no-op; promise already settled
     assert.equal(await p, 'first');
 });
+
+test('abort rejects only its own pending question and removes the resolver', async () => {
+    const controller = new AbortController();
+    const aborted = createQuestion('abort-me', controller.signal);
+    const other = createQuestion('keep-me');
+    controller.abort();
+    await assert.rejects(aborted);
+    resolveQuestion('abort-me', 'late response');
+    resolveQuestion('keep-me', 'answer');
+    assert.equal(await other, 'answer');
+});
+
+test('an already aborted signal cannot create a pending question', async () => {
+    await assert.rejects(createQuestion('already-aborted', AbortSignal.abort()));
+});

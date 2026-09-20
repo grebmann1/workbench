@@ -145,7 +145,13 @@ const parseExecuteAnonymousSoapResponse = (xmlText: string) => {
     });
 };
 
-const _executeApexAnonymous = async (connector: ConnectorLike, body: string, state: any) => {
+const _executeApexAnonymous = async (
+    connector: ConnectorLike,
+    body: string,
+    state: any,
+    signal?: AbortSignal
+) => {
+    signal?.throwIfAborted();
     const conn = (connector as any).conn;
     const endpointUrl = `${conn.instanceUrl}/services/Soap/s/${conn.version}`;
     const debugCategoriesXml = buildDebugCategories(state)
@@ -177,6 +183,8 @@ const _executeApexAnonymous = async (connector: ConnectorLike, body: string, sta
             SOAPAction: 'executeAnonymous',
         },
         body: envelope,
+        signal,
+        redirect: 'error',
     });
     const xmlText = await res.text();
     if (!res.ok) {
@@ -199,12 +207,12 @@ export const executeApexAnonymous = createAsyncThunk(
             tabId: string;
             createdDate: string | number | Date;
         },
-        { dispatch, getState }
+        { dispatch, getState, signal }
     ) => {
         //console.log('connector, body,tabId',connector, body,tabId);
         //const apiPath = isAllRows ? '/queryAll' : '/query';
         try {
-            const res = await _executeApexAnonymous(connector, body, getState().apex);
+            const res = await _executeApexAnonymous(connector, body, getState().apex, signal);
             dispatch(
                 DOCUMENT.reduxSlices.RECENT.actions.saveApex({
                     body,

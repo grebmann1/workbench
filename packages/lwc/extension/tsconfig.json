@@ -6,6 +6,7 @@
         "lib": ["ES2020", "DOM"],
         "baseUrl": ".",
         "paths": {
+            "host-api/commands": ["../main/host-api/commands"],
             "core/*": ["../main/core/*"],
             "editor/*": ["../main/editor/*"],
             "slds/*": ["../main/component/slds/*"],

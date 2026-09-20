@@ -6,9 +6,9 @@
     "description": "Explore in details all your SObjects",
     "path": "sobject",
     "quickActionIcon": "standard:knowledge",
-    "type": "admin",
-    "menuGroup": "admin",
-    "menuOrder": 20,
+    "type": "data",
+    "menuGroup": "data",
+    "menuOrder": 15,
     "flags": {
         "isFullHeight": true,
         "isDeletable": true,

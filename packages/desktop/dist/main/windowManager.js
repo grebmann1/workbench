@@ -47,8 +47,8 @@ class WindowManager {
         const browserWindowOptions = {
             width: 1440,
             height: 960,
-            minWidth: 1100,
-            minHeight: 700,
+            minWidth: 640,
+            minHeight: 600,
             title: 'Workbench Desktop',
             icon: (0, desktopPaths_1.getDesktopIconPath)('png'),
             show: false,
@@ -87,8 +87,8 @@ class WindowManager {
         const browserWindowOptions = {
             width: 1400,
             height: 920,
-            minWidth: 1100,
-            minHeight: 700,
+            minWidth: 640,
+            minHeight: 600,
             title: this.formatInstanceTitle(payload),
             icon: (0, desktopPaths_1.getDesktopIconPath)('png'),
             show: false,

@@ -3,11 +3,17 @@
         <template lwc:if={isSettingsViewOpen}>
             <div class="chat-settings-page">
                 <div class="chat-settings-header">
-                    <lightning-button
-                        label="Back to chat"
-                        icon-name="utility:back"
-                        variant="neutral"
-                        onclick={handleCloseSettings}></lightning-button>
+                    <button
+                        type="button"
+                        class="chat-icon-button"
+                        aria-label="Back to chat"
+                        title="Back to chat"
+                        onclick={handleCloseSettings}>
+                        <slds-lucide-icon
+                            name="arrow-left"
+                            size="18"
+                            aria-hidden="true"></slds-lucide-icon>
+                    </button>
                     <h2 class="chat-settings-title">AI Settings</h2>
                     <lightning-button
                         label="Save"
@@ -17,28 +23,224 @@
                 </div>
                 <div class="chat-settings-body">
                     <agent-ai-settings
+                        assistant-style
                         hide-llm-settings-card
                         hide-mcp-card
                         config={config}
                         oninputchange={handleInputChange}
+                        onconnectionchange={handleConnectionChange}
                         onsetupcomplete={handleSetupComplete}></agent-ai-settings>
+                    <details class="mcp-settings">
+                        <summary>
+                            <slds-lucide-icon
+                                name="blocks"
+                                size="16"
+                                aria-hidden="true"></slds-lucide-icon>
+                            <span>
+                                Connected tools
+                                <small>Add your own MCP servers</small>
+                            </span>
+                        </summary>
+                        <div class="mcp-settings-content">
+                            <p id="mcp-help">
+                                Add HTTP or SSE MCP servers to give your agent more capabilities.
+                                Changes apply to your next request. Leave blank to remove all
+                                servers.
+                            </p>
+                            <label for="mcp-config">MCP server configuration</label>
+                            <textarea
+                                id="mcp-config"
+                                rows="6"
+                                spellcheck="false"
+                                oninput={handleMcpChange}
+                                aria-describedby="mcp-help mcp-error"
+                                aria-invalid={isMcpInvalid}></textarea>
+                            <p id="mcp-error" class="browser-error" role="status">{mcpError}</p>
+                            <details>
+                                <summary>Configuration example</summary>
+                                <pre>
+&#123;"mcpServers": &#123;"docs": &#123;"url": "https://your-server.example/mcp", "transport": "http"&#125;&#125;&#125;</pre
+                                >
+                            </details>
+                        </div>
+                    </details>
+                    <p class="settings-save-hint">Use Save to apply API keys and tool settings.</p>
                 </div>
             </div>
         </template>
-        <template lwc:else>
+        <div class={chatWorkspaceClass}>
             <div class="chat-header">
-                <lightning-button-icon
-                    icon-name="utility:settings"
-                    alternative-text="AI settings"
-                    title="AI settings"
-                    onclick={handleOpenSettings}></lightning-button-icon>
+                <div class="chat-identity">
+                    <span class="chat-mark" aria-hidden="true">
+                        <span class="chat-monogram">w</span>
+                        <span class="chat-sparkle">✦</span>
+                    </span>
+                    <div>
+                        <h1>
+                            Workbench
+                            <span>Agent</span>
+                        </h1>
+                        <p class={statusClass} role="status" title={statusLabel}>
+                            <span aria-hidden="true"></span>
+                            <span class="agent-status-label">{statusLabel}</span>
+                        </p>
+                    </div>
+                </div>
+                <div class="chat-header-actions">
+                    <button
+                        type="button"
+                        class={approvalModeClass}
+                        role="switch"
+                        aria-label="YOLO mode"
+                        aria-checked={yoloMode}
+                        title={approvalModeHint}
+                        disabled={isApprovalModeDisabled}
+                        onclick={handleToggleYolo}>
+                        <slds-lucide-icon
+                            name={approvalIcon}
+                            size="13"
+                            aria-hidden="true"></slds-lucide-icon>
+                        {approvalModeLabel}
+                    </button>
+                    <button
+                        class="chat-icon-button"
+                        type="button"
+                        aria-label="AI settings"
+                        title="AI settings"
+                        onclick={handleOpenSettings}>
+                        <slds-lucide-icon name="settings-2" size="18"></slds-lucide-icon>
+                    </button>
+                </div>
             </div>
+            <section class="browser-context" aria-label="Browser context">
+                <button
+                    type="button"
+                    class="browser-target"
+                    aria-label="Browser target"
+                    aria-haspopup="dialog"
+                    aria-controls="tab-picker"
+                    aria-expanded={isTabPickerOpen}
+                    aria-describedby="browser-target-site browser-target-title browser-target-help"
+                    title={browserTargetHint}
+                    data-tab-id={browserTabId}
+                    onclick={handleOpenTabPicker}
+                    disabled={isTargetDisabled}>
+                    <span class="browser-target-icon" aria-hidden="true">
+                        <slds-lucide-icon name="panels-top-left" size="15"></slds-lucide-icon>
+                    </span>
+                    <span id="browser-target-site" class="browser-target-site">
+                        {browserTargetSite}
+                    </span>
+                    <span id="browser-target-title" class="browser-target-title">
+                        {browserTargetTitle}
+                    </span>
+                    <slds-lucide-icon
+                        class="browser-target-caret"
+                        name={browserTargetIcon}
+                        size="14"
+                        aria-hidden="true"></slds-lucide-icon>
+                </button>
+                <span id="browser-target-help" class="slds-assistive-text">
+                    {approvalSummary}. The selected page stays fixed while the agent works.
+                </span>
+                <template lwc:if={browserError}>
+                    <p class="browser-error" role="alert">{browserError}</p>
+                </template>
+                <dialog
+                    id="tab-picker"
+                    class="tab-picker"
+                    aria-labelledby="tab-picker-title"
+                    oncancel={handleCloseTabPicker}
+                    onclose={handleTabPickerClosed}
+                    onclick={handleTabPickerBackdrop}
+                    onkeydown={handleTabPickerKeydown}>
+                    <div class="tab-picker-header">
+                        <h2 id="tab-picker-title">Choose a tab</h2>
+                        <button
+                            type="button"
+                            class="chat-icon-button"
+                            aria-label="Close tab picker"
+                            onclick={handleCloseTabPicker}>
+                            <slds-lucide-icon
+                                name="x"
+                                size="16"
+                                aria-hidden="true"></slds-lucide-icon>
+                        </button>
+                    </div>
+                    <div class="tab-picker-search">
+                        <slds-lucide-icon
+                            name="search"
+                            size="16"
+                            aria-hidden="true"></slds-lucide-icon>
+                        <input
+                            type="search"
+                            aria-label="Search tabs"
+                            placeholder="Search tabs by title or site…"
+                            value={tabSearch}
+                            oninput={handleTabSearch}
+                            autocomplete="off" />
+                    </div>
+                    <div class="tab-picker-count" role="status">{tabCountLabel}</div>
+                    <ul class="tab-picker-list" aria-label="Open web tabs">
+                        <template for:each={filteredTabs} for:item="tab">
+                            <li key={tab.id}>
+                                <button
+                                    type="button"
+                                    class={tab.className}
+                                    data-tab-id={tab.id}
+                                    aria-pressed={tab.selected}
+                                    title={tab.url}
+                                    onclick={handleSelectTab}>
+                                    <span class="tab-picker-site-icon" aria-hidden="true">
+                                        {tab.initial}
+                                    </span>
+                                    <span class="tab-picker-page">
+                                        <span class="tab-picker-page-title">{tab.title}</span>
+                                        <span class="tab-picker-page-site">{tab.site}</span>
+                                    </span>
+                                    <template lwc:if={tab.selected}>
+                                        <span class="tab-picker-selected">
+                                            <slds-lucide-icon
+                                                name="check"
+                                                size="15"
+                                                aria-hidden="true"></slds-lucide-icon>
+                                            <span class="slds-assistive-text">Selected</span>
+                                        </span>
+                                    </template>
+                                </button>
+                            </li>
+                        </template>
+                    </ul>
+                    <template lwc:if={hasNoMatchingTabs}>
+                        <div class="tab-picker-empty">
+                            <slds-lucide-icon
+                                name="panels-top-left"
+                                size="24"
+                                aria-hidden="true"></slds-lucide-icon>
+                            <p>{tabEmptyLabel}</p>
+                            <span>{tabEmptyHint}</span>
+                        </div>
+                    </template>
+                    <div class="tab-picker-footer">
+                        <slds-lucide-icon
+                            name={approvalIcon}
+                            size="14"
+                            aria-hidden="true"></slds-lucide-icon>
+                        {approvalSummary}
+                        <kbd>esc</kbd>
+                    </div>
+                </dialog>
+            </section>
             <div class="chat-body">
                 <agent-app
+                    lwc:if={approvalModeLoaded}
                     class="chat-agent"
                     is-audio-recorder-disabled
+                    browser-agent-enabled
+                    browser-tab-id={browserTabId}
+                    yolo-mode={yoloMode}
                     onopensettings={handleOpenSettings}></agent-app>
             </div>
-        </template>
+        </div>
     </div>
 </template>

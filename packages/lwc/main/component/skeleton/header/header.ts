@@ -11,6 +11,7 @@ export default class Header extends LightningElement {
     @api isUserLoggedIn = false;
 
     @api isMenuSmall = false;
+    @api managedLayout = false;
 
     @api isAgentChatExpanded = false;
     @api isAgentVisible = false;
@@ -21,7 +22,7 @@ export default class Header extends LightningElement {
     @wire(connectStore, { store: legacyStore })
     applicationChange({ application }) {
         // Toggle Menu
-        if (isNotUndefinedOrNull(application.isMenuExpanded)) {
+        if (!this.managedLayout && isNotUndefinedOrNull(application.isMenuExpanded)) {
             this.isMenuSmall = !application.isMenuExpanded;
         }
     }
@@ -33,6 +34,12 @@ export default class Header extends LightningElement {
     /** Events **/
 
     handleToggle = () => {
+        if (this.managedLayout) {
+            this.dispatchEvent(
+                new CustomEvent('menutoggle', { detail: { collapsed: !this.isMenuSmall } })
+            );
+            return;
+        }
         this.isMenuSmall = !this.isMenuSmall;
         if (this.isMenuSmall) {
             legacyStore.dispatch(store_application.collapseMenu());
@@ -49,7 +56,7 @@ export default class Header extends LightningElement {
         } else {
             legacyStore.dispatch(store_application.expandAgentChat());
             // Collapse the left menu to free up horizontal space for the agent panel
-            if (!this.isMenuSmall) {
+            if (!this.managedLayout && !this.isMenuSmall) {
                 this.isMenuSmall = true;
                 legacyStore.dispatch(store_application.collapseMenu());
                 window.defaultStore.setItem('header-isMenuSmall', JSON.stringify(this.isMenuSmall));
@@ -68,21 +75,54 @@ export default class Header extends LightningElement {
 
     deleteTab = e => {
         e.stopPropagation();
-        const applicationId = e.currentTarget.closest('li').dataset.key;
-        const filteredTabs = this.applications.filter(x => x.isTabVisible);
-        const index = filteredTabs.findIndex(x => x.id === applicationId);
-        // Delete app
+        const applicationId = e.currentTarget.dataset.key;
+        this._restoreFocus = e.currentTarget.matches(':focus') ? applicationId : null;
         this.dispatchEvent(new CustomEvent('tabdelete', { detail: { id: applicationId } }));
-        // Navigate
-        if (index > 0) {
-            navigate(this.navContext, {
-                type: 'application',
-                state: { applicationName: filteredTabs[index - 1].path },
-            });
-        } else {
-            navigate(this.navContext, { type: 'home' });
-        }
     };
+
+    _restoreFocus: string | null = null;
+
+    get dom(): ShadowRoot {
+        return this.template;
+    }
+
+    renderedCallback() {
+        if (
+            !this._restoreFocus ||
+            (this.applications || []).some(app => app.id === this._restoreFocus)
+        )
+            return;
+        this._restoreFocus = null;
+        // Route and store updates can render separately. Focus the final active tab.
+        requestAnimationFrame(() => {
+            if (!this.dom.host.isConnected) return;
+            const target =
+                this.dom.querySelector<HTMLButtonElement>('button[aria-current="page"]') ||
+                this.dom.querySelector<HTMLButtonElement>('[data-path="home"]');
+            target?.focus();
+            target?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+        });
+    }
+
+    handleTabFocus = e => {
+        e.currentTarget.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    };
+
+    get visibleApplications() {
+        return (this.applications || [])
+            .filter(app => app.isTabVisible)
+            .map(app => ({
+                ...app,
+                ariaCurrent: app.isActive ? 'page' : null,
+                closeLabel: `Close ${app.label}`,
+            }));
+    }
+
+    get homeCurrent() {
+        return (this.applications || []).some(app => app.name === 'home/app' && app.isActive)
+            ? 'page'
+            : null;
+    }
 
     /** Methods **/
 
@@ -90,8 +130,9 @@ export default class Header extends LightningElement {
         try {
             const _isMenuSmall = await window.defaultStore.getItem('header-isMenuSmall');
             if (!isEmpty(_isMenuSmall)) {
-                this.isMenuSmall = _isMenuSmall === 'true';
-                if (this.isMenuSmall) {
+                const collapsed = _isMenuSmall === 'true';
+                if (!this.managedLayout) this.isMenuSmall = collapsed;
+                if (collapsed) {
                     legacyStore.dispatch(store_application.collapseMenu());
                 } else {
                     legacyStore.dispatch(store_application.expandMenu());
@@ -115,7 +156,7 @@ export default class Header extends LightningElement {
     /** Getters */
 
     get collapseClass() {
-        return classSet('slds-grid button-container slds-show_medium')
+        return classSet('slds-grid button-container')
             .add({
                 'slds-grid_align-end': !this.isMenuSmall,
                 'slds-grid_align-center': this.isMenuSmall,
@@ -124,7 +165,7 @@ export default class Header extends LightningElement {
     }
 
     get rightPanelCollapseClass() {
-        return classSet('slds-grid button-container slds-show_medium')
+        return classSet('slds-grid button-container')
             .add({
                 'slds-grid_align-end': !this.isAgentChatExpanded,
             })
@@ -134,7 +175,25 @@ export default class Header extends LightningElement {
         return this.isMenuSmall ? 'utility:toggle_panel_left' : 'utility:toggle_panel_right';
     }
 
+    get leftPanelLabel() {
+        return this.isMenuSmall ? 'Expand navigation' : 'Collapse navigation';
+    }
+
+    get rightPanelLabel() {
+        return this.isAgentChatExpanded ? 'Close AI assistant' : 'Open AI assistant';
+    }
+
     get rightPanelIconName() {
         return this.isAgentChatExpanded ? 'utility:einstein_alt' : 'utility:einstein';
+    }
+
+    @api focusNavigationToggle() {
+        const control = this.dom.querySelector<HTMLElement>('[data-toggle="navigation"]');
+        control?.focus();
+    }
+
+    @api focusAssistantToggle() {
+        const control = this.dom.querySelector<HTMLElement>('[data-toggle="assistant"]');
+        control?.focus();
     }
 }

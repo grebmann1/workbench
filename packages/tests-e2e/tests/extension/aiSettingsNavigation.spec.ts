@@ -25,7 +25,10 @@ test('side-panel onboarding opens the full app directly at AI settings', async (
 test('full-app assistant onboarding opens the AI settings tab', async ({ appPage }) => {
     test.skip(process.env.E2E_EXTENSION_TARGET === 'chat', 'Core app entry point');
     const page = await appPage('urlencoder');
-    await page.locator('skeleton-header').locator('.right-panel-collapse button').click();
+    await page
+        .locator('skeleton-header')
+        .getByRole('button', { name: 'Open AI assistant', exact: true })
+        .click();
     await page.getByRole('button', { name: /Developer, Administrator, etc/ }).click();
     await page.getByRole('button', { name: 'Open Settings → AI' }).click();
     await expect(page.getByRole('tab', { name: 'AI', exact: true })).toHaveAttribute(
@@ -49,6 +52,8 @@ test('Open Settings AI opens provider controls and dismisses setup when already 
         await page.getByRole('button', { name: /Developer, Administrator, etc/ }).click();
         await page.getByRole('button', { name: 'Open Settings → AI' }).click();
         await expect(page.getByRole('heading', { name: 'AI Settings', exact: true })).toBeVisible();
+        await page.getByText('API keys & endpoints', { exact: false }).first().click();
+        await page.locator('.api-provider > summary').filter({ hasText: 'OpenAI' }).click();
     } else {
         await page.getByRole('tab', { name: 'AI', exact: true }).click();
     }

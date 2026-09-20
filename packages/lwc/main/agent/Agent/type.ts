@@ -56,30 +56,13 @@ export type StreamChunk =
     | { type: 'content'; content: string }
     | { type: 'reasoning'; content: string }
     | { type: 'tool_calls'; toolCalls: ToolCall[] }
-    | { type: 'tool_call_delta'; toolCallId: string; toolName?: string; delta: string }
+    | {
+          type: 'tool_call_delta';
+          toolCallId: string;
+          toolName?: string;
+          delta: string;
+          providerOptions?: unknown;
+      }
     | { type: 'tool_result'; toolCall: ToolCall; toolResult: ToolResult }
     | { type: 'error'; content: string }
     | { type: 'done' };
-
-type AgentSettings = {
-    provider?: string;
-    apiKey?: string;
-    baseUrl?: string;
-    isInternal?: boolean;
-    /** Use OpenAI Responses API instead of chat completions.  Enable when the
-     *  gateway (e.g. LiteLLM) routes to OpenAI's /v1/responses endpoint. */
-    useResponsesApi?: boolean;
-    selectedModel?: string;
-    selectedReasoning?: string;
-    modelContextWindow?: number;
-    systemPrompt?: string;
-    maxToolRounds?: number;
-    isStoreEnabled?: boolean;
-    store: Store;
-};
-
-type SubagentStatus = {
-    agent: string;
-    description: string;
-    detail?: string;
-};

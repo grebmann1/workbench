@@ -17,6 +17,10 @@ import {
     getOrCreateBashInstanceForConversation,
 } from 'agent/runtimeDeps';
 import { createStreamMessageBuilder } from 'agent/streamBuilder';
+import { StepCheckpoint } from '../runController/stepCheckpoint';
+import { createRunStatistics, type RunStatistics } from '../runController/runStatistics';
+import type { ConnectorLike } from 'core/connector';
+import { approveToolCall, type ToolApprovalMode } from '../tools/modules/toolPolicy';
 import { createBashTools, filterToolsByModel } from 'agent/tools';
 import {
     DEFAULT_MODEL,
@@ -44,6 +48,7 @@ import {
     DEFAULT_LLM_PROVIDER,
     normalizeLlmProvider,
     getMaxOutputTokensForModel,
+    getContextWindowForModel,
     type OAuthCredentials,
 } from 'shared/llm';
 import LOGGER from 'shared/logger';
@@ -55,75 +60,32 @@ import type { McpServerConfig, McpToolset } from '../mcp/mcpTypes';
 
 const MAX_TOOL_ROUNDS = 400;
 
-export type ProcessMessageFinishReason =
-    | 'stop'
-    | 'length'
-    | 'content-filter'
-    | 'tool-calls'
-    | 'error'
-    | 'other';
-
-export interface ProcessMessageUsage {
-    inputTokens?: number;
-    outputTokens?: number;
-    totalTokens?: number;
-}
-
-export interface ProcessMessageStepStart {
-    stepNumber: number;
-    timestamp: number;
-}
-
-export interface ProcessMessageStepFinish {
-    stepNumber: number;
-    timestamp: number;
-    finishReason: ProcessMessageFinishReason;
-    usage: ProcessMessageUsage;
-}
-
-export type ToolCall = AiToolCall<string, unknown>;
-export type ToolResult = ToolResultOutput;
-
-export interface ProcessMessageToolStart {
-    toolCall: ToolCall;
-    timestamp: number;
-}
-
-export interface ProcessMessageToolFinish {
-    toolCall: ToolCall;
-    toolResult: ToolResult;
-    timestamp: number;
-}
-
-export interface ProcessMessageError {
-    message: string;
-    timestamp: number;
-}
-
-export interface ProcessMessageObserver {
-    onStepStart?(info: ProcessMessageStepStart): void;
-    onStepFinish?(info: ProcessMessageStepFinish): void;
-    onToolStart?(info: ProcessMessageToolStart): void;
-    onToolFinish?(info: ProcessMessageToolFinish): void;
-    onError?(info: ProcessMessageError): void;
-}
-
-export type StreamChunk =
-    | { type: 'content'; content: string }
-    | { type: 'reasoning'; content: string }
-    | { type: 'tool_calls'; toolCalls: ToolCall[] }
-    | {
-          type: 'tool_call_delta';
-          toolCallId: string;
-          toolName?: string;
-          delta: string;
-          providerOptions?: unknown;
-      }
-    | { type: 'tool_result'; toolCall: ToolCall; toolResult: ToolResult }
-    | { type: 'error'; content: string }
-    | { type: 'done' };
+export type {
+    ProcessMessageFinishReason,
+    ProcessMessageUsage,
+    ProcessMessageStepStart,
+    ProcessMessageStepFinish,
+    ToolCall,
+    ToolResult,
+    ProcessMessageToolStart,
+    ProcessMessageToolFinish,
+    ProcessMessageError,
+    ProcessMessageObserver,
+    StreamChunk,
+} from './type';
+import type {
+    ProcessMessageFinishReason,
+    ProcessMessageUsage,
+    ToolCall,
+    ToolResult,
+    ProcessMessageObserver,
+    StreamChunk,
+} from './type';
 
 type AgentSettings = {
+    approvalMode?: ToolApprovalMode;
+    signal?: AbortSignal;
+    connector?: ConnectorLike | null;
     provider?: string;
     apiKey?: string;
     baseUrl?: string;
@@ -171,7 +133,15 @@ async function resolveSkillsSection() {
 function refreshSkillsCache() {
     cachedSkillsSection = null;
 }
-function toAiSdkTools(tools, extraContext = {}) {
+function toAiSdkTools(
+    tools,
+    extraContext: {
+        conversationId?: string;
+        abortSignal?: AbortSignal;
+        approvalContext?: string;
+        approvalMode?: ToolApprovalMode;
+    } = {}
+) {
     const result = {};
     (Array.isArray(tools) ? tools : []).forEach(rawTool => {
         if (
@@ -186,8 +156,22 @@ function toAiSdkTools(tools, extraContext = {}) {
             ...rawTool,
             description: rawTool.description || '',
             inputSchema: normalizeToolInputSchema(rawTool.parameters, z),
-            execute: async (input: object) => {
-                return rawTool.execute({ ...input, ...extraContext });
+            execute: async (input: object, options) => {
+                const signals = [extraContext.abortSignal, options.abortSignal].filter(
+                    Boolean
+                ) as AbortSignal[];
+                const abortSignal = signals.length ? AbortSignal.any(signals) : undefined;
+                abortSignal?.throwIfAborted();
+                await approveToolCall(
+                    rawTool.name,
+                    input,
+                    extraContext.conversationId || '',
+                    abortSignal,
+                    extraContext.approvalContext,
+                    extraContext.approvalMode
+                );
+                abortSignal?.throwIfAborted();
+                return rawTool.execute({ ...input, ...extraContext, abortSignal });
             },
         });
     });
@@ -242,6 +226,13 @@ export class Agent {
     private modelMaxOutputTokens: number;
     private maxToolRounds: number;
     private abortController: AbortController | null = null;
+    private parentSignal?: AbortSignal;
+    private disposed = false;
+    private statistics: RunStatistics | null = null;
+    public warnings: string[] = [];
+    get runStatistics() {
+        return this.statistics ? { ...this.statistics } : null;
+    }
     private messages: ModelMessage[] = [];
     private planContext: string | null = null;
     private isInternal: boolean;
@@ -327,89 +318,142 @@ export class Agent {
         settings: AgentSettings;
     }) {
         const id = conversationId || guid();
-        const shell = getOrCreateBashInstanceForConversation(id);
-        const sandboxDeps = {
-            getBashInstance: () => shell,
-            brightDataApiKey: settings.brightDataApiKey ?? null,
-            googleSheetEnabled: settings.googleSheetEnabled ?? false,
-        };
-        await ensureCdpHandlerInitialized(id, sandboxDeps);
-        const fs = getIndexedDbFileSystem();
+        settings.signal?.throwIfAborted();
+        let mcpToolset: McpToolset | null = null;
+        try {
+            const shell = getOrCreateBashInstanceForConversation(id);
+            const sandboxDeps = {
+                getBashInstance: () => shell,
+                brightDataApiKey: settings.brightDataApiKey ?? null,
+                googleSheetEnabled: settings.googleSheetEnabled ?? false,
+            };
+            await ensureCdpHandlerInitialized(id, sandboxDeps);
+            settings.signal?.throwIfAborted();
+            const fs = getIndexedDbFileSystem();
 
-        const bashTools = createBashTools(shell, fs, {
-            execInSandbox: async (code, timeoutMs) => {
-                const handler = await ensureCdpHandlerInitialized(id, sandboxDeps);
-                if (!handler || typeof handler.execInSandbox !== 'function') {
-                    throw new Error('Browser runtime is unavailable');
-                }
-                return handler.execInSandbox(code, timeoutMs);
-            },
-            brightDataApiKey: settings.brightDataApiKey ?? null,
-        });
-        const currentModel = settings.selectedModel || DEFAULT_MODEL;
-        const availableTools = [
-            ...bashTools,
-            ...(Array.isArray(settings.extraTools) ? settings.extraTools : []),
-        ];
-        const filteredTools = filterToolsByModel(availableTools, currentModel);
-        const aiTools = toAiSdkTools(filteredTools, { conversationId: id });
-        const mcpToolset = await createMcpToolset(settings.mcpServers ?? []);
-        Object.assign(aiTools, mcpToolset.tools);
-        if (mcpToolset.errors.length) {
-            LOGGER.warn('[agent:mcp] MCP toolset initialized with errors', {
-                errors: mcpToolset.errors,
+            const bashTools = createBashTools(shell, fs, {
+                execInSandbox: async (code, timeoutMs) => {
+                    const handler = await ensureCdpHandlerInitialized(id, sandboxDeps);
+                    if (!handler || typeof handler.execInSandbox !== 'function') {
+                        throw new Error('Browser runtime is unavailable');
+                    }
+                    return handler.execInSandbox(code, timeoutMs);
+                },
+                brightDataApiKey: settings.brightDataApiKey ?? null,
+                connector: settings.connector,
+                signal: settings.signal,
             });
-        }
-        const reasoningConfig = getReasoningConfigFromSelection(
-            settings.selectedReasoning || DEFAULT_REASONING
-        );
-        const provider = normalizeLlmProvider(settings.provider || DEFAULT_LLM_PROVIDER);
-        const providerInstance = createProviderInstance({
-            provider,
-            apiKey: settings.apiKey,
-            baseUrl: settings.baseUrl,
-            isInternal: !!settings.isInternal,
-            authMode: settings.authMode,
-            oauth: settings.oauth,
-            onTokenRefresh:
-                settings.authMode === 'oauth'
-                    ? credentials => {
-                          // Fire-and-forget: the in-memory token already keeps this run going;
-                          // persistence just keeps the next run + a rotated refresh token fresh.
-                          persistRefreshedOAuthCredentials(provider, credentials).catch(error => {
-                              LOGGER.warn('[agent:oauth] failed to persist refreshed credentials', {
-                                  error,
-                              });
-                          });
-                      }
-                    : undefined,
-        });
-        const summaryModel = getSummaryModelForAgentProvider(
-            provider,
-            currentModel,
-            !!settings.isInternal
-        );
+            const currentModel = settings.selectedModel || DEFAULT_MODEL;
+            const availableTools = [
+                ...bashTools,
+                ...(Array.isArray(settings.extraTools) ? settings.extraTools : []),
+            ];
+            const filteredTools = filterToolsByModel(availableTools, currentModel);
+            const aiTools = toAiSdkTools(filteredTools, {
+                conversationId: id,
+                abortSignal: settings.signal,
+                approvalContext: settings.connector?.conn?.instanceUrl || '',
+                approvalMode: settings.approvalMode,
+            });
+            mcpToolset = await createMcpToolset(settings.mcpServers ?? []);
+            settings.signal?.throwIfAborted();
+            Object.assign(aiTools, mcpToolset.tools);
+            for (const name of Object.keys(mcpToolset.tools)) {
+                const definition = aiTools[name];
+                const execute = definition.execute;
+                if (!execute) continue;
+                aiTools[name] = {
+                    ...definition,
+                    execute: async (input, options) => {
+                        const signals = [settings.signal, options.abortSignal].filter(
+                            Boolean
+                        ) as AbortSignal[];
+                        const abortSignal = signals.length ? AbortSignal.any(signals) : undefined;
+                        await approveToolCall(
+                            name,
+                            input,
+                            id,
+                            abortSignal,
+                            '',
+                            settings.approvalMode
+                        );
+                        abortSignal?.throwIfAborted();
+                        return execute(input, { ...options, abortSignal });
+                    },
+                };
+            }
+            if (mcpToolset.errors.length) {
+                LOGGER.warn('[agent:mcp] MCP toolset initialized with errors', {
+                    errors: mcpToolset.errors,
+                });
+            }
+            const reasoningConfig = getReasoningConfigFromSelection(
+                settings.selectedReasoning || DEFAULT_REASONING
+            );
+            const provider = normalizeLlmProvider(settings.provider || DEFAULT_LLM_PROVIDER);
+            const providerInstance = createProviderInstance({
+                provider,
+                apiKey: settings.apiKey,
+                baseUrl: settings.baseUrl,
+                isInternal: !!settings.isInternal,
+                authMode: settings.authMode,
+                oauth: settings.oauth,
+                onTokenRefresh:
+                    settings.authMode === 'oauth'
+                        ? credentials => {
+                              // Fire-and-forget: the in-memory token already keeps this run going;
+                              // persistence just keeps the next run + a rotated refresh token fresh.
+                              persistRefreshedOAuthCredentials(provider, credentials).catch(
+                                  error => {
+                                      LOGGER.warn(
+                                          '[agent:oauth] failed to persist refreshed credentials',
+                                          {
+                                              error,
+                                          }
+                                      );
+                                  }
+                              );
+                          }
+                        : undefined,
+            });
+            const summaryModel = getSummaryModelForAgentProvider(
+                provider,
+                currentModel,
+                !!settings.isInternal
+            );
 
-        return new Agent({
-            messages,
-            conversationId: id,
-            providerInstance,
-            provider,
-            model: currentModel,
-            summaryModel,
-            tools: aiTools,
-            reasoningConfig,
-            modelContextWindow: settings.modelContextWindow || 128000,
-            modelMaxOutputTokens: getMaxOutputTokensForModel(currentModel),
-            systemPrompt: settings.systemPrompt || '',
-            maxToolRounds: settings.maxToolRounds || MAX_TOOL_ROUNDS,
-            isStoreEnabled: settings.isStoreEnabled || false,
-            isInternal: settings.isInternal,
-            useResponsesApi: settings.useResponsesApi,
-            authMode: settings.authMode,
-            mcpToolset,
-            store: store,
-        });
+            const agent = new Agent({
+                messages,
+                conversationId: id,
+                providerInstance,
+                provider,
+                model: currentModel,
+                summaryModel,
+                tools: aiTools,
+                reasoningConfig,
+                modelContextWindow:
+                    settings.modelContextWindow || getContextWindowForModel(currentModel),
+                modelMaxOutputTokens: getMaxOutputTokensForModel(currentModel),
+                systemPrompt: settings.systemPrompt || '',
+                maxToolRounds: settings.maxToolRounds || MAX_TOOL_ROUNDS,
+                isStoreEnabled: settings.isStoreEnabled || false,
+                isInternal: settings.isInternal,
+                useResponsesApi: settings.useResponsesApi,
+                authMode: settings.authMode,
+                mcpToolset,
+                store: settings.store,
+            });
+            agent.parentSignal = settings.signal;
+            agent.warnings = mcpToolset.errors.map(
+                error =>
+                    `MCP server ${error.serverId} is unavailable. Review its connection in AI settings.`
+            );
+            return agent;
+        } catch (error) {
+            await mcpToolset?.close();
+            clearCdpHandlerForConversation(id);
+            throw error;
+        }
     }
 
     abort(): void {
@@ -521,6 +565,8 @@ export class Agent {
     }
 
     static cleanupConversationResources(conversationId: string): void {
+        const running = Agent.agentMap.get(conversationId);
+        if (running) running.disposed = true;
         Agent.stopAgent(conversationId);
         Agent.clearStreamingMessageListenersForConversation(conversationId);
         cleanupBashInstanceForConversation(conversationId);
@@ -546,7 +592,10 @@ export class Agent {
 
     private getCompactionSettings(): CompactionSettings {
         return {
-            reserveTokens: DEFAULT_RESERVE_TOKENS,
+            reserveTokens: Math.min(
+                DEFAULT_RESERVE_TOKENS,
+                Math.floor(this.modelContextWindow * 0.25)
+            ),
             keepRecentTokens: Math.min(
                 DEFAULT_KEEP_RECENT_TOKENS,
                 Math.floor(this.modelContextWindow * 0.25)
@@ -591,11 +640,13 @@ export class Agent {
             }
         }
         if (!summary) {
-            this.messages = preparation.keptMessages;
-            return true;
+            throw new Error(
+                'Context summarization returned no summary; conversation history was preserved.'
+            );
         }
 
         this.messages = [createCompactionSummaryMessage(summary), ...preparation.keptMessages];
+        if (this.statistics) this.statistics.compactions++;
         return true;
     }
 
@@ -604,26 +655,34 @@ export class Agent {
         observer?: ProcessMessageObserver
     ): AsyncGenerator<StreamChunk, void, unknown> {
         Agent.registerAgent(this.conversationId, this);
+        this.statistics = createRunStatistics(this.provider, this.model);
         this.abortController = new AbortController();
         const signal = this.abortController.signal;
+        const onAbort = () => this.abort();
+        this.parentSignal?.addEventListener('abort', onAbort, { once: true });
         const streamBuilder = createStreamMessageBuilder(message =>
             Agent.emitStreamingMessage(this.conversationId, message)
         );
-        const completedStepMessages: ModelMessage[] = [];
+        let completedStepMessages: ModelMessage[] = [];
+        let toolStarted = false;
 
         this.messages = sanitizeIncompleteToolExchanges(this.messages);
         this.messages.push(...userMessages);
-        const systemText = await buildSystemPrompt(
-            this.systemPrompt,
-            this.planContext,
-            this.conversationId
-        );
+        let systemText = '';
         let attemptedOverflowRecovery = false;
-        this.planContext = null;
-
         try {
+            if (this.parentSignal?.aborted) this.abort();
+            signal.throwIfAborted();
+            systemText = await buildSystemPrompt(
+                this.systemPrompt,
+                this.planContext,
+                this.conversationId
+            );
+            this.planContext = null;
             while (true) {
                 try {
+                    signal.throwIfAborted();
+                    const checkpoint = new StepCheckpoint();
                     const compactionSettings = attemptedOverflowRecovery
                         ? relaxCompactionSettings(this.getCompactionSettings())
                         : this.getCompactionSettings();
@@ -651,14 +710,10 @@ export class Agent {
                     };
 
                     LOGGER.debug('[agent] processMessage', {
-                        messages: this.messages,
-                        systemText,
                         compactionSettings,
                         preCompactionTokens,
                         didCompact,
                     });
-
-                    console.log('processMessage -> tools', this.tools);
 
                     const result = streamText({
                         model: resolveProviderModelInstance(this.providerInstance, {
@@ -669,11 +724,14 @@ export class Agent {
                             authMode: this.authMode,
                         }),
                         system: systemText,
-                        messages: this.messages,
+                        messages: [...this.messages],
                         tools: this.tools,
                         stopWhen: stepCountIs(this.maxToolRounds),
                         maxRetries: 0,
-                        maxOutputTokens: this.modelMaxOutputTokens,
+                        maxOutputTokens: Math.min(
+                            this.modelMaxOutputTokens,
+                            Math.floor(this.modelContextWindow * 0.25)
+                        ),
                         abortSignal: signal,
                         providerOptions: resolveProviderOptions({
                             provider: this.provider,
@@ -687,6 +745,10 @@ export class Agent {
                             });
                         },
                         onStepFinish: (event: unknown) => {
+                            const usage = getUsage(event);
+                            this.statistics.steps++;
+                            this.statistics.inputTokens += usage.inputTokens || 0;
+                            this.statistics.outputTokens += usage.outputTokens || 0;
                             notifyObserver(observer?.onStepFinish, {
                                 stepNumber: getStepNumber(event, 0),
                                 timestamp: Date.now(),
@@ -697,13 +759,11 @@ export class Agent {
                                 ? (event as any).response.messages
                                 : [];
                             if (stepMessages.length > 0) {
-                                completedStepMessages.push(
-                                    ...stepMessages.map(finalizeMessageForDisplay)
-                                );
+                                completedStepMessages = stepMessages;
+                                this.appendCompletedTurn(checkpoint.takeNewMessages(stepMessages));
                             }
                         },
                         onError: (event: unknown) => {
-                            console.error('### onError gui', { event });
                             const message = extractNestedErrorMessage(
                                 (event as { error?: unknown })?.error ?? event
                             );
@@ -736,6 +796,9 @@ export class Agent {
                                 break;
                             case 'text-delta':
                                 {
+                                    if (this.statistics.firstTokenMs === null)
+                                        this.statistics.firstTokenMs =
+                                            Date.now() - this.statistics.startedAt;
                                     const chunk = {
                                         type: 'content',
                                         content: (part as any).text,
@@ -755,6 +818,8 @@ export class Agent {
                                 }
                                 break;
                             case 'tool-call': {
+                                toolStarted = true;
+                                this.statistics.toolCalls++;
                                 const tc = toToolCall(part as any);
                                 notifyObserver(observer?.onToolStart, {
                                     toolCall: tc,
@@ -813,13 +878,7 @@ export class Agent {
                                     toolName: toolResultPart.toolName,
                                     input: toolResultPart.input ?? {},
                                 };
-                                LOGGER.debug('[agent] processMessage tool-result', { part });
-                                const tr = toToolResult(
-                                    toolResultPart.output?.text ||
-                                        toolResultPart.output?.output ||
-                                        toolResultPart.output?.content ||
-                                        ''
-                                );
+                                const tr = toToolResult(toolResultPart.output);
                                 notifyObserver(observer?.onToolFinish, {
                                     toolCall: tc,
                                     toolResult: tr,
@@ -852,6 +911,30 @@ export class Agent {
                                 }
                                 break;
                             }
+                            case 'tool-error': {
+                                this.statistics.toolErrors++;
+                                const failed = part as {
+                                    toolCallId: string;
+                                    toolName: string;
+                                    input: unknown;
+                                    error: unknown;
+                                };
+                                const chunk: StreamChunk = {
+                                    type: 'tool_result',
+                                    toolCall: {
+                                        toolCallId: failed.toolCallId,
+                                        toolName: failed.toolName,
+                                        input: failed.input,
+                                    },
+                                    toolResult: {
+                                        type: 'error-text',
+                                        value: extractNestedErrorMessage(failed.error),
+                                    },
+                                };
+                                streamBuilder.handleChunk(chunk);
+                                yield chunk;
+                                break;
+                            }
                             case 'abort':
                                 {
                                     const chunk = {
@@ -866,11 +949,6 @@ export class Agent {
                     }
 
                     if (signal.aborted) {
-                        if (completedStepMessages.length > 0) {
-                            this.appendCompletedTurn(completedStepMessages);
-                        } else {
-                            this.discardAbortedTurn(userMessages);
-                        }
                         const doneChunk = { type: 'done' } as StreamChunk;
                         streamBuilder.handleChunk(doneChunk);
                         yield doneChunk;
@@ -880,15 +958,18 @@ export class Agent {
                     try {
                         const response = await result.response;
                         if (!signal.aborted) {
-                            LOGGER.debug('[agent] processMessage response', { response });
-                            this.appendCompletedTurn(response.messages);
+                            this.appendCompletedTurn(checkpoint.takeNewMessages(response.messages));
                         }
                     } catch (responseError: unknown) {
                         LOGGER.error('[agent] processMessage responseError', {
-                            responseError,
                             isContextOverflowError: isContextOverflowError(responseError),
                         });
-                        if (!attemptedOverflowRecovery && isContextOverflowError(responseError)) {
+                        if (
+                            !toolStarted &&
+                            !completedStepMessages.length &&
+                            !attemptedOverflowRecovery &&
+                            isContextOverflowError(responseError)
+                        ) {
                             attemptedOverflowRecovery = true;
                             continue;
                         }
@@ -896,7 +977,6 @@ export class Agent {
                     }
 
                     if (signal.aborted) {
-                        this.discardAbortedTurn(userMessages);
                         const doneChunk = { type: 'done' } as StreamChunk;
                         streamBuilder.handleChunk(doneChunk);
                         yield doneChunk;
@@ -910,7 +990,6 @@ export class Agent {
                     return;
                 } catch (err: unknown) {
                     if (signal.aborted) {
-                        this.discardAbortedTurn(userMessages);
                         const cancelledChunk = {
                             type: 'content',
                             content: '\n\n[Cancelled]',
@@ -922,12 +1001,20 @@ export class Agent {
                         yield doneChunk;
                         return;
                     }
-                    if (!attemptedOverflowRecovery && isContextOverflowError(err)) {
+                    if (
+                        !toolStarted &&
+                        !completedStepMessages.length &&
+                        !attemptedOverflowRecovery &&
+                        isContextOverflowError(err)
+                    ) {
                         attemptedOverflowRecovery = true;
                         continue;
                     }
 
-                    const msg = extractNestedErrorMessage(err);
+                    const msg =
+                        isContextOverflowError(err) && toolStarted
+                            ? 'Context limit reached after tool execution. Completed work was saved. Send a follow-up to continue.'
+                            : extractNestedErrorMessage(err);
                     notifyObserver(observer?.onError, {
                         message: `Error: ${msg}`,
                         timestamp: Date.now(),
@@ -949,32 +1036,38 @@ export class Agent {
                 }
             }
         } catch (error) {
-            LOGGER.error('[agent] processMessage error', error);
+            if (signal.aborted) return;
             throw error;
         } finally {
-            LOGGER.error('[agent] processMessage finally', {
-                messages: this.messages,
-                systemText,
-            });
+            this.parentSignal?.removeEventListener('abort', onAbort);
+            this.statistics.durationMs = Date.now() - this.statistics.startedAt;
+            this.statistics.cancelled = signal.aborted;
             if (this.abortController?.signal === signal) {
                 this.abortController = null;
             }
-            await this.closeMcpToolset();
-            Agent.unregisterAgent(this.conversationId);
-            clearCdpHandlerForConversation(this.conversationId);
-        }
-    }
-
-    private discardAbortedTurn(userMessages: ModelMessage[]): void {
-        for (const userMessage of userMessages) {
-            const idx = this.messages.lastIndexOf(userMessage);
-            if (idx >= 0) {
-                this.messages.splice(idx, 1);
+            try {
+                if (!this.disposed && this.isStoreEnabled && this.store) {
+                    this.store.dispatch(
+                        AGENT.reduxSlice.actions.setContextMessages({
+                            id: this.conversationId,
+                            messages: [...this.messages],
+                        })
+                    );
+                }
+                await this.closeMcpToolset();
+            } finally {
+                const current = Agent.agentMap.get(this.conversationId);
+                if (!current || current === this) {
+                    Agent.unregisterAgent(this.conversationId);
+                    Agent.clearStreamingMessageForConversation(this.conversationId);
+                    clearCdpHandlerForConversation(this.conversationId);
+                }
             }
         }
     }
 
     private appendCompletedTurn(newMessages: ModelMessage[]): void {
+        if (this.disposed) return;
         if (newMessages.length === 0) return;
         const finalizedMessages = newMessages.map(finalizeMessageForDisplay);
 
@@ -990,6 +1083,12 @@ export class Agent {
             })
         );
         this.messages.push(...finalizedMessages);
+        this.store.dispatch(
+            AGENT.reduxSlice.actions.setContextMessages({
+                id: this.conversationId,
+                messages: [...this.messages],
+            })
+        );
     }
 
     private emitSubagentStatus(status: SubagentStatus | null): void {

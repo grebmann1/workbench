@@ -92,11 +92,14 @@ export function normalizeToolInputSchema(schema, zod) {
     return zod.object({});
 }
 
-export async function persistPromptImageFiles(filesData, fs, conversationId, logger) {
+export async function persistPromptImageFiles(filesData, fs, conversationId, logger, requestId?) {
     const source = Array.isArray(filesData) ? filesData : [];
     if (!fs || source.length === 0) return source;
 
-    const baseDir = `/workspace/tmp/${sanitizePathSegment(conversationId || 'default')}`;
+    const conversationDir = `/workspace/tmp/${sanitizePathSegment(conversationId || 'default')}`;
+    const baseDir = requestId
+        ? `${conversationDir}/${sanitizePathSegment(requestId)}`
+        : conversationDir;
     try {
         await fs.mkdir(baseDir, { recursive: true });
     } catch (_) {

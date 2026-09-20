@@ -59,6 +59,14 @@
                             </p>
                         </div>
                     </template>
+                    <template lwc:elseif={isNoMatchingConnections}>
+                        <div class="connection-empty-state" role="status">
+                            <h2 class="slds-text-heading_small">No matching connections</h2>
+                            <p class="connection-empty-state__hint">
+                                Try another search or enable both org types above.
+                            </p>
+                        </div>
+                    </template>
                 </template>
                 <!-- Active Browser Sessions (card/side-panel only) -->
                 <div class="browser-sessions" lwc:if={isBrowserSessionsVisible}>
@@ -251,9 +259,12 @@
                             </div>
                         </div>
                         <lightning-input
+                            lwc:ref="connectionSearch"
                             class="slds-m-bottom_medium"
                             type="search"
-                            label="Search"
+                            label="Search connections"
+                            placeholder="Search by alias or username…"
+                            value={filter}
                             variant="label-hidden"
                             onchange={handleFieldsFilter}></lightning-input>
 
@@ -278,6 +289,22 @@
                             </template>
                         </template>
                         <!-- empty state -->
+                        <template lwc:if={isNoMatchingConnections}>
+                            <div class="connection-empty-state connection-empty-state--full">
+                                <div role="status">
+                                    <h2 class="slds-text-heading_small slds-text-align_center">
+                                        No matching connections
+                                    </h2>
+                                    <p class="connection-empty-state__desc">
+                                        Your saved orgs are still here. Try another search or clear
+                                        your filters to see all connections.
+                                    </p>
+                                </div>
+                                <lightning-button
+                                    label="Clear filters"
+                                    onclick={handleClearFilters}></lightning-button>
+                            </div>
+                        </template>
                         <template lwc:if={isNoRecord}>
                             <div class="connection-empty-state connection-empty-state--full">
                                 <illustration-empty title="No orgs"></illustration-empty>

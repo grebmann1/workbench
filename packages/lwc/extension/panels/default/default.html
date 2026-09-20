@@ -69,6 +69,9 @@
                 </template>
                 <template lwc:elseif={isAgent}>
                     <agent-app
+                        assistant-style
+                        allow-yolo-mode
+                        assistant-theme="workbench"
                         class="slds-full-height slds-flex-column"
                         is-audio-recorder-disabled
                         onopensettings={handleOpenAiSettings}

@@ -5,15 +5,21 @@ import type {
     ProcessMessageError,
     ProcessMessageStepFinish,
     ProcessMessageToolFinish,
-} from 'agent/Agent';
+} from 'agent/Agent/type';
+import { Constants } from '../../../agent/utils/constants';
 import {
-    Constants,
     DEFAULT_MODEL,
     DEFAULT_REASONING,
     MODELS,
     REASONING_OPTIONS,
-} from 'agent/utils';
+} from '../../../agent/utils/models';
 import type { ModelMessage } from 'ai';
+import type { ConversationRunState } from 'agent/runController';
+import {
+    CONVERSATION_SCHEMA_VERSION,
+    migrateConversationData,
+} from '../../../agent/runController/conversationSchema';
+import type { RunStatistics } from 'agent/runController/runStatistics';
 import {
     CACHE_CONFIG,
     loadExtensionConfigFromCache,
@@ -31,6 +37,7 @@ export interface Conversation {
     title: string;
     streamHistory: ModelMessage[];
     compactionSummary: ModelMessage[];
+    contextMessages?: ModelMessage[];
 }
 
 export interface AgentState {
@@ -43,9 +50,13 @@ export interface AgentState {
     streamingById: Record<string, boolean>;
     summarizingById: Record<string, boolean>;
     messagesById: Record<string, ModelMessage[]>;
+    contextById: Record<string, ModelMessage[]>;
     debugMode: boolean;
     lastRunDebugByConversationId: Record<string, unknown>;
     hasHydrated: boolean;
+    runStateById: Record<string, ConversationRunState>;
+    warningsById: Record<string, string[]>;
+    runStatisticsById: Record<string, RunStatistics>;
 }
 
 const DEFAULT_CONVERSATION = {
@@ -129,6 +140,9 @@ function normalizeConversation(conversation: unknown): Conversation {
         compactionSummary: Array.isArray(c.compactionSummary)
             ? (c.compactionSummary as ModelMessage[])
             : [],
+        ...(Array.isArray(c.contextMessages)
+            ? { contextMessages: c.contextMessages as ModelMessage[] }
+            : {}),
     };
 }
 
@@ -146,6 +160,7 @@ function normalizeAgentConversationData(rawData) {
             ? safeData.activeConversationId
             : conversations[0].id;
     return {
+        schemaVersion: CONVERSATION_SCHEMA_VERSION,
         conversations,
         activeConversationId,
         selectedModel: normalizeModel(safeData.selectedModel),
@@ -155,6 +170,7 @@ function normalizeAgentConversationData(rawData) {
 
 function buildConversationDataFromState(state) {
     return {
+        schemaVersion: CONVERSATION_SCHEMA_VERSION,
         conversations: normalizeConversations(state.conversations),
         activeConversationId: state.activeConversationId,
         selectedModel: normalizeModel(state.selectedModel),
@@ -206,9 +222,13 @@ const initialState = {
     streamingById: {},
     summarizingById: {},
     messagesById: {},
+    contextById: {},
     debugMode: false,
     lastRunDebugByConversationId: {},
     hasHydrated: false,
+    runStateById: {} as Record<string, ConversationRunState>,
+    warningsById: {} as Record<string, string[]>,
+    runStatisticsById: {} as Record<string, RunStatistics>,
 };
 
 function conversationsWithSyncedStreamHistory(state: AgentState): Conversation[] {
@@ -219,6 +239,9 @@ function conversationsWithSyncedStreamHistory(state: AgentState): Conversation[]
         return {
             ...conversation,
             streamHistory: sanitizeMessagesForCache(live),
+            contextMessages: state.contextById[conversation.id]
+                ? sanitizeMessagesForCache(state.contextById[conversation.id])
+                : undefined,
         };
     });
 }
@@ -300,6 +323,8 @@ function hydrateMessagesFromConversations(state: AgentState) {
         );
         // Strip any lingering binary image/file blobs that were cached in previous sessions
         state.messagesById[c.id] = sanitizeMessagesForCache(filtered);
+        if (Array.isArray(c.contextMessages))
+            state.contextById[c.id] = sanitizeMessagesForCache(c.contextMessages);
     }
 }
 
@@ -325,7 +350,7 @@ export const loadCacheSettingsAsync = createAsyncThunk(
                     conversationData,
                     legacyData
                 );
-                return mergedConversationData;
+                return migrateConversationData(mergedConversationData);
             }
             // Backward-compatible fallback for older cache shape.
             LOGGER.debug('[agent] Loaded legacy conversation cache payload.', {
@@ -341,7 +366,7 @@ export const loadCacheSettingsAsync = createAsyncThunk(
                     details: e.message,
                 })
             );
-            return null;
+            throw e;
         }
     }
 );
@@ -350,6 +375,27 @@ const agentSlice = createSlice({
     name: 'agent',
     initialState,
     reducers: {
+        setRunState: (state, action: { payload: ConversationRunState }) => {
+            state.runStateById[action.payload.id] = action.payload;
+        },
+        setRunWarnings: (state, action: { payload: { id: string; warnings: string[] } }) => {
+            state.warningsById[action.payload.id] = action.payload.warnings;
+        },
+        setRunStatistics: (
+            state,
+            action: { payload: { id: string; statistics: RunStatistics } }
+        ) => {
+            if (!state.conversations.some(c => c.id === action.payload.id)) return;
+            state.runStatisticsById[action.payload.id] = action.payload.statistics;
+        },
+        setContextMessages: (
+            state,
+            action: { payload: { id: string; messages: ModelMessage[] } }
+        ) => {
+            if (!state.conversations.some(c => c.id === action.payload.id)) return;
+            state.contextById[action.payload.id] = action.payload.messages;
+            saveCacheSettings(state);
+        },
         addConversation: (state, action) => {
             const conversation = normalizeConversation(action.payload?.conversation);
             state.conversations = [...state.conversations, conversation];
@@ -366,6 +412,10 @@ const agentSlice = createSlice({
                 state.activeConversationId = state.conversations[0]?.id || DEFAULT_CONVERSATION.id;
             }
             delete state.messagesById[id];
+            delete state.contextById[id];
+            delete state.runStateById[id];
+            delete state.warningsById[id];
+            delete state.runStatisticsById[id];
             delete state.loadingById[id];
             delete state.streamingById[id];
             delete state.summarizingById[id];
@@ -466,20 +516,22 @@ const agentSlice = createSlice({
                   }))
                 : [];
             state.messagesById[id] = newMessages;
+            delete state.contextById[id];
             LOGGER.debug('[agent] setMessages', {
                 conversationId: id,
                 count: newMessages.length,
                 roles: newMessages.map(m => m.role),
                 partsCount: newMessages.map(m => (Array.isArray(m?.parts) ? m.parts.length : 0)),
-                messages: newMessages,
             });
         },
         addMessages: (state, action) => {
             const { id, messages } = action.payload;
+            if (!state.conversations.some(c => c.id === id)) return;
             const incoming: ModelMessage[] = Array.isArray(messages) ? messages : [];
             state.messagesById[id] = [...(state.messagesById[id] || []), ...incoming];
         },
         clearMessages: (state, action) => {
+            delete state.contextById[action.payload.id];
             const { id } = action.payload;
             state.messagesById[id] = [];
             const idx = state.conversations.findIndex(c => c.id === id);
@@ -546,7 +598,7 @@ export const loadConversationsFromCache = createAsyncThunk(
         const legacyData = buildLegacyConversationData(config);
         if (isNotUndefinedOrNull(canonical)) {
             const merged = applyLegacySelectionOverrides(canonical, legacyData);
-            return merged;
+            return migrateConversationData(merged);
         }
         LOGGER.debug('[agent] loadConversationsFromCache legacy only', {
             legacySelectedModel: legacyData?.selectedModel,
@@ -585,67 +637,75 @@ export const saveConversationsToCache = createAsyncThunk(
 );
 
 // Execute agent stream thunk
-export const executeAgent = createAsyncThunk(
-    'agent/executeAgent',
-    async ({ userMessages, agent }, { getState, dispatch }) => {
-        try {
-            LOGGER.debug('[agent] runExecuteAgent start', {
-                conversationId: agent.conversationId,
-                message: userMessages,
-            });
-
-            const AgentObserver = {
-                onStepStart: (info: ProcessMessageStepStart) => {
-                    LOGGER.debug('[agent] onStepStart', info);
-                },
-                onStepFinish: (info: ProcessMessageStepFinish) => {
-                    LOGGER.debug('[agent] onStepFinish', info);
-                },
-                onToolStart: (info: ProcessMessageToolStart) => {
-                    LOGGER.debug('[agent] onToolStart', info);
-                },
-                onToolFinish: (info: ProcessMessageToolFinish) => {
-                    LOGGER.debug('[agent] onToolFinish', info);
-                },
-                onError: (info: ProcessMessageError) => {
-                    LOGGER.debug('[agent] onError', info);
-                    dispatch(
-                        reduxSlice.actions.setError({
-                            id: agent.conversationId,
-                            title: 'Agent error',
-                            message: info.message,
-                        })
-                    );
-                },
-            };
-            dispatch(
-                reduxSlice.actions.addMessages({
-                    id: agent.conversationId,
-                    messages: [...userMessages],
-                })
-            );
-            dispatch(reduxSlice.actions.startLoading({ id: agent.conversationId }));
-            dispatch(reduxSlice.actions.startStreaming({ id: agent.conversationId }));
-            for await (const chunk of agent.processMessage(userMessages, AgentObserver)) {
-            }
-        } catch (e) {
-            LOGGER.error('[agent] runExecuteAgent failed', e);
-            dispatch(
-                reduxSlice.actions.setError({
-                    id: agent.conversationId,
-                    title: 'Agent error',
-                    message: e instanceof Error ? e.message : String(e),
-                })
-            );
-            throw e;
-        } finally {
-            dispatch(
-                reduxSlice.actions.updateConversationStreamHistory({
-                    id: agent.conversationId,
-                })
-            );
-            dispatch(reduxSlice.actions.stopLoading({ id: agent.conversationId }));
-            dispatch(reduxSlice.actions.stopStreaming({ id: agent.conversationId }));
+type AgentRunner = {
+    conversationId: string;
+    runStatistics?: RunStatistics | null;
+    processMessage: (
+        messages: ModelMessage[],
+        observer?: import('agent/Agent/type').ProcessMessageObserver
+    ) => AsyncIterable<unknown>;
+};
+export const executeAgent = createAsyncThunk<
+    void,
+    { userMessages: ModelMessage[]; agent: AgentRunner }
+>('agent/executeAgent', async ({ userMessages, agent }, { getState, dispatch }) => {
+    try {
+        const AgentObserver = {
+            onStepStart: (info: ProcessMessageStepStart) => {
+                LOGGER.debug('[agent] onStepStart', info);
+            },
+            onStepFinish: (info: ProcessMessageStepFinish) => {
+                LOGGER.debug('[agent] onStepFinish', info);
+            },
+            onToolStart: (info: ProcessMessageToolStart) => {},
+            onToolFinish: (info: ProcessMessageToolFinish) => {},
+            onError: (info: ProcessMessageError) => {
+                dispatch(
+                    reduxSlice.actions.setError({
+                        id: agent.conversationId,
+                        title: 'Agent error',
+                        message: info.message,
+                    })
+                );
+            },
+        };
+        dispatch(
+            reduxSlice.actions.addMessages({
+                id: agent.conversationId,
+                messages: [...userMessages],
+            })
+        );
+        dispatch(reduxSlice.actions.startLoading({ id: agent.conversationId }));
+        dispatch(reduxSlice.actions.startStreaming({ id: agent.conversationId }));
+        for await (const chunk of agent.processMessage(userMessages, AgentObserver)) {
         }
+        const state = getState() as { agent?: AgentState };
+        const error = state.agent?.errorById?.[agent.conversationId];
+        if (error?.message) throw new Error(error.message);
+    } catch (e) {
+        LOGGER.error('[agent] runExecuteAgent failed', e);
+        dispatch(
+            reduxSlice.actions.setError({
+                id: agent.conversationId,
+                title: 'Agent error',
+                message: e instanceof Error ? e.message : String(e),
+            })
+        );
+        throw e;
+    } finally {
+        if (agent.runStatistics)
+            dispatch(
+                reduxSlice.actions.setRunStatistics({
+                    id: agent.conversationId,
+                    statistics: agent.runStatistics,
+                })
+            );
+        dispatch(
+            reduxSlice.actions.updateConversationStreamHistory({
+                id: agent.conversationId,
+            })
+        );
+        dispatch(reduxSlice.actions.stopLoading({ id: agent.conversationId }));
+        dispatch(reduxSlice.actions.stopStreaming({ id: agent.conversationId }));
     }
-);
+});

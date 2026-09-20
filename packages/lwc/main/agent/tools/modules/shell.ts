@@ -39,6 +39,8 @@ import { parseJsArgs, loadJsCode } from './jsCommand';
 import { saveSkillToFs } from './skillUtils';
 
 export type BashToolOptions = {
+    connector?: ConnectorLike | null;
+    signal?: AbortSignal;
     execInSandbox?: (
         code: string,
         timeoutMs?: number
@@ -207,23 +209,14 @@ async function resolveCliFileContent(filePath: string, ctx: ShellCommandContext)
     }
 }
 
-async function resolveConnector(targetOrg?: string): Promise<ConnectorLike> {
-    if (targetOrg) {
-        return getConnectorByAlias(targetOrg);
-    }
-    const state = store.getState() as any;
-    const connector = state?.application?.connector;
-    if (!connector) throw new Error('No active org connector found.');
-    return connector;
-}
-
-async function callConnectorRest({
+async function executeConnectorRest({
     path,
     method = 'GET',
     body,
     extraHeaders = {},
     isTooling = false,
     connector: connectorOverride,
+    signal,
 }: {
     path: string;
     method?: string;
@@ -231,7 +224,9 @@ async function callConnectorRest({
     extraHeaders?: Record<string, string>;
     isTooling?: boolean;
     connector?: ConnectorLike;
+    signal?: AbortSignal;
 }): Promise<{ data: any; status: number }> {
+    signal?.throwIfAborted();
     const connector = connectorOverride ?? (store.getState() as any)?.application?.connector;
     if (!connector?.conn) {
         throw new Error('No active org connector found.');
@@ -244,6 +239,7 @@ async function callConnectorRest({
     const url = path.startsWith('http')
         ? path
         : `${conn.instanceUrl}${baseSegment}${path.startsWith('/') ? path : `/${path}`}`;
+    API_UTILS.assertSalesforceUrl(url, conn.instanceUrl);
 
     const headers: Record<string, string> = {
         'Content-Type': 'application/json',
@@ -258,6 +254,9 @@ async function callConnectorRest({
         method,
         headers,
         body: body ?? undefined,
+        redirect: 'error',
+        credentials: 'omit',
+        signal,
     });
 
     const contentType = res.headers.get('content-type') || '';
@@ -319,6 +318,15 @@ export function registerShellCommands({
     opts: BashToolOptions;
     images: Array<{ data: string; mediaType: string }>;
 }) {
+    const callConnectorRest = (input: Parameters<typeof executeConnectorRest>[0]) =>
+        executeConnectorRest({ ...input, signal: opts.signal });
+    const resolveConnector = async (targetOrg?: string): Promise<ConnectorLike> => {
+        opts.signal?.throwIfAborted();
+        if (targetOrg) return getConnectorByAlias(targetOrg);
+        const connector = opts.connector || store.getState().application?.connector;
+        if (!connector) throw new Error('No active org connector found.');
+        return connector;
+    };
     if (opts.execInSandbox) {
         const execInSandbox = opts.execInSandbox;
 
@@ -539,7 +547,7 @@ export function registerShellCommands({
                 try {
                     const overrideConnector = targetOrg ? await resolveConnector(targetOrg) : null;
                     const { application } = store.getState();
-                    const connector = overrideConnector || application?.connector;
+                    const connector = overrideConnector || opts.connector || application?.connector;
                     if (!connector) {
                         throw new Error('No active org connector found.');
                     }
@@ -549,6 +557,7 @@ export function registerShellCommands({
                     }
                     const tabId = `cli-${Date.now()}`;
                     const res = (await invokeCommand('anonymousApex.executeApex', {
+                        signal: opts.signal,
                         connector,
                         body: apexCode,
                         tabId,
@@ -583,11 +592,12 @@ export function registerShellCommands({
             async executeSoql({ query, useToolingApi, includeDeletedRecords, targetOrg }) {
                 const overrideConnector = targetOrg ? await resolveConnector(targetOrg) : null;
                 const { application } = store.getState();
-                const connector = overrideConnector || application?.connector;
+                const connector = overrideConnector || opts.connector || application?.connector;
                 if (!connector) {
                     throw new Error('No active org connector found.');
                 }
                 const res = (await invokeCommand('soql.executeQueryIncognito', {
+                    signal: opts.signal,
                     connector,
                     soql: query,
                     tabId: `cli-${Date.now()}`,
@@ -603,7 +613,7 @@ export function registerShellCommands({
             async executeApi({ method, endpoint, body, headerText, targetOrg }) {
                 const overrideConnector = targetOrg ? await resolveConnector(targetOrg) : null;
                 const { application } = store.getState();
-                const connector = overrideConnector || application?.connector;
+                const connector = overrideConnector || opts.connector || application?.connector;
                 if (!connector) {
                     throw new Error('No active org connector found.');
                 }
@@ -618,9 +628,11 @@ export function registerShellCommands({
                 if (error) {
                     throw new Error(error);
                 }
+                API_UTILS.assertSalesforceUrl(formattedRequest.url, connector.conn.instanceUrl);
                 const originalRequest = { endpoint, method, body, header: headerText };
                 const tabId = `cli-${Date.now()}`;
                 const res = (await invokeCommand('api.executeRequest', {
+                    signal: opts.signal,
                     connector,
                     request: originalRequest,
                     formattedRequest,
@@ -1335,7 +1347,11 @@ export function createBashTools(shell, fs, opts: BashToolOptions = {}) {
                     LOGGER.debug('[agent:tool:bash] executing command', {
                         command: args.command,
                     });
-                    const res = await shell.exec(args.command);
+                    const signal = args.abortSignal || opts.signal;
+                    opts.signal = signal;
+                    signal?.throwIfAborted();
+                    const res = await shell.exec(args.command, { signal });
+                    signal?.throwIfAborted();
                     const stdout = decodeExecStdout(res);
                     const text = [
                         stdout ? `stdout:\n${stdout}` : '',

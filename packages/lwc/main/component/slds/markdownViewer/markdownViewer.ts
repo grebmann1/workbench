@@ -2,10 +2,19 @@ import { getIndexedDbFileSystem } from 'core/fs';
 import { api, LightningElement, createElement } from 'lwc';
 import { ensureMermaidLoaded } from 'shared/loader';
 import { marked } from 'shared/markdown';
+import { sanitizeMarkdownHtml, sanitizeDiagramSvg } from 'shared/safeMarkdown';
 import { buildRecordRedirectUrl, resolveSalesforceLinkHref } from 'shared/salesforceUrl';
 import { guid, isEmpty, normalizeString as normalize, runActionAfterTimeOut } from 'shared/utils';
 import sldsCodeBlock from 'slds/codeBlock';
 import MarkdownViewerEditorModal from 'slds/MarkdownViewerEditorModal';
+
+import {
+    ChatCodeHighlighter,
+    captureCodeView,
+    decorateChatCode,
+    prepareChatMarkdown,
+    type CodeHighlighter,
+} from './chatCode';
 
 const SFTOOLKIT_PREFIX = 'sftoolkit:';
 
@@ -67,12 +76,24 @@ const OPEN_ICON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 2
 const DOWNLOAD_ICON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`;
 
 function buildFileAttachmentHTML(path, filename) {
-    const escapedPath = path.replace(/"/g, '&quot;');
-    const escapedName = filename.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const escape = value =>
+        String(value)
+            .replace(/&/g, '&amp;')
+            .replace(/"/g, '&quot;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+    const escapedPath = escape(path);
+    const escapedName = escape(filename);
     return `<span class="sftoolkit-file-attachment" data-path="${escapedPath}">${FILE_ICON_SVG}<span class="sftoolkit-file-name" title="${escapedName}">${escapedName}</span><button class="sftoolkit-file-btn" data-action="open" data-path="${escapedPath}" title="Open">${OPEN_ICON_SVG}</button><button class="sftoolkit-file-btn" data-action="download" data-path="${escapedPath}" title="Download">${DOWNLOAD_ICON_SVG}</button></span>`;
 }
 
 export default class MarkdownViewer extends LightningElement {
+    @api blockRemoteImages = false;
+    @api chatCode = false;
+    _renderFrame: number | undefined;
+    _codeHighlighter = new ChatCodeHighlighter(
+        () => (window as Window & { Prism?: CodeHighlighter }).Prism
+    );
     hasRendered = false;
     _renderRequested = false;
     _lastRenderedValue = null;
@@ -125,6 +146,9 @@ export default class MarkdownViewer extends LightningElement {
     }
 
     disconnectedCallback() {
+        if (this._renderFrame !== undefined) cancelAnimationFrame(this._renderFrame);
+        this._renderFrame = undefined;
+        this._codeHighlighter.clear();
         if (this._linkClickBound && this.refs?.container) {
             this.refs.container.removeEventListener('click', this.handleContainerClick);
         }
@@ -156,6 +180,14 @@ export default class MarkdownViewer extends LightningElement {
     };
 
     scheduleRender = () => {
+        if (this.chatCode) {
+            if (this._renderFrame !== undefined) return;
+            this._renderFrame = requestAnimationFrame(() => {
+                this._renderFrame = undefined;
+                this.renderIfNeeded();
+            });
+            return;
+        }
         runActionAfterTimeOut(
             null,
             () => {
@@ -181,6 +213,29 @@ export default class MarkdownViewer extends LightningElement {
     };
 
     handleContainerClick = async event => {
+        const codeButton = event.target?.closest?.('button[data-code-action]');
+        if (this.chatCode && codeButton) {
+            const card = codeButton.closest('.chat-code');
+            const code = card?.querySelector('pre');
+            if (!code) return;
+            if (codeButton.dataset.codeAction === 'wrap') {
+                const wrapped = card.classList.toggle('chat-code_wrapped');
+                codeButton.setAttribute('aria-pressed', String(wrapped));
+            } else if (codeButton.dataset.codeAction === 'copy') {
+                try {
+                    await navigator.clipboard.writeText(code.textContent || '');
+                    codeButton.textContent = 'Copied';
+                    codeButton.setAttribute('aria-label', 'Code copied');
+                } catch {
+                    codeButton.textContent = 'Copy failed';
+                    codeButton.setAttribute(
+                        'aria-label',
+                        'Copy failed. Select the code to copy it.'
+                    );
+                }
+            }
+            return;
+        }
         // Handle file attachment action buttons
         const btn = event?.target?.closest?.('.sftoolkit-file-btn');
         if (btn) {
@@ -227,10 +282,15 @@ export default class MarkdownViewer extends LightningElement {
     };
 
     setMarkdown = markdown => {
-        const html = marked()(markdown);
+        const previous = this.chatCode ? captureCodeView(this.refs.container) : [];
+        const options = this.chatCode ? { highlight: this._codeHighlighter.highlight } : undefined;
+        const source = this.chatCode ? prepareChatMarkdown(markdown) : markdown;
+        const html = sanitizeMarkdownHtml(marked()(source, options), !this.blockRemoteImages);
         this.refs.container.innerHTML = html;
+        if (this.chatCode) decorateChatCode(this.refs.container, previous);
         this.enable_sftoolkitLinks();
         this.enable_salesforceLinks();
+        if (this.chatCode) return;
         runActionAfterTimeOut(
             html,
             async () => {
@@ -239,6 +299,10 @@ export default class MarkdownViewer extends LightningElement {
             { timeout: 500, key: `${this._instanceKey}.enableCodeViewer` }
         );
     };
+
+    get containerClass() {
+        return this.chatCode ? 'chat-markdown' : '';
+    }
 
     enable_sftoolkitLinks = async () => {
         const anchors = Array.from(this.refs.container.querySelectorAll('a[href^="sftoolkit:"]'));
@@ -379,7 +443,8 @@ export default class MarkdownViewer extends LightningElement {
             });
             (Object.assign(newElement, {
                 codeBlock: el.innerHTML,
-                language: mapping[c] || c,
+                // Mermaid can load resources while rendering, before its output is sanitized.
+                language: this.blockRemoteImages && c === 'mermaid' ? 'text' : mapping[c] || c,
                 title: '',
             }),
                 (el.innerHTML = ''),
@@ -447,11 +512,18 @@ export default class MarkdownViewer extends LightningElement {
             const diagramText = this.fixDiagram(el.innerText);
             //console.log('diagramText');
             //console.log(diagramText);
-            const mermaid = await ensureMermaidLoaded();
+            const mermaid = (await ensureMermaidLoaded()) as
+                | Pick<typeof import('mermaid').default, 'initialize' | 'parse' | 'render'>
+                | undefined;
             if (!mermaid) return;
+            mermaid.initialize({
+                startOnLoad: false,
+                securityLevel: 'strict',
+                flowchart: { htmlLabels: false },
+            });
             if (await mermaid.parse(diagramText)) {
-                const { svg, bindFunctions } = await mermaid.render('graphDiv', diagramText);
-                el.innerHTML = svg;
+                const { svg } = await mermaid.render(`graph-${guid()}`, diagramText);
+                el.innerHTML = sanitizeDiagramSvg(svg);
             } else {
                 //console.log('Invalid format')
             }

@@ -73,6 +73,9 @@ export interface ApiRequestLike {
  * id is not part of the host treaty yet.
  */
 export interface CommandPayloads {
+    // Chat extension registers these only in its own bootstrap.
+    'chat.browserTabs': void;
+    'chat.browserTools': { tabId?: number };
     // ── agentforce ──────────────────────────────────────────────
     'agentforce.open': void;
     // The two openAgent / openTrace ids below are not yet registered
@@ -120,6 +123,7 @@ export interface CommandPayloads {
         createdDate?: number;
     };
     'soql.executeQueryIncognito': {
+        signal?: AbortSignal;
         connector: unknown;
         soql: string;
         tabId?: string;
@@ -129,6 +133,7 @@ export interface CommandPayloads {
 
     // ── api ─────────────────────────────────────────────────────
     'api.executeRequest': {
+        signal?: AbortSignal;
         connector: unknown;
         request: ApiRequestLike;
         formattedRequest?: ApiRequestLike;
@@ -140,6 +145,7 @@ export interface CommandPayloads {
 
     // ── anonymousApex ───────────────────────────────────────────
     'anonymousApex.executeApex': {
+        signal?: AbortSignal;
         connector: unknown;
         body: string;
         tabId?: string;

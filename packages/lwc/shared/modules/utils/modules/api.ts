@@ -304,11 +304,36 @@ export type ExecuteApiInput = {
     signal?: AbortSignal;
     /** Bearer access token to inject as `Authorization` when that header is absent. */
     accessToken?: string;
+    /** Trusted Salesforce instance that owns accessToken. Never infer this from url. */
+    instanceUrl?: string;
     /** Optional fetch override (useful for tests / sanitized wrappers). */
     fetchImpl?: typeof fetch;
     /** Presigned URLs must not receive the active Salesforce bearer token. */
     skipAuthorization?: boolean;
 };
+
+export function isSalesforceOrigin(url: string, instanceUrl?: string): boolean {
+    if (!instanceUrl) return false;
+    try {
+        const target = new URL(url);
+        const instance = new URL(instanceUrl);
+        return (
+            target.protocol === 'https:' &&
+            instance.protocol === 'https:' &&
+            !target.username &&
+            !target.password &&
+            target.origin === instance.origin
+        );
+    } catch {
+        return false;
+    }
+}
+
+export function assertSalesforceUrl(url: string, instanceUrl: string): void {
+    if (!isSalesforceOrigin(url, instanceUrl)) {
+        throw new Error('Salesforce API requests must use the connected org’s HTTPS origin.');
+    }
+}
 
 export type ExecuteApiResult = {
     content: unknown;
@@ -338,6 +363,7 @@ export const executeApiRequest = async ({
     body,
     signal,
     accessToken,
+    instanceUrl,
     fetchImpl,
     skipAuthorization,
 }: ExecuteApiInput): Promise<ExecuteApiResult> => {
@@ -346,8 +372,18 @@ export const executeApiRequest = async ({
     }
     const executionStartDate = Date.now();
     const mergedHeaders: Record<string, string> = { ...(headers || {}) };
+    const scopedCredentials = !!(accessToken || instanceUrl);
+    const allowAuthorization =
+        !skipAuthorization && (!scopedCredentials || isSalesforceOrigin(url, instanceUrl));
+    if (!allowAuthorization) {
+        for (const key of Object.keys(mergedHeaders)) {
+            if (['authorization', 'proxy-authorization'].includes(key.toLowerCase())) {
+                delete mergedHeaders[key];
+            }
+        }
+    }
     const hasAuth = Object.keys(mergedHeaders).some(k => k.toLowerCase() === 'authorization');
-    if (!hasAuth && accessToken && !skipAuthorization) {
+    if (!hasAuth && accessToken && allowAuthorization) {
         mergedHeaders.Authorization = `Bearer ${accessToken}`;
     }
 
@@ -357,6 +393,9 @@ export const executeApiRequest = async ({
         headers: mergedHeaders,
         body: body as BodyInit | null | undefined,
         signal,
+        // Never let a credentialed request be redirected to another origin.
+        redirect: scopedCredentials ? 'error' : 'follow',
+        credentials: scopedCredentials ? 'omit' : undefined,
     });
 
     const statusCode = res.status;

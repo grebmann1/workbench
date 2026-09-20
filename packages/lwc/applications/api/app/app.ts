@@ -39,7 +39,7 @@ function bootstrapApiExtension() {
     _apiBootstrapped = true;
     injectReducer('api', API.reduxSlice.reducer);
     registerCommand('api.executeRequest', async (payload: any) => {
-        const { connector, request, formattedRequest, tabId, isNewTab, tab, createdDate } =
+        const { connector, request, formattedRequest, tabId, isNewTab, tab, createdDate, signal } =
             payload || {};
         if (isNewTab && tab) {
             store.dispatch(API.reduxSlice.actions.addTab({ tab }));
@@ -56,13 +56,16 @@ function bootstrapApiExtension() {
             );
         }
         const apiPromise = store.dispatch(
-            API.executeApiRequest({
-                connector,
-                request,
-                formattedRequest,
-                tabId,
-                createdDate: createdDate || Date.now(),
-            })
+            API.executeApiRequest(
+                {
+                    connector,
+                    request,
+                    formattedRequest,
+                    tabId,
+                    createdDate: createdDate || Date.now(),
+                },
+                { signal }
+            )
         );
         store.dispatch(API.reduxSlice.actions.setAbortingPromise({ tabId, promise: apiPromise }));
         const res = await apiPromise;

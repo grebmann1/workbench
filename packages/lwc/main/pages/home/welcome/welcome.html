@@ -1,171 +1,160 @@
 <template>
     <div class="welcome-page">
-        <!-- Hero header -->
-        <div class="welcome-hero">
-            <div class="welcome-hero__top">
-                <p class="welcome-hero__eyebrow">Workbench</p>
-                <h1 class="welcome-hero__title">Workbench</h1>
-                <p class="welcome-hero__subtitle">Your modern Salesforce productivity companion</p>
-            </div>
-
-            <!-- Latest release chip -->
-            <template lwc:if={hasLatestRelease}>
-                <button
-                    class="release-chip"
-                    type="button"
-                    onclick={handleViewReleaseNotes}
-                    title="View full release notes">
-                    <span class="release-chip__badge">New</span>
-                    <span class="release-chip__body">
-                        <span class="release-chip__version">{latestReleaseLabel}</span>
-                        <span class="release-chip__summary">{latestReleaseSummary}</span>
-                    </span>
-                    <lightning-icon
-                        icon-name="utility:chevronright"
-                        size="x-small"
-                        class="release-chip__arrow"></lightning-icon>
+        <section class="welcome-hero" aria-labelledby="welcome-heading">
+            <p class="welcome-hero__eyebrow">Workbench</p>
+            <h1 id="welcome-heading">{heading}</h1>
+            <p class="welcome-hero__subtitle">{subtitle}</p>
+            <div class="welcome-actions">
+                <button type="button" class="connect-button" onclick={handleConnect}>
+                    {connectLabel}
                 </button>
-            </template>
-        </div>
-
-        <!-- Two-column grid on wider screens -->
-        <div class="welcome-grid">
-            <!-- Chrome Extension: Active Sessions card -->
-            <div class="welcome-card welcome-card_sessions" lwc:if={isBrowserSessionsVisible}>
-                <div class="welcome-card__header">
-                    <h2 class="welcome-card__title">Active Browser Sessions</h2>
-                    <p class="welcome-card__desc">Salesforce orgs currently open in your browser</p>
-                </div>
-                <div class="welcome-card__body">
-                    <!-- Loading -->
-                    <template lwc:if={isLoadingSessions}>
-                        <div class="sessions-skeleton">
-                            <div class="sessions-skeleton__row"></div>
-                            <div class="sessions-skeleton__row"></div>
-                        </div>
-                    </template>
-
-                    <!-- Sessions list -->
-                    <template lwc:elseif={hasSessions}>
-                        <ul class="sessions-list" role="list">
-                            <template for:each={sessions} for:item="session">
-                                <li key={session.serverUrl} class="session-item">
-                                    <span class="session-item__avatar" aria-hidden="true">
-                                        <lightning-icon
-                                            icon-name="utility:connected_apps"
-                                            size="small"></lightning-icon>
-                                    </span>
-                                    <div class="session-item__body">
-                                        <span class="session-item__label">{session.label}</span>
-                                        <span class="session-item__detail">{session.detail}</span>
-                                    </div>
-                                    <button
-                                        class="session-item__open"
-                                        type="button"
-                                        aria-label="Open this session in Workbench"
-                                        title="Open this session in Workbench"
-                                        data-server-url={session.serverUrl}
-                                        data-session-id={session.sessionId}
-                                        onclick={handleSessionOpen}>
-                                        <lightning-icon
-                                            icon-name="utility:forward"
-                                            size="x-small"></lightning-icon>
-                                        <span class="session-item__open-label">Open</span>
-                                    </button>
-                                </li>
-                            </template>
-                        </ul>
-                    </template>
-
-                    <!-- Empty state -->
-                    <template lwc:else>
-                        <div class="sessions-empty">
-                            <lightning-icon
-                                icon-name="utility:connected_apps"
-                                size="medium"
-                                class="sessions-empty__icon"></lightning-icon>
-                            <p class="sessions-empty__title">No active sessions found</p>
-                            <p class="sessions-empty__hint">
-                                Open a Salesforce org in a browser tab to see it here
-                            </p>
-                        </div>
-                    </template>
-                </div>
-
-                <div class="welcome-card__footer">
-                    <button class="welcome-cta-btn" type="button" onclick={handleGoToConnections}>
-                        <lightning-icon
-                            icon-name="utility:list"
-                            size="x-small"
-                            class="welcome-cta-btn__icon"></lightning-icon>
-                        View Registered Connections
-                    </button>
-                </div>
+                <button type="button" class="manage-button" onclick={handleGoToConnections}>
+                    Manage connections
+                </button>
             </div>
-
-            <div class="welcome-sidebar">
-                <div class="ai-setup-card">
-                    <span class="ai-setup-card__icon" aria-hidden="true">
-                        <lightning-icon icon-name="utility:einstein" size="small"></lightning-icon>
-                    </span>
-                    <div class="ai-setup-card__content">
-                        <h2 class="ai-setup-card__title">Set up your AI provider</h2>
-                        <p class="ai-setup-card__message">
-                            Configure provider keys and endpoints before using Agent or LLM
-                            features.
-                        </p>
-                        <div class="ai-setup-card__actions">
-                            <button
-                                class="ai-setup-card__btn ai-setup-card__btn_primary"
-                                type="button"
-                                onclick={handleOpenSettings}>
-                                <lightning-icon
-                                    icon-name="utility:settings"
-                                    size="x-small"
-                                    class="ai-setup-card__btn-icon"></lightning-icon>
-                                Open Settings
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Quick Tips card -->
-                <div class="welcome-card welcome-card_notices">
+            <p class="welcome-hero__hint">
+                Quick Connect creates a temporary session. Saved orgs are managed in Connections.
+            </p>
+        </section>
+        <section aria-labelledby="tasks-heading">
+            <h2 id="tasks-heading" class="section-title">Start a task</h2>
+            <div class="task-grid">
+                <template for:each={tasks} for:item="task">
+                    <button
+                        key={task.path}
+                        type="button"
+                        class="task-card"
+                        data-path={task.path}
+                        onclick={handleTask}>
+                        <span class="task-title">
+                            <lightning-icon icon-name={task.icon} size="small"></lightning-icon>
+                            <span>{task.title}</span>
+                        </span>
+                        <span class="task-description">{task.description}</span>
+                        <span class="task-link">{taskHint} · {task.label}</span>
+                    </button>
+                </template>
+            </div>
+        </section>
+        <div class="welcome-grid">
+            <div class="connection-column">
+                <section class="welcome-card" aria-labelledby="saved-heading">
                     <div class="welcome-card__header">
-                        <h2 class="welcome-card__title">Quick Tips</h2>
-                        <p class="welcome-card__desc">Get the most out of Workbench</p>
+                        <h2 id="saved-heading">Saved connections</h2>
                     </div>
-                    <div class="welcome-card__body welcome-card__body_tips">
+                    <div class="welcome-card__body">
+                        <p lwc:if={isLoadingSaved} role="status">Loading saved connections…</p>
+                        <template lwc:else>
+                            <p role="status">{savedSummary}</p>
+                            <button
+                                lwc:if={savedError}
+                                class="slds-button"
+                                type="button"
+                                onclick={refreshConnections}>
+                                Retry loading connections
+                            </button>
+                        </template>
+                        <button
+                            class="slds-button slds-m-top_small"
+                            type="button"
+                            onclick={handleGoToConnections}>
+                            View saved connections
+                        </button>
+                    </div>
+                </section>
+                <section
+                    class="welcome-card"
+                    lwc:if={isBrowserSessionsVisible}
+                    aria-labelledby="sessions-heading">
+                    <div class="welcome-card__header">
+                        <h2 id="sessions-heading">Active Browser Sessions</h2>
+                        <p>Salesforce orgs currently open in your browser</p>
+                    </div>
+                    <div class="welcome-card__body">
+                        <p lwc:if={isLoadingSessions} role="status">
+                            Looking for browser sessions…
+                        </p>
+                        <template lwc:elseif={sessionsError}>
+                            <p role="status">Browser sessions could not be loaded.</p>
+                            <button class="slds-button" type="button" onclick={refreshConnections}>
+                                Retry browser sessions
+                            </button>
+                        </template>
+                        <template lwc:elseif={hasSessions}>
+                            <ul class="sessions-list">
+                                <template for:each={sessions} for:item="session">
+                                    <li key={session.serverUrl} class="session-item">
+                                        <div class="session-item__body">
+                                            <span class="session-item__label">{session.label}</span>
+                                            <span class="session-item__detail">
+                                                {session.detail}
+                                            </span>
+                                        </div>
+                                        <button
+                                            class="slds-button slds-button_neutral"
+                                            type="button"
+                                            aria-label={session.openLabel}
+                                            data-server-url={session.serverUrl}
+                                            data-session-id={session.sessionId}
+                                            onclick={handleSessionOpen}>
+                                            Open
+                                        </button>
+                                    </li>
+                                </template>
+                            </ul>
+                        </template>
+                        <template lwc:else>
+                            <p>No active sessions found</p>
+                            <p class="secondary-text">
+                                Open a Salesforce org in a browser tab, then refresh this list.
+                            </p>
+                        </template>
+                        <button
+                            class="slds-button slds-m-top_small"
+                            type="button"
+                            onclick={refreshConnections}>
+                            Refresh connections
+                        </button>
+                    </div>
+                </section>
+            </div>
+            <aside class="welcome-sidebar" aria-label="Help and setup">
+                <section class="welcome-card">
+                    <div class="welcome-card__header"><h2>{aiTitle}</h2></div>
+                    <div class="welcome-card__body">
+                        <p>{aiDescription}</p>
+                        <button
+                            class="slds-button slds-m-top_small"
+                            type="button"
+                            onclick={handleOpenSettings}>
+                            {aiActionLabel}
+                        </button>
+                    </div>
+                </section>
+                <section class="welcome-card">
+                    <div class="welcome-card__header"><h2>Quick Tips</h2></div>
+                    <div class="welcome-card__body">
                         <template for:each={tips} for:item="tip">
                             <div key={tip.id} class="tip-item">
-                                <span class="tip-item__icon" aria-hidden="true">
-                                    <lightning-icon
-                                        icon-name={tip.icon}
-                                        size="x-small"></lightning-icon>
-                                </span>
-                                <div class="tip-item__content">
-                                    <p class="tip-item__title">{tip.title}</p>
-                                    <p class="tip-item__message">{tip.message}</p>
-                                </div>
+                                <h3>{tip.title}</h3>
+                                <p>{tip.message}</p>
                             </div>
                         </template>
                     </div>
-                </div>
-            </div>
+                </section>
+            </aside>
         </div>
-
-        <!-- Footer -->
-        <div class="welcome-footer">
-            <lightning-icon
-                icon-name="utility:info"
-                size="x-small"
-                class="welcome-footer__icon"></lightning-icon>
-            <span class="welcome-footer__text">
-                Have a question or feature request?&nbsp;
-                <button class="welcome-footer__link" type="button" onclick={handleGitHub}>
-                    Open a GitHub issue
-                </button>
-            </span>
-        </div>
+        <footer class="welcome-footer">
+            <button
+                lwc:if={hasLatestRelease}
+                type="button"
+                class="slds-button"
+                onclick={handleViewReleaseNotes}>
+                {latestReleaseLabel}
+            </button>
+            <button type="button" class="slds-button" onclick={handleGitHub}>
+                Questions or feedback
+            </button>
+        </footer>
     </div>
 </template>

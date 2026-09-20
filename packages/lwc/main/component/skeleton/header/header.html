@@ -8,6 +8,9 @@
                     <div class={collapseClass}>
                         <lightning-button-icon
                             icon-name={leftPanelIconName}
+                            data-toggle="navigation"
+                            alternative-text={leftPanelLabel}
+                            title={leftPanelLabel}
                             variant="bare"
                             size="large"
                             onclick={handleToggle}></lightning-button-icon>
@@ -18,31 +21,47 @@
                     <span class="beta-badge" title="Beta">Beta</span>
                 </div>
             </div>
-            <nav class="slds-context-bar__secondary" role="navigation">
+            <nav class="slds-context-bar__secondary" aria-label="Open applications">
                 <ul class="slds-grid">
-                    <template for:each={applications} for:item="application">
-                        <template lwc:if={application.isTabVisible}>
-                            <li
-                                key={application.id}
-                                class={application.class}
+                    <li class="slds-context-bar__item">
+                        <button
+                            type="button"
+                            class="slds-button tab-select"
+                            data-path="home"
+                            aria-current={homeCurrent}
+                            onclick={selectTab}
+                            onfocus={handleTabFocus}>
+                            Home
+                        </button>
+                    </li>
+                    <template for:each={visibleApplications} for:item="application">
+                        <li key={application.id} class={application.class}>
+                            <button
+                                type="button"
+                                class="slds-button tab-select"
+                                data-path={application.path}
                                 onclick={selectTab}
-                                data-key={application.id}
-                                data-path={application.path}>
-                                <a class="slds-context-bar__label-action" title={application.label}>
-                                    <span class="slds-truncate" title={application.label}>
-                                        {application.label}
-                                    </span>
-                                </a>
-                                <template lwc:if={application.isDeletable}>
-                                    <a class="slds-context-bar__label-close" onclick={deleteTab}>
-                                        <lightning-button-icon
-                                            icon-name="utility:close"
-                                            variant="container"
-                                            class="slds-m-left_xx-small"></lightning-button-icon>
-                                    </a>
-                                </template>
-                            </li>
-                        </template>
+                                aria-current={application.ariaCurrent}
+                                onfocus={handleTabFocus}
+                                title={application.label}>
+                                <span class="slds-truncate" title={application.label}>
+                                    {application.label}
+                                </span>
+                            </button>
+                            <template lwc:if={application.isDeletable}>
+                                <button
+                                    type="button"
+                                    class="slds-button tab-close"
+                                    onclick={deleteTab}
+                                    data-key={application.id}
+                                    aria-label={application.closeLabel}
+                                    title={application.closeLabel}>
+                                    <lightning-icon
+                                        icon-name="utility:close"
+                                        size="xx-small"></lightning-icon>
+                                </button>
+                            </template>
+                        </li>
                     </template>
                 </ul>
             </nav>
@@ -53,6 +72,9 @@
                         <div class={rightPanelCollapseClass}>
                             <lightning-button-icon
                                 icon-name={rightPanelIconName}
+                                data-toggle="assistant"
+                                alternative-text={rightPanelLabel}
+                                title={rightPanelLabel}
                                 variant="bare"
                                 size="large"
                                 onclick={handleToggle_rightPanel}></lightning-button-icon>

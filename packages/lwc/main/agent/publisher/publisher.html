@@ -1,12 +1,16 @@
 <template>
-    <div
-        class="slds-publisher slds-is-active slds-p-left_small slds-p-right_small slds-p-bottom_x-small">
+    <div class={publisherClass}>
         <div class="slds-grid slds-wrap slds-grid_align-center">
             <div class="slds-col slds-size_1-of-1">
                 <template lwc:if={hasQueuedMessages}>
                     <div class="chat-queue-panel">
                         <div class="chat-queue-header">
                             <span class="chat-queue-label">{queueLabel}</span>
+                            <template lwc:if={queuePaused}>
+                                <button type="button" onclick={handleResumeQueue}>
+                                    Resume queue
+                                </button>
+                            </template>
                         </div>
                         <template for:each={_queuedMessages} for:item="msg">
                             <div key={msg.id} class="chat-queue-item">
@@ -166,70 +170,135 @@
                     <textarea
                         id="comment-text-input2"
                         class="chat-textarea"
-                        placeholder="Write a prompt…"
+                        placeholder={promptPlaceholder}
                         onkeydown={handleKeyDown}
                         oninput={handleInputChange}
                         aria-label="Prompt input"></textarea>
                     <div class="chat-input-actions-row">
                         <div class="chat-input-actions-left">
+                            <template lwc:if={assistantStyle}>
+                                <button
+                                    class="composer-action"
+                                    type="button"
+                                    aria-label="Attach File"
+                                    title="Attach a file"
+                                    onclick={triggerFileInput}>
+                                    <slds-lucide-icon name="paperclip" size="18"></slds-lucide-icon>
+                                </button>
+                            </template>
                             <template lwc:if={isAudioRecorderDisplayed}>
                                 <agent-audio-recorder
                                     openai-key={openaiKey}
                                     onchange={handleSpeechChange}></agent-audio-recorder>
                             </template>
                         </div>
+                        <template lwc:if={assistantStyle}>
+                            <span class="composer-hint">Enter to send · / for tools</span>
+                        </template>
                         <div class="chat-input-actions-right">
-                            <lightning-button-group>
-                                <lightning-button-icon
-                                    icon-name="utility:attach"
-                                    size="medium"
-                                    variant="border-filled"
-                                    alternative-text="Attach File"
-                                    title="Attach File"
-                                    onclick={triggerFileInput}></lightning-button-icon>
-                                <lightning-button-icon
-                                    icon-name="utility:delete"
-                                    size="medium"
-                                    variant="border-filled"
-                                    alternative-text="Clear"
-                                    title="Clear"
-                                    onclick={handleClearClick}></lightning-button-icon>
+                            <template lwc:if={assistantStyle}>
                                 <template lwc:if={isLoading}>
-                                    <lightning-button-icon
-                                        icon-name="utility:stop"
-                                        size="medium"
-                                        variant="border-filled"
-                                        alternative-text="Stop"
-                                        title="Stop"
-                                        onclick={handleStopClick}></lightning-button-icon>
+                                    <button
+                                        class="composer-action composer-stop"
+                                        type="button"
+                                        aria-label="Stop"
+                                        title="Stop the current response"
+                                        onclick={handleStopClick}>
+                                        <slds-lucide-icon
+                                            name="square"
+                                            size="16"></slds-lucide-icon>
+                                    </button>
                                     <template lwc:if={showPushButton}>
-                                        <lightning-button-icon
-                                            icon-name="utility:forward_up"
-                                            size="medium"
-                                            variant="border-filled"
-                                            alternative-text="Push message now"
-                                            title="Push now (inject into current conversation)"
-                                            onclick={handlePushClick}></lightning-button-icon>
+                                        <button
+                                            class="composer-action"
+                                            type="button"
+                                            aria-label="Queue message next"
+                                            title="Queue next"
+                                            onclick={handlePushClick}>
+                                            <slds-lucide-icon
+                                                name="list-start"
+                                                size="18"></slds-lucide-icon>
+                                        </button>
                                     </template>
-                                    <lightning-button-icon
-                                        icon-name="utility:send"
-                                        size="medium"
-                                        variant="border-filled"
-                                        alternative-text="Queue message"
-                                        title="Queue message (send after current response)"
-                                        onclick={handleSendClick}></lightning-button-icon>
+                                    <button
+                                        class="composer-action composer-send"
+                                        type="button"
+                                        aria-label="Queue message"
+                                        title="Send after the current response"
+                                        disabled={isSendButtonDisabled}
+                                        onclick={handleSendClick}>
+                                        <slds-lucide-icon
+                                            name="list-plus"
+                                            size="18"></slds-lucide-icon>
+                                    </button>
                                 </template>
                                 <template lwc:else>
+                                    <button
+                                        class="composer-action composer-send"
+                                        type="button"
+                                        aria-label="Send"
+                                        title="Send message"
+                                        disabled={isSendButtonDisabled}
+                                        onclick={handleSendClick}>
+                                        <slds-lucide-icon
+                                            name="arrow-up"
+                                            size="19"></slds-lucide-icon>
+                                    </button>
+                                </template>
+                            </template>
+                            <template lwc:else>
+                                <lightning-button-group>
                                     <lightning-button-icon
-                                        icon-name="utility:send"
+                                        icon-name="utility:attach"
                                         size="medium"
                                         variant="border-filled"
-                                        alternative-text="Send"
-                                        title="Send"
-                                        disabled={isSendButtonDisabled}
-                                        onclick={handleSendClick}></lightning-button-icon>
-                                </template>
-                            </lightning-button-group>
+                                        alternative-text="Attach File"
+                                        title="Attach File"
+                                        onclick={triggerFileInput}></lightning-button-icon>
+                                    <lightning-button-icon
+                                        icon-name="utility:delete"
+                                        size="medium"
+                                        variant="border-filled"
+                                        alternative-text="Clear"
+                                        title="Clear"
+                                        onclick={handleClearClick}></lightning-button-icon>
+                                    <template lwc:if={isLoading}>
+                                        <lightning-button-icon
+                                            icon-name="utility:stop"
+                                            size="medium"
+                                            variant="border-filled"
+                                            alternative-text="Stop"
+                                            title="Stop"
+                                            onclick={handleStopClick}></lightning-button-icon>
+                                        <template lwc:if={showPushButton}>
+                                            <lightning-button-icon
+                                                icon-name="utility:forward_up"
+                                                size="medium"
+                                                variant="border-filled"
+                                                alternative-text="Queue message next"
+                                                title="Queue next (after the current response)"
+                                                onclick={handlePushClick}></lightning-button-icon>
+                                        </template>
+                                        <lightning-button-icon
+                                            icon-name="utility:send"
+                                            size="medium"
+                                            variant="border-filled"
+                                            alternative-text="Queue message"
+                                            title="Queue message (send after current response)"
+                                            onclick={handleSendClick}></lightning-button-icon>
+                                    </template>
+                                    <template lwc:else>
+                                        <lightning-button-icon
+                                            icon-name="utility:send"
+                                            size="medium"
+                                            variant="border-filled"
+                                            alternative-text="Send"
+                                            title="Send"
+                                            disabled={isSendButtonDisabled}
+                                            onclick={handleSendClick}></lightning-button-icon>
+                                    </template>
+                                </lightning-button-group>
+                            </template>
                         </div>
                         <input
                             type="file"

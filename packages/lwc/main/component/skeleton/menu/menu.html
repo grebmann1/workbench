@@ -10,6 +10,8 @@
                         <div class={collapseClass}>
                             <lightning-button-icon
                                 icon-name={iconName}
+                                alternative-text={toggleLabel}
+                                title={toggleLabel}
                                 variant="bare"
                                 size="large"
                                 onclick={handleToggle}></lightning-button-icon>
@@ -25,25 +27,28 @@
             </div>
         </header>
     </template>
-    <!-- <div class="explorer-rail">
-        <template lwc:if={isNotMenuSmall}>
-            <div class="explorer-header">
-                <h2 class="explorer-title">Explorer</h2>
-            </div>
-            <div class="explorer-search">
-                <lightning-input
-                    type="search"
-                    label="Search"
-                    placeholder="Search..."
-                    value={filterText}
-                    onchange={handleSearchInput}
-                    variant="label-hidden"
-                    icon-name="utility:search"
-                    class="explorer-search-input">
-                </lightning-input>
-            </div>
-        </template>
-    </div> -->
+    <template lwc:if={isNotMenuSmall}>
+        <div class="explorer-search" onkeydown={handleSearchKeydown}>
+            <lightning-input
+                lwc:ref="search"
+                type="search"
+                label="Search tools and pages"
+                placeholder="Search tools and pages…"
+                value={filterText}
+                onchange={handleSearchInput}
+                variant="label-hidden"
+                class="explorer-search-input"></lightning-input>
+            <template lwc:if={hasSearchText}>
+                <p class="search-summary" role="status">{searchSummary}</p>
+                <template lwc:if={hasNoSearchResults}>
+                    <p class="search-hint">Try a tool name or a task, such as “compare”.</p>
+                    <button type="button" class="slds-button" onclick={handleClearSearch}>
+                        Clear search
+                    </button>
+                </template>
+            </template>
+        </div>
+    </template>
     <slds-vertical-navigation
         class="menu-header"
         selected-item-name={selectedItemName}

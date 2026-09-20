@@ -2,6 +2,7 @@ import ToolkitElement from 'core/toolkitElement';
 import Toast from 'lightning/toast';
 import { api } from 'lwc';
 import LOGGER from 'shared/logger';
+import { isSafeMarkdownImage, isSafeMarkdownLink } from 'shared/safeMarkdown';
 import { classSet, ROLES } from 'shared/utils';
 
 export default class Message extends ToolkitElement {
@@ -9,6 +10,11 @@ export default class Message extends ToolkitElement {
     @api isCurrentMessage = false;
     @api isReasoningStreaming = false;
     @api isLastMessage = false;
+    @api assistantStyle = false;
+
+    get showSpeakerLabel() {
+        return this.assistantStyle && (this.isUser || this.renderedTextForClipboard.length > 0);
+    }
 
     /** Methods **/
 
@@ -93,13 +99,18 @@ export default class Message extends ToolkitElement {
                 const url = typeof part.url === 'string' ? part.url : '';
                 const mediaType = typeof part.mediaType === 'string' ? part.mediaType : '';
                 const filename = typeof part.filename === 'string' ? part.filename : '';
+                if (!isSafeMarkdownLink(url) && !isSafeMarkdownImage(url, false)) {
+                    rendered.push({ key, isText: true, text: filename || '[File link blocked]' });
+                    return;
+                }
                 rendered.push({
                     key,
                     isFile: true,
                     url,
                     mediaType,
                     filename,
-                    isImage: typeof mediaType === 'string' && mediaType.startsWith('image/'),
+                    isImage:
+                        mediaType.startsWith('image/') && isSafeMarkdownImage(url, this.isUser),
                 });
                 return;
             }
@@ -156,11 +167,14 @@ export default class Message extends ToolkitElement {
         return this.renderedParts.length > 0;
     }
 
-    // Show a copy button only on the last assistant message (the final answer
-    // to the user), and only when it has text to copy — not on intermediate
-    // turns or tool exchanges.
+    // The chat presentation also offers copying earlier completed replies.
+    // Preserve the final-answer-only control in the original Workbench UI.
     get canCopyMessage() {
-        return this.isLastMessage && this.isAssistant && this.renderedTextForClipboard.length > 0;
+        return (
+            (this.isLastMessage || (this.assistantStyle && !this.isCurrentMessage)) &&
+            this.isAssistant &&
+            this.renderedTextForClipboard.length > 0
+        );
     }
 
     get showAssistantEmptyFallback() {
@@ -224,6 +238,12 @@ export default class Message extends ToolkitElement {
                 'slds-chat-listitem_outbound': this.isUser,
                 'slds-chat-listitem_inbound': !this.isUser,
                 'message-listitem-outbound': this.isUser,
+                'assistant-message': this.assistantStyle,
+                'assistant-activity':
+                    this.assistantStyle &&
+                    !this.isUser &&
+                    this.renderedParts.length > 0 &&
+                    this.renderedParts.every(part => part.isReasoning || part.isTool),
             })
             .toString();
     }
