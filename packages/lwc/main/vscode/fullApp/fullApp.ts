@@ -74,7 +74,7 @@ export default class VscodeWorkbenchApp extends ToolkitElement {
     @track sessionHasExpired = false;
     @track connectorHasError = false;
     @track connectorErrorMessage = null;
-    @track themeMode = 'light';
+    @track themeMode: 'light' | 'dark' = 'light';
     @track isReconnectBusy = false;
     @track isRetryingInitialization = false;
     @track isDownloadingWorkspace = false;

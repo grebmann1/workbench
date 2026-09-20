@@ -22,6 +22,13 @@ bootstrapMetadataExtension();
 const METADATA_EXCLUDE_LIST = ['Flow', 'FlowDefinition'];
 
 export default class App extends ToolkitElement {
+    declare refs: {
+        menu?: HTMLElement & import('../menu/menu').default;
+        metadataTab?: HTMLElement & import('../../../main/component/slds/tabset/tabset').default;
+        editor?: HTMLElement & import('../../../main/editor/app/app').default;
+        viewer?: HTMLElement & import('../viewer/viewer').default;
+    };
+
     @wire(NavigationContext)
     navContext: any;
 

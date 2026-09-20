@@ -74,7 +74,7 @@ export default class Default extends LightningElement {
         this.panel = this.urlOverwrittenPanel || this.panel;
         this.connectToBackground();
         this.loadFromCache();
-        store.dispatch(APPLICATION.reduxSlice.actions.setIsSidePanel({}));
+        store.dispatch(APPLICATION.reduxSlice.actions.setIsSidePanel());
     }
 
     disconnectedCallback() {
@@ -117,18 +117,15 @@ export default class Default extends LightningElement {
             CACHE_CONFIG.BETA_SMARTINPUT_ENABLED.key,
             CACHE_CONFIG.GOOGLE_SESSION.key,
             CACHE_CONFIG.GOOGLE_DRIVE_CONNECTED.key,
+            CACHE_CONFIG.TOOL_GOOGLE_SHEET_ENABLED.key,
         ]);
 
         this.betaSmartInputEnabled = !!configuration[CACHE_CONFIG.BETA_SMARTINPUT_ENABLED.key];
 
         const providerConfigs = resolveLlmProviderConfigMap(configuration);
-        const openaiKey = providerConfigs.openai.apiKey;
         const openaiUrl = providerConfigs.openai.baseUrl;
-        const mistralKey = providerConfigs.mistral.apiKey;
         const aiProvider = getAiProviderFromConfig(configuration);
-        LOGGER.debug('loadFromCache - openaiKey', openaiKey);
         LOGGER.debug('loadFromCache - openaiUrl', openaiUrl);
-        LOGGER.debug('loadFromCache - mistralKey', mistralKey);
         LOGGER.debug('loadFromCache - aiProvider', aiProvider);
         // Populate application.settings so agent-app and other store consumers
         // can read persisted values (e.g. GOOGLE_SESSION) without each dispatching

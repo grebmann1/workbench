@@ -74,7 +74,7 @@ function buildFileProvidersFromRelativePaths(relativePaths) {
 }
 
 function getParentDirectoriesForFilePaths(filePaths) {
-    const out = new Set();
+    const out = new Set<string>();
     const addParents = fullPath => {
         const raw = String(fullPath || '');
         if (!raw.startsWith('/')) return;

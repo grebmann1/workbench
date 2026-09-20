@@ -18,6 +18,15 @@ const APPLICATIONS = {
 };
 
 export default class Salesforce extends ToolkitElement {
+    _lastAccessToken: string | undefined;
+
+    declare refs: {
+        recordexplorer?: HTMLElement &
+            import('../../../applications/recordviewer/recordExplorer/recordExplorer').default;
+        userexplorer?: HTMLElement & import('../../feature/userExplorer/userExplorer').default;
+        tools?: HTMLElement & import('../../feature/tools/tools').default;
+    };
+
     @api currentOrigin;
 
     @api currentApplication = APPLICATIONS.RECORD_EXPLORER;
@@ -47,8 +56,9 @@ export default class Salesforce extends ToolkitElement {
         if (
             isNotUndefinedOrNull(application.connector) &&
             isNotUndefinedOrNull(this.connector) &&
-            application.connector?.conn?.accessToken != this.connector.connector?.conn?.accessToken
+            application.connector?.conn?.accessToken != this._lastAccessToken
         ) {
+            this._lastAccessToken = application.connector.conn.accessToken;
             this.isConnectorLoaded = true;
             if (this.isRecordExplorerAvailable) {
                 this.openSpecificTab(APPLICATIONS.RECORD_EXPLORER);

@@ -271,7 +271,7 @@ test('source contract: formatTab destructures and repacks the six known fields',
 test('source contract: enrichTab looks up file via selector.selectById(state, lowerCaseKey(tab.fileId))', () => {
     assert.match(
         apexSource,
-        /function enrichTab\(tab, state, selector\) \{\s*const file =\s*tab\.fileId && selector \? selector\.selectById\(state, lowerCaseKey\(tab\.fileId\)\) : null;/
+        /function enrichTab\(tab, state, selector = undefined\) \{\s*const file =\s*tab\.fileId && selector \? selector\.selectById\(state, lowerCaseKey\(tab\.fileId\)\) : null;/
     );
 });
 

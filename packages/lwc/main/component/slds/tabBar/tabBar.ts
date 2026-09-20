@@ -1,3 +1,4 @@
+import type { TabHeader } from '../tab/tab';
 import { api, LightningElement, track } from 'lwc';
 import { classSet, calculateOverflow, LightningResizeObserver } from 'shared/utils';
 
@@ -12,10 +13,31 @@ const i18n = {
 
 const RECOMPUTE_OVERFLOW_THRESHOLD_PX = 30;
 
+type TabView = TabHeader & {
+    linkId: string;
+    class: string;
+    linkClass: string;
+    tabActionClass: string;
+    tabIndex: number;
+    ariaSelected: string;
+    contentId: string;
+    visible: boolean;
+    width: number;
+    hasFocus?: boolean;
+};
+
 export default class SldsTabBar extends LightningElement {
+    declare hasFocus: boolean;
+
+    declare _connected: boolean;
+    declare _selectedTab: TabView;
+    declare _tabHeaders: TabHeader[];
+    declare _resizeObserver: ReturnType<SldsTabBar['_setupResizeObserver']>;
+    declare _containerWidthWhenLastResized: number;
+
     @api disableOverflow = false;
 
-    @track _allTabs = [];
+    @track _allTabs: TabView[] = [];
     @track _hasOverflow = false;
 
     @track _variant;
@@ -68,10 +90,10 @@ export default class SldsTabBar extends LightningElement {
         return this._tabHeaders;
     }
 
-    set tabHeaders(tabHeaders) {
+    set tabHeaders(tabHeaders: TabHeader[]) {
         tabHeaders = tabHeaders || [];
         this._tabHeaders = tabHeaders;
-        const allTabs = tabHeaders.map(tab => {
+        const allTabs = tabHeaders.map<TabView>(tab => {
             const classNames = this._tabClass({ isAdd: tab.isAddTabEnabled });
             //console.log('classNames',classNames);
             const linkClassNames = this.computedLinkClass;
@@ -92,9 +114,10 @@ export default class SldsTabBar extends LightningElement {
                 linkClass: linkClassNames,
                 tabActionClass: tabActionClass,
                 tabIndex: -1,
-                ariaSelected: false,
+                ariaSelected: 'false',
                 contentId: '',
                 visible: true,
+                width: 0,
                 iconName: tab.iconName,
                 iconAlternativeText: tab.iconAlternativeText,
                 endIconName: tab.endIconName,
@@ -245,7 +268,7 @@ export default class SldsTabBar extends LightningElement {
         return this._allTabs.find(tab => tab.value === tabValue);
     }
 
-    _selectTabAndFireSelectEvent(tabValue, options) {
+    _selectTabAndFireSelectEvent(tabValue, options: { hasFocus?: boolean } = {}) {
         this._selectTab(tabValue, options);
 
         const tab = this._findTabByValue(tabValue);
@@ -260,7 +283,7 @@ export default class SldsTabBar extends LightningElement {
         );
     }
 
-    _selectTab(tabValue, options = {}) {
+    _selectTab(tabValue, options: { hasFocus?: boolean } = {}) {
         const tab = this._findTabByValue(tabValue);
 
         if (!tab) {

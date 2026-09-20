@@ -33,50 +33,54 @@ function makeChrome({
         tabGroupsQuery: [],
         tabGroupsUpdate: [],
     };
-    globalThis.chrome = {
-        windows: {
-            getAll: opts => {
-                calls.windowsGetAll.push(opts);
-                return Promise.resolve(windows);
+    Object.defineProperty(globalThis, 'chrome', {
+        configurable: true,
+        writable: true,
+        value: {
+            windows: {
+                getAll: opts => {
+                    calls.windowsGetAll.push(opts);
+                    return Promise.resolve(windows);
+                },
+                create: opts => {
+                    calls.windowsCreate.push(opts);
+                    return Promise.resolve(newWindow);
+                },
             },
-            create: opts => {
-                calls.windowsCreate.push(opts);
-                return Promise.resolve(newWindow);
+            tabs: {
+                create: opts => {
+                    calls.tabsCreate.push(opts);
+                    return Promise.resolve({ id: newTabId });
+                },
+                query: (opts, cb) => {
+                    calls.tabsQuery.push(opts);
+                    const tabs = [{ id: newTabId }];
+                    if (cb) cb(tabs);
+                    return Promise.resolve(tabs);
+                },
+                group: (opts, cb) => {
+                    calls.tabsGroup.push(opts);
+                    const newGroupId = groupIdForNew;
+                    if (cb) {
+                        cb(newGroupId);
+                        return undefined;
+                    }
+                    return Promise.resolve(newGroupId);
+                },
+            },
+            tabGroups: {
+                query: opts => {
+                    calls.tabGroupsQuery.push(opts);
+                    return Promise.resolve(tabGroupsForWindow[opts.windowId] || []);
+                },
+                update: (groupId, opts, cb) => {
+                    calls.tabGroupsUpdate.push({ groupId, opts });
+                    if (cb) cb();
+                    return Promise.resolve();
+                },
             },
         },
-        tabs: {
-            create: opts => {
-                calls.tabsCreate.push(opts);
-                return Promise.resolve({ id: newTabId });
-            },
-            query: (opts, cb) => {
-                calls.tabsQuery.push(opts);
-                const tabs = [{ id: newTabId }];
-                if (cb) cb(tabs);
-                return Promise.resolve(tabs);
-            },
-            group: (opts, cb) => {
-                calls.tabsGroup.push(opts);
-                const newGroupId = groupIdForNew;
-                if (cb) {
-                    cb(newGroupId);
-                    return undefined;
-                }
-                return Promise.resolve(newGroupId);
-            },
-        },
-        tabGroups: {
-            query: opts => {
-                calls.tabGroupsQuery.push(opts);
-                return Promise.resolve(tabGroupsForWindow[opts.windowId] || []);
-            },
-            update: (groupId, opts, cb) => {
-                calls.tabGroupsUpdate.push({ groupId, opts });
-                if (cb) cb();
-                return Promise.resolve();
-            },
-        },
-    };
+    });
     return calls;
 }
 
@@ -135,21 +139,29 @@ test('PANELS: exposes salesforce + default keys', () => {
 
 test('getCurrentTab: resolves to the tab returned by chrome.tabs.query', async () => {
     const expectedTab = { id: 42, active: true };
-    globalThis.chrome = {
-        tabs: {
-            query: async () => [expectedTab],
+    Object.defineProperty(globalThis, 'chrome', {
+        configurable: true,
+        writable: true,
+        value: {
+            tabs: {
+                query: async () => [expectedTab],
+            },
         },
-    };
+    });
     const tab = await getCurrentTab();
     assert.deepEqual(tab, expectedTab);
 });
 
 test('getCurrentTab: resolves to undefined when no tab matches', async () => {
-    globalThis.chrome = {
-        tabs: {
-            query: async () => [],
+    Object.defineProperty(globalThis, 'chrome', {
+        configurable: true,
+        writable: true,
+        value: {
+            tabs: {
+                query: async () => [],
+            },
         },
-    };
+    });
     const tab = await getCurrentTab();
     assert.equal(tab, undefined);
 });

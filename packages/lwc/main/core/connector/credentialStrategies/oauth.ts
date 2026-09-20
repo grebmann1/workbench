@@ -105,7 +105,11 @@ export async function connect(
                 redirectUri: chrome.identity.getRedirectURL(),
                 loginUrl: normalizedUrl,
             });
-            const authzParams = { prompt: 'consent', scope: FULL_SCOPE };
+            const authzParams = {
+                prompt: 'consent',
+                scope: FULL_SCOPE,
+                login_hint: username || undefined,
+            };
             if (username) authzParams.login_hint = username;
             const finalUrl = oauth2.getAuthorizationUrl(authzParams);
             chrome.runtime.sendMessage(
@@ -206,6 +210,7 @@ export async function connect(
             });
             const authzParams = {
                 response_type: 'code',
+                login_hint: username || undefined,
                 state: stateParam,
                 scope: FULL_SCOPE,
             };

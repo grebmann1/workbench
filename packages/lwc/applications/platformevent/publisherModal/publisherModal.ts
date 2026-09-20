@@ -44,7 +44,7 @@ export default class PublisherModal extends LightningModal {
 
     get apexSnippet() {
         try {
-            const payload = JSON.parse(this.payloadText || '{}');
+            const payload: Record<string, unknown> = JSON.parse(this.payloadText || '{}');
             const assignments = Object.entries(payload)
                 .filter(([k, v]) => k && v !== undefined)
                 .map(([k, v]) => `${k}=${this.toApexLiteral(v)}`)
@@ -87,7 +87,7 @@ export default class PublisherModal extends LightningModal {
         this.isPublishing = true;
         this.errorMessage = null;
         try {
-            const payload = JSON.parse(this.payloadText || '{}');
+            const payload: Record<string, unknown> = JSON.parse(this.payloadText || '{}');
             const jsforce = window.jsforce;
             if (!jsforce) {
                 throw new Error('jsforce not available');

@@ -1,3 +1,4 @@
+import type { RootState } from 'host-api/types';
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { getStore } from 'core/store/storeRef';
 import type { ConnectorLike } from 'host-api/connector';
@@ -16,6 +17,18 @@ import {
 const METADATA_SETTINGS_KEY = 'METADATA_SETTINGS_KEY';
 let metadataSyncWorkerInstance = null;
 type Connector = ConnectorLike;
+type ToolingRecord = {
+    Id: string;
+    Name?: string;
+    MasterLabel?: string;
+    DeveloperName?: string;
+    FilePath?: string;
+    Source?: string;
+    ApiVersion?: number;
+    LightningComponentBundleId?: string;
+    DefType?: string;
+    [key: string]: unknown;
+};
 
 const getMetadataSyncJobId = (alias, startedAt = Date.now()) =>
     `metadata-sync-${alias || 'unknown'}-${startedAt}`;
@@ -185,7 +198,7 @@ export async function loadSpecificMetadataException(
         const query = `SELECT ${[...fields, ...queryFields].join(
             ','
         )} FROM ${queryObject} ${filterFunc(recordId)}`;
-        const result = (await runAndCacheQuery(connector, query, false, bypass)) || [];
+        const result = (await runAndCacheQuery(connector, query, bypass)) || [];
 
         // Filter and map the results
         const records = result
@@ -225,7 +238,8 @@ const handle_LWC = async (connector: Connector, sobject: string, key: string) =>
     } else {
         queryString += `LightningComponentBundle.DeveloperName = '${key}'`;
     }
-    const resources = (await connector.conn.tooling.query(queryString)).records || [];
+    const resources =
+        (await connector.conn.tooling.query<ToolingRecord>(queryString)).records || [];
     const files = formatFiles(
         resources.map(x => ({
             path: x.FilePath,
@@ -267,7 +281,7 @@ const handle_APEX = async (
 const handle_AURA = async (connector: Connector, sobject: string, data: any) => {
     const resources =
         (
-            await connector.conn.tooling.query(
+            await connector.conn.tooling.query<ToolingRecord>(
                 `SELECT AuraDefinitionBundleId,Format,DefType,Source FROM AuraDefinition WHERE AuraDefinitionBundleId = '${data.Id}'`
             )
         ).records || [];
@@ -311,7 +325,7 @@ const _auraNameMapping = (name, type) => {
 
 const runAndCacheQuery = async (connector: Connector, query: string, _byPassCaching?: boolean) => {
     const fetchAndSave = async query => {
-        const queryExec = connector.conn.tooling.query(query);
+        const queryExec = connector.conn.tooling.query<ToolingRecord>(query);
         const result =
             (await queryExec.run({
                 responseTarget: 'Records',
@@ -321,13 +335,13 @@ const runAndCacheQuery = async (connector: Connector, query: string, _byPassCach
         cacheManager.saveOrgData(
             connector.conn.alias,
             CACHE_ORG_DATA_TYPES.METADATA_QUERY,
-            query,
-            result
+            result,
+            query
         );
         return result;
     };
 
-    const cachedQuery = await cacheManager.loadOrgData(
+    const cachedQuery = await cacheManager.loadOrgData<ToolingRecord[]>(
         connector.conn.alias,
         CACHE_ORG_DATA_TYPES.METADATA_QUERY,
         query
@@ -461,7 +475,7 @@ const persistMetadataViaWorker = async ({
 }) => {
     const workerEntry = getWorker(connector, 'metadata.worker.js', { debug });
     const worker = workerEntry.instance;
-    return await new Promise((resolve, reject) => {
+    return await new Promise<{ status: string }>((resolve, reject) => {
         worker.onmessage = event => {
             const { type, status, value } = event.data || {};
             if (type === 'result' && status === 'finished') {
@@ -524,26 +538,30 @@ const fetchGlobalMetadata = createAsyncThunk(
     'metadata/fetchGlobalMetadata',
     async (_, { dispatch, getState, rejectWithValue }) => {
         try {
-            const { application } = getState();
+            const { application } = getState() as RootState;
             // Fetch available metadata objects
             LOGGER.debug('application.connector', application.connector);
-            const { tooling } = (
-                await dispatch(
-                    DESCRIBE.describeSObjects({
-                        connector: application.connector.conn,
-                    })
-                )
-            ).payload;
+            const { tooling } = await dispatch(
+                DESCRIBE.describeSObjects({
+                    connector: application.connector.conn,
+                })
+            ).unwrap();
             const sobjects = tooling.sobjects.map(obj => obj.name);
-            const { metadataObjects } = (
-                await dispatch(
-                    DESCRIBE.describeVersion({
-                        connector: application.connector.conn,
-                    })
-                )
-            ).payload;
+            const { metadataObjects } = await dispatch(
+                DESCRIBE.describeVersion({
+                    connector: application.connector.conn,
+                })
+            ).unwrap();
             // TODO : Seperate the metadata from the objects. Some metadata are not sobjects
-            let result = metadataObjects
+            let result: Array<
+                | (typeof METADATA_UTILS.METADATA_EXCEPTION_LIST)[number]
+                | (Partial<import('jsforce/lib/api/metadata').DescribeMetadataObject> & {
+                      name: string;
+                      label: string;
+                      key: string;
+                      isSobject: boolean;
+                  })
+            > = metadataObjects
                 .filter(obj => !METADATA_UTILS.METADATA_EXCLUDE_LIST.includes(obj.xmlName))
                 .map(obj => ({
                     ...obj,
@@ -572,12 +590,19 @@ const fetchGlobalMetadata = createAsyncThunk(
 
 const fetchSpecificMetadata = createAsyncThunk(
     'metadata/fetchSpecificMetadata',
-    async ({ sobject, bypass = false, force = false }, { dispatch, getState, rejectWithValue }) => {
+    async (
+        {
+            sobject,
+            bypass = false,
+            force = false,
+        }: { sobject: string; bypass?: boolean; force?: boolean },
+        { dispatch, getState, rejectWithValue }
+    ) => {
         try {
             //bypass = bypass || false; // Default is false;
             await dispatch(reduxSlice.actions.setAttributes({ sobject }));
 
-            const { application, metadata } = getState();
+            const { application, metadata } = getState() as RootState;
             LOGGER.debug('application.connector', application.connector);
             const exceptionMetadata =
                 METADATA_UTILS.METADATA_EXCEPTION_LIST.find(x => x.name === sobject) || null;
@@ -617,13 +642,23 @@ const fetchSpecificMetadata = createAsyncThunk(
 );
 
 // Async Thunk for fetching Metadata
-const fetchMetadataRecord = createAsyncThunk(
+const fetchMetadataRecord = createAsyncThunk.withTypes<{
+    rejectValue: { error: string; tabkey: string };
+}>()(
     'metadata/fetchMetadataRecord',
-    async ({ sobject, param1, param2, label1 }, { getState, dispatch, rejectWithValue }) => {
+    async (
+        {
+            sobject,
+            param1,
+            param2,
+            label1,
+        }: { sobject: string; param1?: string; param2?: string; label1?: string },
+        { getState, dispatch, rejectWithValue }
+    ) => {
         const tabkey = `${sobject}-${param1}`;
 
         try {
-            const { application } = getState();
+            const { application } = getState() as RootState;
             const exceptionMetadata =
                 METADATA_UTILS.METADATA_EXCEPTION_LIST.find(x => x.name === sobject) || null;
 
@@ -674,7 +709,7 @@ const fetchMetadataRecord = createAsyncThunk(
             let persistence = { status: 'skipped' };
             if (shouldPersistMetadata(storageConfig, alias, sobject)) {
                 persistence = await persistMetadataViaWorker({
-                    connector: application.connector.conn,
+                    connector: application.connector,
                     alias,
                     metadataType: sobject,
                     files: files || [],
@@ -709,9 +744,12 @@ const fetchMetadataRecord = createAsyncThunk(
 
 const startMetadataBackgroundSync = createAsyncThunk(
     'metadata/startMetadataBackgroundSync',
-    async ({ metadataTypes, debug = false } = {}, { dispatch, getState, rejectWithValue }) => {
+    async (
+        { metadataTypes, debug = false }: { metadataTypes?: string[]; debug?: boolean } = {},
+        { dispatch, getState, rejectWithValue }
+    ) => {
         try {
-            const { application } = getState();
+            const { application } = getState() as RootState;
             const alias = application?.connector?.conn?.alias;
             const startedAt = Date.now();
             const jobId = getMetadataSyncJobId(alias, startedAt);
@@ -884,10 +922,12 @@ const startMetadataBackgroundSync = createAsyncThunk(
             dispatch(
                 BACKGROUNDJOB.reduxSlice.actions.failJob({
                     id:
-                        getState()?.metadata?.syncJob?.jobId ||
-                        getMetadataSyncJobId(getState()?.application?.connector?.conn?.alias),
+                        (getState() as RootState)?.metadata?.syncJob?.jobId ||
+                        getMetadataSyncJobId(
+                            (getState() as RootState)?.application?.connector?.conn?.alias
+                        ),
                     category: 'metadata',
-                    label: `Metadata sync (${getState()?.application?.connector?.conn?.alias || 'unknown'})`,
+                    label: `Metadata sync (${(getState() as RootState)?.application?.connector?.conn?.alias || 'unknown'})`,
                     phase: 'error',
                     message: 'Metadata sync failed',
                     source: 'metadata.worker',
@@ -904,9 +944,10 @@ const cancelMetadataBackgroundSync = createAsyncThunk(
     'metadata/cancelMetadataBackgroundSync',
     async (_, { getState, dispatch, rejectWithValue }) => {
         try {
-            const alias = getState()?.application?.connector?.conn?.alias;
+            const alias = (getState() as RootState)?.application?.connector?.conn?.alias;
             const jobId =
-                getState()?.metadata?.syncJob?.jobId || getMetadataSyncJobId(alias, Date.now());
+                (getState() as RootState)?.metadata?.syncJob?.jobId ||
+                getMetadataSyncJobId(alias, Date.now());
             if (metadataSyncWorkerInstance) {
                 metadataSyncWorkerInstance.postMessage({ action: 'cancelSync' });
                 metadataSyncWorkerInstance.terminate();
@@ -972,6 +1013,7 @@ const metadataSlice = createSlice({
     initialState: {
         tabs: [],
         currentTab: null,
+        currentMetadata: null,
         param1: null,
         param2: null,
         label1: null,
@@ -1025,7 +1067,7 @@ const metadataSlice = createSlice({
             const { payload } = action;
             _setAttributes(state, payload);
         },
-        initTabs: (state, action) => {
+        initTabs: state => {
             // Set first tab
             if (state.tabs.length > 0) {
                 state.currentTabId = state.tabs[0].id;
@@ -1073,7 +1115,7 @@ const metadataSlice = createSlice({
                 });
             }
         },
-        goBack: (state, action) => {
+        goBack: state => {
             // Back is only from records to global
             // Reset currentMetadata and related fields to allow reselecting the same metadata type
             state.metadata_records = null;
@@ -1172,7 +1214,10 @@ const metadataSlice = createSlice({
                 //state.currentLevel = action.payload.currentLevel;
             })
             .addCase(fetchMetadataRecord.rejected, (state, action) => {
-                const { error, tabkey } = action.payload;
+                const { error, tabkey } = action.payload || {
+                    error: action.error.message,
+                    tabkey: `${action.meta.arg.sobject}-${action.meta.arg.param1}`,
+                };
                 // Not Used for now ()
                 state.isLoading = false;
                 state.isLoadingRecord = false;
@@ -1259,3 +1304,9 @@ export {
     shouldPersistMetadata,
     getMetadataStorageConfig,
 };
+
+declare module 'host-api/types' {
+    interface InjectedState {
+        metadata?: ReturnType<typeof reduxSlice.reducer>;
+    }
+}

@@ -124,11 +124,13 @@ const vscodeFullAppTsFallback = () => ({
 const stripTypescript = () => ({
     name: 'strip-typescript',
     transform(code, id) {
-        if (!id.endsWith('.ts')) {
+        // LWC appends a specifier query to resolved modules.
+        const filename = id.split('?', 1)[0];
+        if (!filename.endsWith('.ts')) {
             return null;
         }
         const result = transformSync(code, {
-            filename: id,
+            filename,
             babelrc: false,
             configFile: false,
             sourceMaps: true,

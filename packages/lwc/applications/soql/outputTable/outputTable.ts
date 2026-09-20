@@ -195,7 +195,7 @@ export default class OutputTable extends ToolkitElement {
             .replaceAll("'", '&#039;');
     }
 
-    _iconButtonHtml({ action, iconName, assistiveText, title }) {
+    _iconButtonHtml({ action, iconName, assistiveText, title = assistiveText }) {
         const safeTitle = this._escapeHtml(title || assistiveText || '');
         const safeText = this._escapeHtml(assistiveText || '');
         return `

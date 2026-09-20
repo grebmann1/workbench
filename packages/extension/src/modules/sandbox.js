@@ -1580,6 +1580,20 @@ function createWorkspaceClient(overrides = {}) {
         status() {
             return sendWorkspaceRequest(config, 'status');
         },
+        drive: {
+            listFiles: input => sendWorkspaceRequest(config, 'drive.listFiles', input),
+            getFile: input => sendWorkspaceRequest(config, 'drive.getFile', input),
+            copyFile: input => sendWorkspaceRequest(config, 'drive.copyFile', input),
+            exportText: input => sendWorkspaceRequest(config, 'drive.exportText', input),
+            readText: input => sendWorkspaceRequest(config, 'drive.readText', input),
+        },
+        slides: {
+            getPresentation: input => sendWorkspaceRequest(config, 'slides.getPresentation', input),
+            createPresentation: input =>
+                sendWorkspaceRequest(config, 'slides.createPresentation', input),
+            batchUpdate: input => sendWorkspaceRequest(config, 'slides.batchUpdate', input),
+            getThumbnail: input => sendWorkspaceRequest(config, 'slides.getThumbnail', input),
+        },
         sheets: {
             requestAccess() {
                 return sendWorkspaceRequest(config, 'sheets.requestAccess');

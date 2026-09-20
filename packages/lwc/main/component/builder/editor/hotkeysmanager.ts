@@ -1,6 +1,7 @@
 import hotkeys from 'hotkeys-js';
 
 class HotkeysManager {
+    declare subscribers: Map<string, Set<(event: KeyboardEvent) => void>>;
     constructor() {
         this.subscribers = new Map();
     }

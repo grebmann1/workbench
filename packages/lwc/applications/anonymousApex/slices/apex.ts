@@ -1,3 +1,4 @@
+import type { RootState } from 'host-api/types';
 import { createSlice, createAsyncThunk, createEntityAdapter } from '@reduxjs/toolkit';
 import type { ConnectorLike } from 'host-api/connector';
 import { DOCUMENT } from 'host-api/store';
@@ -10,7 +11,9 @@ import { lowerCaseKey, guid, isNotUndefinedOrNull } from 'shared/utils';
 
 import { normalizeExecuteAnonymousResult } from './normalizeExecuteAnonymousResult';
 
-const apexFilesSelectors = DOCUMENT.apexFileAdapter.getSelectors(s => s.apexFiles);
+const apexFilesSelectors = DOCUMENT.apexFileAdapter.getSelectors(
+    (s: Pick<RootState, 'apexFiles'>) => s.apexFiles
+);
 
 const INFO = 'INFO';
 const DEBUG = 'DEBUG';
@@ -41,7 +44,7 @@ function enrichTabs(tabs, state, selector) {
     return tabs.map(tab => enrichTab(tab, state, selector));
 }
 
-function enrichTab(tab, state, selector) {
+function enrichTab(tab, state, selector = undefined) {
     const file =
         tab.fileId && selector ? selector.selectById(state, lowerCaseKey(tab.fileId)) : null;
     const fileBody = file?.content || tab.fileBody;
@@ -56,7 +59,7 @@ export async function loadCacheSettings(alias) {
     const key = `${alias}-${ANONYNMOUS_APEX_SETTINGS_KEY}`;
     const configMap = await loadExtensionConfigFromCache([key]);
     const configText = configMap ? configMap[key] : null;
-    const cachedConfig = configText ? JSON.parse(configText) : null;
+    const cachedConfig = typeof configText === 'string' ? JSON.parse(configText) : null;
     return cachedConfig;
 }
 
@@ -89,7 +92,16 @@ async function saveCacheSettings(alias, state) {
 
 /** Redux */
 
-export const apexAdapter = createEntityAdapter();
+type Entry = {
+    id: string;
+    data?: Awaited<ReturnType<typeof _executeApexAnonymous>>;
+    body?: string;
+    alias?: string;
+    createdDate?: string | number | Date;
+    isFetching?: boolean;
+    error?: import('@reduxjs/toolkit').SerializedError;
+};
+export const apexAdapter = createEntityAdapter<Entry>();
 const escapeXml = (value: string) =>
     String(value)
         .replaceAll('&', '&amp;')
@@ -212,7 +224,12 @@ export const executeApexAnonymous = createAsyncThunk(
         //console.log('connector, body,tabId',connector, body,tabId);
         //const apiPath = isAllRows ? '/queryAll' : '/query';
         try {
-            const res = await _executeApexAnonymous(connector, body, getState().apex, signal);
+            const res = await _executeApexAnonymous(
+                connector,
+                body,
+                (getState() as RootState).apex,
+                signal
+            );
             dispatch(
                 DOCUMENT.reduxSlices.RECENT.actions.saveApex({
                     body,
@@ -238,7 +255,7 @@ export const executeApexAnonymousIncognito = createAsyncThunk(
         },
         { getState }
     ) => {
-        const res = await _executeApexAnonymous(connector, body, getState().apex);
+        const res = await _executeApexAnonymous(connector, body, (getState() as RootState).apex);
         return { data: res, body, alias: connector.conn.alias };
     }
 );
@@ -259,14 +276,14 @@ const apexSlice = createSlice({
         apex: apexAdapter.getInitialState(),
         tabs: [],
         currentTab: null,
+        currentFileId: null,
         body: null,
         abortingMap: {},
         isInitialized: false,
     },
     reducers: {
         loadCacheSettings: (state, action) => {
-            const { alias, apexFiles } = action.payload;
-            const cachedConfig = loadCacheSettings(alias);
+            const { apexFiles, cachedConfig } = action.payload;
             if (cachedConfig && !state.isInitialized) {
                 const { recentPanelToggled, tabs } = cachedConfig;
                 const cachedTabs =
@@ -316,7 +333,7 @@ const apexSlice = createSlice({
         },
         clearApexError: (state, action) => {
             const { tabId } = action.payload;
-            apexAdapter.upsertOne(state, {
+            apexAdapter.upsertOne(state.apex, {
                 id: lowerCaseKey(tabId),
                 error: null,
             });
@@ -450,3 +467,9 @@ const apexSlice = createSlice({
 });
 
 export const reduxSlice = apexSlice;
+
+declare module 'host-api/types' {
+    interface InjectedState {
+        apex?: ReturnType<typeof reduxSlice.reducer>;
+    }
+}

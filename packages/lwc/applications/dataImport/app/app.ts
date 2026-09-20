@@ -1,3 +1,9 @@
+type BulkJob = {
+    id: string;
+    state: string;
+    numberRecordsProcessed?: number;
+    numberRecordsFailed?: number;
+};
 import ToolkitElement from 'host-api/element';
 import { connectStore, store, DESCRIBE } from 'host-api/store';
 import Toast from 'lightning/toast';
@@ -15,7 +21,7 @@ const ACTION = {
     INSERT: 'insert',
     UPDATE: 'update',
     UPSERT: 'upsert',
-};
+} as const;
 
 const DELIMITER = {
     COMMA: 'COMMA',
@@ -38,6 +44,10 @@ const CSV_MAX_SIZE_BYTES = 25 * 1024 * 1024; // 25MB
 type AnyRecord = Record<string, any>;
 
 export default class App extends ToolkitElement {
+    declare refs: {
+        failedPreviewEditor?: HTMLElement & import('../../../main/editor/default/default').default;
+    };
+
     @api namespace: string | null = null;
 
     // Active gating
@@ -45,7 +55,7 @@ export default class App extends ToolkitElement {
 
     // Configure
     @track mode = MODE.REST;
-    @track action = ACTION.INSERT;
+    @track action: (typeof ACTION)[keyof typeof ACTION] = ACTION.INSERT;
     @track objectApiName = 'Account';
     @track externalIdFieldName = '';
     @track delimiterKey = DELIMITER.COMMA;
@@ -118,7 +128,7 @@ export default class App extends ToolkitElement {
 
         // Populate object datalist from describe
         if (describe?.nameMap) {
-            const list = Object.values(describe.nameMap)
+            const list = Object.values<{ name: string }>(describe.nameMap)
                 .filter(x => !!x?.name)
                 .map(x => ({ label: x.name, value: x.name }))
                 .sort((a, b) => a.value.localeCompare(b.value));
@@ -644,7 +654,7 @@ export default class App extends ToolkitElement {
     }
 
     /** REST import */
-    async runRestImport({ onlyRowIndexes } = {}) {
+    async runRestImport({ onlyRowIndexes }: { onlyRowIndexes?: Set<number> } = {}) {
         this._setInfo('Running REST import...');
         // JSforce multi-record CRUD uses sObject collections/composite APIs (200 records/request).
         const batchSize = Math.min(
@@ -763,7 +773,7 @@ export default class App extends ToolkitElement {
         const delimiter = this.bulkV2ColumnDelimiter;
         const csv = this.buildMappedCsv();
 
-        const job = await this.connector.conn.request({
+        const job = await this.connector.conn.request<BulkJob>({
             method: 'POST',
             url: `/services/data/v${version}/jobs/ingest`,
             body: JSON.stringify({
@@ -840,7 +850,7 @@ export default class App extends ToolkitElement {
                 stoppedReason = 'inactive';
                 break;
             }
-            const job = await this.connector.conn.request({
+            const job = await this.connector.conn.request<BulkJob>({
                 method: 'GET',
                 url: `/services/data/v${version}/jobs/ingest/${jobId}`,
             });
@@ -855,7 +865,7 @@ export default class App extends ToolkitElement {
             // eslint-disable-next-line no-await-in-loop
             await new Promise(r => setTimeout(r, 2000));
         }
-        const job = await this.connector.conn.request({
+        const job = await this.connector.conn.request<BulkJob>({
             method: 'GET',
             url: `/services/data/v${version}/jobs/ingest/${jobId}`,
         });
@@ -938,23 +948,15 @@ export default class App extends ToolkitElement {
         const bulk = this.connector.conn.bulk;
         if (!bulk) throw new Error('Bulk API v1 is not available on this connection.');
 
-        const rets = await new Promise((resolve, reject) => {
-            const options = operation === ACTION.UPSERT && extId ? { extIdField: extId } : {};
-            const batch = bulk.load(this.objectApiName, operation, options, csv, (err, results) => {
-                if (err) reject(err);
-                else resolve(results);
-            });
-            batch.on('error', err => reject(err));
-        });
+        const options = operation === ACTION.UPSERT && extId ? { extIdField: extId } : {};
+        const rets = await bulk.load(this.objectApiName, operation, options, csv);
         // Try to normalize as REST-like results
         const arr = Array.isArray(rets) ? rets : [];
         this.results = arr.map((r, idx) => ({
             rowNumber: idx + 1,
-            success: r?.success === true || r?.success === 'true',
+            success: r.success,
             id: r?.id || '',
-            errors: Array.isArray(r?.errors)
-                ? r.errors.map(e => e?.message || e?.statusCode || String(e)).join('; ')
-                : r?.errors || '',
+            errors: Array.isArray(r?.errors) ? r.errors.join('; ') : r?.errors || '',
         }));
         const { succeeded, failed } = this.countResults(this.results);
         this._setSuccess(`Bulk v1 finished. Succeeded: ${succeeded}, Failed: ${failed}.`);

@@ -1,3 +1,6 @@
+import { memoryContext } from '../memory/memory';
+import { createMemoryTools } from '../memory/tools';
+import { createGoogleWorkspaceTools } from '../googleWorkspace/tools';
 import type { ToolCall as AiToolCall, ToolResultOutput } from '@ai-sdk/provider-utils';
 import type { Store } from '@reduxjs/toolkit';
 import { clearCdpHandlerForConversation, ensureCdpHandlerInitialized } from 'agent/cdpHandler';
@@ -107,6 +110,7 @@ type AgentSettings = {
     }>;
     brightDataApiKey?: string | null;
     googleSheetEnabled?: boolean;
+    memoryQuery?: string;
     mcpServers?: McpServerConfig[];
     store: Store;
 };
@@ -346,6 +350,11 @@ export class Agent {
             const currentModel = settings.selectedModel || DEFAULT_MODEL;
             const availableTools = [
                 ...bashTools,
+                ...createMemoryTools(fs, {
+                    orgId: settings.connector?.configuration?.orgId,
+                    alias: settings.connector?.configuration?.alias,
+                }),
+                ...(settings.googleSheetEnabled ? createGoogleWorkspaceTools() : []),
                 ...(Array.isArray(settings.extraTools) ? settings.extraTools : []),
             ];
             const filteredTools = filterToolsByModel(availableTools, currentModel);
@@ -434,7 +443,19 @@ export class Agent {
                 modelContextWindow:
                     settings.modelContextWindow || getContextWindowForModel(currentModel),
                 modelMaxOutputTokens: getMaxOutputTokensForModel(currentModel),
-                systemPrompt: settings.systemPrompt || '',
+                systemPrompt:
+                    (settings.systemPrompt || '') +
+                    (await memoryContext(
+                        fs,
+                        {
+                            orgId: settings.connector?.configuration?.orgId,
+                            alias: settings.connector?.configuration?.alias,
+                        },
+                        settings.memoryQuery || JSON.stringify(messages.slice(-2))
+                    ).catch(error => {
+                        LOGGER.warn('[agent] Memory recall unavailable', error);
+                        return '\nMemory could not be loaded. Do not claim to remember earlier preferences. Use read_memory to retry.\n';
+                    })),
                 maxToolRounds: settings.maxToolRounds || MAX_TOOL_ROUNDS,
                 isStoreEnabled: settings.isStoreEnabled || false,
                 isInternal: settings.isInternal,

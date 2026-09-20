@@ -42,7 +42,23 @@ const normalizeActions = actions => {
         }));
 };
 
-const normalizeJob = (job = {}) => {
+type JobInput = {
+    id?: string;
+    category?: string;
+    label?: string;
+    status?: string;
+    phase?: string;
+    progress?: { completed?: number; total?: number; percent?: number };
+    message?: string;
+    startedAt?: number | string;
+    updatedAt?: number | string;
+    endedAt?: number | string;
+    error?: unknown;
+    resultSummary?: unknown;
+    source?: string;
+    actions?: Array<{ id?: string; kind?: string; label?: string; payload?: unknown }>;
+};
+const normalizeJob = (job: JobInput = {}) => {
     const now = Date.now();
     const startedAt = coerceTimestamp(job.startedAt || now);
     const updatedAt = coerceTimestamp(job.updatedAt || now);

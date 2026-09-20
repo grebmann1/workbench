@@ -42,14 +42,13 @@ export default class QuickAuthorize extends ToolkitElement {
                 },
             ],
             name: newAliasObject.name,
+            credentialType: this.isCurrentOrgInternalDevOrg
+                ? OAUTH_TYPES.USERNAME
+                : OAUTH_TYPES.OAUTH,
+            username: this.isCurrentOrgInternalDevOrg
+                ? this.connector.configuration.username
+                : undefined,
         };
-        if (this.isCurrentOrgInternalDevOrg) {
-            //console.log('addConnection_authorize - this.connector.conn', this.connector);
-            params.credentialType = OAUTH_TYPES.USERNAME;
-            params.username = this.connector.configuration.username;
-        } else {
-            params.credentialType = OAUTH_TYPES.OAUTH;
-        }
 
         ConnectionNewModal.open({
             ...params,

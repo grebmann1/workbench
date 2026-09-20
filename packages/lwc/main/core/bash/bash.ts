@@ -22,7 +22,15 @@ import { Bash } from 'just-bash';
  * @param {Record<string, string>} [options.env] - Initial environment variables.
  * @returns {Bash}
  */
-export function createBashInstance(options = {}) {
+export function createBashInstance(
+    options: {
+        executionLimits?: ConstructorParameters<typeof Bash>[0]['executionLimits'];
+        extraFiles?: Parameters<typeof getIndexedDbFileSystem>[0]['initialFiles'];
+        indexedDbName?: string;
+        enableFsDebug?: boolean;
+        env?: Record<string, string>;
+    } = {}
+) {
     const {
         executionLimits = {},
         extraFiles = {},
@@ -63,7 +71,7 @@ export function createBashInstance(options = {}) {
     });
 
     if (enableFsDebug) {
-        bashEnv.getFsDebugStats = () => fs.getDebugStats();
+        Object.assign(bashEnv, { getFsDebugStats: () => fs.getDebugStats() });
     }
 
     return bashEnv;

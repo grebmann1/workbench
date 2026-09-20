@@ -6,6 +6,7 @@ import { api } from 'lwc';
 import { isEmpty, isNotUndefinedOrNull, runSilent } from 'shared/utils';
 
 export default class UserExplorerRow extends ToolkitElement {
+    declare _filter: string;
     @api item;
     @api currentOrigin;
     hasRendered = false;
@@ -52,7 +53,7 @@ export default class UserExplorerRow extends ToolkitElement {
     }
 
     get isCopyDisplayed() {
-        return isNotUndefinedOrNull(this.value);
+        return isNotUndefinedOrNull(this.username);
     }
 
     get formattedUserName() {
@@ -133,8 +134,8 @@ export default class UserExplorerRow extends ToolkitElement {
             }/servlet/servlet.su?oid=${encodeURIComponent(
                 this.connector.configuration.orgId
             )}&retURL=${encodeURIComponent(retUrl)}&sunetworkid=${encodeURIComponent(
-                x.NetworkId
-            )}&sunetworkuserid=${encodeURIComponent(x.MemberId)}`,
+                String(x.NetworkId)
+            )}&sunetworkuserid=${encodeURIComponent(String(x.MemberId))}`,
         }));
 
         const targetUrl = `${this.connector.conn.instanceUrl}/servlet/servlet.su?oid=${this.connector.configuration.orgId}&suorgadminid=${this.item.Id}&retURL=%2Fhome%2Fhome.jsp&targetURL=%2Fhome%2Fhome.jsp`;

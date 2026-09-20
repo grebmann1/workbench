@@ -27,7 +27,7 @@ export default class Electron extends ToolkitElement {
      */
     formatTabId = async (tabId?: string | null) => {
         if (isNotUndefinedOrNull(tabId)) {
-            const exists = await invokeCommand<{ tabId: string }, boolean>('soql.hasTab', {
+            const exists = await invokeCommand('soql.hasTab', {
                 tabId: tabId as string,
             });
             if (exists) {
@@ -177,7 +177,7 @@ export default class Electron extends ToolkitElement {
                 endpoint: request.endpoint,
                 method: request.method,
                 body: request.body,
-                header: request.header,
+                header: request.headers,
             },
             formattedRequest: request,
             tabId,
@@ -390,7 +390,7 @@ export default class Electron extends ToolkitElement {
 
             let tab: any;
             if (isNewTab) {
-                tab = API_UTILS.generateDefaultTab(this.currentApiVersion, tabId);
+                tab = API_UTILS.generateDefaultTab(this.connector.conn.version, tabId);
                 tab.body = request.body;
                 tab.header = headers;
                 tab.method = request.method;
@@ -404,7 +404,7 @@ export default class Electron extends ToolkitElement {
                     endpoint: request.endpoint,
                     method: request.method,
                     body: request.body,
-                    header: request.header,
+                    header: request.headers,
                 },
                 formattedRequest: request,
                 tabId,
@@ -439,7 +439,7 @@ export default class Electron extends ToolkitElement {
     };
 
     sendToMain(channel, payload) {
-        if (this.ipcRenderer) {
+        if (window.electron) {
             //this.ipcRenderer.send(channel, payload);
         }
     }
@@ -450,16 +450,18 @@ export default class Electron extends ToolkitElement {
      * @returns {Promise<void>}
      */
     waitForLoaded() {
-        return new Promise(resolve => {
+        return new Promise<void>(resolve => {
+            let intervalId: ReturnType<typeof setInterval>;
             const checkLoading = () => {
                 const { application } = store.getState();
                 if (!application.isLoading) {
                     clearInterval(intervalId);
                     resolve();
+                    return true;
                 }
+                return false;
             };
-            checkLoading(); // Check immediately in case already loaded
-            const intervalId = setInterval(checkLoading, 1000);
+            if (!checkLoading()) intervalId = setInterval(checkLoading, 1000);
         });
     }
 }

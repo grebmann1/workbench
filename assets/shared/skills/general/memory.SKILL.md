@@ -10,16 +10,23 @@ Keep durable context across sessions in a small, readable file tree. Treat memor
 ## Layout
 
 - `/workspace/memory/notes.md` — global user preferences and cross-org lessons.
-- `/workspace/memory/orgs/<alias>/notes.md` — facts and quirks specific to one org.
-- `/workspace/memory/orgs/<alias>/schema.md` — non-obvious field/object meanings, picklist conventions.
+- `/workspace/memory/orgs/<orgId>/notes.md` — facts and quirks specific to one org.
+- `/workspace/memory/orgs/<orgId>/schema.md` — non-obvious field/object meanings, picklist conventions.
 
 `<alias>` is the alias from the current Salesforce connection (use the connection info already in context, or `sf org list`). Skip per-org files when there is no active connection.
+
+The host automatically recalls bounded personal and current-org notes on each run.
+Use `read_memory` to retrieve the full notes and their authoritative paths before
+editing. New org notes use the Salesforce org ID; alias-based legacy notes remain
+readable and editable. Use `update_memory` to save corrections or forget facts,
+preserving unrelated notes. Users can also edit and clear notes in AI settings →
+Memory & knowledge. These notes are local to the browser profile and extension.
 
 ## Read protocol (start of task)
 
 Before working on a task that could benefit from prior context, scan only the relevant files:
 
-1. `bash` → `ls /workspace/memory 2>/dev/null && ls /workspace/memory/orgs/<alias> 2>/dev/null`.
+1. `bash` → `ls /workspace/memory 2>/dev/null && ls /workspace/memory/orgs/<orgId> 2>/dev/null`.
 2. `readFile` only the files whose names match the task topic. Do not load everything blindly.
 3. Skip the read entirely for trivial one-shot requests (e.g. "what time is it").
 
@@ -30,8 +37,8 @@ Missing files are normal — treat as empty.
 Append when something has been learned that the user will plausibly need again:
 
 - User preferences ("I prefer SOQL with explicit fields") → `/workspace/memory/notes.md`.
-- Org-specific facts ("alias `staging` uses `Account.External_ID__c` as the integration key") → `/workspace/memory/orgs/<alias>/notes.md`.
-- Schema nuances (custom field meaning, picklist conventions) → `/workspace/memory/orgs/<alias>/schema.md`.
+- Org-specific facts ("alias `staging` uses `Account.External_ID__c` as the integration key") → `/workspace/memory/orgs/<orgId>/notes.md`.
+- Schema nuances (custom field meaning, picklist conventions) → `/workspace/memory/orgs/<orgId>/schema.md`.
 
 Write rules:
 

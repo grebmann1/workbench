@@ -80,7 +80,12 @@ const toSourceMetaXml = (type, apiVersion = '63.0') => `<?xml version="1.0" enco
 </${type}>
 `;
 
-const getPrimaryName = ({ label1, recordId, selectedRecord, metadataType }) => {
+const getPrimaryName = ({
+    label1 = null,
+    recordId = null,
+    selectedRecord = null,
+    metadataType,
+}) => {
     return sanitizePathSegment(
         selectedRecord?.FullName ||
             selectedRecord?.DeveloperName ||

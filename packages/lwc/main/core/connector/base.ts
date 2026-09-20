@@ -290,7 +290,12 @@ export const applyChromeCacheBusting = (conn, platform) => {
     return conn;
 };
 
-export const normalizeConnection = (credentialType, rawData, platform, extra = {}) => {
+export const normalizeConnection = (
+    credentialType,
+    rawData,
+    platform,
+    extra: { isProxyDisabled?: boolean } = {}
+) => {
     const getProxyUrl = () => {
         if (extra.isProxyDisabled || platform === PLATFORM.CHROME) {
             return null;
@@ -305,7 +310,11 @@ export const normalizeConnection = (credentialType, rawData, platform, extra = {
         return window.jsforceSettings?.proxyUrl;
     };
 
-    const params = {
+    const params: import('jsforce/lib/connection').ConnectionConfig & {
+        sessionId?: string;
+        username?: string;
+        logLevel?: string;
+    } = {
         instanceUrl: rawData.instanceUrl,
         accessToken: rawData.accessToken,
         sessionId: rawData.sessionId,

@@ -13,7 +13,6 @@ import {
     captureCodeView,
     decorateChatCode,
     prepareChatMarkdown,
-    type CodeHighlighter,
 } from './chatCode';
 
 const SFTOOLKIT_PREFIX = 'sftoolkit:';
@@ -91,9 +90,7 @@ export default class MarkdownViewer extends LightningElement {
     @api blockRemoteImages = false;
     @api chatCode = false;
     _renderFrame: number | undefined;
-    _codeHighlighter = new ChatCodeHighlighter(
-        () => (window as Window & { Prism?: CodeHighlighter }).Prism
-    );
+    _codeHighlighter = new ChatCodeHighlighter(() => window.Prism);
     hasRendered = false;
     _renderRequested = false;
     _lastRenderedValue = null;
@@ -171,7 +168,6 @@ export default class MarkdownViewer extends LightningElement {
                 const { value } = data;
                 // update the value
                 this.value = value;
-                this.getDown(this.value);
                 this.dispatchEvent(
                     new CustomEvent('change', { detail: { value }, bubbles: true, composed: true })
                 );

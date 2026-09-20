@@ -14,6 +14,13 @@ export const Position = Object.freeze({
 });
 
 export default class Tooltip extends LightningElement {
+    declare _ignoreFocusIn: boolean;
+    declare _ignoreFocusOut: boolean;
+    declare refs: {
+        trigger?: HTMLElement;
+        popup?: HTMLElement & { show(target: Element, options: object): void; close(): void };
+    };
+
     @api label;
 
     @api items = []; // an array of items - refer to `agent_studio/verticalNavigationItem` component's properties
@@ -22,7 +29,7 @@ export default class Tooltip extends LightningElement {
      * Tooltip position relative to the trigger element
      * Allows simple alignment (center aligned only; add more if needed)
      */
-    @api position = Position.Right;
+    @api position: (typeof Position)[keyof typeof Position] = Position.Right;
 
     @api autoFlipDisabled = false;
 

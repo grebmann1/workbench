@@ -15,13 +15,6 @@ import {
     invokeCommand,
     hasCommand,
     __resetCommandsForTests,
-    // The explicit `.ts` extension is required at runtime by node's
-    // `--experimental-strip-types` loader (the `.js` sibling test uses the
-    // same convention). `tsc` rejects this without
-    // `allowImportingTsExtensions`, so we suppress the diagnostic on the
-    // two import lines below — the runtime contract wins over the
-    // project-wide module-resolution flag.
-    // @ts-expect-error TS5097: extension required at runtime.
 } from '../commands.ts';
 // Type-only import — erased at runtime — so TS doesn't surface TS5097 here.
 import type { CommandPayloads } from '../commands.ts';

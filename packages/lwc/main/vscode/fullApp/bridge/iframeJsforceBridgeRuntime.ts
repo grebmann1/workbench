@@ -490,7 +490,13 @@ class IframeJsforceBridgeRuntime {
             workspaceBasePath: this.resolveWorkspaceBasePath(),
         }).catch(() => current);
 
-        const effectiveConnection = {
+        const effectiveConnection: Record<string, unknown> & {
+            apiVersion: string;
+            instanceUrl?: string;
+            accessToken?: string;
+            sessionHasExpired?: boolean;
+            hasError?: boolean;
+        } = {
             ...current,
             ...(isRecord(resolved) ? resolved : {}),
             apiVersion: this.normalizeApiVersion(
@@ -560,7 +566,13 @@ class IframeJsforceBridgeRuntime {
             if (!isRecord(refreshed)) {
                 throw error;
             }
-            const effectiveRefreshed = {
+            const effectiveRefreshed: Record<string, unknown> & {
+                apiVersion: string;
+                instanceUrl?: string;
+                accessToken?: string;
+                sessionHasExpired?: boolean;
+                hasError?: boolean;
+            } = {
                 ...refreshed,
                 apiVersion: this.normalizeApiVersion(refreshed.apiVersion),
             };
@@ -593,7 +605,13 @@ class IframeJsforceBridgeRuntime {
             if (!isRecord(refreshed)) {
                 throw error;
             }
-            const effectiveRefreshed = {
+            const effectiveRefreshed: Record<string, unknown> & {
+                apiVersion: string;
+                instanceUrl?: string;
+                accessToken?: string;
+                sessionHasExpired?: boolean;
+                hasError?: boolean;
+            } = {
                 ...refreshed,
                 apiVersion: this.normalizeApiVersion(refreshed.apiVersion),
             };
@@ -904,7 +922,9 @@ class IframeJsforceBridgeRuntime {
         const retrieveStart = await this.withMetadataApiClientAuthed(
             async (client, connection) =>
                 await client.retrieve({
-                    typesMap: metadataTypes,
+                    typesMap: new Map(
+                        [...metadataTypes].map(([type, members]) => [type, [...members]])
+                    ),
                     apiVersion: this.normalizeApiVersion(
                         connection.apiVersion || client.apiVersion
                     ),

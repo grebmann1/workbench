@@ -428,7 +428,7 @@ export default class InputQuickPick extends LightningElement {
 
     async loadSavedCategoryFilter() {
         try {
-            const saved = await loadSingleExtensionConfigFromCache(
+            const saved = await loadSingleExtensionConfigFromCache<string>(
                 CACHE_CONFIG.INPUT_QUICKPICK_SELECTED_CATEGORY.key
             );
             const exists =
@@ -628,15 +628,15 @@ export default class InputQuickPick extends LightningElement {
         const normalized = this.formatRef(raw);
         try {
             // Search categories/items from cache
-            const data = await loadSingleExtensionConfigFromCache(
-                CACHE_CONFIG.INPUT_QUICKPICK_DATA.key,
-                d => ({
-                    categories: sanitizeCategories(d?.categories).map(c => ({
-                        ...c,
-                        ...(c.items && { items: sanitizeItems(c.items) }),
-                    })),
-                })
-            );
+            const data = await loadSingleExtensionConfigFromCache<{
+                categories: ReturnType<typeof sanitizeCategories>;
+                activeCategoryId?: string;
+            }>(CACHE_CONFIG.INPUT_QUICKPICK_DATA.key, d => ({
+                categories: sanitizeCategories(d?.categories).map(c => ({
+                    ...c,
+                    ...(c.items && { items: sanitizeItems(c.items) }),
+                })),
+            }));
             const categories = data?.categories || [];
             for (const c of categories) {
                 for (const it of c.items || []) {
@@ -666,20 +666,20 @@ export default class InputQuickPick extends LightningElement {
 
     // New: Load Smart Input categories and items from cache
     async loadSmartInputItems() {
-        const data = await loadSingleExtensionConfigFromCache(
-            CACHE_CONFIG.INPUT_QUICKPICK_DATA.key,
-            data => ({
-                categories: sanitizeCategories(data?.categories).map(c => {
-                    return {
-                        ...c,
-                        ...(c.items && {
-                            items: sanitizeItems(c.items).map(it => this.formatItem(it)),
-                        }),
-                    };
-                }),
-                activeCategoryId: data?.activeCategoryId,
-            })
-        );
+        const data = await loadSingleExtensionConfigFromCache<{
+            categories: ReturnType<typeof sanitizeCategories>;
+            activeCategoryId?: string;
+        }>(CACHE_CONFIG.INPUT_QUICKPICK_DATA.key, data => ({
+            categories: sanitizeCategories(data?.categories).map(c => {
+                return {
+                    ...c,
+                    ...(c.items && {
+                        items: sanitizeItems(c.items).map(it => this.formatItem(it)),
+                    }),
+                };
+            }),
+            activeCategoryId: data?.activeCategoryId,
+        }));
 
         // We manually remove the Recent category because it's not needed (Legacy code, not needed anymore)
         const categories = (data?.categories ?? [])

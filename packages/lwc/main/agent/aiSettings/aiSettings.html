@@ -181,7 +181,7 @@
                     <slds-lucide-icon name="plug" size="16" aria-hidden="true"></slds-lucide-icon>
                     <span>
                         Built-in tools
-                        <small>Web search, Google Drive &amp; Sheets</small>
+                        <small>Web search, Google Workspace</small>
                     </span>
                 </summary>
                 <div class="settings-disclosure-body tool-settings">
@@ -200,7 +200,7 @@
                         type="password"
                         value={config.tool_bright_data_key}
                         onchange={inputfield_change}></lightning-input>
-                    <h3>Google Drive &amp; Sheets</h3>
+                    <h3>Google Workspace</h3>
                     <label class="settings-checkbox">
                         <input
                             type="checkbox"
@@ -225,7 +225,7 @@
                             class="settings-secondary-button"
                             disabled={isDriveConnectDisabled}
                             onclick={handleConnectGoogleDrive}>
-                            Connect Drive &amp; Sheets
+                            Connect Google Workspace
                         </button>
                     </template>
                 </div>
@@ -720,15 +720,15 @@
                             </settings-card>
                         </div>
                     </slds-tab>
-                    <slds-tab label="Google Sheet" value="google_sheet">
+                    <slds-tab label="Google Workspace" value="google_sheet">
                         <div class="slds-grid slds-wrap slds-p-around_small">
                             <settings-card
                                 is-first
                                 class="slds-col slds-size_1-of-1 slds-large-size_1-of-2">
                                 <div slot="title">
-                                    <h1>Google Drive &amp; Sheets</h1>
+                                    <h1>Google Workspace</h1>
                                     <p class="description slds-truncate">
-                                        Read and write Google Sheets and Drive files on your behalf.
+                                        Work with Google Sheets, Slides, and Drive files.
                                     </p>
                                 </div>
                                 <div slot="actions">
@@ -755,7 +755,7 @@
                                     </template>
                                     <template lwc:else>
                                         <lightning-button
-                                            label="Connect Drive &amp; Sheets"
+                                            label="Connect Google Workspace"
                                             variant="brand"
                                             disabled={isDriveConnectDisabled}
                                             onclick={handleConnectGoogleDrive}></lightning-button>
@@ -763,14 +763,14 @@
                                 </div>
                                 <template lwc:if={googleDriveConnected}>
                                     <p class="slds-text-body_small slds-text-color_weak">
-                                        The AI agent can access Google Sheets and Drive files using
-                                        your account.
+                                        The AI agent can access Google Sheets, Slides, and Drive
+                                        using your account.
                                     </p>
                                 </template>
                                 <template lwc:else>
                                     <slds-information-block>
                                         Requires Google sign-in. Connect your Google account in the
-                                        User tab first, then click "Connect Drive &amp; Sheets" to
+                                        User tab first, then click "Connect Google Workspace" to
                                         grant access.
                                     </slds-information-block>
                                 </template>
@@ -781,6 +781,8 @@
             </lightning-card>
         </div>
     </template>
+
+    <agent-memory-manager google-enabled={config.tool_google_sheet_enabled}></agent-memory-manager>
 
     <template lwc:if={showOnboardAiProvider}>
         <section

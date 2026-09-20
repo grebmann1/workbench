@@ -10,7 +10,7 @@ import { getStore } from './storeRef';
  * @param {Error|string|{ message: string, details?: string }} error - Error instance, message string, or object with message/details
  * @param {{ details?: string, source?: string }} [options] - Optional details and source (e.g. 'connection', 'agent', 'soql')
  */
-export function reportError(error, options = {}) {
+export function reportError(error, options: { details?: string; source?: string } = {}) {
     const store = getStore();
     if (!store) return;
 

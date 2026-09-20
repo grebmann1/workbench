@@ -1,9 +1,11 @@
+import type { PermissionSummary } from '../utils/types';
+import type { ColumnDefinition } from 'tabulator-tables';
 import LightningModal from 'lightning/modal';
 import { api } from 'lwc';
 import { TabulatorFull as Tabulator } from 'tabulator-tables';
 
 export default class ModalPermissionSetFilter extends LightningModal {
-    @api permissionSets;
+    @api permissionSets: PermissionSummary[];
     @api currentOrg;
     @api selected;
 
@@ -40,8 +42,9 @@ export default class ModalPermissionSetFilter extends LightningModal {
         const activeUserIcon = '<i class="user icon"></i>';
         const inactiveUserIcon = '<i class="user outline icon"></i>';
 
-        const colModel = [
+        const colModel: ColumnDefinition[] = [
             {
+                title: '',
                 formatter: 'rowSelection',
                 titleFormatter: 'rowSelection',
                 hozAlign: 'center',
@@ -59,7 +62,7 @@ export default class ModalPermissionSetFilter extends LightningModal {
                 width: 430,
                 tooltip: (e, cell) => {
                     //console.log('cell._cell.row',cell._cell.row)
-                    return cell._cell.row.data.description;
+                    return cell.getRow().getData().description;
                 },
                 cellClick: function (e, cell) {
                     cell.getRow().toggleSelect();
@@ -140,13 +143,13 @@ export default class ModalPermissionSetFilter extends LightningModal {
                 columns: colModel,
                 columnHeaderVertAlign: 'middle',
                 groupBy: ['isCustom', 'licenseName'],
-                groupToggleElement: true,
+                groupToggleElement: 'header',
                 /*TODO group all select/deselect
                 groupHeader: function(value, count, data, group){
                     return "<input type='checkbox' />" + value + "<span style='color:#d00; margin-left:10px;'>(" + count + " item)</span>";
                 },
                 */
-                selectableCheck: function (row) {
+                selectableRowsCheck: function (row) {
                     return row.getData()['label'] != null;
                 },
             });

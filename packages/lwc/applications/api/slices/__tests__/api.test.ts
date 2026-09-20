@@ -1219,6 +1219,6 @@ test('source contract: addTab replaces a default/empty header with state.default
 test('source contract: apiFilesSelectors is built from DOCUMENT.apiFileAdapter.getSelectors keyed on state.apiFiles', () => {
     assert.match(
         SRC,
-        /const apiFilesSelectors = DOCUMENT\.apiFileAdapter\.getSelectors\(s => s\.apiFiles\);/
+        /const apiFilesSelectors = DOCUMENT\.apiFileAdapter\.getSelectors\(\s*\(s: Pick<RootState, 'apiFiles'>\) => s\.apiFiles\s*\);/
     );
 });

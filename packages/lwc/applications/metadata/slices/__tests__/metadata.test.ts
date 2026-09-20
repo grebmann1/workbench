@@ -665,7 +665,7 @@ test('source contract: selectionTab finds the tab with `==` and restores attribu
 test('source contract: goBack resets exactly metadata_records, currentMetadata, param1, label1', () => {
     assert.match(
         SRC,
-        /goBack: \(state, action\) => \{[\s\S]*?state\.metadata_records = null;\s*\n\s*state\.currentMetadata = null;\s*\n\s*state\.param1 = null;\s*\n\s*state\.label1 = null;\s*\n\s*\},/
+        /goBack: state => \{[\s\S]*?state\.metadata_records = null;\s*\n\s*state\.currentMetadata = null;\s*\n\s*state\.param1 = null;\s*\n\s*state\.label1 = null;\s*\n\s*\},/
     );
 });
 
@@ -688,6 +688,6 @@ test('source contract: saveCacheSettings/loadCacheSettings key on `${alias}-${ME
 test('source contract: initTabs sets currentTabId to the first tab when tabs is non-empty', () => {
     assert.match(
         SRC,
-        /initTabs: \(state, action\) => \{[\s\S]+?if \(state\.tabs\.length > 0\) \{\s*\n\s*state\.currentTabId = state\.tabs\[0\]\.id;/
+        /initTabs: state => \{[\s\S]+?if \(state\.tabs\.length > 0\) \{\s*\n\s*state\.currentTabId = state\.tabs\[0\]\.id;/
     );
 });

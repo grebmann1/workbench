@@ -27,7 +27,7 @@ type MarkedOptions = Record<string, unknown> & {
 
 type MarkedCallback = (err?: Error | null, html?: string) => void;
 
-export const marked = function (root: unknown) {
+export const marked = function (root?: unknown) {
     'use strict';
 
     /**

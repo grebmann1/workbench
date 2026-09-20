@@ -21,6 +21,10 @@ import {
 type AnyRecord = Record<string, any>;
 
 export default class Deploy extends ToolkitElement {
+    declare refs: {
+        response?: HTMLElement & import('../../../main/editor/default/default').default;
+    };
+
     _hasRendered = false;
 
     // requests
@@ -78,7 +82,7 @@ export default class Deploy extends ToolkitElement {
 
     // Request monitoring
 
-    fetchLatestRequests = async (includeSpinner: boolean): Promise<void> => {
+    fetchLatestRequests = async (includeSpinner = false): Promise<void> => {
         if (includeSpinner) {
             this.isLoading = true;
         }

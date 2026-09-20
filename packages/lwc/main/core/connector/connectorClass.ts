@@ -125,7 +125,7 @@ export class Connector {
             await saveConfiguration(this.configuration.alias, this.configuration);
         }
 
-        store.dispatch(APPLICATION.reduxSlice.actions.stopLoading({}));
+        store.dispatch(APPLICATION.reduxSlice.actions.stopLoading());
     }
 
     resetError() {
@@ -200,7 +200,7 @@ export class Connector {
                 const probeVersion = latestVersion?.version || '60.0';
                 const runtimeUserId = await this.conn
                     .request?.(`/services/data/v${probeVersion}/chatter/users/me`)
-                    .then(r => r?.id)
+                    .then(r => (r && typeof r === 'object' && 'id' in r ? String(r.id) : null))
                     .catch(() => null);
                 LOGGER.log('runtimeUserId', runtimeUserId);
                 if (runtimeUserId && runtimeUserId !== identity?.user_id) {

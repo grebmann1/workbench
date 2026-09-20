@@ -33,7 +33,7 @@ export default class EditorModal extends LightningModal {
     loadCache = async (): Promise<void> => {
         try {
             const key = `${this.alias}-platformevent-script`;
-            const _script = await window.defaultStore.getItem(key);
+            const _script = await window.defaultStore.getItem<string>(key);
             if (!isEmpty(_script)) {
                 this.apexScript = _script;
             }

@@ -190,7 +190,7 @@ export const reduxSlice = createSlice({
 
 const flattenCategories = categories => {
     // [category1, item1 (with parentId: category1), item2 (with parentId: category1), category2, item3 (with parentId: category2), item4 (with parentId: category2)]
-    const _createItem = (item, { parentId, type } = {}) => {
+    const _createItem = (item, { parentId, type }: { parentId?: string; type?: string } = {}) => {
         return {
             ...item,
             ...(type && { _type: type }),

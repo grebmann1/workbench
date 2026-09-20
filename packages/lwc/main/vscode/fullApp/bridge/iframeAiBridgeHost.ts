@@ -18,8 +18,8 @@ export type AiBridgeRuntime = {
     streamComplete(args: {
         messages: IframeAiBridgeMessage[];
         modelConfig: IframeAiBridgeModelConfig;
-    }): AsyncGenerator<IframeAiBridgeChunk>;
-    getConfig?(): AsyncGenerator<IframeAiBridgeChunk>;
+    }): AsyncIterableIterator<IframeAiBridgeChunk>;
+    getConfig?(): AsyncIterableIterator<IframeAiBridgeChunk>;
 };
 
 type IframeAiBridgeHostOptions = {

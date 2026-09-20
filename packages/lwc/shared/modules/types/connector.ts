@@ -10,6 +10,10 @@ export type ConnectorConfiguration = {
     username?: string;
     credentialType?: string;
     orgId?: string;
+    instanceUrl?: string;
+    organizationType?: string;
+    orgType?: string;
+    loginUrl?: string;
     userInfo?: Record<string, unknown>;
     redirectUrl?: string;
     id?: string;
@@ -42,6 +46,8 @@ export type ConnectorLike = {
     isImpersonating?: boolean;
     impersonatedBy?: string | null;
     dispose?: () => void;
-    // Escape hatch for UI-side ephemeral fields.
-    [key: string]: unknown;
+    toPublic?: () => Record<string, unknown>;
+    generateAccessToken?: () => Promise<unknown>;
+    hasError?: boolean;
+    errorMessage?: string;
 };

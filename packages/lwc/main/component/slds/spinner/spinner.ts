@@ -20,7 +20,7 @@ export default class Spinner extends LightningElement {
         this.template.addEventListener('touchmove', this.stopScrolling);
 
         if (isNotUndefinedOrNull(this.messages) && this.messages.length > 0) {
-            this.displayNextMessage(0);
+            this.displayNextMessage();
         }
     }
 

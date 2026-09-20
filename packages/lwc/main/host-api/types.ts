@@ -70,3 +70,6 @@ export interface AppManifestFlags {
  * stable for early adopters.
  */
 export type ContributionPoint = never;
+
+/** Optional state contributed by apps when their reducers are mounted. */
+export interface InjectedState {}

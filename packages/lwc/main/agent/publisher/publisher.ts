@@ -241,7 +241,7 @@ export default class App extends ToolkitElement {
     };
 
     handleFileChange = event => {
-        const files = Array.from(event.target.files || []);
+        const files = Array.from<File>(event.target.files || []);
         files.forEach(file => {
             if (this.isSupportedFile(file)) {
                 if (!this.selectedFiles.find(f => f.name === file.name && f.size === file.size)) {
@@ -270,7 +270,7 @@ export default class App extends ToolkitElement {
         event.preventDefault();
         this.dragActive = false;
         this.template.querySelector('.file-upload-container')?.classList.remove('drag-active');
-        const files = Array.from(event.dataTransfer.files || []);
+        const files = Array.from<File>(event.dataTransfer.files || []);
         files.forEach(file => {
             if (this.isSupportedFile(file)) {
                 if (!this.selectedFiles.find(f => f.name === file.name && f.size === file.size)) {
@@ -288,7 +288,6 @@ export default class App extends ToolkitElement {
         const reader = new FileReader();
         reader.onload = e => {
             this.imagePreviews = { ...this.imagePreviews, [file.name]: e.target.result as string };
-            this.requestUpdate?.();
         };
         reader.readAsDataURL(file);
     }

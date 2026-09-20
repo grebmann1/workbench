@@ -36,6 +36,7 @@ export const DEFAULT = {
 
 type ApiTab = {
     id: string;
+    fileId?: string;
     header: string;
     endpoint: string;
     body: string;
@@ -93,14 +94,7 @@ export const formattedContentType = (contentType?: string | null): string => {
     return 'text';
 };
 
-type Connector = {
-    conn: {
-        instanceUrl: string;
-        _callOptions?: {
-            client?: string;
-        };
-    };
-};
+type Connector = { conn: NonNullable<import('../../types/connector').ConnectorLike['conn']> };
 
 type FormatApiRequestParams = {
     endpoint: string;

@@ -220,7 +220,7 @@ export default class Root extends LightningElement {
         }
     };
 
-    handleTabActivatedListener = (activeInfo: chrome.tabs.TabActiveInfo) => {
+    handleTabActivatedListener = (activeInfo: chrome.tabs.OnActivatedInfo) => {
         if (!activeInfo?.tabId) {
             return;
         }
@@ -236,7 +236,7 @@ export default class Root extends LightningElement {
         );
     };
 
-    monitorUrlListener = (tabId: number, info: chrome.tabs.TabChangeInfo, tab: chrome.tabs.Tab) => {
+    monitorUrlListener = (tabId: number, info: chrome.tabs.OnUpdatedInfo, tab: chrome.tabs.Tab) => {
         //console.log('onUpdated',tabId, info, tab)
         if (!tab.url || info.status !== 'complete' || tabId !== this.currentTab?.id) {
             return;

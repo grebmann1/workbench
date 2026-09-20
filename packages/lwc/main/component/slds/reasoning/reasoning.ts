@@ -27,7 +27,7 @@ export default class Reasoning extends LightningElement {
     _value: ReasoningTier = 'none';
     _tooltipPinned = false;
     _isHovered = false;
-    _hideTimerId: ReturnType<typeof window.setTimeout> | null = null;
+    _hideTimerId: number | null = null;
 
     _handleWindowMouseDown = (event: MouseEvent) => {
         if (!this.shouldShowTooltip) {

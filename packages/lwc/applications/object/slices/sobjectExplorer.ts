@@ -120,3 +120,9 @@ const sobjectExplorerSlice = createSlice({
 });
 
 export const reduxSlice = sobjectExplorerSlice;
+
+declare module 'host-api/types' {
+    interface InjectedState {
+        sobjectExplorer?: ReturnType<typeof reduxSlice.reducer>;
+    }
+}

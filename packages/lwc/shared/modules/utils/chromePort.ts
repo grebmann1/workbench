@@ -3,6 +3,7 @@
  * Inspired by src/client_chrome/components/views/default/default.js
  */
 type ChromePort = {
+    postMessage: (message: unknown) => void;
     disconnect: () => void;
 };
 

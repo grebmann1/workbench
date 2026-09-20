@@ -93,8 +93,10 @@ export async function initShortcuts(context) {
     ];
 
     shortcuts.forEach(shortcut => {
-        if (shortcut.shortcut) {
-            hotkeys(shortcut.shortcut, shortcut.action);
+        if (typeof shortcut.shortcut === 'string' && shortcut.shortcut) {
+            hotkeys(shortcut.shortcut, (event, handler) => {
+                void shortcut.action(event, handler);
+            });
         }
     });
 }

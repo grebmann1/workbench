@@ -6,7 +6,7 @@ import {
     resolveProviderModelInstance,
     resolveProviderOptions,
 } from 'agent/utils';
-import { jsonSchema, streamText, tool as createAiSdkTool } from 'ai';
+import { jsonSchema, streamText, stepCountIs, tool as createAiSdkTool } from 'ai';
 import {
     getAiProviderFromConfig,
     getLlmProviderConfigCacheKeys,
@@ -80,7 +80,7 @@ async function* streamCompletionViaProvider(
     messages: IframeAiBridgeMessage[],
     modelConfig: IframeAiBridgeModelConfig,
     signal: AbortSignal
-): AsyncGenerator<IframeAiBridgeChunk> {
+): AsyncIterableIterator<IframeAiBridgeChunk> {
     const storedConfig = await readRuntimeConfig();
 
     const provider = normalizeLlmProvider(
@@ -172,7 +172,7 @@ async function* streamCompletionViaProvider(
         system: systemPrompt,
         messages: messages as Parameters<typeof streamText>[0]['messages'],
         tools,
-        maxSteps: DEFAULT_MAX_STEPS,
+        stopWhen: stepCountIs(DEFAULT_MAX_STEPS),
         maxRetries: 0,
         abortSignal: signal,
         providerOptions: resolveProviderOptions({
@@ -201,7 +201,7 @@ async function* streamCompletionViaProvider(
                         type: 'tool_call',
                         toolCallId: part.toolCallId,
                         toolName: part.toolName,
-                        args: part.input ?? part.args ?? {},
+                        args: part.input ?? {},
                     };
                     break;
                 case 'error':
@@ -246,10 +246,10 @@ async function* streamCompletionViaProvider(
     }
 }
 
-async function* buildConfigStream(): AsyncGenerator<IframeAiBridgeChunk> {
+async function* buildConfigStream(): AsyncIterableIterator<IframeAiBridgeChunk> {
     const storedConfig = await readRuntimeConfig();
     const provider = normalizeLlmProvider(storedConfig.provider || 'openai');
-    const providerConfigs = storedConfig.providerConfigs ?? {};
+    const providerConfigs = storedConfig.providerConfigs ?? resolveLlmProviderConfigMap({});
     const defaultModel = getDefaultModelForProvider(provider);
 
     const allModels = buildAvailableAgentModelOptions({ providerConfigs });
@@ -286,7 +286,7 @@ export function createIframeAiBridgeRuntime() {
         }: {
             messages: IframeAiBridgeMessage[];
             modelConfig: IframeAiBridgeModelConfig;
-        }): AsyncGenerator<IframeAiBridgeChunk> {
+        }): AsyncIterableIterator<IframeAiBridgeChunk> {
             const abortController = new AbortController();
             const gen = streamCompletionViaProvider(messages, modelConfig, abortController.signal);
             return {
@@ -306,7 +306,7 @@ export function createIframeAiBridgeRuntime() {
                 },
             };
         },
-        getConfig(): AsyncGenerator<IframeAiBridgeChunk> {
+        getConfig(): AsyncIterableIterator<IframeAiBridgeChunk> {
             return buildConfigStream();
         },
     };

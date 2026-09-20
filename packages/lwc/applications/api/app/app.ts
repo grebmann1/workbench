@@ -78,10 +78,21 @@ function bootstrapApiExtension() {
 bootstrapApiExtension();
 
 // Utility: Convert OpenAPI schema to apiTreeItems
-function openApiToApiTreeItems(openApi) {
+function openApiToApiTreeItems(openApi: {
+    paths?: Record<
+        string,
+        Record<string, { summary?: string; operationId?: string; tags?: string[] }>
+    >;
+    info?: { title?: string };
+    servers?: Array<{ url: string }>;
+}) {
     if (!openApi.paths) return [];
     // Helper to insert a path into the tree
-    function insertPath(tree, path, pathItem) {
+    function insertPath(
+        tree,
+        path,
+        pathItem: Record<string, { summary?: string; operationId?: string; tags?: string[] }>
+    ) {
         const segments = path.split('/').filter(Boolean); // remove empty
         let current = tree;
         let fullPath = '';
@@ -144,6 +155,7 @@ function openApiToApiTreeItems(openApi) {
         extra: {
             ...openApi.info,
             servers: openApi.servers || [],
+            selectedServerUrl: undefined as string | undefined,
         },
     };
     Object.entries(openApi.paths).forEach(([path, pathItem]) => {
@@ -153,6 +165,18 @@ function openApiToApiTreeItems(openApi) {
 }
 
 export default class App extends ToolkitElement {
+    declare refs: {
+        resultTab?: HTMLElement & { activeTabValue: string };
+        requestTab?: HTMLElement & { activeTabValue: string };
+        method?: HTMLElement & { value: string };
+        url?: HTMLElement & { value: string };
+
+        apiRequestTab?: HTMLElement & import('../../../main/component/slds/tabset/tabset').default;
+        bodyEditor?: HTMLElement & import('../../../main/editor/default/default').default;
+        variablesEditor?: HTMLElement & import('../../../main/editor/default/default').default;
+        responseEditor?: HTMLElement & import('../../../main/editor/default/default').default;
+    };
+
     @wire(NavigationContext)
     navContext: any;
 
@@ -162,7 +186,7 @@ export default class App extends ToolkitElement {
     @track formattedRequests: Array<Record<string, any>> = [];
     @track endpoint: string | null = null;
     @track method: string | null = null;
-    @track variables: Record<string, any> | null = null;
+    @track variables: string | null = null;
     @api header: string | null = null;
     @api body: string | null = null;
     @track defaultHeader: string | null = null;
@@ -212,7 +236,7 @@ export default class App extends ToolkitElement {
     @track statusCode: number | null = null;
     @track executionStartDate: string | number | Date | null = null;
     @track executionEndDate: string | number | Date | null = null;
-    @track executedFormattedRequest: string | null = null;
+    @track executedFormattedRequest: Record<string, unknown> | null = null;
     @track executedRequest: Record<string, any> | null = null;
 
     // Viewer
@@ -409,12 +433,15 @@ export default class App extends ToolkitElement {
                 this.executedFormattedRequest = apiState.formattedRequest;
                 this.executedRequest = apiState.request;
                 if (this.content != apiState.response.content) {
-                    this.content = apiState.response.content;
+                    this.content =
+                        typeof apiState.response.content === 'string'
+                            ? apiState.response.content
+                            : JSON.stringify(apiState.response.content);
                     this.updateResponseEditor();
                 }
                 ////this.header_formatDate();
                 // Handle Error from Salesforce
-                if (!apiState.response.statusCode <= 400 /**&& apexState.data.compiled**/) {
+                if (apiState.response.statusCode > 400 /**&& apexState.data.compiled**/) {
                     ////this.handleError(apiState.data);
                 }
             } else if (apiState.isFetching) {
@@ -450,7 +477,7 @@ export default class App extends ToolkitElement {
                 const root = openApiToApiTreeItems(file.content)[0];
                 if (root) {
                     root.extra = {
-                        ...(root.extra || {}),
+                        ...root.extra,
                         selectedServerUrl: file?.extra?.selectedServerUrl,
                     };
                 }
@@ -503,7 +530,6 @@ export default class App extends ToolkitElement {
             method: this.method,
             body: this.body,
             header: this.header,
-            variables: this.variables,
             connector: this.connector,
             replaceVariableValues: this.replaceVariableValues,
         });
@@ -801,7 +827,7 @@ export default class App extends ToolkitElement {
         }
     };
 
-    reset_click = e => {
+    reset_click = (e?: Event) => {
         this.clearMultipartState(this.currentTab?.id);
         store.dispatch(
             API.reduxSlice.actions.resetTab({
@@ -1720,12 +1746,12 @@ export default class App extends ToolkitElement {
 
     /** Salesforce catalog */
 
-    buildSalesforceCatalogTree = ({ apiVersion, resources }) => {
+    buildSalesforceCatalogTree = ({ apiVersion, resources = null }) => {
         const v = apiVersion || this.currentApiVersion;
         const acceptJson = 'Accept : application/json';
         const contentTypeJson = 'Content-Type : application/json';
 
-        const leaf = ({ id, name, title, icon, template, keywords }) => ({
+        const leaf = ({ id, name, title = name, icon = undefined, template, keywords = [] }) => ({
             id,
             name,
             title: title || name,
@@ -1734,7 +1760,7 @@ export default class App extends ToolkitElement {
             extra: { template },
         });
 
-        const folder = ({ id, name, title, icon, children, keywords }) => ({
+        const folder = ({ id, name, title = name, icon = undefined, children, keywords = [] }) => ({
             id,
             name,
             title: title || name,
@@ -2128,7 +2154,7 @@ export default class App extends ToolkitElement {
         }
     };
 
-    applyRequestTemplate = (template, options = {}) => {
+    applyRequestTemplate = (template, options: { applyVariables?: boolean } = {}) => {
         const { applyVariables = true } = options || {};
         const nextMethod = template?.method || this.method;
         const nextEndpoint = template?.endpoint ?? this.endpoint;

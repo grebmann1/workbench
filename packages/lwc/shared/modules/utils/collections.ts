@@ -2,10 +2,7 @@
  * Collection manipulation utilities
  */
 
-export function groupBy<T extends Record<string, unknown>>(
-    items: T[],
-    key: keyof T & string
-): Record<string, T[]> {
+export function groupBy<T extends object>(items: T[], key: keyof T & string): Record<string, T[]> {
     return items.reduce<Record<string, T[]>>((x, y) => {
         const groupKey = String(y[key]);
         (x[groupKey] = x[groupKey] || []).push(y);

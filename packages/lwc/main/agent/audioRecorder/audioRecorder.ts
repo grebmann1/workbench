@@ -14,7 +14,7 @@ export default class AudioCapture extends LightningElement {
     isLoading = false;
     canvasCtx: CanvasRenderingContext2D | null = null;
     analyser: AnalyserNode | null = null;
-    dataArray: Uint8Array | null = null;
+    dataArray: Uint8Array<ArrayBuffer> | null = null;
     bufferLength = 0;
 
     /** Events  **/

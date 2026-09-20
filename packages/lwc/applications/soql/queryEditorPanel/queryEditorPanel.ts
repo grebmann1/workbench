@@ -19,6 +19,10 @@ import { querySelectors } from 'soql/slices/query';
 import { confirmDiscardPendingEdits } from '../app/util';
 
 export default class QueryEditorPanel extends ToolkitElement {
+    declare refs: {
+        editor?: HTMLElement & import('../../../main/editor/soql/soql').default;
+    };
+
     @api namespace: string | null = null;
 
     includeDeletedRecords = false;

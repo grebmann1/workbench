@@ -2,12 +2,14 @@ import { createSlice, createAsyncThunk, createEntityAdapter } from '@reduxjs/too
 import { CACHE_DOCUMENTS } from 'shared/cacheManager';
 import { lowerCaseKey, guid, isUndefinedOrNull } from 'shared/utils';
 
+type StoredDocument = ReturnType<typeof formatData>;
+
 // Adapters
-export const queryFileAdapter = createEntityAdapter();
-export const apexFileAdapter = createEntityAdapter();
-export const apiFileAdapter = createEntityAdapter();
-export const openapiSchemaFileAdapter = createEntityAdapter();
-export const platformEventFileAdapter = createEntityAdapter();
+export const queryFileAdapter = createEntityAdapter<StoredDocument>();
+export const apexFileAdapter = createEntityAdapter<StoredDocument>();
+export const apiFileAdapter = createEntityAdapter<StoredDocument>();
+export const openapiSchemaFileAdapter = createEntityAdapter<StoredDocument>();
+export const platformEventFileAdapter = createEntityAdapter<StoredDocument>();
 
 const MAX_RECENT = 20;
 const RECENT_QUERIES_KEY = 'lsb.recentQueries';

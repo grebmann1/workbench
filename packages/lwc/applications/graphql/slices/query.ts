@@ -158,3 +158,9 @@ const graphqlQuerySlice = createSlice({
 
 export const reduxSlice = graphqlQuerySlice;
 export const querySelectors = queryAdapter.getSelectors((state: any) => state.graphqlQuery);
+
+declare module 'host-api/types' {
+    interface InjectedState {
+        graphqlQuery?: ReturnType<typeof reduxSlice.reducer>;
+    }
+}

@@ -59,6 +59,15 @@ const CHANNEL_PREFIXES = {
 };
 
 export default class App extends ToolkitElement {
+    declare _lastMessageInternal: ReturnType<typeof setInterval>;
+    declare _hasRendered: boolean;
+    declare isLogDisplayed: boolean;
+
+    declare refs: {
+        replay?: HTMLElement & { value: string };
+        lookup?: HTMLElement & import('../../../main/component/slds/lookup/lookup').default;
+    };
+
     isLoading = false;
     channelName: string | null = null; // = 'CCR_TaskNotification__e';
     replayId = -1;
@@ -253,7 +262,7 @@ export default class App extends ToolkitElement {
         this._subscribeChannel(content);
     };
 
-    _subscribeChannel = (eventName, replayId) => {
+    _subscribeChannel = (eventName, replayId = undefined) => {
         this.connectToCometD();
         if (this.activeSubscriptions.hasOwnProperty(lowerCaseKey(eventName))) {
             // Redirect (No Duplicate channels)
@@ -281,7 +290,7 @@ export default class App extends ToolkitElement {
     };
 
     /** Main Subscribing method to the CometD Server */
-    cometdSubscribe = async (eventName, replayId) => {
+    cometdSubscribe = async (eventName, replayId = undefined) => {
         // First Reset the current displayed event
         this.selectedEventItem = null;
 
@@ -329,7 +338,7 @@ export default class App extends ToolkitElement {
 
         // Reset Lookups and replayId
         this.lookup_selectedEvents = [];
-        this.refs.replay.value = -1;
+        this.refs.replay.value = '-1';
     };
 
     subscribe_lookup = () => {
@@ -567,7 +576,7 @@ export default class App extends ToolkitElement {
             url: `${this.connector.conn.instanceUrl}/cometd/${this.connector.conn.version}/`,
             requestHeaders: {
                 Authorization: `Bearer ${this.connector.conn.accessToken}`,
-            },
+            } as Record<string, string>,
             appendMessageTypeToURL: false,
             advice: {
                 timeout: 29000,
@@ -703,7 +712,7 @@ export default class App extends ToolkitElement {
 
             // Lookup source
             this.eventObjects = [...platformEvents, ...cdcEvents, ...pushTopics].sort((a, b) =>
-                a.name.localeCompare(b.name)
+                String(a.name).localeCompare(String(b.name))
             );
         } catch (e) {
             LOGGER.error(e);

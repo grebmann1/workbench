@@ -14,6 +14,8 @@ const DEFAULT_NAMESPACE = 'Default';
 const ALL_NAMESPACE = 'All';
 const PAGE_LIST_SIZE = 70;
 export default class Menu extends ToolkitElement {
+    declare resetOnSelection: boolean;
+
     _isRendered = true;
     @api title;
     @api isLoading = false;

@@ -77,6 +77,8 @@ const isOrgFarmConnection = connection => {
 };
 
 export default class App extends ToolkitElement {
+    declare isSearchHidden: boolean;
+
     @api variant = 'table';
     @api isHeaderLess = false;
     @track data: any[] = [];
@@ -639,7 +641,7 @@ export default class App extends ToolkitElement {
                         sessionId: connector.conn.accessToken,
                         serverUrl: connector.conn.instanceUrl,
                     };
-                    const params = {
+                    const params: { type: string; state?: { applicationName: string } } = {
                         type: 'application',
                     };
                     if (redirect) {
@@ -680,7 +682,12 @@ export default class App extends ToolkitElement {
 
     exportRow = async row => {
         const { alias, sfdxAuthUrl, username, instanceUrl } = row;
-        const item = { alias, sfdxAuthUrl };
+        const item: {
+            alias: string;
+            sfdxAuthUrl: string;
+            username?: string;
+            instanceUrl?: string;
+        } = { alias, sfdxAuthUrl };
         if (!isEmpty(username)) item.username = username;
         if (!isEmpty(instanceUrl)) item.instanceUrl = instanceUrl;
         const exportedRow = [item];
@@ -860,7 +867,7 @@ export default class App extends ToolkitElement {
     };
 
     @api
-    exportClick = e => {
+    exportClick = () => {
         download(JSON.stringify(this.exportedData), 'application/json', 'sftoolkit_config.json');
         navigator.clipboard.writeText(JSON.stringify(this.exportedData, null, 4));
         Toast.show({
@@ -871,7 +878,7 @@ export default class App extends ToolkitElement {
     };
 
     @api
-    importClick = e => {
+    importClick = () => {
         ConnectionImportModal.open({
             existingConnections: this.data,
             size: isChromeExtension() ? 'full' : 'small',
@@ -923,7 +930,12 @@ export default class App extends ToolkitElement {
             .filter(x => !isEmpty(x.sfdxAuthUrl))
             .map(x => {
                 const { sfdxAuthUrl, alias, username, instanceUrl } = x;
-                const item = { alias, sfdxAuthUrl };
+                const item: {
+                    alias: string;
+                    sfdxAuthUrl: string;
+                    username?: string;
+                    instanceUrl?: string;
+                } = { alias, sfdxAuthUrl };
                 if (!isEmpty(username)) item.username = username;
                 if (!isEmpty(instanceUrl)) item.instanceUrl = instanceUrl;
                 return item;

@@ -1,9 +1,9 @@
 /**
  * JSforce-compatible connection types.
  *
- * These types describe the shape of a jsforce `Connection` object as used across
- * the codebase. jsforce does not ship its own TypeScript types in this project,
- * so we maintain this minimal surface area to stay correct and lint-clean.
+ * These structural adapters model the capabilities used by Workbench, while
+ * reusing the bundled jsforce declarations for native API contracts. Optional
+ * capabilities also allow browser bridges and focused test adapters.
  */
 
 /** Minimal OAuth2 shape used by jsforce Connection. */
@@ -21,12 +21,21 @@ export type JsforceRequestOptions = {
 
 /** Shape of a jsforce QueryExecution returned by `conn.query()`/`conn.tooling.query()`. */
 export type JsforceQueryExecution<T = Record<string, unknown>> = {
+    then: PromiseLike<{
+        records?: T[];
+        done?: boolean;
+        nextRecordsUrl?: string;
+        totalSize?: number;
+    }>['then'];
+    scanAll?: (value: boolean) => JsforceQueryExecution<T>;
+    explain?: ReturnType<import('jsforce').Connection['query']>['explain'];
+
     records?: T[];
     run: (options: {
         responseTarget: 'Records' | 'SingleRecord' | 'QueryResult';
         autoFetch: boolean;
         maxFetch: number;
-    }) => Promise<T[] | null>;
+    }) => PromiseLike<T[] | null>;
 };
 
 /** Shape of `conn.sobject(name).describe()`. */
@@ -36,22 +45,45 @@ export type JsforceDescribeSObjectResult = {
 };
 
 /** Shape of the jsforce Metadata API available at `conn.metadata`. */
+import type * as MetadataStatus from 'jsforce/lib/api/metadata';
+type MetadataAsyncResult = { id?: string; asyncProcessId?: string; zipFile?: string };
+type MetadataLocator = PromiseLike<MetadataAsyncResult> & {
+    on?: (event: string, listener: (result: MetadataAsyncResult) => void) => MetadataLocator;
+    poll?: (interval: number, timeout: number) => void;
+};
 export type JsforceMetadataApi = {
-    describe: (asOfVersion?: string) => Promise<unknown>;
-    list: (queries: unknown[], asOfVersion?: string) => Promise<unknown[]>;
-    retrieve: (
-        options: unknown
-    ) => Promise<{ id?: string; asyncProcessId?: string; zipFile?: string }>;
-    checkRetrieveStatus: (id: string, includeZip?: boolean) => Promise<unknown>;
-    deploy: (
-        zipB64: string,
-        options: unknown
-    ) => Promise<{ id?: string; asyncProcessId?: string; zipFile?: string }>;
-    checkDeployStatus: (id: string, includeDetails?: boolean) => Promise<unknown>;
+    describe: (version?: string) => Promise<Partial<MetadataStatus.DescribeMetadataResult>>;
+    list: (
+        queries: unknown[],
+        version?: string
+    ) => Promise<Partial<MetadataStatus.FileProperties>[]>;
+    read: (
+        type: string,
+        names: string | string[]
+    ) => Promise<Record<string, unknown> | Record<string, unknown>[]>;
+    retrieve: (options: unknown) => MetadataLocator;
+    checkRetrieveStatus: (
+        id: string,
+        includeZip?: boolean
+    ) => Promise<Partial<MetadataStatus.RetrieveResult>>;
+    deploy: (zip: string, options: unknown) => MetadataLocator;
+    checkDeployStatus: (
+        id: string,
+        includeDetails?: boolean
+    ) => Promise<Partial<MetadataStatus.DeployResult>>;
+    _invoke?: import('jsforce').Connection['metadata']['_invoke'];
+    pollTimeout?: number;
 };
 
 /** Shape of the jsforce Tooling API available at `conn.tooling`. */
 export type JsforceToolingApi = {
+    describe?: JsforceConnection['describe'];
+    describeGlobal?: JsforceConnection['describeGlobal'];
+    describeSObject$?: JsforceConnection['describe'];
+    sobject?: JsforceConnection['sobject'];
+    request?: JsforceConnection['request'];
+    cache?: { clear: (key?: string) => void };
+
     query: <T = Record<string, unknown>>(soql: string) => JsforceQueryExecution<T>;
     executeAnonymous?: (script: string) => Promise<{ exceptionMessage?: string }>;
 };
@@ -64,6 +96,11 @@ export type JsforceToolingApi = {
  * occasionally reach into undocumented internals (e.g. `_callOptions`).
  */
 export type JsforceConnection = {
+    describe?: import('jsforce').Connection['describe'];
+    describeGlobal?: import('jsforce').Connection['describeGlobal'];
+    describeSObject$?: import('jsforce').Connection['describe'];
+    soap?: Pick<import('jsforce').Connection['soap'], '_invoke'>;
+    dispose?: () => void;
     accessToken?: string;
     instanceUrl?: string;
     version?: string;
@@ -78,16 +115,19 @@ export type JsforceConnection = {
      * jsforce `request` supports both a string path and a descriptor object.
      * The descriptor form is the richer variant we use across the codebase.
      */
-    request?: (
+    request?: <T = unknown>(
         pathOrOptions: string | JsforceRequestOptions,
         options?: JsforceRequestOptions
-    ) => Promise<unknown>;
+    ) => Promise<T>;
     query?: <T = Record<string, unknown>>(soql: string) => JsforceQueryExecution<T>;
-    sobject?: (name: string) => {
+    sobject?: (name: string) => Partial<ReturnType<import('jsforce').Connection['sobject']>> & {
         describe: () => Promise<JsforceDescribeSObjectResult>;
-        [key: string]: unknown;
     };
+    queryMore?: import('jsforce').Connection['queryMore'];
+    bulk?: Pick<import('jsforce').Connection['bulk'], 'load'>;
+    limitInfo?: import('jsforce').Connection['limitInfo'];
     identity?: () => Promise<Record<string, unknown>>;
+    cache?: { clear: (key?: string) => void };
     _callOptions?: Record<string, unknown> & { client?: string };
     _maxSessionRefreshRetries?: number;
     // Escape hatch for undocumented internals.

@@ -69,7 +69,7 @@ test('application: startLoading / stopLoading manage isLoading + message', async
         let s = r(undefined, reduxSlice.actions.startLoading({ message: 'Connecting…' }));
         assert.equal(s.isLoading, true);
         assert.equal(s.isLoadingMessage, 'Connecting…');
-        s = r(s, reduxSlice.actions.stopLoading({}));
+        s = r(s, reduxSlice.actions.stopLoading());
         assert.equal(s.isLoading, false);
     } finally {
         removeStorage();
@@ -94,7 +94,7 @@ test('application: login persists session; logout clears state + session', async
         assert.equal(s.isLoggedIn, true);
         assert.equal(s.sessionHasExpired, false);
         assert.ok(session['currentConnection']);
-        s = r(s, reduxSlice.actions.logout({}));
+        s = r(s, reduxSlice.actions.logout());
         assert.equal(s.isLoggedIn, false);
         assert.equal(s.connector, null);
         assert.equal(session['currentConnection'], undefined);

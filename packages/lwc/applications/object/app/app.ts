@@ -45,6 +45,12 @@ const SOURCE = {
 const SHOW_TOOLING_STORAGE_KEY = 'object-explorer-showToolingObjects';
 
 export default class App extends ToolkitElement {
+    declare isLoading: boolean;
+
+    declare refs: {
+        objectTab?: HTMLElement & import('../../../main/component/slds/tabset/tabset').default;
+    };
+
     _hasRendered = false;
     @wire(NavigationContext)
     navContext: any;
@@ -217,13 +223,13 @@ export default class App extends ToolkitElement {
 
     load_describeGlobal = async (): Promise<Array<Record<string, any>>> => {
         await ensureSessionClientCallOption(this.connector);
-        const { standard, tooling } = (
-            await store.dispatch(
+        const { standard, tooling } = await store
+            .dispatch(
                 DESCRIBE.describeSObjects({
                     connector: this.connector.conn,
                 })
             )
-        ).payload;
+            .unwrap();
         const standardObjects = (standard?.sobjects || []).map(sobject => ({
             ...sobject,
             source: SOURCE.STANDARD,

@@ -328,7 +328,7 @@ export function isAuthError(
 export async function resolveConnectionRecord(
     connection: Record<string, unknown>,
     { workspaceBasePath }: { workspaceBasePath?: string } = {}
-) {
+): Promise<Record<string, unknown> & { workspaceRoot: string }> {
     if (!connection?.instanceUrl || !connection?.accessToken) {
         throw new Error(
             'This workbench now depends on the injected Salesforce connector. Open it from a connected toolkit session.'

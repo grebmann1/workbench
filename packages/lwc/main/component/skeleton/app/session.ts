@@ -165,7 +165,7 @@ export async function loadFullMode(context) {
     } catch (e) {
         LOGGER.error('loadFullMode bootstrap failed -->', e);
         // Keep the shell usable even when automatic reconnect fails.
-        store.dispatch(APPLICATION.reduxSlice.actions.logout({}));
+        store.dispatch(APPLICATION.reduxSlice.actions.logout());
         Toast.show({
             label: 'Session Error',
             message: e.message,

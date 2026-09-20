@@ -428,7 +428,7 @@ export default class Chat extends LightningElement {
             | null;
         await settings?.flushConnectionChanges();
         const configurationList = Object.values(CACHE_CONFIG);
-        const config = {};
+        const config: Record<string, unknown> = {};
         Object.values(configurationList).forEach(item => {
             config[item.key] = this.config[item.key];
         });
@@ -461,7 +461,7 @@ export default class Chat extends LightningElement {
             Object.values(CACHE_CONFIG).map(x => x.key)
         );
         const configurationList = Object.values(CACHE_CONFIG);
-        const config = {};
+        const config: Record<string, unknown> = {};
         Object.values(configurationList).forEach(item => {
             const cached = cachedConfiguration[item.key];
             config[item.key] = cached !== undefined && cached !== null ? cached : item.defaultValue;

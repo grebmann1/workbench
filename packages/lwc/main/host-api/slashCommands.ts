@@ -24,7 +24,7 @@
  */
 
 const entries = new Map();
-const listeners = new Set();
+const listeners = new Set<() => void>();
 
 function notify() {
     for (const listener of Array.from(listeners)) {

@@ -74,7 +74,7 @@ export default class VerticalPanel extends LightningElement {
     }
 
     get normalizedMinWidth() {
-        const parsed = Number.parseInt(this.minWidth, 10);
+        const parsed = Number.parseInt(String(this.minWidth), 10);
         return Number.isFinite(parsed) && parsed > 0 ? parsed : 260;
     }
 

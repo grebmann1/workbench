@@ -63,16 +63,17 @@ END_EINSTEIN_TOOLKIT
 17:52:18.96 (15101249217)|CODE_UNIT_FINISHED|execute_anonymous_apex
 17:52:18.96 (15101271193)|EXECUTION_FINISHED`;
 
-const Schemas = {};
-Schemas.ExecuteAnonymousResult = {
-    column: 'number',
-    compileProblem: 'string',
-    compiled: 'boolean',
-    exceptionMessage: 'boolean',
-    exceptionStackTrace: 'boolean',
-    line: 'number',
-    success: 'boolean',
-    debugLog: 'string',
+const Schemas = {
+    ExecuteAnonymousResult: {
+        column: 'number',
+        compileProblem: 'string',
+        compiled: 'boolean',
+        exceptionMessage: 'boolean',
+        exceptionStackTrace: 'boolean',
+        line: 'number',
+        success: 'boolean',
+        debugLog: 'string',
+    },
 };
 
 const DEBUG = 'DEBUG';
@@ -127,8 +128,17 @@ function saveCacheSettings(alias, state) {
 
 /** Redux */
 
-export const einsteinModelAdapter = createEntityAdapter();
-const einsteinSelectors = einsteinModelAdapter.getSelectors(s => s);
+type Entry = {
+    id: string;
+    data?: Array<{ id?: string; role?: string; content?: string; [key: string]: unknown }>;
+    body?: string;
+    alias?: string;
+    createdDate?: string | number | Date;
+    isFetching?: boolean;
+    error?: import('@reduxjs/toolkit').SerializedError;
+};
+export const einsteinModelAdapter = createEntityAdapter<Entry>();
+const einsteinSelectors = einsteinModelAdapter.getSelectors();
 const _executeApexAnonymous = (connector: ConnectorLike, body: string, headers: any) => {
     return connector.conn.soap._invoke(
         'executeAnonymous',
@@ -174,6 +184,7 @@ export const einsteinExecuteModel = createAsyncThunk(
             alias: string;
             tabId: string;
             messages: Array<Record<string, any>>;
+            createdDate?: string | number | Date;
         },
         { dispatch, getState }
     ) => {
@@ -182,11 +193,11 @@ export const einsteinExecuteModel = createAsyncThunk(
         //await testTimer();
         //throw new Error('ERROR_HTTP_503:test by gui');
         try {
-            //console.log('headers', formatHeaders(getState().einstein));
+            //console.log('headers', formatHeaders((getState() as import('host-api/types').RootState).einstein));
             const res = await _executeApexAnonymous(
                 connector,
                 body,
-                formatHeaders(getState().einstein)
+                formatHeaders((getState() as import('host-api/types').RootState).einstein)
             );
             if (!res.success) {
                 //console.group('Einstein Error');
@@ -257,11 +268,31 @@ const _innerExecute = (dispatch, { assistant, messages, tabId, onStream, alias }
 export const openaiExecuteModel = createAsyncThunk(
     'einstein/openaiExecuteModel',
     async (
-        { messages, tabId, alias, model = 'gpt-4o-mini', aiProvider = 'openai', onStream },
+        {
+            messages,
+            tabId,
+            alias,
+            model = 'gpt-4o-mini',
+            aiProvider = 'openai',
+            onStream,
+        }: {
+            messages: Array<{ id?: string; role: string; content: string }>;
+            tabId: string;
+            alias: string;
+            model?: string;
+            aiProvider?: string;
+            onStream?: (chunk: unknown) => void;
+        },
         { dispatch, getState }
     ) => {
         try {
             const assistant = new ASSISTANTS.Assistant({
+                name: undefined,
+                instructions: undefined,
+                tools: undefined,
+                outputSchema: undefined,
+                messages: undefined,
+                openaiKey: undefined,
                 model,
                 aiProvider,
             });
@@ -501,13 +532,13 @@ const einsteinSlice = createSlice({
                 const { tabId, messages } = action.meta.arg;
                 const error = action.error;
                 const lastMessage =
-                    messages && messages.length > 0 ? messages[messages.length - 1] : {};
+                    messages && messages.length > 0 ? messages[messages.length - 1] : null;
                 einsteinModelAdapter.upsertOne(state.dialog, {
                     id: lowerCaseKey(tabId),
                     isFetching: false,
                     error,
                 });
-                if (lastMessage.id) {
+                if (lastMessage?.id) {
                     state.errorIds = [].concat(
                         state.errorIds.filter(x => x != lastMessage.id),
                         lastMessage.id

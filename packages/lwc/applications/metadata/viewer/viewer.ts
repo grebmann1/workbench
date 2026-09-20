@@ -29,6 +29,10 @@ const AUDIT_FIELDS = [
     'DeveloperName',
 ];
 export default class Viewer extends ToolkitElement {
+    declare refs: {
+        editor?: HTMLElement & import('../../../main/editor/default/default').default;
+    };
+
     isLoading = false;
     visualizer: any;
     currentTab = 'Default';

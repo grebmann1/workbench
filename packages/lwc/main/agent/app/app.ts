@@ -1,3 +1,4 @@
+import { loadRunJournal, saveRunJournal, assertRecoveryContext } from '../runController/runJournal';
 import Analytics from 'shared/analytics';
 import type { ConnectorLike } from 'core/connector';
 import { createUserModelMessage } from 'agent/utils';
@@ -60,8 +61,23 @@ const chatRuns = new ConversationRunController(
                 title: 'Agent error',
                 message: error instanceof Error ? error.message : String(error),
             })
-        )
+        ),
+    {
+        persist: (snapshots, changedId) =>
+            saveRunJournal(getIndexedDbFileSystem(), snapshots, changedId),
+        onComplete: (id, request) => {
+            if (request.recovered || id !== store.getState().agent?.activeConversationId) {
+                Toast.show({
+                    label: 'Agent task completed',
+                    message: request.prompt.slice(0, 120),
+                    variant: 'success',
+                });
+            }
+        },
+    }
 );
+let recoveryReady: Promise<void> | null = null;
+let submissionQueue: Promise<void> = Promise.resolve();
 
 export default class App extends ToolkitElement {
     salesforcePromptSuggestions = [
@@ -127,7 +143,13 @@ export default class App extends ToolkitElement {
     _streamingUnsubscribe = null;
     _streamingConversationId = null;
 
-    @api connector: ConnectorLike | null = null;
+    private _chatConnector: ConnectorLike | null = null;
+    @api get connector(): ConnectorLike | null {
+        return this._chatConnector;
+    }
+    set connector(value: ConnectorLike | null) {
+        this._chatConnector = value;
+    }
     @api isAudioRecorderDisabled = false;
     @api browserAgentEnabled = false;
     @api assistantStyle = false;
@@ -391,12 +413,26 @@ export default class App extends ToolkitElement {
     connectedCallback() {
         Analytics.trackAppOpen('agent', { alias: this.alias });
         if (this.showWorkbenchApprovalMode) void this.loadApprovalMode();
-        store.dispatch(AGENT.loadCacheSettingsAsync());
+        if (!recoveryReady) recoveryReady = this.restorePendingRuns();
         window.addEventListener('agent:ask_user', this._handleAskUserEvent);
         window.addEventListener('agent:question_closed', this._handleQuestionClosed);
         window.addEventListener('pagehide', this._flushConversationCache);
         document.addEventListener('visibilitychange', this._handleVisibilityChange);
         // Session hydration is handled by storeChange once loadFromCache populates the store.
+    }
+
+    async restorePendingRuns() {
+        await store.dispatch(AGENT.loadCacheSettingsAsync());
+        try {
+            const snapshots = await loadRunJournal(getIndexedDbFileSystem());
+            const ids = new Set((store.getState().agent?.conversations || []).map(c => c.id));
+            chatRuns.restore(
+                snapshots.filter(snapshot => ids.has(snapshot.id)),
+                (id, request, signal) => this.executeQueuedRequest(id, request, signal)
+            );
+        } catch (error) {
+            this.global_handleError(error);
+        }
     }
 
     disconnectedCallback() {
@@ -548,8 +584,10 @@ export default class App extends ToolkitElement {
         });
     }
 
-    async buildAgentExecutionContext(model = this.selectedModel) {
-        const conversationId = this.activeConversationId;
+    async buildAgentExecutionContext(
+        model = this.selectedModel,
+        conversationId = this.activeConversationId
+    ) {
         const browserTabId = this.browserTabId;
         const yolo = this.browserAgentEnabled
             ? this.yoloMode
@@ -614,7 +652,7 @@ export default class App extends ToolkitElement {
         };
     }
 
-    executeAgent = (
+    executeAgent = async (
         prompt: string,
         files: File[] = [],
         model = this.selectedModel,
@@ -624,98 +662,194 @@ export default class App extends ToolkitElement {
     ) => {
         const id = this.activeConversationId;
         const requestId = guid();
-        const attachments = [...files];
-        // Capture provider/org/model settings before queueing, then read history when this run starts.
-        const contextPromise = this.buildAgentExecutionContext(model);
+        const contextPromise = this.buildAgentExecutionContext(model, id);
         void contextPromise.catch(() => {});
-        chatRuns.enqueue(
-            id,
-            {
-                id: requestId,
-                prompt,
-                fileNames: attachments.map(file => file.name),
-                model,
-                isPush: priority,
-            },
-            async signal => {
-                const { conversationId, settings } = await contextPromise;
-                signal.throwIfAborted();
-                store.dispatch(AGENT.reduxSlice.actions.resetError({ id }));
-                settings.selectedReasoning = reasoning;
-                if (!hasUsableProviderCredentials(settings)) {
-                    throw new Error(
-                        `Configure ${getProviderLabel(settings.provider)} credentials in AI settings.`
-                    );
-                }
-                if (retry)
-                    store.dispatch(
-                        AGENT.reduxSlice.actions.setMessages({ id, messages: retry.history })
-                    );
-                const currentMessages = store.getState().agent?.messagesById?.[id] || [];
-                const fs = getIndexedDbFileSystem();
-                let filesData = [];
-                if (attachments.length > 0) {
-                    filesData = await Promise.all(attachments.map(readFileContent));
-                    filesData = await persistPromptImageFiles(
-                        filesData,
-                        fs,
-                        conversationId,
-                        LOGGER,
-                        requestId
-                    );
-                }
-                signal.throwIfAborted();
-
-                // Auto-generate a title on the first message of a conversation
-                if (currentMessages.length === 0) {
-                    const titleConversationId = conversationId;
-                    generateConversationTitle(settings, prompt)
-                        .then(title => {
-                            if (title) {
-                                store.dispatch(
-                                    AGENT.reduxSlice.actions.updateConversationTitle({
-                                        id: titleConversationId,
-                                        title,
-                                    })
-                                );
-                            }
-                        })
-                        .catch(err => {
-                            LOGGER.warn('[agent-app] Title generation failed (non-critical):', err);
-                        });
-                }
-
-                const fileRefs = filesData
-                    .filter(f => f && f.path)
-                    .map(f => `- ${f.path}`)
-                    .join('\n');
-                const augmentedPrompt = fileRefs.length
-                    ? `${prompt}\n\n[Attached files written to workspace filesystem:\n${fileRefs}\nYou can read them with bash or the readFile tool.]`
-                    : prompt;
-                const userMessages = retry?.messages || [
-                    createUserModelMessage({ text: augmentedPrompt, filesData: [] }),
-                ];
-
-                const agent = await Agent.create({
-                    messages: (store.getState().agent?.contextById?.[id] ||
-                        currentMessages) as ModelMessage[],
-                    conversationId,
-                    settings: { ...settings, signal },
-                });
-                store.dispatch(
-                    AGENT.reduxSlice.actions.setRunWarnings({ id, warnings: agent.warnings })
-                );
-                await store
-                    .dispatch(
-                        AGENT.executeAgent({
-                            userMessages,
-                            agent,
-                        })
+        const config = store.getState().application?.connector?.configuration || {};
+        const request: QueuedRun = {
+            id: requestId,
+            prompt:
+                prompt ||
+                (retry?.messages || [])
+                    .map(message =>
+                        typeof message.content === 'string'
+                            ? message.content
+                            : message.content
+                                  .filter(part => part.type === 'text')
+                                  .map(part => part.text)
+                                  .join('\n')
                     )
-                    .unwrap();
-            }
-        );
+                    .join('\n'),
+            fileNames: files.map(file => file.name),
+            model,
+            reasoning,
+            isPush: priority,
+            orgId: config.orgId,
+            orgAlias: config.alias,
+            ...(this.browserAgentEnabled && typeof this.browserTabId === 'number'
+                ? { browserTabId: this.browserTabId }
+                : {}),
+            attachments: [],
+        };
+        submissionQueue = submissionQueue
+            .catch(() => {})
+            .then(async () => {
+                try {
+                    await recoveryReady;
+                    const fs = getIndexedDbFileSystem();
+                    for (const [index, file] of files.entries()) {
+                        if (file.size > 20 * 1024 * 1024)
+                            throw new Error(
+                                'Attachments must be smaller than 20 MB to support task recovery.'
+                            );
+                        const path = `/workspace/agent-runs/files/${requestId}/${index}`;
+                        await fs.writeFile(path, new Uint8Array(await file.arrayBuffer()));
+                        request.attachments!.push({ path, name: file.name, type: file.type });
+                    }
+                    if (
+                        !store
+                            .getState()
+                            .agent?.conversations.some(conversation => conversation.id === id)
+                    )
+                        return;
+                    chatRuns.enqueue(id, request, signal =>
+                        this.executeQueuedRequest(id, request, signal, contextPromise, retry)
+                    );
+                } catch (error) {
+                    store.dispatch(
+                        AGENT.reduxSlice.actions.setError({
+                            id,
+                            title: 'Task could not be saved',
+                            message: error instanceof Error ? error.message : String(error),
+                        })
+                    );
+                }
+            });
+        await submissionQueue;
     };
+
+    async executeQueuedRequest(
+        id: string,
+        request: QueuedRun,
+        signal: AbortSignal,
+        contextPromise?: ReturnType<App['buildAgentExecutionContext']>,
+        retry?: { history: ModelMessage[]; messages: ModelMessage[] }
+    ) {
+        if (typeof navigator !== 'undefined' && navigator.locks) {
+            return navigator.locks.request(
+                `workbench.agent.run.${id}`,
+                { ifAvailable: true },
+                async lock => {
+                    if (!lock)
+                        throw new Error(
+                            'This conversation is already running in another Workbench view.'
+                        );
+                    await this.runQueuedRequest(id, request, signal, contextPromise, retry);
+                }
+            );
+        }
+        return this.runQueuedRequest(id, request, signal, contextPromise, retry);
+    }
+
+    async runQueuedRequest(
+        id: string,
+        request: QueuedRun,
+        signal: AbortSignal,
+        contextPromise?: ReturnType<App['buildAgentExecutionContext']>,
+        retry?: { history: ModelMessage[]; messages: ModelMessage[] }
+    ) {
+        const { prompt, id: requestId, reasoning = this.selectedReasoning } = request;
+        if (request.recovered) {
+            const config = store.getState().application?.connector?.configuration || {};
+            assertRecoveryContext(request, {
+                orgId: config.orgId,
+                orgAlias: config.alias,
+                browserTabId: this.browserTabId,
+            });
+        }
+        const attachmentFs = getIndexedDbFileSystem();
+        const attachments = await Promise.all(
+            (request.attachments || []).map(
+                async file =>
+                    new File([await attachmentFs.readFileBuffer(file.path)], file.name, {
+                        type: file.type,
+                    })
+            )
+        );
+        const { conversationId, settings } = await (contextPromise ||
+            this.buildAgentExecutionContext(request.model, id));
+        signal.throwIfAborted();
+        store.dispatch(AGENT.reduxSlice.actions.resetError({ id }));
+        settings.selectedReasoning = reasoning;
+        if (!hasUsableProviderCredentials(settings)) {
+            throw new Error(
+                `Configure ${getProviderLabel(settings.provider)} credentials in AI settings.`
+            );
+        }
+        if (retry)
+            store.dispatch(AGENT.reduxSlice.actions.setMessages({ id, messages: retry.history }));
+        const currentMessages = store.getState().agent?.messagesById?.[id] || [];
+        const fs = getIndexedDbFileSystem();
+        let filesData = [];
+        if (attachments.length > 0) {
+            filesData = await Promise.all(attachments.map(readFileContent));
+            filesData = await persistPromptImageFiles(
+                filesData,
+                fs,
+                conversationId,
+                LOGGER,
+                requestId
+            );
+        }
+        signal.throwIfAborted();
+
+        // Auto-generate a title on the first message of a conversation
+        if (currentMessages.length === 0) {
+            const titleConversationId = conversationId;
+            generateConversationTitle(settings, prompt)
+                .then(title => {
+                    if (title) {
+                        store.dispatch(
+                            AGENT.reduxSlice.actions.updateConversationTitle({
+                                id: titleConversationId,
+                                title,
+                            })
+                        );
+                    }
+                })
+                .catch(err => {
+                    LOGGER.warn('[agent-app] Title generation failed (non-critical):', err);
+                });
+        }
+
+        const fileRefs = filesData
+            .filter(f => f && f.path)
+            .map(f => `- ${f.path}`)
+            .join('\n');
+        let augmentedPrompt = fileRefs.length
+            ? `${prompt}\n\n[Attached files written to workspace filesystem:\n${fileRefs}\nYou can read them with bash or the readFile tool.]`
+            : prompt;
+        if (request.interrupted)
+            augmentedPrompt = `Continue the interrupted task below using the saved conversation checkpoints. Inspect the current state before repeating any write; a tool may have completed before the interruption. Explain uncertainty and ask if an external write cannot be verified.\n\n${augmentedPrompt}`;
+        const userMessages = retry?.messages || [
+            createUserModelMessage({ text: augmentedPrompt, filesData: [] }),
+        ];
+
+        const agent = await Agent.create({
+            messages: (store.getState().agent?.contextById?.[id] ||
+                currentMessages) as ModelMessage[],
+            conversationId,
+            settings: { ...settings, signal, memoryQuery: augmentedPrompt },
+        });
+        store.dispatch(AGENT.reduxSlice.actions.setRunWarnings({ id, warnings: agent.warnings }));
+        await store
+            .dispatch(
+                AGENT.executeAgent({
+                    userMessages,
+                    agent,
+                })
+            )
+            .unwrap();
+    }
 
     executeAgentWithDirectMessages = async (
         directMessages: ModelMessage[],
@@ -775,7 +909,10 @@ export default class App extends ToolkitElement {
 
     handleQueueRemove = event => chatRuns.remove(this.activeConversationId, event.detail.id);
     handleQueuePromote = event => chatRuns.promote(this.activeConversationId, event.detail.id);
-    handleQueueResume = () => chatRuns.resume(this.activeConversationId);
+    handleQueueResume = () => {
+        const id = this.activeConversationId;
+        chatRuns.resume(id, (request, signal) => this.executeQueuedRequest(id, request, signal));
+    };
 
     handleClearClick = async e => {
         chatRuns.delete(this.activeConversationId);
@@ -1123,7 +1260,7 @@ export default class App extends ToolkitElement {
             .toString();
     }
 
-    get debugTabs() {
+    get debugTabs(): Array<{ id: string; label: string; visible?: boolean }> {
         return [{ id: 'messages', label: 'Messages' }];
     }
 

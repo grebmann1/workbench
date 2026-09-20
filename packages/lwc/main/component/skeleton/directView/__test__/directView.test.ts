@@ -2,7 +2,7 @@ import {
     hasVscodeBootstrapEntrySeed,
     hasVscodeExplicitBootstrap,
     parseVscodeBootstrapSeed,
-} from '../../../../../../shared/modules/utils/vscodeBootstrap.ts';
+} from '../../../../../shared/modules/utils/vscodeBootstrap.ts';
 
 function assert(condition: unknown, message: string): asserts condition {
     if (!condition) {

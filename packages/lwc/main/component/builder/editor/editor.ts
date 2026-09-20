@@ -9,6 +9,8 @@ const BUILDER_MODE = {
 };
 
 export default class Editor extends LightningElement {
+    declare builderMode: string;
+
     @api isLoading = false;
     @api isLeftPanelToggled = false;
     @api isRightPanelToggled = false;

@@ -33,7 +33,10 @@ const init = async () => {
     };
     window.jsforce = jsforce;
 
-    const providerCache = await loadExtensionConfigFromCache(getLlmProviderConfigCacheKeys());
+    const providerCache = await loadExtensionConfigFromCache([
+        ...getLlmProviderConfigCacheKeys(),
+        CACHE_CONFIG.TOOL_GOOGLE_SHEET_ENABLED.key,
+    ]);
     const providerConfigs = resolveLlmProviderConfigMap(providerCache);
     const aiProvider = getAiProviderFromConfig(providerCache);
     store.dispatch(APPLICATION.reduxSlice.actions.updateSettings(providerCache));

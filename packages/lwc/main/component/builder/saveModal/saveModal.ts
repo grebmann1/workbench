@@ -58,7 +58,13 @@ export default class SaveModal extends LightningModal {
     };
 
     extractFormValues = () => {
-        const formData = {};
+        const formData: {
+            storage?: string;
+            folder?: string;
+            tags?: string | string[];
+            isGlobal?: boolean;
+            [key: string]: unknown;
+        } = {};
         const inputFields = this.template.querySelectorAll('.input-target');
         inputFields.forEach(inputField => {
             formData[inputField.name] = inputField.value;

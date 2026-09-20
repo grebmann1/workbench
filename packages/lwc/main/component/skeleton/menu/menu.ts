@@ -16,7 +16,15 @@ import {
 import { CONFIG } from 'skeleton/app';
 
 export default class Menu extends ToolkitElement {
-    @api isUserLoggedIn = false;
+    declare _pageRef: import('lwr/navigation').PageReference;
+
+    _userLoggedIn = false;
+    @api get isUserLoggedIn() {
+        return this._userLoggedIn;
+    }
+    set isUserLoggedIn(value: boolean) {
+        this._userLoggedIn = value;
+    }
     @api isMenuSmall = false;
     @api managedLayout = false;
     selectedItem = 'home';
@@ -169,7 +177,7 @@ export default class Menu extends ToolkitElement {
             CACHE_CONFIG.BETA_SMARTINPUT_ENABLED.key,
         ]);
         this.isApplicationTabVisible =
-            configuration[CACHE_CONFIG.UI_IS_APPLICATION_TAB_VISIBLE.key];
+            configuration[CACHE_CONFIG.UI_IS_APPLICATION_TAB_VISIBLE.key] === true;
         this.betaSmartInputEnabled = !!configuration[CACHE_CONFIG.BETA_SMARTINPUT_ENABLED.key];
     };
 
@@ -266,7 +274,9 @@ export default class Menu extends ToolkitElement {
             .toString();
     }
 
-    get isSmallToolDisplayed() {}
+    get isSmallToolDisplayed() {
+        return undefined;
+    }
 
     get applicationLabel() {
         return this.isMenuSmall ? 'Exp' : 'Explorers';
@@ -526,9 +536,10 @@ export default class Menu extends ToolkitElement {
 
         const buildItems = [];
         for (const group of buildGroups) {
-            const filtered = group.isApplicationGroup
-                ? this.getFilteredApplicationItemsByGroup(group.key)
-                : this.getFilteredItemsByPaths(group.paths);
+            const filtered =
+                'isApplicationGroup' in group && group.isApplicationGroup
+                    ? this.getFilteredApplicationItemsByGroup(group.key)
+                    : this.getFilteredItemsByPaths('paths' in group ? group.paths : []);
             if (filtered.length === 0) continue;
             if (group.flat) {
                 buildItems.push(...filtered.map(toItem));

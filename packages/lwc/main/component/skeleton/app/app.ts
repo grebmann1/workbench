@@ -377,7 +377,7 @@ export default class App extends LightningElement {
             });
 
             if (shouldReload) {
-                store.dispatch(APPLICATION.reduxSlice.actions.logout({}));
+                store.dispatch(APPLICATION.reduxSlice.actions.logout());
                 await this.initMode();
             }
         } catch (error) {
@@ -447,7 +447,7 @@ export default class App extends LightningElement {
 
     handleLogin = async connector => {
         if (isUndefinedOrNull(connector)) {
-            store.dispatch(APPLICATION.reduxSlice.actions.stopLoading({}));
+            store.dispatch(APPLICATION.reduxSlice.actions.stopLoading());
             return;
         }
 
@@ -458,7 +458,7 @@ export default class App extends LightningElement {
         if (this.applications.filter(x => x.name == 'org/app').length == 0) {
             this.openSpecificModule('org/app');
         }
-        store.dispatch(APPLICATION.reduxSlice.actions.stopLoading({}));
+        store.dispatch(APPLICATION.reduxSlice.actions.stopLoading());
 
         // Load Cached data
         store.dispatch(
@@ -556,7 +556,7 @@ export default class App extends LightningElement {
                 loginUrl: choice.loginUrl,
                 setLoading: message =>
                     store.dispatch(APPLICATION.reduxSlice.actions.startLoading({ message })),
-                resetLoading: () => store.dispatch(APPLICATION.reduxSlice.actions.stopLoading({})),
+                resetLoading: () => store.dispatch(APPLICATION.reduxSlice.actions.stopLoading()),
             });
         } catch {
             this.pendingTaskPath = null;
@@ -652,12 +652,13 @@ export default class App extends LightningElement {
 
     loadFromCache = async () => {
         const config = await loadFromCache(this);
-        this.isApplicationTabVisible = config.isApplicationTabVisible;
+        this.isApplicationTabVisible = config.isApplicationTabVisible === true;
 
         if (isEmpty(config.openaiKey)) {
             // `checkForInjected` exists in some app modules but not all.
             // Guard to avoid runtime crash when the method isn't implemented.
-            const maybeCheckForInjected = this.checkForInjected;
+            const maybeCheckForInjected =
+                'checkForInjected' in this ? this.checkForInjected : undefined;
             if (typeof maybeCheckForInjected === 'function') {
                 maybeCheckForInjected.call(this);
             }
@@ -706,7 +707,7 @@ export default class App extends LightningElement {
         window.isLimitedMode = this.isLimitedMode; // To hide
 
         this.applications = [];
-        this.applicationId = null;
+        this.currentApplicationId = null;
         try {
             LOGGER.log('Init Mode -->', this.isLimitedMode);
             if (this.isLimitedMode) {

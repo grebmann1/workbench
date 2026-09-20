@@ -30,7 +30,7 @@ const OAUTH_PROVIDER_TO_LLM = { codex: 'openai', xai: 'grok' };
 const INTERNAL_PROVIDER_DOCS_URL = 'https://doc.sf-workbench.com/ai-agent/llm-provider-runtime';
 
 export default class AiSettings extends LightningElement {
-    @api config = {};
+    @api config: Record<string, unknown> = {};
     @api hideMcpCard = false;
     @api hideLlmSettingsCard = false;
     @api assistantStyle = false;

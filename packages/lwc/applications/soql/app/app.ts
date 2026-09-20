@@ -129,6 +129,11 @@ function bootstrapSoqlExtension() {
 bootstrapSoqlExtension();
 
 export default class App extends ToolkitElement {
+    declare refs: {
+        editor?: HTMLElement & import('../queryEditorPanel/queryEditorPanel').default;
+        output?: HTMLElement & import('../outputPanel/outputPanel').default;
+    };
+
     @wire(NavigationContext) navContext: Parameters<typeof navigate>[0];
     // used to controle store of childs
     isActive = false;
@@ -500,7 +505,6 @@ export default class App extends ToolkitElement {
     };
 
     executeAction = async e => {
-        const isAllRows = false;
         const inputEl = this.refs?.editor?.editor?.currentModel;
         if (!inputEl) return;
         const query = inputEl.getValue();
@@ -524,7 +528,6 @@ export default class App extends ToolkitElement {
                 rawSoql: query,
                 tabId: ui.currentTab.id,
                 sobjectName: this.selectedSObject,
-                isAllRows,
                 createdDate: Date.now(),
                 useToolingApi: effectiveUseToolingApi,
                 includeDeletedRecords: ui.includeDeletedRecords || false,
@@ -712,7 +715,7 @@ export default class App extends ToolkitElement {
                 selectedIds.map(id => ({ Id: id }))
             );
             retParent.forEach((ret, idx) => {
-                if (ret?.success) {
+                if (ret?.success === true) {
                     deletedRecordIds.add(ret.id || selectedIds[idx]);
                     return;
                 }
@@ -722,7 +725,12 @@ export default class App extends ToolkitElement {
                     : ret?.errors
                       ? [ret.errors]
                       : [];
-                const first = errs[0] || {};
+                const first: {
+                    statusCode?: string;
+                    errorCode?: string;
+                    message?: string;
+                    content?: string;
+                } = errs[0] || {};
                 const code = first.statusCode || first.errorCode;
                 const msg =
                     first.message ||
@@ -803,7 +811,7 @@ export default class App extends ToolkitElement {
         this.isDownloading = true;
         this.isDownloadCanceled = false;
         try {
-            const data = await this.generateCsv();
+            const data = await this.generateCsv(undefined);
             navigator.clipboard.writeText(data);
             Toast.show({
                 label: `CSV exported to your clipboard`,
@@ -937,7 +945,10 @@ export default class App extends ToolkitElement {
 
     async _fetchNextRecords(nextRecordsUrl) {
         if (!nextRecordsUrl) return;
-        const res = await this.connector.conn.request({
+        const res = await this.connector.conn.request<{
+            nextRecordsUrl?: string;
+            records: Record<string, unknown>[];
+        }>({
             method: 'GET',
             url: nextRecordsUrl,
             //headers: salesforce.getQueryHeaders()
