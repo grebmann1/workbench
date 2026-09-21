@@ -1,4 +1,12 @@
 import { isRecord } from 'shared/utils';
+import {
+    CODEX_OAUTH,
+    XAI_OAUTH,
+    createAuthenticatedOAuthFetch,
+    isExpired,
+    OAuthAuthorizationError,
+    type OAuthLifecycle,
+} from '../oauth/oauth';
 
 import {
     ANTHROPIC_API_VERSION,
@@ -105,11 +113,15 @@ export function normalizeProviderConfig(provider: LlmProvider, config: unknown):
     return normalized;
 }
 
-/** A provider is usable in the model picker when it has an API key, or — in OAuth mode —
- *  a stored access token. Mirrors the credential gate used elsewhere. */
+/** OAuth remains usable while fresh or refreshable; an expired access-only token needs sign-in. */
 export function hasUsableProviderCredentials(config: LlmProviderConfig | undefined): boolean {
     if (!config) return false;
-    if (config.authMode === 'oauth') return !!config.oauth?.access;
+    if (config.authMode === 'oauth') {
+        return (
+            !!config.oauth?.access &&
+            (!!config.oauth.refresh || !isExpired(config.oauth, Date.now()))
+        );
+    }
     return !!config.apiKey;
 }
 
@@ -570,10 +582,9 @@ function resolveGeminiNativeModelsUrl(baseUrl: string): string {
 
 /** Fetch + parse a provider's model catalog from an OpenAI-compatible `/models`-style endpoint.
  *  Shared by the subscription-OAuth providers (Codex/WHAM, xAI/SuperGrok), where the Workbench
- *  server can't fetch the list (it never receives the OAuth token). `bearer` + `extraHeaders`
- *  carry the auth. Throws on a non-OK response so callers can degrade to the user-typed
- *  customModel. Works from the extension (host permissions); the hosted web app would need a
- *  server-side proxy (a documented follow-up). */
+ *  server can't fetch the list (it never receives the OAuth token). Failed or malformed responses
+ *  throw so callers preserve the previous catalog. Works from the extension (host permissions);
+ *  the hosted web app would need a server-side proxy. */
 async function fetchOAuthModelCatalog({
     url,
     bearer,
@@ -596,16 +607,21 @@ async function fetchOAuthModelCatalog({
     if (!response.ok) {
         throw new Error(`Model catalog request to ${url} failed with status ${response.status}.`);
     }
-    return parseModelCatalogResponse(await response.json(), provider);
+    const data: unknown = await response.json();
+    if (!isRecord(data) || (!Array.isArray(data.models) && !Array.isArray(data.data))) {
+        throw new Error('Model catalog response did not include a model list.');
+    }
+    return parseModelCatalogResponse(data, provider);
 }
 
 /** Fetch the live Codex (WHAM) model list for an OAuth-authenticated openai config. WHAM gates
  *  the list by `client_version` (an old value returns an empty list). Returns [] without a
- *  token; throws on a non-OK response so the picker degrades to the user-typed customModel. */
+ *  token; throws on failure so callers preserve the previous catalog. */
 export async function fetchCodexModels(
     oauth: OAuthCredentials,
     clientVersion: string,
-    fetchImpl: typeof fetch = fetch
+    fetchImpl: typeof fetch = fetch,
+    lifecycle: OAuthLifecycle = {}
 ): Promise<LlmModelOption[]> {
     if (!oauth?.access) return [];
     const url = `${CODEX_WHAM_BASE_URL}/models?client_version=${encodeURIComponent(clientVersion)}`;
@@ -614,18 +630,24 @@ export async function fetchCodexModels(
         bearer: oauth.access,
         provider: 'openai',
         extraHeaders: oauth.accountId ? { 'ChatGPT-Account-Id': oauth.accountId } : undefined,
-        fetchImpl,
+        fetchImpl: createAuthenticatedOAuthFetch({
+            credentials: oauth,
+            provider: CODEX_OAUTH,
+            fetchImpl,
+            ...lifecycle,
+        }),
     });
 }
 
 /** Fetch the live xAI (SuperGrok) model list for an OAuth-authenticated grok config. Uses
  *  `/v1/language-models` — xAI's chat-model listing, which (unlike `/v1/models`) excludes the
  *  image/video generation models that would otherwise pollute the chat picker. Returns [] without
- *  a token; throws on a non-OK response so the picker degrades to the user-typed customModel. */
+ *  a token; throws on failure so callers preserve the previous catalog. */
 export async function fetchXaiModels(
     oauth: OAuthCredentials,
     baseUrl: string,
-    fetchImpl: typeof fetch = fetch
+    fetchImpl: typeof fetch = fetch,
+    lifecycle: OAuthLifecycle = {}
 ): Promise<LlmModelOption[]> {
     if (!oauth?.access) return [];
     const root = (normalizeString(baseUrl) || DEFAULT_PROVIDER_BASE_URLS.grok).replace(/\/+$/, '');
@@ -633,50 +655,64 @@ export async function fetchXaiModels(
         url: `${root}/language-models`,
         bearer: oauth.access,
         provider: 'grok',
-        fetchImpl,
+        fetchImpl: createAuthenticatedOAuthFetch({
+            credentials: oauth,
+            provider: XAI_OAUTH,
+            fetchImpl,
+            ...lifecycle,
+        }),
     });
 }
 
-/** Fetch the live subscription (OAuth) model catalogs for the connected providers. Codex
- *  (openai→WHAM) and xAI/SuperGrok (grok→`/language-models`) are fetched client-side because the
- *  Workbench server never receives the OAuth token. Kept SEPARATE from `fetchLlmModelsEndpoint`
- *  and the shared `availableModelsByProvider` catalog: a subscription fetch must never be able to
- *  overwrite the server-driven catalog. Each provider degrades to `[]` on failure (the picker then
- *  falls back to the user-typed customModel). Never throws and never dispatches — the caller owns
- *  persistence/dispatch, keeping this module pure. */
+/** Subscription catalogs stay client-side. Failed providers are omitted so callers retain
+ * their last usable list; only disconnected/definitively invalid providers return []. */
 export async function fetchSubscriptionModels(
     providerConfigs: LlmProviderConfigMap,
-    fetchImpl: typeof fetch = fetch
-): Promise<{ openai: LlmModelOption[]; grok: LlmModelOption[] }> {
+    fetchImpl: typeof fetch = fetch,
+    lifecycle: {
+        onTokenRefresh?: (
+            provider: LlmProvider,
+            credentials: OAuthCredentials,
+            previous: OAuthCredentials
+        ) => void | Promise<void>;
+        onAuthInvalid?: (
+            provider: LlmProvider,
+            credentials: OAuthCredentials
+        ) => void | Promise<void>;
+        onError?: (provider: LlmProvider, error: unknown) => void;
+    } = {}
+): Promise<Partial<Record<'openai' | 'grok', LlmModelOption[]>>> {
     const configs = normalizeProviderConfigMap(providerConfigs);
-    const openaiConfig = configs.openai;
-    const grokConfig = configs.grok;
-    const isCodexOAuth = openaiConfig?.authMode === 'oauth' && !!openaiConfig.oauth?.access;
-    const isXaiOAuth = grokConfig?.authMode === 'oauth' && !!grokConfig.oauth?.access;
-
-    const [openai, grok] = await Promise.all([
-        (async () => {
-            if (!isCodexOAuth || !openaiConfig.oauth) return [];
-            try {
-                const clientVersion = await resolveCodexClientVersion(fetchImpl);
-                return await fetchCodexModels(openaiConfig.oauth, clientVersion, fetchImpl);
-            } catch {
-                // Degrade to the user-typed customModel.
-                return [];
+    const models: Partial<Record<'openai' | 'grok', LlmModelOption[]>> = {};
+    await Promise.all(
+        (['openai', 'grok'] as const).map(async provider => {
+            const config = configs[provider];
+            if (config.authMode !== 'oauth' || !config.oauth) {
+                models[provider] = [];
+                return;
             }
-        })(),
-        (async () => {
-            if (!isXaiOAuth || !grokConfig.oauth) return [];
+            const callbacks: OAuthLifecycle = {
+                onTokenRefresh: (next, previous) =>
+                    lifecycle.onTokenRefresh?.(provider, next, previous),
+                onAuthInvalid: credentials => lifecycle.onAuthInvalid?.(provider, credentials),
+            };
             try {
-                return await fetchXaiModels(grokConfig.oauth, grokConfig.baseUrl, fetchImpl);
-            } catch {
-                // Degrade to the user-typed customModel.
-                return [];
+                models[provider] =
+                    provider === 'openai'
+                        ? await fetchCodexModels(
+                              config.oauth,
+                              await resolveCodexClientVersion(fetchImpl),
+                              fetchImpl,
+                              callbacks
+                          )
+                        : await fetchXaiModels(config.oauth, config.baseUrl, fetchImpl, callbacks);
+            } catch (error) {
+                if (error instanceof OAuthAuthorizationError) models[provider] = [];
+                lifecycle.onError?.(provider, error);
             }
-        })(),
-    ]);
-
-    return { openai, grok };
+        })
+    );
+    return models;
 }
 
 function usesOpenAiCompatibleCatalog(provider: LlmProvider, baseUrl: string) {

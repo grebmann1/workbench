@@ -171,6 +171,15 @@ test('hasUsableProviderCredentials: oauth mode needs an access token, apiKey mod
         }),
         true
     );
+    assert.equal(
+        hasUsableProviderCredentials({
+            apiKey: null,
+            baseUrl: 'x',
+            authMode: 'oauth',
+            oauth: { access: 'expired', refresh: '', expires: 1 },
+        }),
+        false
+    );
 });
 
 test('normalizeProviderConfigMap: fills missing providers with defaults, retains overrides', () => {
@@ -568,7 +577,7 @@ test('fetchCodexModels: maps WHAM models[].slug to options with auth headers', a
         } as Response;
     }) as unknown as typeof fetch;
     const models = await fetchCodexModels(
-        { access: 'tok', refresh: 'r', expires: 1, accountId: 'acct' },
+        { access: 'tok', refresh: 'r', expires: 4_102_444_800_000, accountId: 'acct' },
         '0.137.0',
         mockFetch
     );
@@ -578,8 +587,8 @@ test('fetchCodexModels: maps WHAM models[].slug to options with auth headers', a
     );
     assert.equal(models[0].provider, 'openai');
     assert.match(calls[0].url, /backend-api\/wham\/models\?client_version=0\.137\.0/);
-    assert.equal(calls[0].headers.Authorization, 'Bearer tok');
-    assert.equal(calls[0].headers['ChatGPT-Account-Id'], 'acct');
+    assert.equal(new Headers(calls[0].headers).get('authorization'), 'Bearer tok');
+    assert.equal(new Headers(calls[0].headers).get('chatgpt-account-id'), 'acct');
 });
 
 test('fetchCodexModels: falls back to data[].id and is empty without an access token', async () => {
@@ -589,7 +598,7 @@ test('fetchCodexModels: falls back to data[].id and is empty without an access t
             json: async () => ({ data: [{ id: 'm1' }] }),
         }) as Response) as unknown as typeof fetch;
     const fromData = await fetchCodexModels(
-        { access: 'tok', refresh: 'r', expires: 1 },
+        { access: 'tok', refresh: 'r', expires: 4_102_444_800_000 },
         '1.0.0',
         mockFetch
     );
@@ -622,7 +631,7 @@ test('fetchXaiModels: maps /v1/language-models models[].id with a bearer, dedupe
         } as Response;
     }) as unknown as typeof fetch;
     const models = await fetchXaiModels(
-        { access: 'xtok', refresh: 'r', expires: 1 },
+        { access: 'xtok', refresh: 'r', expires: 4_102_444_800_000 },
         DEFAULT_PROVIDER_BASE_URLS.grok,
         mockFetch
     );
@@ -632,7 +641,7 @@ test('fetchXaiModels: maps /v1/language-models models[].id with a bearer, dedupe
     );
     assert.equal(models[0].provider, 'grok');
     assert.match(calls[0].url, /api\.x\.ai\/v1\/language-models$/);
-    assert.equal(calls[0].headers.Authorization, 'Bearer xtok');
+    assert.equal(new Headers(calls[0].headers).get('authorization'), 'Bearer xtok');
 });
 
 test('fetchXaiModels: falls back to data[].id and is empty without an access token', async () => {
@@ -642,7 +651,7 @@ test('fetchXaiModels: falls back to data[].id and is empty without an access tok
             json: async () => ({ data: [{ id: 'grok-x' }] }),
         }) as Response) as unknown as typeof fetch;
     const fromData = await fetchXaiModels(
-        { access: 'xtok', refresh: 'r', expires: 1 },
+        { access: 'xtok', refresh: 'r', expires: 4_102_444_800_000 },
         DEFAULT_PROVIDER_BASE_URLS.grok,
         mockFetch
     );
@@ -691,13 +700,13 @@ test('fetchSubscriptionModels: fetches Codex + xAI for connected OAuth providers
         apiKey: null,
         baseUrl: DEFAULT_PROVIDER_BASE_URLS.openai,
         authMode: 'oauth',
-        oauth: { access: 'tok', refresh: 'r', expires: 1 },
+        oauth: { access: 'tok', refresh: 'r', expires: 4_102_444_800_000 },
     };
     configs.grok = {
         apiKey: null,
         baseUrl: DEFAULT_PROVIDER_BASE_URLS.grok,
         authMode: 'oauth',
-        oauth: { access: 'xtok', refresh: 'r', expires: 1 },
+        oauth: { access: 'xtok', refresh: 'r', expires: 4_102_444_800_000 },
     };
     const mockFetch = (async (url: string | URL) => {
         const u = String(url);
@@ -718,28 +727,28 @@ test('fetchSubscriptionModels: fetches Codex + xAI for connected OAuth providers
 
     const result = await fetchSubscriptionModels(configs, mockFetch);
     assert.deepEqual(
-        result.openai.map(m => m.value),
+        result.openai?.map(m => m.value),
         ['gpt-codex']
     );
     assert.deepEqual(
-        result.grok.map(m => m.value),
+        result.grok?.map(m => m.value),
         ['grok-live']
     );
 });
 
-test('fetchSubscriptionModels: degrades to [] when a provider fetch fails, never throws', async () => {
+test('fetchSubscriptionModels: omits a failed provider so its existing catalog survives', async () => {
     const configs = createDefaultProviderConfigMap();
     configs.openai = {
         apiKey: null,
         baseUrl: DEFAULT_PROVIDER_BASE_URLS.openai,
         authMode: 'oauth',
-        oauth: { access: 'tok', refresh: 'r', expires: 1 },
+        oauth: { access: 'tok', refresh: 'r', expires: 4_102_444_800_000 },
     };
     configs.grok = {
         apiKey: null,
         baseUrl: DEFAULT_PROVIDER_BASE_URLS.grok,
         authMode: 'oauth',
-        oauth: { access: 'xtok', refresh: 'r', expires: 1 },
+        oauth: { access: 'xtok', refresh: 'r', expires: 4_102_444_800_000 },
     };
     const mockFetch = (async (url: string | URL) => {
         const u = String(url);
@@ -756,9 +765,9 @@ test('fetchSubscriptionModels: degrades to [] when a provider fetch fails, never
     }) as unknown as typeof fetch;
 
     const result = await fetchSubscriptionModels(configs, mockFetch);
-    assert.deepEqual(result.openai, []); // WHAM 500 → empty, no throw
+    assert.equal(Object.hasOwn(result, 'openai'), false);
     assert.deepEqual(
-        result.grok.map(m => m.value),
+        result.grok?.map(m => m.value),
         ['grok-live']
     );
 });

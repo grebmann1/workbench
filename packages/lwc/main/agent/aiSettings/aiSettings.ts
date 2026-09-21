@@ -1,4 +1,8 @@
 import { GOOGLE_DRIVE_SCOPES } from 'agent/googleAuth';
+import {
+    loadProviderConfigsForOAuth,
+    refreshSubscriptionModelCatalog,
+} from '../utils/oauthPersist';
 import { store, APPLICATION, connectStore } from 'core/store';
 import Toast from 'lightning/toast';
 import { api, LightningElement, track, wire } from 'lwc';
@@ -14,8 +18,8 @@ import {
 import {
     fetchApiKeyProviderModels,
     fetchLlmModelsEndpoint,
-    fetchSubscriptionModels,
     isInternalProviderBaseUrl,
+    hasUsableProviderCredentials,
     normalizeProviderConfigMap,
     toNonEmptyProviderCatalogs,
     type LlmProviderConfigMap,
@@ -56,7 +60,7 @@ export default class AiSettings extends LightningElement {
     get assistantSubscriptions() {
         return ASSISTANT_SUBSCRIPTIONS.map(provider => {
             const config = this.providerConfigs[provider.llmProvider];
-            const connected = config?.authMode === 'oauth' && !!config?.oauth?.access;
+            const connected = config?.authMode === 'oauth' && hasUsableProviderCredentials(config);
             const modelCount = this.subscriptionModelsByProvider[provider.llmProvider]?.length || 0;
             const pending = this.signingInProvider === provider.id;
             return {
@@ -193,8 +197,7 @@ export default class AiSettings extends LightningElement {
     /** Re-fetch the live model catalog (Codex/xAI included) and push it into the store, so the
      *  picker reflects provider-side model changes (deprecations / additions) on demand. */
     async refreshModelCatalog() {
-        const cached = await cacheManager.loadConfig(getLlmProviderConfigCacheKeys());
-        const providerConfigs = resolveLlmProviderConfigMap(cached);
+        const { cachedConfig: cached, providerConfigs } = await loadProviderConfigsForOAuth();
         // Server catalog and subscription (OAuth) catalog are independent: a server failure must
         // not skip the subscription refresh (OAuth-only users have no server). Fetch the server
         // catalog in its own try/catch, then always refresh the subscription models.
@@ -211,10 +214,10 @@ export default class AiSettings extends LightningElement {
         } catch (err) {
             LOGGER.warn('Failed to refresh server model catalog', err);
         }
-        const subscriptionModels = await fetchSubscriptionModels(providerConfigs);
-        store.dispatch(
-            APPLICATION.reduxSlice.actions.updateSubscriptionModels({ models: subscriptionModels })
-        );
+        let subscriptionError: unknown;
+        await refreshSubscriptionModelCatalog(providerConfigs, error => {
+            subscriptionError = error;
+        });
         const apiKeyCatalogs = toNonEmptyProviderCatalogs(
             await fetchApiKeyProviderModels(providerConfigs)
         );
@@ -223,12 +226,10 @@ export default class AiSettings extends LightningElement {
                 APPLICATION.reduxSlice.actions.updateProviderCatalogs({ catalogs: apiKeyCatalogs })
             );
         }
+        if (subscriptionError) throw subscriptionError;
     }
 
     async reloadProviderConfigs() {
-        const cached = await cacheManager.loadConfig(getLlmProviderConfigCacheKeys());
-        const providerConfigs = resolveLlmProviderConfigMap(cached);
-        store.dispatch(APPLICATION.reduxSlice.actions.updateProviderConfigs({ providerConfigs }));
         // Refresh the model catalog so the live Codex/xAI models appear without a reload.
         try {
             await this.refreshModelCatalog();
@@ -374,12 +375,12 @@ export default class AiSettings extends LightningElement {
 
     get codexConnected() {
         const config = this.providerConfigs?.openai;
-        return config?.authMode === 'oauth' && !!config?.oauth?.access;
+        return config?.authMode === 'oauth' && hasUsableProviderCredentials(config);
     }
 
     get xaiConnected() {
         const config = this.providerConfigs?.grok;
-        return config?.authMode === 'oauth' && !!config?.oauth?.access;
+        return config?.authMode === 'oauth' && hasUsableProviderCredentials(config);
     }
 
     // The live `/models` fetch populated the subscription catalog → the normal model selector

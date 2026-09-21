@@ -1,4 +1,5 @@
 import { store, APPLICATION, AGENT } from 'core/store';
+import { refreshSubscriptionModelCatalog } from '../../../agent/utils/oauthPersist';
 import {
     basicStore,
     loadExtensionConfigFromCache,
@@ -12,7 +13,6 @@ import {
     buildAvailableAgentModelOptions,
     fetchApiKeyProviderModels,
     fetchLlmModelsEndpoint,
-    fetchSubscriptionModels,
     getProviderForModel,
     normalizeModelSelection,
     toNonEmptyProviderCatalogs,
@@ -94,10 +94,7 @@ async function refreshLlmCatalogInBackground(aiProvider, providerConfigs) {
         LOGGER.warn('loadFromCache - failed to refresh LLM catalog', error);
     }
 
-    const subscriptionModels = await fetchSubscriptionModels(providerConfigs);
-    store.dispatch(
-        APPLICATION.reduxSlice.actions.updateSubscriptionModels({ models: subscriptionModels })
-    );
+    const subscriptionModels = await refreshSubscriptionModelCatalog(providerConfigs);
 
     const apiKeyCatalogs = toNonEmptyProviderCatalogs(
         await fetchApiKeyProviderModels(providerConfigs)
@@ -111,7 +108,7 @@ async function refreshLlmCatalogInBackground(aiProvider, providerConfigs) {
     const availableModels = buildAvailableAgentModelOptions({
         availableModelsByProvider: { ...(serverCatalogs || {}), ...apiKeyCatalogs },
         subscriptionModelsByProvider: subscriptionModels,
-        providerConfigs,
+        providerConfigs: store.getState().application.providerConfigs,
     });
     if (availableModels.length > 0) {
         const currentModel = store.getState()?.agent?.selectedModel;

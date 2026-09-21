@@ -20,6 +20,12 @@ SF Toolkit embeds an AI Agent directly into the Workbench. This page explains ho
 
 Open the **[Settings → AI tab](https://www.sf-workbench.com/app?applicationName=settings)** to choose your provider and paste your API key. You can optionally override the base URL if you use a self-hosted or proxied endpoint. Changes take effect immediately after saving.
 
+### Subscription sign-in and model refresh
+
+The OpenAI and xAI panels also support ChatGPT (Codex) and SuperGrok subscription sign-in. Workbench renews expired access tokens before loading models or sending a request, and saves rotated credentials for the next session.
+
+A temporary network or provider failure keeps the last model list loaded in the current session. Use **Refresh models** to try again. If authorization is revoked or can no longer be renewed, the panel offers **Sign in** instead of continuing to show **Connected**.
+
 ### Supported providers
 
 | Provider | Models |

@@ -1,4 +1,5 @@
 import { normalizeLlmProvider, type LlmProvider, type OAuthCredentials } from 'shared/llm';
+import type { OAuthLifecycle } from 'shared/oauth';
 import type {
     ProviderInstance,
     ProviderReasoningConfig,
@@ -71,14 +72,14 @@ export function createProviderInstance({
     authMode,
     oauth,
     onTokenRefresh,
-}: {
+    onAuthInvalid,
+}: OAuthLifecycle & {
     provider: unknown;
     apiKey?: string;
     baseUrl?: string;
     isInternal?: boolean;
     authMode?: 'apiKey' | 'oauth';
     oauth?: OAuthCredentials | null;
-    onTokenRefresh?: (credentials: OAuthCredentials) => void;
 }): ProviderInstance {
     const normalizedProvider = normalizeLlmProvider(provider);
     const runtime = selectInstanceRuntime({
@@ -87,7 +88,15 @@ export function createProviderInstance({
         isInternal,
         authMode,
     });
-    return runtime.createInstance({ apiKey, baseUrl, isInternal, authMode, oauth, onTokenRefresh });
+    return runtime.createInstance({
+        apiKey,
+        baseUrl,
+        isInternal,
+        authMode,
+        oauth,
+        onTokenRefresh,
+        onAuthInvalid,
+    });
 }
 
 export function resolveProviderModelInstance(

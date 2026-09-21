@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { CODEX_OAUTH } from 'shared/oauth';
+import { CODEX_OAUTH, OAuthAuthorizationError } from 'shared/oauth';
 
 import { createOAuthFetch } from '../provider/shared/oauthFetch.ts';
 
@@ -23,7 +23,10 @@ async function withFetch(
     const calls: Array<{ url: string; auth?: string }> = [];
     globalThis.fetch = (async (url: RequestInfo | URL, options?: RequestInit) => {
         const headers = (options?.headers ?? {}) as Record<string, string>;
-        calls.push({ url: String(url), auth: headers.Authorization });
+        calls.push({
+            url: String(url),
+            auth: new Headers(headers).get('authorization') ?? undefined,
+        });
         return handler(String(url));
     }) as typeof fetch;
     try {
@@ -95,24 +98,33 @@ test('createOAuthFetch: does not keep retrying when the refreshed request still 
                 provider: CODEX_OAUTH,
                 credentials: { access: 'stale', refresh: 'rt', expires: FAR_FUTURE },
             });
-            const res = await fetchImpl(wham(), { method: 'POST', body: '{}' });
-            assert.equal(res.status, 401);
+            await assert.rejects(
+                fetchImpl(wham(), { method: 'POST', body: '{}' }),
+                OAuthAuthorizationError
+            );
             assert.equal(tokenHits, 1);
             assert.equal(calls.filter(c => c.url.startsWith(wham())).length, 2);
         }
     );
 });
 
-test('createOAuthFetch: returns the 401 unchanged when there is no refresh token', async () => {
+test('createOAuthFetch: invalidates rejected credentials without a refresh token', async () => {
     await withFetch(
         () => new Response('', { status: 401 }),
         async calls => {
+            let invalidated = false;
             const fetchImpl = createOAuthFetch({
                 provider: CODEX_OAUTH,
                 credentials: { access: 'tok', refresh: '', expires: FAR_FUTURE },
+                onAuthInvalid: () => {
+                    invalidated = true;
+                },
             });
-            const res = await fetchImpl(wham(), { method: 'POST', body: '{}' });
-            assert.equal(res.status, 401);
+            await assert.rejects(
+                fetchImpl(wham(), { method: 'POST', body: '{}' }),
+                OAuthAuthorizationError
+            );
+            assert.equal(invalidated, true);
             assert.equal(calls.filter(c => c.url === CODEX_OAUTH.tokenUrl).length, 0);
             assert.equal(calls.filter(c => c.url.startsWith(wham())).length, 1); // no retry
         }
@@ -141,8 +153,8 @@ test('createOAuthFetch: replaces a pre-existing auth header instead of duplicati
         const authKeys = Object.keys(capturedHeaders).filter(
             k => k.toLowerCase() === 'authorization'
         );
-        assert.deepEqual(authKeys, ['Authorization']);
-        assert.equal(capturedHeaders.Authorization, 'Bearer the-token');
+        assert.equal(authKeys.length, 1);
+        assert.equal(new Headers(capturedHeaders).get('authorization'), 'Bearer the-token');
     } finally {
         globalThis.fetch = original;
     }

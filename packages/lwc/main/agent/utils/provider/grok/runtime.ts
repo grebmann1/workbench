@@ -19,6 +19,7 @@ export const grokRuntime: ProviderRuntime = {
         authMode,
         oauth,
         onTokenRefresh,
+        onAuthInvalid,
     }: CreateInstanceArgs): ProviderInstance {
         // OAuth (SuperGrok subscription) reuses the same endpoint; the access token replaces
         // the API key as the bearer, and createOAuthFetch keeps it fresh.
@@ -28,7 +29,12 @@ export const grokRuntime: ProviderRuntime = {
             baseURL: resolveProviderRuntimeBaseUrl('grok', baseUrl),
             fetch:
                 isOAuth && oauth
-                    ? createOAuthFetch({ provider: XAI_OAUTH, credentials: oauth, onTokenRefresh })
+                    ? createOAuthFetch({
+                          provider: XAI_OAUTH,
+                          credentials: oauth,
+                          onTokenRefresh,
+                          onAuthInvalid,
+                      })
                     : createSanitizedFetch(),
         });
     },
