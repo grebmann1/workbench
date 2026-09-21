@@ -33,6 +33,10 @@ Open the **[Settings → AI tab](https://www.sf-workbench.com/app?applicationNam
 
 API keys are stored locally in your browser (Chrome extension storage) and never transmitted to SF Toolkit infrastructure.
 
+### Continuing older conversations
+
+Saved conversations from the earlier OpenAI Agents/Responses runtime are converted to the current message format when loaded. Text, reasoning, and completed tool exchanges are retained. Affected saved tool results are repaired on load, and new saves preserve their contents. Unsupported or corrupt message shapes still report an error rather than silently discarding history. Attachment content already omitted from storage cannot be recovered.
+
 ---
 
 ## What the AI Agent can do

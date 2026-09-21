@@ -1,5 +1,5 @@
 import { castDraft, type Draft } from 'immer';
-import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk, current } from '@reduxjs/toolkit';
 import type {
     ProcessMessageStepStart,
     ProcessMessageToolStart,
@@ -14,6 +14,7 @@ import {
     MODELS,
     REASONING_OPTIONS,
 } from '../../../agent/utils/models';
+import { normalizeModelMessages } from '../../../agent/utils/message';
 import type { ModelMessage } from 'ai';
 import type { ConversationRunState } from 'agent/runController';
 import {
@@ -258,7 +259,9 @@ function saveCacheSettings(state: Draft<AgentState>) {
     // overwrite persisted conversation history.
     if (!state.hasHydrated) return;
     state.conversations = castDraft(conversationsWithSyncedStreamHistory(state));
-    const payload = buildConversationDataFromState(state);
+    // Native Chrome storage treats nested Immer Proxy arrays as numeric-key objects.
+    // All callers are slice reducers: snapshot their draft before any cache write.
+    const payload = buildConversationDataFromState(current(state));
     saveSingleExtensionConfigToCache(CACHE_CONFIG.EINSTEIN_AGENT_CONVERSATION_DATA.key, payload)
         .then(() => {
             LOGGER.debug('[agent] saveCacheSettings persisted', {
@@ -329,10 +332,11 @@ function hydrateMessagesFromConversations(state: Draft<AgentState>) {
         const filtered = history.filter(
             m => (m as { id?: string }).id !== Constants.WELCOME_MESSAGE.id
         );
-        // Strip any lingering binary image/file blobs that were cached in previous sessions
-        state.messagesById[c.id] = castDraft(sanitizeMessagesForCache(filtered));
+        // Normalize cached history without discarding attachment bytes that remain.
+        // Cache writes still strip attachments.
+        state.messagesById[c.id] = castDraft(normalizeModelMessages(filtered));
         if (Array.isArray(c.contextMessages))
-            state.contextById[c.id] = castDraft(sanitizeMessagesForCache(c.contextMessages));
+            state.contextById[c.id] = castDraft(normalizeModelMessages(c.contextMessages));
     }
 }
 

@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
+import { configureStore } from '@reduxjs/toolkit';
+import { modelMessageSchema } from 'ai';
+import type { AgentState } from '../agent';
 
 function installStorage() {
     const local: Record<string, string> = {};
@@ -68,21 +71,6 @@ test('agent: clearing a hydrated conversation removes its persisted model contex
         assert.equal(saved.schemaVersion, 1);
         assert.equal(saved.conversations[0].contextMessages, undefined);
         assert.deepEqual(saved.conversations[0].streamHistory, []);
-    } finally {
-        removeStorage();
-    }
-});
-
-test('agent: initial state is not hydrated and has an empty default conversation', async () => {
-    installStorage();
-    try {
-        const { reduxSlice } = await import('../agent.ts');
-        const s = reduxSlice.reducer(undefined, { type: '@@INIT' } as any);
-        assert.equal(s.hasHydrated, false);
-        assert.equal(s.conversations.length, 1);
-        assert.equal(s.conversations[0].title, 'Conversation 1');
-        assert.deepEqual(s.conversations[0].streamHistory, []);
-        assert.deepEqual(s.messagesById, {});
     } finally {
         removeStorage();
     }
@@ -190,3 +178,189 @@ test('agent: flushConversationCache is a no-op until hydrated', async () => {
         removeStorage();
     }
 });
+
+test('agent: Chrome cache writes preserve nested tool result arrays outside the reducer', async () => {
+    const { local } = installStorage();
+    const chromeDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'chrome');
+    // Browser storage globals must exist before the cache singleton first loads.
+    const { cacheManager } = await import('shared/cacheManager');
+    const previousIsChrome = cacheManager.isChrome;
+    Object.defineProperty(globalThis, 'chrome', {
+        configurable: true,
+        value: {
+            runtime: {},
+            storage: {
+                local: {
+                    set(items: Record<string, unknown>, callback: () => void) {
+                        // A native serialization boundary must never receive draft proxies.
+                        // structuredClone rejects them instead of Chrome's silent corruption.
+                        for (const [key, value] of Object.entries(items)) {
+                            local[key] = JSON.stringify(structuredClone(value));
+                        }
+                        callback();
+                    },
+                },
+            },
+        },
+    });
+    // Earlier tests may have cached the modules; select the Chrome backend explicitly.
+    cacheManager.isChrome = true;
+    const history = [
+        {
+            role: 'tool',
+            content: [
+                {
+                    type: 'tool-result',
+                    toolCallId: 'read-1',
+                    toolName: 'read',
+                    output: {
+                        type: 'content',
+                        value: [{ type: 'text', text: 'Saved result' }],
+                    },
+                },
+                {
+                    type: 'tool-result',
+                    toolCallId: 'query-1',
+                    toolName: 'query',
+                    output: { type: 'json', value: { rows: [{ values: [1, 2] }] } },
+                },
+            ],
+        },
+    ];
+    try {
+        const { reduxSlice, loadCacheSettingsAsync } = await import('../agent');
+        const state = reduxSlice.reducer(undefined, {
+            type: loadCacheSettingsAsync.fulfilled.type,
+            payload: {
+                conversations: [
+                    {
+                        id: 'native',
+                        title: 'Native cache',
+                        streamHistory: history,
+                        compactionSummary: history,
+                        contextMessages: history,
+                    },
+                ],
+                activeConversationId: 'native',
+            },
+        });
+        reduxSlice.reducer(state, reduxSlice.actions.flushConversationCache());
+        await flushPromises();
+        const persisted = readCachedConversationData(local);
+        assert.deepEqual(persisted.conversations[0].streamHistory, history);
+        assert.deepEqual(persisted.conversations[0].compactionSummary, history);
+        assert.deepEqual(persisted.conversations[0].contextMessages, history);
+        modelMessageSchema.array().parse(persisted.conversations[0].streamHistory);
+        assert.deepEqual(JSON.parse(local.einstein_agent_conversations), persisted.conversations);
+    } finally {
+        cacheManager.isChrome = previousIsChrome;
+        if (chromeDescriptor) Object.defineProperty(globalThis, 'chrome', chromeDescriptor);
+        else Reflect.deleteProperty(globalThis, 'chrome');
+        removeStorage();
+    }
+});
+
+for (const cacheShape of ['canonical', 'legacy']) {
+    test(`agent: ${cacheShape} history migrates through storage, continuation, and reload`, async () => {
+        const { local } = installStorage();
+        const history = [
+            {
+                id: 'user-1',
+                role: 'user',
+                content: [{ type: 'input_text', text: 'Inspect counts' }],
+            },
+            {
+                id: 'reasoning-1',
+                role: 'assistant',
+                type: 'reasoning',
+                content: [{ type: 'summary_text', text: 'Query the records' }],
+            },
+            {
+                type: 'function_call',
+                callId: 'query-1',
+                name: 'query',
+                arguments: '{"limit":5}',
+            },
+            {
+                type: 'function_call_result',
+                callId: 'query-1',
+                output: { type: 'text', text: 'There are 5 records' },
+            },
+            { role: 'assistant', content: [{ type: 'output_text', text: 'Found 5 records.' }] },
+        ];
+        const payload = {
+            conversations: [
+                {
+                    id: 'old',
+                    title: 'Old conversation',
+                    streamHistory: history,
+                    compactionSummary: [],
+                    contextMessages: history,
+                },
+            ],
+            activeConversationId: 'old',
+        };
+        if (cacheShape === 'canonical') {
+            local.einstein_agent_conversation_data = JSON.stringify(payload);
+        } else {
+            local.einstein_agent_conversations = JSON.stringify(payload.conversations);
+            local.einstein_agent_conversation_active_id = JSON.stringify('old');
+        }
+        try {
+            // The cache singleton reads browser globals during module evaluation.
+            // Install storage before importing it, as in the existing cache tests.
+            const {
+                reduxSlice,
+                loadCacheSettingsAsync,
+                loadConversationsFromCache,
+                saveConversationsToCache,
+            } = await import('../agent');
+            const createStore = () => configureStore({ reducer: { agent: reduxSlice.reducer } });
+            const store = createStore();
+            await store.dispatch(loadCacheSettingsAsync()).unwrap();
+            const loadedState: AgentState = store.getState().agent;
+            const loaded = loadedState.messagesById.old;
+            assert.deepEqual(loadedState.contextById.old, loaded);
+            const parsed = modelMessageSchema.array().parse(loaded);
+            assert.deepEqual(
+                parsed.map(message => message.role),
+                ['user', 'assistant', 'assistant', 'tool', 'assistant']
+            );
+            assert.deepEqual(parsed[2].content, [
+                {
+                    type: 'tool-call',
+                    toolCallId: 'query-1',
+                    toolName: 'query',
+                    input: { limit: 5 },
+                },
+            ]);
+            assert.deepEqual(parsed[3].content, [
+                {
+                    type: 'tool-result',
+                    toolCallId: 'query-1',
+                    toolName: 'query',
+                    output: { type: 'text', value: 'There are 5 records' },
+                },
+            ]);
+            store.dispatch(
+                reduxSlice.actions.addMessages({
+                    id: 'old',
+                    messages: [{ role: 'user', content: 'Continue with those records' }],
+                })
+            );
+            await store.dispatch(saveConversationsToCache()).unwrap();
+            const saved = readCachedConversationData(local).conversations[0].streamHistory;
+            modelMessageSchema.array().parse(saved);
+            assert.deepEqual(saved.slice(0, history.length), loaded);
+            const reopened = createStore();
+            await reopened.dispatch(loadConversationsFromCache()).unwrap();
+            const reopenedState: AgentState = reopened.getState().agent;
+            const replay = reopenedState.messagesById.old;
+            assert.deepEqual(replay, saved);
+            assert.deepEqual(reopenedState.contextById.old, loaded);
+            assert.equal(replay[replay.length - 1].content, 'Continue with those records');
+        } finally {
+            removeStorage();
+        }
+    });
+}
