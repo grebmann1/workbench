@@ -37,6 +37,8 @@ API keys are stored locally in your browser (Chrome extension storage) and never
 
 Saved conversations from the earlier OpenAI Agents/Responses runtime are converted to the current message format when loaded. Text, reasoning, and completed tool exchanges are retained. Affected saved tool results are repaired on load, and new saves preserve their contents. Unsupported or corrupt message shapes still report an error rather than silently discarding history. Attachment content already omitted from storage cannot be recovered.
 
+To move conversations between extension profiles, use **Settings → Storage → Export** in the source and **Import** in the destination. Close other Workbench pages and Agent side panels in the destination before importing: each has independent in-memory state and can overwrite the imported history when it saves. The import updates the Agent state in the importing page only; reload that page to apply the remaining settings. Keep the export file safe: it also contains saved settings and credentials.
+
 ---
 
 ## What the AI Agent can do
