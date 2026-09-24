@@ -36,6 +36,8 @@ import {
     extractNestedErrorMessage,
     normalizeToolInputSchema,
     cloneMessageForStreaming,
+    normalizeModelMessages,
+    sanitizeIncompleteToolExchanges,
     discoverSkills,
     formatSkillsForPrompt,
     resolveProviderModelInstance,
@@ -293,7 +295,7 @@ export class Agent {
         store: Store;
     }) {
         this.conversationId = conversationId;
-        this.messages = [...messages];
+        this.messages = normalizeModelMessages(messages);
         this.providerInstance = providerInstance;
         this.provider = provider;
         this.model = model;
@@ -1090,12 +1092,12 @@ export class Agent {
     private appendCompletedTurn(newMessages: ModelMessage[]): void {
         if (this.disposed) return;
         if (newMessages.length === 0) return;
-        const finalizedMessages = newMessages.map(finalizeMessageForDisplay);
-
         if (!this.isStoreEnabled || !this.store) {
-            this.messages.push(...finalizedMessages);
+            this.messages.push(...newMessages);
             return;
         }
+
+        const finalizedMessages = newMessages.map(finalizeMessageForDisplay);
 
         this.store.dispatch(
             AGENT.reduxSlice.actions.addMessages({
@@ -1103,7 +1105,7 @@ export class Agent {
                 messages: [...finalizedMessages],
             })
         );
-        this.messages.push(...finalizedMessages);
+        this.messages.push(...newMessages);
         this.store.dispatch(
             AGENT.reduxSlice.actions.setContextMessages({
                 id: this.conversationId,
@@ -1148,11 +1150,13 @@ function getToolCallProviderOptions(part: {
         part.providerMetadata?.openaiCompatible?.thoughtSignature;
     return thoughtSignature
         ? {
+              ...part.providerOptions,
               google: {
+                  ...part.providerOptions?.google,
                   thoughtSignature,
               },
           }
-        : undefined;
+        : part.providerOptions;
 }
 
 function normalizeToolCallId(part: any): string {
@@ -1253,69 +1257,6 @@ function toToolResult(output: unknown): ToolResult {
         return { type: 'text', value: '' };
     }
     return { type: 'json', value: output as any };
-}
-
-/**
- * Removes trailing incomplete tool exchanges from the message list before sending to an LLM.
- *
- * When execution is stopped mid-way, the history may end with:
- *   [assistant:{only-tool-calls}, tool:{results}]
- * without a subsequent model text response. Sending this to Gemini causes a
- * "function call turn must come after a user turn or function response turn" error
- * because the tool-result maps to a Gemini user turn, making two consecutive user
- * turns when the next real user message is appended.
- *
- * This function iteratively strips such dangling blocks from the tail.
- */
-function sanitizeIncompleteToolExchanges(messages: ModelMessage[]): ModelMessage[] {
-    if (messages.length === 0) return messages;
-
-    let end = messages.length;
-
-    while (end > 0) {
-        // Walk backwards over trailing tool-result messages
-        let toolEnd = end;
-        while (toolEnd > 0 && (messages[toolEnd - 1] as any).role === 'tool') {
-            toolEnd--;
-        }
-
-        if (toolEnd < end) {
-            // There are trailing tool messages — check if preceded by assistant with only tool-calls
-            if (toolEnd > 0) {
-                const preceding = messages[toolEnd - 1] as any;
-                if (preceding.role === 'assistant') {
-                    const content = Array.isArray(preceding.content) ? preceding.content : [];
-                    const hasText = content.some(
-                        (p: any) => p.type === 'text' && typeof p.text === 'string' && p.text.trim()
-                    );
-                    if (!hasText) {
-                        // Incomplete exchange: assistant issued tool calls but never gave a text response
-                        end = toolEnd - 1;
-                        continue;
-                    }
-                }
-            }
-            break;
-        }
-
-        // No trailing tool messages — check for an orphaned assistant with only tool-calls
-        const last = messages[end - 1] as any;
-        if (last.role === 'assistant') {
-            const content = Array.isArray(last.content) ? last.content : [];
-            const hasText = content.some(
-                (p: any) => p.type === 'text' && typeof p.text === 'string' && p.text.trim()
-            );
-            const hasToolCalls = content.some((p: any) => p.type === 'tool-call');
-            if (hasToolCalls && !hasText) {
-                end--;
-                continue;
-            }
-        }
-
-        break;
-    }
-
-    return end === messages.length ? messages : messages.slice(0, end);
 }
 
 async function buildSystemPrompt(

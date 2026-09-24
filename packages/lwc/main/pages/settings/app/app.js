@@ -5,7 +5,7 @@ import {
     parseMcpServersJson,
 } from 'agent/tools';
 import { APPLICATION_APP_MAPPING } from 'application/applicationRegistry';
-import { store, APPLICATION } from 'core/store';
+import { store, APPLICATION, AGENT } from 'core/store';
 import ToolkitElement from 'core/toolkitElement';
 import Toast from 'lightning/toast';
 import { track, wire } from 'lwc';
@@ -404,6 +404,16 @@ export default class App extends ToolkitElement {
                     });
                 });
                 written += Object.keys(chromeData).length;
+            }
+
+            const importedCache = this.isChrome ? chromeData : localData;
+            if (
+                importedCache &&
+                (Object.hasOwn(importedCache, CACHE_CONFIG.EINSTEIN_AGENT_CONVERSATION_DATA.key) ||
+                    Object.hasOwn(importedCache, CACHE_CONFIG.EINSTEIN_AGENT_CONVERSATIONS.key))
+            ) {
+                // Refresh this page's Agent state before a reload flushes it to storage.
+                await store.dispatch(AGENT.loadConversationsFromCache()).unwrap();
             }
 
             Toast.show({
