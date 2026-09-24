@@ -46,6 +46,14 @@ export type CallbackResult = {
 
 type FetchImpl = typeof fetch;
 
+/** Definitive authorization loss; unlike a network/5xx failure, requires a new sign-in. */
+export class OAuthAuthorizationError extends Error {
+    constructor(message = 'Subscription authorization expired. Sign in again.') {
+        super(message);
+        this.name = 'OAuthAuthorizationError';
+    }
+}
+
 export function buildAuthorizeUrl(params: {
     authorizeEndpoint: string;
     clientId: string;
@@ -86,8 +94,15 @@ async function postToken(
         body: new URLSearchParams(body).toString(),
     });
     if (!response.ok) {
-        const detail = await response.text().catch(() => '');
-        throw new Error(`OAuth token request failed: ${response.status} ${detail}`.trim());
+        const payload = await response.json().catch(() => null);
+        if (
+            response.status === 401 ||
+            (response.status === 400 && payload?.error === 'invalid_grant')
+        ) {
+            throw new OAuthAuthorizationError();
+        }
+        // Token endpoint bodies can contain credentials; never put them in logs/errors.
+        throw new Error(`OAuth token request failed: ${response.status}`);
     }
     return (await response.json()) as TokenPayload;
 }
@@ -166,7 +181,9 @@ function resolveTokenEndpoint(
 ): string {
     const endpoint = credentials.tokenEndpoint || provider.tokenUrl;
     if (!endpoint) {
-        throw new Error(`No token endpoint available to refresh ${provider.id} credentials`);
+        throw new OAuthAuthorizationError(
+            `No token endpoint available. Sign in to ${provider.id} again.`
+        );
     }
     return endpoint;
 }
@@ -179,19 +196,23 @@ export async function refreshCredentials(
     opts: { now: number; fetchImpl?: FetchImpl }
 ): Promise<OAuthCredentials> {
     if (!credentials.refresh) {
-        throw new Error(`${provider.id} credentials are expired and have no refresh token`);
+        throw new OAuthAuthorizationError(
+            `${provider.id} credentials have no refresh token. Sign in again.`
+        );
     }
     const tokenEndpoint = resolveTokenEndpoint(credentials, provider);
     const payload = await refreshAccessToken(
         { tokenEndpoint, clientId: provider.clientId, refreshToken: credentials.refresh },
         opts.fetchImpl ?? fetch
     );
-    return credentialsFromTokenPayload(payload, {
+    const next = credentialsFromTokenPayload(payload, {
         now: opts.now,
         refreshSkewMs: provider.refreshSkewMs,
         tokenEndpoint,
         fallbackRefresh: credentials.refresh,
     });
+    if (!next.accountId && credentials.accountId) next.accountId = credentials.accountId;
+    return next;
 }
 
 /** Return the credentials unchanged when still fresh, otherwise refresh them. */

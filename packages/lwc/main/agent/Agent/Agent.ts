@@ -42,7 +42,6 @@ import {
     formatSkillsForPrompt,
     resolveProviderModelInstance,
     resolveProviderOptions,
-    persistRefreshedOAuthCredentials,
     type ProviderInstance,
 } from 'agent/utils';
 import { stepCountIs, streamText, tool as createAiSdkTool } from 'ai';
@@ -59,6 +58,10 @@ import {
 import LOGGER from 'shared/logger';
 import { guid } from 'shared/utils';
 import { z } from 'zod';
+import {
+    persistRefreshedOAuthCredentials,
+    invalidateOAuthCredentials,
+} from '../utils/oauthPersist';
 
 import { createMcpToolset } from '../mcp/mcpManager';
 import type { McpServerConfig, McpToolset } from '../mcp/mcpTypes';
@@ -411,20 +414,12 @@ export class Agent {
                 oauth: settings.oauth,
                 onTokenRefresh:
                     settings.authMode === 'oauth'
-                        ? credentials => {
-                              // Fire-and-forget: the in-memory token already keeps this run going;
-                              // persistence just keeps the next run + a rotated refresh token fresh.
-                              persistRefreshedOAuthCredentials(provider, credentials).catch(
-                                  error => {
-                                      LOGGER.warn(
-                                          '[agent:oauth] failed to persist refreshed credentials',
-                                          {
-                                              error,
-                                          }
-                                      );
-                                  }
-                              );
-                          }
+                        ? (credentials, previous) =>
+                              persistRefreshedOAuthCredentials(provider, credentials, previous)
+                        : undefined,
+                onAuthInvalid:
+                    settings.authMode === 'oauth'
+                        ? previous => invalidateOAuthCredentials(provider, previous)
                         : undefined,
             });
             const summaryModel = getSummaryModelForAgentProvider(

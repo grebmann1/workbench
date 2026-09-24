@@ -1,4 +1,5 @@
 import { connectStore, store, EINSTEIN, APPLICATION, AGENT } from 'core/store';
+import { refreshSubscriptionModelCatalog } from '../../../main/agent/utils/oauthPersist';
 import { PANELS } from 'extension/utils';
 import { api, LightningElement, wire } from 'lwc';
 import {
@@ -12,7 +13,6 @@ import {
     buildAvailableAgentModelOptions,
     fetchApiKeyProviderModels,
     fetchLlmModelsEndpoint,
-    fetchSubscriptionModels,
     getProviderForModel,
     normalizeModelSelection,
     toNonEmptyProviderCatalogs,
@@ -158,10 +158,7 @@ export default class Default extends LightningElement {
             LOGGER.warn('loadFromCache - failed to refresh LLM catalog', error);
         }
 
-        const subscriptionModels = await fetchSubscriptionModels(providerConfigs);
-        store.dispatch(
-            APPLICATION.reduxSlice.actions.updateSubscriptionModels({ models: subscriptionModels })
-        );
+        const subscriptionModels = await refreshSubscriptionModelCatalog(providerConfigs);
 
         const apiKeyCatalogs = toNonEmptyProviderCatalogs(
             await fetchApiKeyProviderModels(providerConfigs)
@@ -175,7 +172,7 @@ export default class Default extends LightningElement {
         const availableModels = buildAvailableAgentModelOptions({
             availableModelsByProvider: { ...(serverCatalogs || {}), ...apiKeyCatalogs },
             subscriptionModelsByProvider: subscriptionModels,
-            providerConfigs,
+            providerConfigs: store.getState().application.providerConfigs,
         });
         if (availableModels.length > 0) {
             const currentModel = store.getState()?.agent?.selectedModel;

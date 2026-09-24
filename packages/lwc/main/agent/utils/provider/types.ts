@@ -1,5 +1,6 @@
 import type { LanguageModelV3, SharedV3ProviderOptions } from '@ai-sdk/provider';
 import type { OAuthCredentials } from 'shared/llm';
+import type { OAuthLifecycle } from 'shared/oauth';
 import type { FormattedRequest } from './shared/fetch';
 
 type ModelResolver = (modelId: string) => LanguageModelV3;
@@ -15,7 +16,7 @@ export type ProviderReasoningConfig = {
     reasoningSummary: string;
 };
 
-export type CreateInstanceArgs = {
+export type CreateInstanceArgs = OAuthLifecycle & {
     apiKey?: string;
     baseUrl?: string;
     isInternal?: boolean;
@@ -23,9 +24,6 @@ export type CreateInstanceArgs = {
     authMode?: 'apiKey' | 'oauth';
     /** Subscription OAuth credentials, used when `authMode === 'oauth'`. */
     oauth?: OAuthCredentials | null;
-    /** Called with the new credentials whenever the runtime refreshes an OAuth token, so the
-     *  caller can persist them (refresh tokens may rotate). */
-    onTokenRefresh?: (credentials: OAuthCredentials) => void;
 };
 
 export type ResolveModelArgs = {

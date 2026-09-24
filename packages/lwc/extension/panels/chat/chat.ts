@@ -15,7 +15,10 @@ import {
     getLlmProviderConfigCacheKeys,
     resolveLlmProviderConfigMap,
 } from 'shared/cacheManager';
-import { fetchSubscriptionModels } from 'shared/llm';
+import {
+    loadProviderConfigsForOAuth,
+    refreshSubscriptionModelCatalog,
+} from '../../../main/agent/utils/oauthPersist';
 import { CHAT_APPROVAL_MODE_KEY } from './constants';
 
 function buildEditableProviderConfigs(config) {
@@ -170,11 +173,8 @@ export default class Chat extends LightningElement {
     };
 
     async refreshSignedInProvider() {
-        const cached = await cacheManager.loadConfig(getLlmProviderConfigCacheKeys());
-        const providerConfigs = resolveLlmProviderConfigMap(cached);
-        store.dispatch(APPLICATION.reduxSlice.actions.updateProviderConfigs({ providerConfigs }));
-        const models = await fetchSubscriptionModels(providerConfigs);
-        store.dispatch(APPLICATION.reduxSlice.actions.updateSubscriptionModels({ models }));
+        const { providerConfigs } = await loadProviderConfigsForOAuth();
+        await refreshSubscriptionModelCatalog(providerConfigs);
         Toast.show({ label: 'Signed in.', variant: 'success' });
     }
 

@@ -87,7 +87,7 @@ export function codexFormatRequest(
 }
 
 export const codexRuntime: ProviderRuntime = {
-    createInstance({ oauth, onTokenRefresh }: CreateInstanceArgs): ProviderInstance {
+    createInstance({ oauth, onTokenRefresh, onAuthInvalid }: CreateInstanceArgs): ProviderInstance {
         const headers: Record<string, string> = {};
         // ChatGPT-Account-Id selects the subscription account; decoded from the JWT at login.
         if (oauth?.accountId) {
@@ -104,6 +104,7 @@ export const codexRuntime: ProviderRuntime = {
                       provider: CODEX_OAUTH,
                       credentials: oauth,
                       onTokenRefresh,
+                      onAuthInvalid,
                       formatRequest: codexFormatRequest,
                   })
                 : createSanitizedFetch({ formatRequest: codexFormatRequest }),

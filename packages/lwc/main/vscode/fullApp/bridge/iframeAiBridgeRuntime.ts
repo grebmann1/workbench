@@ -2,17 +2,11 @@
 import {
     createProviderInstance,
     getReasoningConfigFromSelection,
-    persistRefreshedOAuthCredentials,
     resolveProviderModelInstance,
     resolveProviderOptions,
 } from 'agent/utils';
 import { jsonSchema, streamText, stepCountIs, tool as createAiSdkTool } from 'ai';
-import {
-    getAiProviderFromConfig,
-    getLlmProviderConfigCacheKeys,
-    loadExtensionConfigFromCache,
-    resolveLlmProviderConfigMap,
-} from 'shared/cacheManager';
+import { getAiProviderFromConfig, resolveLlmProviderConfigMap } from 'shared/cacheManager';
 import {
     normalizeLlmProvider,
     normalizeModelSelection,
@@ -25,6 +19,11 @@ import {
     type OAuthCredentials,
 } from 'shared/llm';
 
+import {
+    persistRefreshedOAuthCredentials,
+    invalidateOAuthCredentials,
+    loadProviderConfigsForOAuth,
+} from '../../../agent/utils/oauthPersist';
 import type {
     IframeAiBridgeChunk,
     IframeAiBridgeMessage,
@@ -52,8 +51,7 @@ type FullRuntimeConfig = RuntimeConfig & {
 
 async function readRuntimeConfig(): Promise<FullRuntimeConfig> {
     try {
-        const cachedConfig = await loadExtensionConfigFromCache(getLlmProviderConfigCacheKeys());
-        const providerConfigs = resolveLlmProviderConfigMap(cachedConfig);
+        const { cachedConfig, providerConfigs } = await loadProviderConfigsForOAuth();
         const provider = normalizeLlmProvider(getAiProviderFromConfig(cachedConfig));
         const providerConfig = providerConfigs[provider] || providerConfigs.openai;
         return {
@@ -127,9 +125,12 @@ async function* streamCompletionViaProvider(
         oauth,
         onTokenRefresh:
             authMode === 'oauth'
-                ? credentials => {
-                      persistRefreshedOAuthCredentials(provider, credentials).catch(() => {});
-                  }
+                ? (credentials, previous) =>
+                      persistRefreshedOAuthCredentials(provider, credentials, previous)
+                : undefined,
+        onAuthInvalid:
+            authMode === 'oauth'
+                ? previous => invalidateOAuthCredentials(provider, previous)
                 : undefined,
     });
     const systemPrompt = buildSystemPrompt(

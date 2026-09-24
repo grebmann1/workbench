@@ -6,5 +6,6 @@
 export * from './pkce';
 export * from './jwt';
 export * from './oauthClient';
+export * from './oauthFetch';
 export * from './providers/codex';
 export * from './providers/xai';
