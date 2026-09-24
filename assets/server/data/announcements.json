@@ -1,13 +1,13 @@
 {
     "announcement": {
-        "id": "2026-09-18-2-1-4",
+        "id": "2026-09-24-2-1-5",
         "active": true,
         "variant": "brand",
-        "title": "Workbench 2.1.4 is here",
-        "message": "Workbench 2.1.4 fixes BlackTab (BT) and expired-session retry loops, opens AI settings from the side panel, and adds clear Close controls to Error Log and Jobs panels.",
+        "title": "Workbench 2.1.5 is here",
+        "message": "Workbench 2.1.5 keeps saved agent conversations valid across reloads, refreshes Codex and xAI subscriptions when their token expires, adds agent memory and Workspace tools, and restores the home session cards.",
         "linkLabel": "View release notes",
         "linkUrl": "https://www.sf-workbench.com/app?applicationName=release",
-        "startsAt": "2026-09-18T00:00:00Z",
+        "startsAt": "2026-09-24T00:00:00Z",
         "endsAt": "2026-12-31T23:59:59Z"
     }
 }

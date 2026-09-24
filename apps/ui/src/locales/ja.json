@@ -1,6 +1,6 @@
 {
     "chrome": {
-        "announce": "Workbench <bold>2.1.4</bold> リリース — BlackTab など更新できない Salesforce 401 は最初の応答で停止します",
+        "announce": "Workbench <bold>2.1.5</bold> リリース — 保存したエージェント会話は再読み込み後も残り、Codex と xAI は期限切れのサブスクリプション トークンを更新します",
         "nav": {
             "github": "GitHub",
             "docs": "ドキュメント",

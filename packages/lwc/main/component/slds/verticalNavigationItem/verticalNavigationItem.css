@@ -78,9 +78,21 @@
     visibility: visible;
     opacity: 1;
     max-height: 100vh; /* Arbitrary large value to allow expansion */
+    padding-inline-start: 0.75rem;
 
     /* No delay when expanding */
     transition-delay: 0s;
+}
+
+.slds-nav-vertical__item::before {
+    content: none;
+}
+
+.slds-nav-vertical__action:not(.collapsed) {
+    width: calc(100% - 1rem);
+    margin-inline: 0.5rem;
+    border-radius: 0.375rem;
+    box-shadow: none;
 }
 
 .slds-nav-vertical__action.collapsed {
@@ -94,8 +106,22 @@
     font-weight: initial;
 }
 
+.slds-nav-vertical__item.slds-is-active .slds-nav-vertical__action {
+    background: #e8f4ff;
+    color: #032d60;
+    font-weight: 600;
+    box-shadow: none;
+}
+
+.slds-nav-vertical__item.slds-is-active .icon {
+    color: #0176d3;
+    --slds-c-icon-color-foreground: #0176d3;
+    --slds-c-icon-color-foreground-default: #0176d3;
+}
+
 /* restores hover style for non-active anchors/menu items */
 .slds-nav-vertical__action.non-active:hover {
-    box-shadow: inset 2px 0 0 var(--slds-g-color-accent-1, #0176d3);
-    color: var(--slds-s-navigation-color-hover, #2e2e2e);
+    background: #f3f3f3;
+    box-shadow: none;
+    color: #181818;
 }
