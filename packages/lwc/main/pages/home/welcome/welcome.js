@@ -176,6 +176,11 @@ export default class Welcome extends ToolkitElement {
         appUrl.searchParams.set('serverUrl', serverUrl);
         window.location.assign(appUrl.toString());
     };
+    handleSessionKeydown = event => {
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+        event.preventDefault();
+        this.handleSessionOpen(event);
+    };
     handleGoToConnections = () =>
         navigate(this.navContext, {
             type: 'application',

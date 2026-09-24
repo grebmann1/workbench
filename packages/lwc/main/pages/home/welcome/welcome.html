@@ -63,59 +63,79 @@
                     </div>
                 </section>
                 <section
-                    class="welcome-card"
+                    class="browser-sessions"
                     lwc:if={isBrowserSessionsVisible}
                     aria-labelledby="sessions-heading">
-                    <div class="welcome-card__header">
-                        <h2 id="sessions-heading">Active Browser Sessions</h2>
-                        <p>Salesforce orgs currently open in your browser</p>
-                    </div>
-                    <div class="welcome-card__body">
-                        <p lwc:if={isLoadingSessions} role="status">
-                            Looking for browser sessions…
+                    <div class="browser-sessions__header">
+                        <h2 id="sessions-heading" class="browser-sessions__title">
+                            Active Browser Sessions
+                        </h2>
+                        <p class="browser-sessions__desc">
+                            Salesforce orgs currently open in your browser
                         </p>
-                        <template lwc:elseif={sessionsError}>
-                            <p role="status">Browser sessions could not be loaded.</p>
-                            <button class="slds-button" type="button" onclick={refreshConnections}>
+                    </div>
+                    <template lwc:if={isLoadingSessions}>
+                        <p class="visually-hidden" role="status">Looking for browser sessions…</p>
+                        <div class="sessions-skeleton" aria-hidden="true">
+                            <div class="sessions-skeleton__row"></div>
+                            <div class="sessions-skeleton__row"></div>
+                        </div>
+                    </template>
+                    <template lwc:elseif={sessionsError}>
+                        <div class="sessions-empty">
+                            <p class="sessions-empty__title" role="status">
+                                Browser sessions could not be loaded.
+                            </p>
+                            <button
+                                class="sessions-retry"
+                                type="button"
+                                onclick={refreshConnections}>
                                 Retry browser sessions
                             </button>
-                        </template>
-                        <template lwc:elseif={hasSessions}>
-                            <ul class="sessions-list">
-                                <template for:each={sessions} for:item="session">
-                                    <li key={session.serverUrl} class="session-item">
-                                        <div class="session-item__body">
-                                            <span class="session-item__label">{session.label}</span>
-                                            <span class="session-item__detail">
-                                                {session.detail}
-                                            </span>
-                                        </div>
-                                        <button
-                                            class="slds-button slds-button_neutral"
-                                            type="button"
-                                            aria-label={session.openLabel}
-                                            data-server-url={session.serverUrl}
-                                            data-session-id={session.sessionId}
-                                            onclick={handleSessionOpen}>
-                                            Open
-                                        </button>
-                                    </li>
-                                </template>
-                            </ul>
-                        </template>
-                        <template lwc:else>
-                            <p>No active sessions found</p>
-                            <p class="secondary-text">
-                                Open a Salesforce org in a browser tab, then refresh this list.
+                        </div>
+                    </template>
+                    <template lwc:elseif={hasSessions}>
+                        <ul class="sessions-list" role="list">
+                            <template for:each={sessions} for:item="session">
+                                <li
+                                    key={session.serverUrl}
+                                    class="session-item"
+                                    role="button"
+                                    tabindex="0"
+                                    aria-label={session.openLabel}
+                                    data-server-url={session.serverUrl}
+                                    data-session-id={session.sessionId}
+                                    onclick={handleSessionOpen}
+                                    onkeydown={handleSessionKeydown}>
+                                    <span class="session-item__avatar" aria-hidden="true">
+                                        <lightning-icon
+                                            icon-name="utility:connected_apps"
+                                            size="small"></lightning-icon>
+                                    </span>
+                                    <div class="session-item__body">
+                                        <span class="session-item__label">{session.label}</span>
+                                        <span class="session-item__detail">{session.detail}</span>
+                                    </div>
+                                    <lightning-icon
+                                        icon-name="utility:chevronright"
+                                        size="x-small"
+                                        class="session-item__chevron"></lightning-icon>
+                                </li>
+                            </template>
+                        </ul>
+                    </template>
+                    <template lwc:else>
+                        <div class="sessions-empty">
+                            <lightning-icon
+                                icon-name="utility:connected_apps"
+                                size="medium"
+                                class="sessions-empty__icon"></lightning-icon>
+                            <p class="sessions-empty__title">No active sessions found</p>
+                            <p class="sessions-empty__hint">
+                                Open a Salesforce org in a browser tab to see it here
                             </p>
-                        </template>
-                        <button
-                            class="slds-button slds-m-top_small"
-                            type="button"
-                            onclick={refreshConnections}>
-                            Refresh connections
-                        </button>
-                    </div>
+                        </div>
+                    </template>
                 </section>
             </div>
             <aside class="welcome-sidebar" aria-label="Help and setup">

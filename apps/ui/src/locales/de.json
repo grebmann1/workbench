@@ -1,6 +1,6 @@
 {
     "chrome": {
-        "announce": "Workbench <bold>2.1.4</bold> ist da — nicht erneuerbare Salesforce-401s (BlackTab) werden nach der ersten Antwort abgebrochen",
+        "announce": "Workbench <bold>2.1.5</bold> ist da — gespeicherte Agent-Unterhaltungen bleiben nach dem Neuladen erhalten, und Codex und xAI erneuern abgelaufene Abonnement-Tokens",
         "nav": {
             "github": "GitHub",
             "docs": "Docs",

@@ -1,6 +1,6 @@
 {
     "chrome": {
-        "announce": "Workbench <bold>2.1.4</bold> est disponible — les 401 Salesforce non renouvelables (BlackTab) s'arrêtent dès la première réponse",
+        "announce": "Workbench <bold>2.1.5</bold> est disponible — les conversations enregistrées survivent au rechargement, et Codex et xAI renouvellent les jetons d'abonnement expirés",
         "nav": {
             "github": "GitHub",
             "docs": "Docs",

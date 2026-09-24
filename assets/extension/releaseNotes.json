@@ -1,5 +1,47 @@
 [
     {
+        "version": "2.1.5",
+        "date": "September 24th, 2026",
+        "sections": [
+            {
+                "title": "Enhancements",
+                "categories": [
+                    {
+                        "category": "AI Agent",
+                        "items": [
+                            "The agent can keep memory across conversations and use Workspace tools, and can recover a conversation after an interruption."
+                        ]
+                    },
+                    {
+                        "category": "Chat",
+                        "items": [
+                            "Workbench chat adds YOLO mode and clearer conversation actions. Browser-agent navigation is more reliable."
+                        ]
+                    },
+                    {
+                        "category": "Home & Navigation",
+                        "items": [
+                            "Open Salesforce orgs on the home page are cards again, with the org name, tab detail, and a chevron.",
+                            "The sidebar search, section labels, and current page are easier to scan. The selected item is a rounded row instead of a full-width stripe."
+                        ]
+                    }
+                ]
+            },
+            {
+                "title": "Bug Fixes",
+                "categories": [
+                    {
+                        "category": "AI Agent",
+                        "items": [
+                            "Saved conversations stay valid after a reload. Tool results that Chrome storage had rewritten no longer fail the next prompt.",
+                            "Codex and xAI model lists refresh an expired access token instead of going empty, and a temporary catalog failure keeps the previous models. Revoked authorization returns settings to sign-in."
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    {
         "version": "2.1.4",
         "date": "September 18th, 2026",
         "sections": [
