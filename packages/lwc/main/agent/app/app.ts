@@ -28,6 +28,7 @@ import {
     getDefaultModelForAgentProvider,
     readFileContent,
     generateConversationTitle,
+    extractNestedErrorMessage,
     buildRunningEnvironmentContext,
 } from 'agent/utils';
 import { invokeCommand } from 'host-api/commands';
@@ -59,7 +60,7 @@ const chatRuns = new ConversationRunController(
             AGENT.reduxSlice.actions.setError({
                 id,
                 title: 'Agent error',
-                message: error instanceof Error ? error.message : String(error),
+                message: extractNestedErrorMessage(error),
             })
         ),
     {

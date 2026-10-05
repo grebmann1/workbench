@@ -3,6 +3,7 @@ import { test } from 'node:test';
 import { configureStore } from '@reduxjs/toolkit';
 import { modelMessageSchema } from 'ai';
 import type { AgentState } from '../agent';
+import { extractNestedErrorMessage } from '../../../../agent/utils/errorMessage.ts';
 
 function installStorage() {
     const local: Record<string, string> = {};
@@ -364,3 +365,37 @@ for (const cacheShape of ['canonical', 'legacy']) {
         }
     });
 }
+
+test('agent: provider details survive thunk rejection and remain visible in conversation state', async () => {
+    installStorage();
+    try {
+        // Load the store after installing its browser-storage environment.
+        const { reduxSlice, executeAgent } = await import('../agent.ts');
+        const store = configureStore({ reducer: { agent: reduxSlice.reducer } });
+        const providerError = Object.assign(new Error(''), {
+            responseBody: '{"detail":"Unsupported parameter: temperature"}',
+        });
+        const agent = {
+            conversationId: 'provider-error',
+            async *processMessage() {
+                yield Promise.reject(providerError);
+            },
+        };
+        await assert.rejects(
+            store.dispatch(executeAgent({ userMessages: [], agent })).unwrap(),
+            error => {
+                assert.equal(
+                    extractNestedErrorMessage(error),
+                    'Unsupported parameter: temperature'
+                );
+                return true;
+            }
+        );
+        assert.equal(
+            store.getState().agent.errorById['provider-error'].message,
+            'Unsupported parameter: temperature'
+        );
+    } finally {
+        removeStorage();
+    }
+});

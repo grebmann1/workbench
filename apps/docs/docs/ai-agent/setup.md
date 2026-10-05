@@ -12,13 +12,13 @@ SF Toolkit embeds an AI Agent directly into the Workbench. This page explains ho
 
 - Your Salesforce data, credentials, and file content are sent directly from your browser to the AI provider you configure (OpenAI, Anthropic, Gemini, etc.).
 - SF Toolkit acts only as a local orchestration layer; it never proxies or logs your requests.
-- You control which provider and model are used, and you can revoke access at any time by clearing your API key in settings.
+- You control which provider and model are used. To remove saved credentials from Workbench, clear your API key or disconnect your subscription sign-in in settings.
 
 ---
 
 ## How to configure the AI provider
 
-Open the **[Settings → AI tab](https://www.sf-workbench.com/app?applicationName=settings)** to choose your provider and paste your API key. You can optionally override the base URL if you use a self-hosted or proxied endpoint. Changes take effect immediately after saving.
+Open the **[Settings → AI tab](https://www.sf-workbench.com/app?applicationName=settings)** to choose your provider. Paste an API key, or use ChatGPT (Codex) or SuperGrok subscription sign-in in the OpenAI or xAI panel. For API-key connections, you can optionally override the base URL if you use a self-hosted or proxied endpoint. Changes take effect immediately after saving.
 
 ### Subscription sign-in and model refresh
 
@@ -42,6 +42,8 @@ API keys are stored locally in your browser (Chrome extension storage) and never
 ### Continuing older conversations
 
 Saved conversations from the earlier OpenAI Agents/Responses runtime are converted to the current message format when loaded. Text, reasoning, and completed tool exchanges are retained. Affected saved tool results are repaired on load, and new saves preserve their contents. Unsupported or corrupt message shapes still report an error rather than silently discarding history. Attachment content already omitted from storage cannot be recovered.
+
+As a conversation approaches the model's context limit, Workbench summarizes older messages. Agent, summary, and title requests leave `temperature` unset for all providers. If a summary request fails, Workbench keeps the history and shows the provider's error message when available.
 
 To move conversations between extension profiles, use **Settings → Storage → Export** in the source and **Import** in the destination. Close other Workbench pages and Agent side panels in the destination before importing: each has independent in-memory state and can overwrite the imported history when it saves. The import updates the Agent state in the importing page only; reload that page to apply the remaining settings. Keep the export file safe: it also contains saved settings and credentials.
 
