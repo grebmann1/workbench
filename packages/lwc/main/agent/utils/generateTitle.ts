@@ -8,10 +8,6 @@ import { createProviderInstance, resolveProviderModelInstance } from './provider
 const TITLE_PROMPT =
     'Generate a short, descriptive title (3-6 words) for a conversation that starts with this message. Return only the title, no quotes or punctuation:\n\n';
 
-function shouldOmitTemperature(modelId: string) {
-    return /^gpt-5/i.test(modelId);
-}
-
 export async function generateConversationTitle(
     settings: {
         provider: string;
@@ -55,17 +51,7 @@ export async function generateConversationTitle(
         prompt: `${TITLE_PROMPT}${firstMessage}`,
         maxRetries: 0,
         maxOutputTokens: 20,
-    } as {
-        model: ReturnType<typeof resolveProviderModelInstance>;
-        prompt: string;
-        maxRetries: number;
-        maxOutputTokens: number;
-        temperature?: number;
     };
-
-    if (!shouldOmitTemperature(modelId)) {
-        request.temperature = 0.5;
-    }
 
     // streamText (not generateText): WHAM only supports streaming ("Stream must be set to
     // true"). For non-streaming providers this still resolves the full text.

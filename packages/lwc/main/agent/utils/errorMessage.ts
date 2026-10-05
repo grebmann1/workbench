@@ -91,21 +91,31 @@ function extractPrimaryErrorMessage(errorLike: unknown): string {
     while (queue.length > 0) {
         const current = queue.shift();
         if (current == null || seen.has(current)) continue;
-        if (typeof current === 'object' || typeof current === 'function') {
-            seen.add(current);
-        }
+        seen.add(current);
 
         if (typeof current === 'string') {
             const text = current.trim();
             if (!text) continue;
             try {
-                queue.unshift(JSON.parse(text));
-                continue;
+                const parsed: unknown = JSON.parse(text);
+                if (typeof parsed === 'string' || isRecord(parsed)) {
+                    queue.unshift(parsed);
+                    continue;
+                }
             } catch {
-                if (!fallback) fallback = text;
-                if (text !== 'Bad Request') return text;
+                // Plain-text messages do not need JSON decoding.
+            }
+            if (!fallback) fallback = text;
+            if (
+                text === 'Bad Request' ||
+                /^\[object Object\](?:[\s,]*\[object Object\])*$/.test(text) ||
+                text === 'No output generated.' ||
+                text === 'No output generated. Check the stream for errors.'
+            ) {
+                // Keep wrapper text only if none of the nested fields explains the failure.
                 continue;
             }
+            return text;
         }
 
         if (current instanceof Error) {
@@ -117,9 +127,13 @@ function extractPrimaryErrorMessage(errorLike: unknown): string {
             if (errorWithExtras.cause) queue.unshift(errorWithExtras.cause);
             queue.unshift(errorWithExtras.responseBody);
             queue.unshift(errorWithExtras.data);
-            if (typeof current.message === 'string' && current.message.trim()) {
-                if (!fallback) fallback = current.message.trim();
-                if (current.message.trim() !== 'Bad Request') return current.message.trim();
+            queue.unshift(current.message);
+            continue;
+        }
+
+        if (Array.isArray(current)) {
+            for (let index = current.length - 1; index >= 0; index--) {
+                queue.unshift(current[index]);
             }
             continue;
         }
@@ -132,16 +146,7 @@ function extractPrimaryErrorMessage(errorLike: unknown): string {
             queue.unshift(current.response);
             queue.unshift(current.cause);
             queue.unshift(current.error);
-            const message =
-                typeof current.message === 'string'
-                    ? current.message.trim()
-                    : typeof current.error === 'string'
-                      ? current.error.trim()
-                      : '';
-            if (message) {
-                if (!fallback) fallback = message;
-                if (message !== 'Bad Request') return message;
-            }
+            queue.unshift(current.message);
         }
     }
 

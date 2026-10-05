@@ -1,14 +1,16 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
+import { createProviderInstance } from '../../utils/providerRuntime.ts';
+import { generateConversationTitle } from '../../utils/generateTitle.ts';
+import { extractNestedErrorMessage } from '../../utils/errorMessage.ts';
+
 import {
     computeFileLists,
     createCompactionSummaryMessage,
     isCompactionSummaryMessage,
     getCompactionSummaryText,
     COMPACTION_SUMMARY_HEADER,
-    DEFAULT_RESERVE_TOKENS,
-    DEFAULT_KEEP_RECENT_TOKENS,
     estimateMessageTokens,
     estimateConversationTokens,
     shouldCompactContext,
@@ -18,6 +20,8 @@ import {
     formatFileOperations,
     relaxCompactionSettings,
     prepareCompaction,
+    generateCompactionSummary,
+    type PreparedCompaction,
 } from '../compaction.ts';
 
 test('computeFileLists: modified set wins over read-only', () => {
@@ -133,7 +137,134 @@ test('prepareCompaction: returns null when no messages past summary', () => {
     assert.equal(out, null);
 });
 
-test('exports sensible DEFAULT constants', () => {
-    assert.ok(DEFAULT_RESERVE_TOKENS > 0);
-    assert.ok(DEFAULT_KEEP_RECENT_TOKENS > 0);
+function streamedSummary(text: string): Response {
+    const events = [
+        {
+            type: 'response.created',
+            response: { id: 'response-test', created_at: 0, model: 'gpt-6.1-sol' },
+        },
+        {
+            type: 'response.output_item.added',
+            output_index: 0,
+            item: { type: 'message', id: 'message-test' },
+        },
+        { type: 'response.output_text.delta', item_id: 'message-test', delta: text },
+        {
+            type: 'response.output_item.done',
+            output_index: 0,
+            item: { type: 'message', id: 'message-test' },
+        },
+        {
+            type: 'response.completed',
+            response: { usage: { input_tokens: 10, output_tokens: 5 } },
+        },
+    ];
+    return new Response(events.map(event => `data: ${JSON.stringify(event)}\n\n`).join(''), {
+        headers: { 'content-type': 'text/event-stream' },
+    });
+}
+
+for (const scenario of ['summary', 'split chunks', 'title']) {
+    test(`${scenario}: streams successfully from a provider that rejects temperature`, async t => {
+        let historyRequests = 0;
+        t.mock.method(globalThis, 'fetch', async (_url: RequestInfo | URL, init?: RequestInit) => {
+            assert.equal(typeof init?.body, 'string');
+            const body = JSON.parse(String(init?.body));
+            if ('temperature' in body) {
+                return Response.json(
+                    { detail: 'Unsupported parameter: temperature' },
+                    { status: 400 }
+                );
+            }
+            assert.equal(body.stream, true);
+            if (scenario === 'title') {
+                return streamedSummary('  Synthetic Conversation Title  ');
+            }
+            const input = JSON.stringify(body.input);
+            if (input.includes('PREFIX_MARKER')) {
+                return streamedSummary('  Current turn context  ');
+            }
+            historyRequests++;
+            if (scenario === 'split chunks' && historyRequests === 2) {
+                assert.ok(input.includes('Earlier history'));
+                return streamedSummary('  Combined history  ');
+            }
+            return streamedSummary('  Earlier history  ');
+        });
+
+        const settings = {
+            provider: 'openai',
+            apiKey: 'synthetic-test-key',
+            baseUrl: 'https://provider.invalid/v1',
+            selectedModel: 'gpt-6.1-sol',
+        };
+        if (scenario === 'title') {
+            assert.equal(
+                await generateConversationTitle(settings, 'Discuss a synthetic project'),
+                'Synthetic Conversation Title'
+            );
+            return;
+        }
+        const preparation: PreparedCompaction = {
+            messagesToSummarize:
+                scenario === 'split chunks'
+                    ? [
+                          { role: 'user', content: 'a'.repeat(110_000) },
+                          { role: 'assistant', content: 'b'.repeat(110_000) },
+                      ]
+                    : [{ role: 'user', content: 'Summarize a synthetic project' }],
+            turnPrefixMessages: [],
+            keptMessages: [],
+            firstKeptIndex: 0,
+            isSplitTurn: false,
+            tokensBefore: 1000,
+            settings: { reserveTokens: 1000, keepRecentTokens: 500 },
+            fileOps: createFileOps(),
+        };
+        if (scenario === 'split chunks') {
+            preparation.isSplitTurn = true;
+            preparation.turnPrefixMessages = [{ role: 'user', content: 'PREFIX_MARKER' }];
+        }
+        const summary = await generateCompactionSummary(
+            createProviderInstance(settings),
+            settings.provider,
+            settings.selectedModel,
+            preparation
+        );
+        if (scenario === 'split chunks') {
+            assert.match(summary, /Combined history/);
+            assert.match(summary, /Current turn context/);
+            assert.equal(historyRequests, 2);
+        } else {
+            assert.equal(summary, 'Earlier history');
+        }
+    });
+}
+
+test('a failed summary stream preserves the provider error for the conversation UI', async t => {
+    t.mock.method(globalThis, 'fetch', async () =>
+        Response.json({ detail: 'Unsupported parameter: temperature' }, { status: 400 })
+    );
+    const preparation = prepareCompaction(
+        [
+            { role: 'user', content: 'Earlier task context.' },
+            { role: 'assistant', content: 'Saved state.' },
+            { role: 'user', content: 'Continue the task.' },
+        ],
+        '',
+        { reserveTokens: 1000, keepRecentTokens: 1 }
+    );
+    assert.ok(preparation);
+    const provider = createProviderInstance({
+        provider: 'openai',
+        apiKey: 'synthetic-test-key',
+        baseUrl: 'https://provider.invalid/v1',
+    });
+    await assert.rejects(
+        generateCompactionSummary(provider, 'openai', 'gpt-6.1-sol', preparation),
+        error => {
+            assert.equal(extractNestedErrorMessage(error), 'Unsupported parameter: temperature');
+            return true;
+        }
+    );
 });

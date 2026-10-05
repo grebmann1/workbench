@@ -109,10 +109,6 @@ Use this exact format:
 ## Context For Suffix
 - [Information needed to understand the kept recent messages]`;
 
-function shouldOmitTemperature(modelId: string) {
-    return /^gpt-5/i.test(modelId);
-}
-
 function isRecord(value: unknown): value is Record<string, unknown> {
     return typeof value === 'object' && value !== null;
 }
@@ -550,7 +546,9 @@ async function summarizeConversation(
         promptParts.push(`Additional focus: ${customInstructions.trim()}`);
     }
 
-    const request = {
+    let streamError: unknown;
+    // streamText (not generateText): WHAM (Codex) only supports streaming.
+    const result = streamText({
         model: resolveProviderModelInstance(providerInstance, {
             provider,
             modelId,
@@ -561,23 +559,21 @@ async function summarizeConversation(
         abortSignal: signal,
         maxRetries: 0,
         maxOutputTokens: Math.max(512, Math.floor(reserveTokens * 0.8)),
-    } as {
-        model: ReturnType<typeof resolveProviderModelInstance>;
-        system: string;
-        prompt: string;
-        abortSignal?: AbortSignal;
-        maxRetries: number;
-        maxOutputTokens: number;
-        temperature?: number;
-    };
-
-    if (!shouldOmitTemperature(modelId)) {
-        request.temperature = 0.2;
+        onError: ({ error }) => {
+            streamError = error;
+        },
+    });
+    let text: string;
+    try {
+        text = await result.text;
+    } catch (error) {
+        // The SDK's no-output error omits the original provider failure.
+        throw streamError ?? error;
     }
-
-    // streamText (not generateText): WHAM (Codex) only supports streaming.
-    const result = streamText(request);
-    return (await result.text).trim();
+    if (streamError != null) {
+        throw streamError;
+    }
+    return text.trim();
 }
 
 /**

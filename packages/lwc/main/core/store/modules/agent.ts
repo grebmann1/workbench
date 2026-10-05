@@ -15,6 +15,7 @@ import {
     REASONING_OPTIONS,
 } from '../../../agent/utils/models';
 import { normalizeModelMessages } from '../../../agent/utils/message';
+import { extractNestedErrorMessage } from '../../../agent/utils/errorMessage';
 import type { ModelMessage } from 'ai';
 import type { ConversationRunState } from 'agent/runController';
 import {
@@ -698,14 +699,16 @@ export const executeAgent = createAsyncThunk<
         if (error?.message) throw new Error(error.message);
     } catch (e) {
         LOGGER.error('[agent] runExecuteAgent failed', e);
+        const message = extractNestedErrorMessage(e);
         dispatch(
             reduxSlice.actions.setError({
                 id: agent.conversationId,
                 title: 'Agent error',
-                message: e instanceof Error ? e.message : String(e),
+                message,
             })
         );
-        throw e;
+        // Redux serializes thrown errors, so preserve provider details in the message first.
+        throw new Error(message, { cause: e });
     } finally {
         if (agent.runStatistics)
             dispatch(

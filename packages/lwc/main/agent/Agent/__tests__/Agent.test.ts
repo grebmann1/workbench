@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
+import { normalizeModelMessages, sanitizeIncompleteToolExchanges } from '../../utils/message';
 import { approveToolCall } from '../../tools/modules/toolPolicy';
 import { loadTypeScriptModule } from '../../../../../../tools/testing/loadTypeScriptModule.mjs';
 import { StepCheckpoint } from '../../runController/stepCheckpoint';
@@ -34,7 +35,13 @@ function harness(streamText) {
             filterToolsByModel: tools => tools,
             createBashTools: () => [{ name: 'bash', execute: () => executed.push('bash') }],
         },
+        '../utils/oauthPersist': {
+            persistRefreshedOAuthCredentials: noop,
+            invalidateOAuthCredentials: noop,
+        },
         'agent/utils': {
+            normalizeModelMessages,
+            sanitizeIncompleteToolExchanges,
             createProviderInstance: () => ({}),
             getSummaryModelForAgentProvider: () => 'fake',
             getReasoningConfigFromSelection: () => ({}),
