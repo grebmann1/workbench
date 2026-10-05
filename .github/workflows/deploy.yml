@@ -7,7 +7,7 @@ name: deploy
 #                     account API key from `heroku auth:token`).
 #
 # What this does, end to end:
-#   1. Restores Node 22.14 + npm cache.
+#   1. Restores Node 22.14 + npm cache, installs the Heroku CLI, and verifies auth.
 #   2. Installs all workspace deps (root, apps/ui, apps/docs, packages/vscode).
 #   3. Runs `npm run docker:prebuild` to compile every artefact the Dockerfile
 #      `COPY`s from (the Dockerfile itself does not compile — see Dockerfile
@@ -61,6 +61,17 @@ jobs:
                   node-version: '22.14'
                   cache: 'npm'
 
+            - name: Install Heroku CLI
+              run: npm install --global heroku@11.10.1 --no-audit --no-fund
+
+            - name: Verify Heroku auth
+              run: |
+                  if [ -z "$HEROKU_API_KEY" ]; then
+                    echo "HEROKU_API_KEY secret is not set."
+                    exit 1
+                  fi
+                  heroku auth:whoami
+
             - name: Install workspace deps
               run: |
                   npm ci --no-audit --no-fund
@@ -70,14 +81,6 @@ jobs:
 
             - name: Pre-build static + server artefacts
               run: npm run docker:prebuild
-
-            - name: Verify Heroku auth
-              run: |
-                  if [ -z "$HEROKU_API_KEY" ]; then
-                    echo "HEROKU_API_KEY secret is not set."
-                    exit 1
-                  fi
-                  heroku auth:whoami
 
             - name: Stamp git SHA into Heroku config
               run: |
