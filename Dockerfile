@@ -23,6 +23,7 @@ WORKDIR /app
 # Production Node.js dependencies for packages/server
 # ---------------------------------------------------------------------------
 COPY package.json package-lock.json ./
+COPY vendor-bundles/jsforce/jsforce-3.10.19.tgz vendor-bundles/jsforce/
 RUN npm ci --omit=dev --ignore-scripts
 
 # ---------------------------------------------------------------------------
