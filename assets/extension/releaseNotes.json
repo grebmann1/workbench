@@ -7,6 +7,14 @@
                 "title": "Bug Fixes",
                 "categories": [
                     {
+                        "category": "AI Agent",
+                        "items": [
+                            "Conversation summaries and automatic titles now use provider defaults, avoiding errors from models that reject temperature overrides.",
+                            "AI provider failures now display useful error details instead of generic messages. Failed summaries preserve the conversation so it can be retried.",
+                            "Grok conversations no longer fail when empty tool-call updates interrupt the reasoning stream."
+                        ]
+                    },
+                    {
                         "category": "Navigation",
                         "items": [
                             "Collapsed menu popups now highlight only the selected tool instead of every item in the active category.",

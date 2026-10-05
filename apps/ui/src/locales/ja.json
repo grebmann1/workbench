@@ -1,6 +1,6 @@
 {
     "chrome": {
-        "announce": "Workbench <bold>2.1.6</bold> リリース — メニューの選択表示とヘッダーのタブスクロールを修正し、BETA バッジを削除しました",
+        "announce": "Workbench <bold>2.1.6</bold> リリース — ナビゲーションを修正し、AI プロバイダーのエラーと要約の再試行を改善し、Grok の推論をより安定させました",
         "nav": {
             "github": "GitHub",
             "docs": "ドキュメント",

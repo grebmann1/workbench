@@ -1,6 +1,6 @@
 {
     "chrome": {
-        "announce": "Workbench <bold>2.1.6</bold> ya está aquí — se corrigen el resaltado del menú y el desplazamiento de las pestañas, y se elimina la etiqueta BETA",
+        "announce": "Workbench <bold>2.1.6</bold> ya está aquí — se corrige la navegación, se aclaran los errores de proveedores de IA y los reintentos de resumen, y el razonamiento de Grok es más fiable",
         "nav": {
             "github": "GitHub",
             "docs": "Docs",

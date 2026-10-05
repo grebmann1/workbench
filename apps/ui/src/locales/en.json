@@ -1,6 +1,6 @@
 {
     "chrome": {
-        "announce": "Workbench <bold>2.1.6</bold> is here — menu highlighting and header tab scrolling are fixed, and the BETA badge is gone",
+        "announce": "Workbench <bold>2.1.6</bold> is here — navigation is fixed, AI provider errors and summary retries are clearer, and Grok reasoning is more reliable",
         "nav": {
             "github": "GitHub",
             "docs": "Docs",

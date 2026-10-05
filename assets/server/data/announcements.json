@@ -4,7 +4,7 @@
         "active": true,
         "variant": "brand",
         "title": "Workbench 2.1.6 is here",
-        "message": "Workbench 2.1.6 fixes selected-tool highlighting in collapsed menus, removes the unwanted vertical scrollbar from header tabs while preserving horizontal scrolling, and removes the BETA badge from the header.",
+        "message": "Workbench 2.1.6 fixes selected-tool highlighting and header tab scrolling, removes the BETA badge, improves AI provider errors and summary retries, and fixes interrupted Grok reasoning streams.",
         "linkLabel": "View release notes",
         "linkUrl": "https://www.sf-workbench.com/app?applicationName=release",
         "startsAt": "2026-10-04T22:00:00Z",
