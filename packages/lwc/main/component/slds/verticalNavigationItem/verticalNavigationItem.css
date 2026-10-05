@@ -100,20 +100,21 @@
 }
 
 /* resets nav item style for non-active anchors/menu items */
-.slds-nav-vertical__action.non-active {
+.slds-nav-vertical__item .slds-nav-vertical__action.non-active {
     box-shadow: initial;
     color: var(--slds-s-navigation-color, var(--slds-g-color-on-surface-3));
     font-weight: initial;
 }
 
-.slds-nav-vertical__item.slds-is-active .slds-nav-vertical__action {
+/* Keep active styles local to the action; category popups contain other items. */
+.slds-nav-vertical__item.slds-is-active .slds-nav-vertical__action:not(.non-active) {
     background: #e8f4ff;
     color: #032d60;
     font-weight: 600;
     box-shadow: none;
 }
 
-.slds-nav-vertical__item.slds-is-active .icon {
+.slds-nav-vertical__action:not(.non-active) .icon {
     color: #0176d3;
     --slds-c-icon-color-foreground: #0176d3;
     --slds-c-icon-color-foreground-default: #0176d3;

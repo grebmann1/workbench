@@ -66,6 +66,39 @@ test('collapsed navigation retains the active category and clears hidden filters
     );
 });
 
+test('collapsed navigation highlights only the selected tool in its category popup', async ({
+    appPage,
+}) => {
+    for (const applicationName of ['urlencoder', 'textcompare']) {
+        const page = await appPage(applicationName);
+        const menu = page.locator('skeleton-menu');
+        const collapse = menu.getByRole('button', { name: 'Collapse Navigation', exact: true });
+        if (await collapse.isVisible()) await collapse.click();
+        await expect(
+            menu.getByRole('button', { name: 'Expand Navigation', exact: true })
+        ).toBeVisible();
+        await menu.getByRole('button', { name: 'Utilities', exact: true }).hover();
+
+        const popup = menu.locator('.tooltip-body:visible').filter({
+            has: page.getByRole('button', { name: 'URL Encoder', exact: true }),
+        });
+        const selectedLabel = applicationName === 'urlencoder' ? 'URL Encoder' : 'Text Compare';
+        const inactiveLabel = applicationName === 'urlencoder' ? 'Text Compare' : 'URL Encoder';
+        const selected = popup.getByRole('button', { name: selectedLabel, exact: true });
+        const inactive = popup.getByRole('button', { name: inactiveLabel, exact: true });
+        await expect(selected).toBeVisible();
+        await expect(inactive).toBeVisible();
+        await expect(selected).toHaveAttribute('aria-current', 'page');
+        await expect(selected).toHaveCSS('background-color', 'rgb(232, 244, 255)');
+        await expect(selected).toHaveCSS('font-weight', '600');
+        await expect(inactive).not.toHaveAttribute('aria-current', 'page');
+        await expect(inactive).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+        await expect(inactive).toHaveCSS('font-weight', '400');
+        await expect(inactive).toHaveCSS('box-shadow', 'none');
+        await page.close();
+    }
+});
+
 test('connection search distinguishes saved orgs from no results and resets filters', async ({
     appPage,
     extensionId,
