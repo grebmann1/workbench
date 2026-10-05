@@ -1,6 +1,6 @@
 {
     "chrome": {
-        "announce": "Workbench <bold>2.1.6</bold> est disponible — la mise en évidence des menus et le défilement des onglets sont corrigés, et le badge BETA a été supprimé",
+        "announce": "Workbench <bold>2.1.6</bold> est disponible — la navigation est corrigée, les erreurs des fournisseurs IA et les nouvelles tentatives de résumé sont plus claires, et le raisonnement Grok est plus fiable",
         "nav": {
             "github": "GitHub",
             "docs": "Docs",
