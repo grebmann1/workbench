@@ -1,13 +1,13 @@
 {
     "announcement": {
-        "id": "2026-09-24-2-1-5",
+        "id": "2026-10-05-2-1-6",
         "active": true,
         "variant": "brand",
-        "title": "Workbench 2.1.5 is here",
-        "message": "Workbench 2.1.5 keeps saved agent conversations valid across reloads, refreshes Codex and xAI subscriptions when their token expires, adds agent memory and Workspace tools, and restores the home session cards.",
+        "title": "Workbench 2.1.6 is here",
+        "message": "Workbench 2.1.6 fixes selected-tool highlighting in collapsed menus, removes the unwanted vertical scrollbar from header tabs while preserving horizontal scrolling, and removes the BETA badge from the header.",
         "linkLabel": "View release notes",
         "linkUrl": "https://www.sf-workbench.com/app?applicationName=release",
-        "startsAt": "2026-09-24T00:00:00Z",
+        "startsAt": "2026-10-04T22:00:00Z",
         "endsAt": "2026-12-31T23:59:59Z"
     }
 }

@@ -1,5 +1,32 @@
 [
     {
+        "version": "2.1.6",
+        "date": "October 5th, 2026",
+        "sections": [
+            {
+                "title": "Bug Fixes",
+                "categories": [
+                    {
+                        "category": "Navigation",
+                        "items": [
+                            "Collapsed menu popups now highlight only the selected tool instead of every item in the active category.",
+                            "Removed the unwanted vertical scrollbar from the application tabs. Tabs still scroll horizontally on narrow screens, and the active tab underline stays visible."
+                        ]
+                    }
+                ]
+            },
+            {
+                "title": "Enhancements",
+                "categories": [
+                    {
+                        "category": "Workbench Header",
+                        "items": ["Removed the BETA badge from the Workbench header."]
+                    }
+                ]
+            }
+        ]
+    },
+    {
         "version": "2.1.5",
         "date": "September 24th, 2026",
         "sections": [

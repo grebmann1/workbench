@@ -1,6 +1,6 @@
 {
     "chrome": {
-        "announce": "Workbench <bold>2.1.5</bold> ist da — gespeicherte Agent-Unterhaltungen bleiben nach dem Neuladen erhalten, und Codex und xAI erneuern abgelaufene Abonnement-Tokens",
+        "announce": "Workbench <bold>2.1.6</bold> ist da — die Hervorhebung im Menü und das Scrollen der Kopfzeilen-Tabs sind korrigiert, und das BETA-Label wurde entfernt",
         "nav": {
             "github": "GitHub",
             "docs": "Docs",

@@ -34,10 +34,23 @@
 .slds-context-bar__secondary {
     min-width: 0;
     overflow-x: auto;
+    overflow-y: hidden;
 }
 
 .slds-context-bar__secondary ul {
     min-width: max-content;
+}
+
+/* Keep SLDS tab indicators inside the horizontal scroll region. */
+.slds-context-bar__secondary .slds-context-bar__item::after {
+    bottom: 0;
+}
+
+.slds-context-bar__secondary .slds-context-bar__item.slds-is-active::before {
+    /* shared.css otherwise forces this indicator below the tab at 37px. */
+    top: auto !important;
+    bottom: 0;
+    animation: none;
 }
 
 .tab-select,
@@ -82,29 +95,11 @@
     max-width: unset;
 }
 
-.beta-badge {
-    display: inline-block;
-    margin-left: var(--slds-g-spacing-x-small, 0.5rem);
-    padding: 0.1rem 0.5rem;
-    border-radius: 0.4rem;
-    background: var(--slds-g-color-brand-base-20, #eef4ff);
-    color: var(--slds-g-color-error-base-40, #c23934);
-    font-size: 0.6875rem;
-    font-weight: 700;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    transform: rotate(-8deg);
-    box-shadow: 0 1px 2px var(--slds-g-color-brand-base-20, #0176d3);
-}
-
 .right-panel-collapse {
     padding-right: 0;
 }
 
 @media (max-width: 1199px) {
-    .beta-badge {
-        display: none;
-    }
     .button-container {
         margin: 0.5rem;
     }

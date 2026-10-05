@@ -1,6 +1,6 @@
 {
     "chrome": {
-        "announce": "Workbench <bold>2.1.5</bold> ya está aquí — las conversaciones guardadas del agente sobreviven a la recarga, y Codex y xAI renuevan los tokens de suscripción caducados",
+        "announce": "Workbench <bold>2.1.6</bold> ya está aquí — se corrigen el resaltado del menú y el desplazamiento de las pestañas, y se elimina la etiqueta BETA",
         "nav": {
             "github": "GitHub",
             "docs": "Docs",

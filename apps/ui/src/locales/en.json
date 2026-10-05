@@ -1,6 +1,6 @@
 {
     "chrome": {
-        "announce": "Workbench <bold>2.1.5</bold> is here — saved agent chats survive reloads, and Codex and xAI refresh expired subscription tokens",
+        "announce": "Workbench <bold>2.1.6</bold> is here — menu highlighting and header tab scrolling are fixed, and the BETA badge is gone",
         "nav": {
             "github": "GitHub",
             "docs": "Docs",

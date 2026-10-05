@@ -31,6 +31,37 @@ test('home tasks offer environment choice and recover from invalid input or canc
     await expect(page.getByRole('button', { name: 'Cancel task', exact: true })).toBeHidden();
 });
 
+test('header tabs stay within the header and scroll horizontally at narrow widths', async ({
+    appPage,
+}) => {
+    const page = await appPage('urlencoder');
+    await page.setViewportSize({ width: 1440, height: 900 });
+    const header = page.locator('skeleton-header');
+    const menu = page.locator('skeleton-menu');
+    await menu.getByRole('button', { name: 'Text Compare', exact: true }).click();
+    await menu.getByRole('button', { name: 'Settings', exact: true }).click();
+    const tabs = header.getByRole('navigation', { name: 'Open applications' });
+    await expect(tabs).toHaveCSS('overflow-y', 'hidden');
+    await expect.poll(() => tabs.evaluate(el => el.scrollHeight - el.clientHeight)).toBe(0);
+    const activeTab = tabs.locator('.slds-is-active');
+    await expect
+        .poll(() => activeTab.evaluate(el => getComputedStyle(el, '::after').bottom))
+        .toBe('0px');
+    await expect
+        .poll(() => activeTab.evaluate(el => getComputedStyle(el, '::before').bottom))
+        .toBe('0px');
+
+    await page.setViewportSize({ width: 320, height: 768 });
+    await expect
+        .poll(() => tabs.evaluate(el => el.scrollWidth - el.clientWidth))
+        .toBeGreaterThan(0);
+    await tabs.getByRole('button', { name: 'Settings', exact: true }).focus();
+    await expect.poll(() => tabs.evaluate(el => el.scrollLeft)).toBeGreaterThan(0);
+    await tabs.getByRole('button', { name: 'Home', exact: true }).focus();
+    await expect.poll(() => tabs.evaluate(el => el.scrollLeft)).toBe(0);
+    await expect(tabs).toHaveCSS('overflow-y', 'hidden');
+});
+
 test('native tab buttons preserve inactive drafts and restore focus after closing', async ({
     appPage,
 }) => {

@@ -1,6 +1,6 @@
 {
     "chrome": {
-        "announce": "Workbench <bold>2.1.5</bold> est disponible — les conversations enregistrées survivent au rechargement, et Codex et xAI renouvellent les jetons d'abonnement expirés",
+        "announce": "Workbench <bold>2.1.6</bold> est disponible — la mise en évidence des menus et le défilement des onglets sont corrigés, et le badge BETA a été supprimé",
         "nav": {
             "github": "GitHub",
             "docs": "Docs",
