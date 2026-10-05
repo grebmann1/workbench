@@ -28,14 +28,14 @@ A temporary network or provider failure keeps the last model list loaded in the 
 
 ### Supported providers
 
-| Provider | Models |
-|---|---|
-| **OpenAI** | gpt-5, gpt-5-mini, gpt-5-codex, gpt-5.3-codex, gpt-5-nano, gpt-5.4, gpt-5.4-mini, gpt-5.4-nano |
-| **Anthropic** | claude-opus-4-6, claude-sonnet-4-6, claude-haiku-4-5-20251001 |
-| **Google Gemini** | gemini-3-flash-preview, gemini-3.1-flash-lite-preview, gemini-3.1-pro-preview |
-| **Mistral** | mistral-small-2603, mistral-medium-2508, mistral-large-2512, devstral-2512 |
-| **xAI Grok** | grok-4.20-0309-reasoning, grok-4.20-multi-agent-0309, grok-4-1-fast-reasoning |
-| **Workbench (Free Tier)** | gpt-4o-mini, gpt-4o — no API key required, proxied via Workbench servers |
+| Provider                  | Models                                                                                         |
+| ------------------------- | ---------------------------------------------------------------------------------------------- |
+| **OpenAI**                | gpt-5, gpt-5-mini, gpt-5-codex, gpt-5.3-codex, gpt-5-nano, gpt-5.4, gpt-5.4-mini, gpt-5.4-nano |
+| **Anthropic**             | claude-opus-4-6, claude-sonnet-4-6, claude-haiku-4-5-20251001                                  |
+| **Google Gemini**         | gemini-3-flash-preview, gemini-3.1-flash-lite-preview, gemini-3.1-pro-preview                  |
+| **Mistral**               | mistral-small-2603, mistral-medium-2508, mistral-large-2512, devstral-2512                     |
+| **xAI Grok**              | grok-4.20-0309-reasoning, grok-4.20-multi-agent-0309, grok-4-1-fast-reasoning                  |
+| **Workbench (Free Tier)** | gpt-4o-mini, gpt-4o — no API key required, proxied via Workbench servers                       |
 
 API keys are stored locally in your browser (Chrome extension storage) and never transmitted to SF Toolkit infrastructure.
 
@@ -46,6 +46,10 @@ Saved conversations from the earlier OpenAI Agents/Responses runtime are convert
 As a conversation approaches the model's context limit, Workbench summarizes older messages. Agent, summary, and title requests leave `temperature` unset for all providers. If a summary request fails, Workbench keeps the history and shows the provider's error message when available.
 
 To move conversations between extension profiles, use **Settings → Storage → Export** in the source and **Import** in the destination. Close other Workbench pages and Agent side panels in the destination before importing: each has independent in-memory state and can overwrite the imported history when it saves. The import updates the Agent state in the importing page only; reload that page to apply the remaining settings. Keep the export file safe: it also contains saved settings and credentials.
+
+### Grok: `reasoning part ... not found`
+
+An xAI SDK bug could produce this error when Grok sent empty tool-call updates between reasoning chunks. Current builds include the fix. Update and reload the extension; clearing saved conversations is not required for this fix.
 
 ---
 
