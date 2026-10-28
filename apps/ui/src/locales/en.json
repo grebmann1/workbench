@@ -1,6 +1,6 @@
 {
     "chrome": {
-        "announce": "Workbench <bold>2.1.6</bold> is here — navigation is fixed, AI provider errors and summary retries are clearer, and Grok reasoning is more reliable",
+        "announce": "Workbench <bold>2.1.7</bold> is here — discover Zana, the open-source desktop app with a powerful Salesforce agent; Salesforce CLI required",
         "nav": {
             "github": "GitHub",
             "docs": "Docs",

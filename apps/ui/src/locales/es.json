@@ -1,6 +1,6 @@
 {
     "chrome": {
-        "announce": "Workbench <bold>2.1.6</bold> ya está aquí — se corrige la navegación, se aclaran los errores de proveedores de IA y los reintentos de resumen, y el razonamiento de Grok es más fiable",
+        "announce": "Workbench <bold>2.1.7</bold> ya está aquí — descubre Zana, la aplicación de escritorio de código abierto con un potente agente de Salesforce; requiere Salesforce CLI",
         "nav": {
             "github": "GitHub",
             "docs": "Docs",

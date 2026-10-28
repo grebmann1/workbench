@@ -3,7 +3,7 @@
 }
 
 .slds-popup-container {
-    height: 100vh; /* 600px*/
+    height: 100%;
     /* overflow: visible; */
     display: flex;
     flex-direction: column;

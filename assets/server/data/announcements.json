@@ -1,13 +1,13 @@
 {
     "announcement": {
-        "id": "2026-10-05-2-1-6",
+        "id": "2026-10-28-2-1-7",
         "active": true,
         "variant": "brand",
-        "title": "Workbench 2.1.6 is here",
-        "message": "Workbench 2.1.6 fixes selected-tool highlighting and header tab scrolling, removes the BETA badge, improves AI provider errors and summary retries, and fixes interrupted Grok reasoning streams.",
+        "title": "Workbench 2.1.7 is here",
+        "message": "Workbench 2.1.7 introduces Zana, the open-source desktop app with a powerful Salesforce agent, through new home and dismissible side-panel cards. Salesforce CLI is required to use the Zana Salesforce agent.",
         "linkLabel": "View release notes",
         "linkUrl": "https://www.sf-workbench.com/app?applicationName=release",
-        "startsAt": "2026-10-04T22:00:00Z",
+        "startsAt": "2026-10-27T23:00:00Z",
         "endsAt": "2026-12-31T23:59:59Z"
     }
 }

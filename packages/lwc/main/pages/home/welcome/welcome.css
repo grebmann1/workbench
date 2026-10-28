@@ -118,6 +118,85 @@ h1 {
     font-weight: 600;
     color: #0b5cab;
 }
+.zana-promo {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1rem 2rem;
+    padding: 1.25rem 1.5rem;
+    border: 1px solid #c5d5ef;
+    border-radius: 0.625rem;
+    background: #f4f7ff;
+    color: #333;
+}
+.zana-promo__content {
+    flex: 1 1 24rem;
+    min-width: 0;
+}
+.zana-promo__header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+.zana-promo__logo {
+    flex: none;
+    width: 3rem;
+    height: 3rem;
+    object-fit: contain;
+}
+.zana-promo__eyebrow {
+    margin-bottom: 0.375rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #36558e;
+}
+.zana-promo h2 {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: #032d60;
+}
+.zana-promo__description {
+    margin-top: 0.5rem;
+    font-size: 0.875rem;
+    line-height: 1.6;
+}
+.zana-promo__requirement {
+    margin-top: 0.625rem;
+    font-size: 0.8125rem;
+    color: #444;
+}
+.zana-promo__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem 1.25rem;
+}
+.zana-promo__try {
+    display: inline-block;
+    border: 1px solid #032d60;
+    border-radius: 0.375rem;
+    padding: 0.625rem 1rem;
+    background: #032d60;
+    color: #fff;
+    font-weight: 600;
+    text-decoration: none;
+}
+.zana-promo__try:hover {
+    background: #174578;
+    color: #fff;
+    text-decoration: none;
+}
+.zana-promo__source {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: #0b5cab;
+}
+.zana-promo a:focus-visible {
+    outline: 2px solid #0b5cab;
+    outline-offset: 3px;
+}
 .welcome-grid {
     display: flex;
     flex-wrap: wrap;
@@ -338,6 +417,9 @@ h1 {
         padding: 0.75rem;
     }
     .welcome-hero {
+        padding: 1rem;
+    }
+    .zana-promo {
         padding: 1rem;
     }
     h1 {
