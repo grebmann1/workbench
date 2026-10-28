@@ -1,4 +1,5 @@
 import { connectStore, store, EINSTEIN, APPLICATION, AGENT } from 'core/store';
+import { isAnnouncementDismissed, markAnnouncementDismissed } from 'core/announcements';
 import { refreshSubscriptionModelCatalog } from '../../../main/agent/utils/oauthPersist';
 import { PANELS } from 'extension/utils';
 import { api, LightningElement, wire } from 'lwc';
@@ -25,6 +26,8 @@ import {
     registerChromePort,
     disconnectChromePort,
 } from 'shared/utils';
+import { ZANA_PROMOTION_ID } from './constants';
+
 export default class Default extends LightningElement {
     @api currentApplication;
     @api recordId;
@@ -35,6 +38,8 @@ export default class Default extends LightningElement {
 
     previousPanel;
     betaSmartInputEnabled = false;
+    showZanaPromotion = false;
+    _zanaPromotionDismissed = false;
 
     /** Getters **/
 
@@ -74,8 +79,29 @@ export default class Default extends LightningElement {
         this.panel = this.urlOverwrittenPanel || this.panel;
         this.connectToBackground();
         this.loadFromCache();
+        void this.loadZanaPromotion();
         store.dispatch(APPLICATION.reduxSlice.actions.setIsSidePanel());
     }
+
+    async loadZanaPromotion() {
+        try {
+            const dismissed = await isAnnouncementDismissed(ZANA_PROMOTION_ID);
+            this.showZanaPromotion = !dismissed && !this._zanaPromotionDismissed;
+        } catch {
+            // Keep the promotion hidden if the saved preference cannot be read.
+            this.showZanaPromotion = false;
+        }
+    }
+
+    handleDismissZanaPromotion = async () => {
+        this._zanaPromotionDismissed = true;
+        this.showZanaPromotion = false;
+        try {
+            await markAnnouncementDismissed(ZANA_PROMOTION_ID);
+        } catch {
+            // Dismissal still applies to this panel when storage is unavailable.
+        }
+    };
 
     disconnectedCallback() {
         this.disconnectFromBackground();

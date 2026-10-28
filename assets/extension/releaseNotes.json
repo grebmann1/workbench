@@ -1,5 +1,24 @@
 [
     {
+        "version": "2.1.7",
+        "date": "October 28th, 2026",
+        "sections": [
+            {
+                "title": "Enhancements",
+                "categories": [
+                    {
+                        "category": "Discover Zana",
+                        "items": [
+                            "Discover Zana, the open-source desktop app with a powerful Salesforce agent, from the Workbench home page and side panel.",
+                            "The Zana cards include the official logo, a Try Zana link, and the Salesforce CLI requirement. The home page also links to the source on GitHub.",
+                            "Close the side-panel promotion at any time. Workbench remembers your choice when you reopen the panel."
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    {
         "version": "2.1.6",
         "date": "October 5th, 2026",
         "sections": [

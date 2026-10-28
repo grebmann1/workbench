@@ -1,17 +1,59 @@
 <template>
-    <!-- Salesforce Panel -->
-    <panels-salesforce
-        class={salesforcePanelClass}
-        lwc:ref="salesforce"
-        onmodetoggle={handleModeToggle}
-        onchangepanel={handlePanelChange}
-        record-id={recordId}></panels-salesforce>
-    <!-- Default Panel -->
-    <panels-default
-        class={defaultPanelClass}
-        is-toggle-visible={activeTabMatchesSalesforce}
-        lwc:ref="default"
-        onmodetoggle={handleModeToggle}
-        onchangepanel={handlePanelChange}
-        onapplicationchange={handleApplicationChange}></panels-default>
+    <div class="sidepanel-shell">
+        <div class="sidepanel-workspace">
+            <!-- Salesforce Panel -->
+            <panels-salesforce
+                class={salesforcePanelClass}
+                lwc:ref="salesforce"
+                onmodetoggle={handleModeToggle}
+                onchangepanel={handlePanelChange}
+                record-id={recordId}></panels-salesforce>
+            <!-- Default Panel -->
+            <panels-default
+                class={defaultPanelClass}
+                is-toggle-visible={activeTabMatchesSalesforce}
+                lwc:ref="default"
+                onmodetoggle={handleModeToggle}
+                onchangepanel={handlePanelChange}
+                onapplicationchange={handleApplicationChange}></panels-default>
+        </div>
+        <section lwc:if={showZanaPromotion} class="zana-promo" aria-labelledby="zana-promo-heading">
+            <button
+                class="zana-promo__close"
+                type="button"
+                aria-label="Dismiss Zana promotion"
+                title="Dismiss Zana promotion"
+                onclick={handleDismissZanaPromotion}>
+                <span aria-hidden="true">×</span>
+            </button>
+            <div class="zana-promo__header">
+                <img
+                    class="zana-promo__logo"
+                    src="/images/zana-logo.svg"
+                    alt=""
+                    width="40"
+                    height="40" />
+                <div>
+                    <p class="zana-promo__eyebrow">Discover Zana · Open source</p>
+                    <h2 id="zana-promo-heading">Meet your next Salesforce agent.</h2>
+                </div>
+            </div>
+            <p class="zana-promo__description">
+                Try Zana, the open-source desktop app with a powerful Salesforce agent.
+            </p>
+            <p class="zana-promo__requirement">
+                <strong>Salesforce CLI required</strong>
+                on your computer.
+            </p>
+            <a
+                class="zana-promo__try"
+                href="https://zana-ide.com"
+                target="_blank"
+                rel="noopener noreferrer">
+                Try Zana
+                <span class="slds-assistive-text">(opens in a new tab)</span>
+                <span aria-hidden="true">→</span>
+            </a>
+        </section>
+    </div>
 </template>
