@@ -801,6 +801,57 @@ h1 {
     background: var(--color-surface);
 }
 
+/* ─── Zana promo ──────────────────────────────────────────── */
+
+.zana-promo {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1.25rem 2rem;
+    margin: 3rem 0;
+    padding: 2rem 2.25rem;
+    border-radius: 1.1rem;
+    border: 1px solid #bfd0f5;
+    background: linear-gradient(130deg, var(--color-brand-soft), #f8faff 40%, var(--color-surface));
+}
+
+.zana-promo-logo {
+    flex: none;
+    width: 4.5rem;
+    height: 4.5rem;
+    border-radius: 1rem;
+}
+
+.zana-promo-body {
+    flex: 1 1 22rem;
+    min-width: 0;
+}
+
+.zana-promo-body h2 {
+    margin: 0.2rem 0 0;
+    font-size: 1.55rem;
+    letter-spacing: -0.01em;
+}
+
+.zana-promo-text {
+    margin: 0.7rem 0 0;
+    max-width: 62ch;
+    color: var(--color-text-muted);
+    line-height: 1.65;
+}
+
+.zana-promo-requirement {
+    margin: 0.6rem 0 0;
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
+}
+
+.zana-promo-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
 /* ─── Download CTA ────────────────────────────────────────── */
 
 .download {
@@ -1385,4 +1436,44 @@ a:focus-visible {
     .welcome-steps {
         transition: none;
     }
+}
+
+/* ─── Zana page ───────────────────────────────────────────── */
+
+.zana-hero {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 4rem 0 2.5rem;
+    max-width: 760px;
+    margin: 0 auto;
+    text-align: center;
+}
+
+.zana-hero-logo {
+    width: 6rem;
+    height: 6rem;
+    margin-bottom: 1.5rem;
+    border-radius: 1.4rem;
+}
+
+.zana-hero .hero-actions {
+    justify-content: center;
+}
+
+.zana-features {
+    padding: 2rem 0 1rem;
+}
+
+.zana-feature-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+    gap: 1rem;
+    margin-top: 1.4rem;
+}
+
+.hero-full .zana-promo {
+    align-self: stretch;
+    margin: 0;
+    text-align: left;
 }
