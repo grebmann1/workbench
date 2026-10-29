@@ -6,6 +6,8 @@ import { SUPPORTED_LANGUAGES } from './i18n';
 export const DOCS_URL = import.meta.env.VITE_DOCS_URL || 'https://doc.sf-workbench.com';
 export const GITHUB_URL =
     import.meta.env.VITE_GITHUB_URL || 'https://github.com/grebmann1/workbench';
+export const ZANA_URL = 'https://zana-ide.com';
+export const ZANA_GITHUB_URL = 'https://github.com/salesforce/zana';
 export const CHROME_STORE_URL =
     import.meta.env.VITE_CHROME_STORE_URL ||
     'https://chromewebstore.google.com/detail/salesforce-toolkit/konbmllgicfccombdckckakhnmejjoei?hl=en';
@@ -105,7 +107,9 @@ export function AnnounceBar() {
     return (
         <div className="announce-bar" role="note">
             <span className="announce-dot" aria-hidden="true" />
-            <Trans t={t} i18nKey="chrome.announce" components={{ bold: <strong /> }} />
+            <span>
+                <Trans t={t} i18nKey="chrome.announce" components={{ bold: <strong /> }} />
+            </span>
         </div>
     );
 }
@@ -143,6 +147,9 @@ export function SiteHeader({ showInstall = true }: { showInstall?: boolean }) {
                     rel="noopener noreferrer"
                 >
                     {t('chrome.nav.github')}
+                </a>
+                <a className="header-link" href="/zana">
+                    {t('chrome.nav.zana')}
                 </a>
                 <a className="header-link" href={DOCS_URL}>
                     {t('chrome.nav.docs')}

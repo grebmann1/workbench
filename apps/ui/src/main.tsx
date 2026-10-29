@@ -4,6 +4,7 @@ import { createRoot } from 'react-dom/client';
 import './i18n';
 import App from './App';
 import Welcome from './Welcome';
+import Zana from './Zana';
 import './styles.css';
 import './product-tour/product-tour.css';
 
@@ -31,7 +32,8 @@ if (gaId) {
 const isWelcomePath = window.location.pathname.startsWith('/welcome');
 const ProductFilm = lazy(() => import('./product-film/ProductFilm'));
 const isFilmPath = window.location.pathname.replace(/\/$/, '') === '/film';
-const Root = isFilmPath ? ProductFilm : isWelcomePath ? Welcome : App;
+const isZanaPath = window.location.pathname.replace(/\/$/, '') === '/zana';
+const Root = isFilmPath ? ProductFilm : isWelcomePath ? Welcome : isZanaPath ? Zana : App;
 
 createRoot(document.getElementById('root')!).render(
     <StrictMode>

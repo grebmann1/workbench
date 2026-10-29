@@ -4,7 +4,8 @@
         "nav": {
             "github": "GitHub",
             "docs": "ドキュメント",
-            "install": "インストール"
+            "install": "インストール",
+            "zana": "Zana"
         },
         "footer": {
             "documentation": "ドキュメント",
@@ -114,6 +115,15 @@
                 "question": "Salesforce 社員で、内部 LLM Gateway を使用しています。<code>Authentication Error, Key is blocked</code> が表示されますが、どう対処すればよいですか？",
                 "answer": "これは、以前の LLM Gateway キーが失効したことを意味します。通常は別の社内アプリ用に新しいキーを発行した結果、以前のキーが自動的にブロックされたケースです。<code>/key/unblock</code> を呼び出す必要はありません。発行された新しいキーをそのまま <strong>Settings → AI → AI Providers</strong> に貼り付け、古いキーを置き換えてください。変更が必要なのはキーのみで、エンドポイント URL はすでに設定済みです。"
             }
+        },
+        "zana": {
+            "eyebrow": "Zana を発見 · オープンソース",
+            "title": "次の Salesforce スーパーパワー。",
+            "description": "AI エージェント向けのオープンソースのデスクトップアプリ Zana。データのクエリ、Apex の記述、メタデータの操作を支援する強力な Salesforce エージェントを搭載しています。",
+            "requirement": "Salesforce CLI が必要です。Salesforce エージェントを使うには、お使いのコンピューターにインストールしてください。",
+            "cta": "Zana を試す",
+            "source": "GitHub で見る",
+            "learnMore": "Zana について詳しく見る"
         }
     },
     "welcome": {
@@ -159,5 +169,33 @@
             "workbench": "Workbench",
             "otherExtension": "他の拡張機能"
         }
+    },
+    "zanaPage": {
+        "eyebrow": "Zana · オープンソース",
+        "title": "次の Salesforce スーパーパワー。",
+        "body": "Zana は AI エージェント向けのオープンソースのデスクトップアプリです。データのクエリ、Apex の記述、メタデータの操作を支援する強力な Salesforce エージェントを搭載しています。",
+        "featuresKicker": "Salesforce エージェントにできること",
+        "featuresTitle": "Salesforce を理解するエージェント",
+        "query": {
+            "title": "データのクエリ",
+            "body": "組織のデータのクエリをエージェントがサポートします。"
+        },
+        "apex": {
+            "title": "Apex の記述",
+            "body": "デスクトップから Apex の記述をサポートします。"
+        },
+        "metadata": {
+            "title": "メタデータの操作",
+            "body": "エージェントとともに組織のメタデータを探索・操作できます。"
+        },
+        "open": {
+            "title": "オープンソース",
+            "body": "Zana はオープンソースです。GitHub でコードを確認し、進捗を追えます。"
+        },
+        "reqTitle": "Salesforce CLI が必要です",
+        "reqBody": "Salesforce エージェントを使うには、コンピューターに Salesforce CLI をインストールしてください。",
+        "ctaTitle": "Zana を試す",
+        "ctaBody": "デスクトップアプリをダウンロードして、Salesforce エージェントをお試しください。",
+        "back": "Workbench に戻る"
     }
 }

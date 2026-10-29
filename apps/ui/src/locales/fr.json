@@ -4,7 +4,8 @@
         "nav": {
             "github": "GitHub",
             "docs": "Docs",
-            "install": "Installer"
+            "install": "Installer",
+            "zana": "Zana"
         },
         "footer": {
             "documentation": "Documentation",
@@ -114,6 +115,15 @@
                 "question": "Je suis un employé Salesforce et j'utilise le LLM Gateway interne. J'obtiens <code>Authentication Error, Key is blocked</code>. Comment corriger ?",
                 "answer": "Cela signifie que votre précédente clé LLM Gateway a été révoquée — généralement parce que vous avez généré une nouvelle clé pour une autre application interne, ce qui bloque automatiquement l'ancienne. Pas besoin d'appeler <code>/key/unblock</code> : reprenez simplement la nouvelle clé que vous venez de générer et remplacez l'ancienne dans <strong>Settings → AI → AI Providers</strong>. Seule la clé doit être modifiée — les URL des endpoints sont déjà configurées."
             }
+        },
+        "zana": {
+            "eyebrow": "Découvrez Zana · Open source",
+            "title": "Votre prochain super-pouvoir Salesforce.",
+            "description": "Voici Zana, l’application de bureau open source pour agents IA. Elle inclut un puissant agent Salesforce pour interroger vos données, écrire de l’Apex et travailler avec les métadonnées.",
+            "requirement": "Salesforce CLI requis — installez-le sur votre ordinateur pour utiliser l’agent Salesforce.",
+            "cta": "Essayer Zana",
+            "source": "Voir sur GitHub",
+            "learnMore": "En savoir plus sur Zana"
         }
     },
     "welcome": {
@@ -159,5 +169,33 @@
             "workbench": "Workbench",
             "otherExtension": "Autre extension"
         }
+    },
+    "zanaPage": {
+        "eyebrow": "Zana · Open source",
+        "title": "Votre prochain super-pouvoir Salesforce.",
+        "body": "Zana est une application de bureau open source pour agents IA. Elle inclut un puissant agent Salesforce pour interroger vos données, écrire de l’Apex et travailler avec les métadonnées.",
+        "featuresKicker": "Ce que fait l’agent Salesforce",
+        "featuresTitle": "Un agent qui parle Salesforce",
+        "query": {
+            "title": "Interroger les données",
+            "body": "Laissez l’agent vous aider à interroger les données de votre org."
+        },
+        "apex": {
+            "title": "Écrire de l’Apex",
+            "body": "Obtenez de l’aide pour écrire de l’Apex depuis votre bureau."
+        },
+        "metadata": {
+            "title": "Travailler avec les métadonnées",
+            "body": "Explorez et manipulez les métadonnées de votre org avec un agent à vos côtés."
+        },
+        "open": {
+            "title": "Open source",
+            "body": "Zana est open source — lisez le code et suivez le projet sur GitHub."
+        },
+        "reqTitle": "Salesforce CLI requis",
+        "reqBody": "Installez Salesforce CLI sur votre ordinateur pour utiliser l’agent Salesforce.",
+        "ctaTitle": "Découvrez Zana",
+        "ctaBody": "Téléchargez l’application de bureau et essayez l’agent Salesforce.",
+        "back": "Retour à Workbench"
     }
 }

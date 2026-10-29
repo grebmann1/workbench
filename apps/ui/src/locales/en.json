@@ -4,7 +4,8 @@
         "nav": {
             "github": "GitHub",
             "docs": "Docs",
-            "install": "Install"
+            "install": "Install",
+            "zana": "Zana"
         },
         "footer": {
             "documentation": "Documentation",
@@ -114,6 +115,15 @@
                 "question": "I'm a Salesforce employee using the internal LLM Gateway and I see <code>Authentication Error, Key is blocked</code>. How do I fix it?",
                 "answer": "This means your previous LLM Gateway key has been revoked — typically because you generated a new key for another internal app, which automatically blocks the old one. You don't need to call <code>/key/unblock</code>: just take the new key you generated and replace the old one in <strong>Settings → AI → AI Providers</strong>. Only the key needs to change — the endpoint URLs are already configured."
             }
+        },
+        "zana": {
+            "eyebrow": "Discover Zana · Open source",
+            "title": "Your next Salesforce superpower.",
+            "description": "Meet Zana, the open-source desktop app for AI agents. It includes a powerful Salesforce agent to help you query data, write Apex, and work with metadata.",
+            "requirement": "Salesforce CLI required — install it on your computer to use the Salesforce agent.",
+            "cta": "Try Zana",
+            "source": "View on GitHub",
+            "learnMore": "Learn more about Zana"
         }
     },
     "welcome": {
@@ -164,5 +174,33 @@
             "workbench": "Workbench",
             "otherExtension": "Other extension"
         }
+    },
+    "zanaPage": {
+        "eyebrow": "Zana · Open source",
+        "title": "Your next Salesforce superpower.",
+        "body": "Zana is an open-source desktop app for AI agents. It includes a powerful Salesforce agent to help you query data, write Apex, and work with metadata.",
+        "featuresKicker": "What the Salesforce agent does",
+        "featuresTitle": "An agent that speaks Salesforce",
+        "query": {
+            "title": "Query data",
+            "body": "Let the agent help you query the data in your org."
+        },
+        "apex": {
+            "title": "Write Apex",
+            "body": "Get help writing Apex from your desktop."
+        },
+        "metadata": {
+            "title": "Work with metadata",
+            "body": "Explore and work with your org's metadata with an agent at your side."
+        },
+        "open": {
+            "title": "Open source",
+            "body": "Zana is open source — read the code and follow along on GitHub."
+        },
+        "reqTitle": "Salesforce CLI required",
+        "reqBody": "Install the Salesforce CLI on your computer to use the Salesforce agent.",
+        "ctaTitle": "Meet Zana",
+        "ctaBody": "Download the desktop app and try the Salesforce agent.",
+        "back": "Back to Workbench"
     }
 }

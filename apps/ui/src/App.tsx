@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 import { CHROME_STORE_URL, SiteShell } from './SiteChrome';
+import { ZanaPromo } from './ZanaPromo';
 import { FeatureSlide, ProductDemo } from './product-tour/ProductDemo';
 import { SLIDES, type TourSlideId } from './product-tour/slides';
 import { TourNavContext } from './product-tour/tour-nav';
@@ -213,6 +214,7 @@ export default function App() {
                         </a>
                     </div>
                 </div>
+                <ZanaPromo />
                 <div className="home-tour">
                     <ProductDemo />
                 </div>
