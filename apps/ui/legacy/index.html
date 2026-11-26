@@ -191,7 +191,7 @@
 
             .resources ul {
                 display: grid;
-                grid-template-columns: repeat(3, minmax(0, 1fr));
+                grid-template-columns: repeat(4, minmax(0, 1fr));
                 gap: 0.8rem;
                 margin: 0;
                 padding: 0;
@@ -237,6 +237,12 @@
                 padding-block: 1.1rem 1.4rem;
                 border-top: 1px solid var(--border);
                 font-size: 0.88rem;
+            }
+
+            @media (max-width: 62rem) {
+                .resources ul {
+                    grid-template-columns: repeat(2, minmax(0, 1fr));
+                }
             }
 
             @media (max-width: 44rem) {
@@ -335,6 +341,17 @@
                             </span>
                             <span class="resource-description">
                                 Find setup guides and tool references.
+                            </span>
+                        </a>
+                    </li>
+                    <li>
+                        <a class="resource" href="https://zana-ide.com/">
+                            <span class="resource-title">
+                                Zana IDE <span aria-hidden="true">→</span>
+                            </span>
+                            <span class="resource-description">
+                                An open-source agentic IDE built by Salesforce for running and
+                                coordinating coding agents.
                             </span>
                         </a>
                     </li>
