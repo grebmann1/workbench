@@ -13,6 +13,14 @@ All four domains share a single dyno. `nginx` inside the container dispatches by
 
 As a convenience, `sf-workbench.com/app` (and any sub-path, e.g. `sf-workbench.com/app/foo?x=1`) is `301`-redirected to `api.sf-workbench.com` — `/app` is stripped, query string is preserved. See the `location ~ ^/app(/.*)?$` block on the `sf-workbench.com` server in `docker/nginx.conf.template`.
 
+### Legacy SF Toolkit homepage
+
+The [SF Toolkit rename page](https://sf-toolkit.com/) is served by the Heroku app
+`sfdx-ui-light`. Its homepage source is [apps/ui/legacy/index.html](../apps/ui/legacy/index.html).
+For a homepage update, publish that file as `site/index.html` in the legacy
+app's release artifact and verify `/`, `/app`, and `/cta` on `sf-toolkit.com`.
+The Docker deployment below targets the official Workbench app, `workbench2`.
+
 ---
 
 ## 1. Heroku constraints to keep in mind

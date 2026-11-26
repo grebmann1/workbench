@@ -1,0 +1,368 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta
+            name="description"
+            content="SF Toolkit is now Workbench. Visit sf-workbench.com for the latest Salesforce tools, documentation, and downloads." />
+        <title>SF Toolkit is now Workbench</title>
+        <style>
+            :root {
+                color-scheme: light;
+                font-family: Inter, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+                line-height: 1.5;
+                --background: #f4f7fc;
+                --surface: #fff;
+                --border: #d7e1f2;
+                --text: #14233f;
+                --muted: #4f6384;
+                --brand: #2859d0;
+                --brand-dark: #2047ae;
+                --brand-soft: #e8efff;
+                color: var(--text);
+                background: var(--background);
+            }
+
+            * {
+                box-sizing: border-box;
+            }
+
+            body {
+                margin: 0;
+                min-height: 100vh;
+                background:
+                    radial-gradient(ellipse at 8% 0%, #e0eaff, transparent 48%),
+                    radial-gradient(ellipse at 100% 0%, #e4edff, transparent 50%), var(--background);
+            }
+
+            a {
+                color: var(--brand);
+                text-decoration: none;
+            }
+
+            a:focus-visible {
+                outline: 2px solid var(--brand-dark);
+                outline-offset: 4px;
+            }
+
+            .container {
+                width: min(100% - 3rem, 68rem);
+                margin-inline: auto;
+            }
+
+            .header {
+                background: var(--background);
+                border-bottom: 1px solid var(--border);
+            }
+
+            .header .container,
+            .footer {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 1rem;
+                flex-wrap: wrap;
+            }
+
+            .header .container {
+                min-height: 4.25rem;
+                padding-block: 0.75rem;
+            }
+
+            .brand {
+                display: inline-flex;
+                align-items: center;
+                gap: 0.55rem;
+                color: var(--text);
+                font-size: 1.1rem;
+                font-weight: 700;
+            }
+
+            .brand-icon {
+                display: grid;
+                grid-template-columns: repeat(2, 5px);
+                grid-template-rows: repeat(2, 5px);
+                place-content: center;
+                gap: 3px;
+                width: 1.9rem;
+                height: 1.9rem;
+                border-radius: 0.45rem;
+                background: #3d72f4;
+            }
+
+            .brand-icon span {
+                border: 1px solid white;
+                border-radius: 1px;
+            }
+
+            .header nav {
+                display: flex;
+                gap: clamp(0.8rem, 3vw, 1.5rem);
+                flex-wrap: wrap;
+                font-size: 0.92rem;
+                font-weight: 600;
+            }
+
+            .header nav a,
+            .footer {
+                color: var(--muted);
+            }
+
+            .header nav a:hover,
+            .footer a:hover {
+                text-decoration: underline;
+            }
+
+            .hero {
+                padding: clamp(4.25rem, 10vw, 7.25rem) 0 clamp(3.25rem, 8vw, 5.5rem);
+                text-align: center;
+            }
+
+            .hero h1 {
+                margin: 0;
+                font-size: clamp(2.6rem, 7vw, 4.8rem);
+                letter-spacing: -0.055em;
+                line-height: 1.07;
+                text-wrap: balance;
+            }
+
+            .hero h1 span {
+                color: var(--brand);
+            }
+
+            .hero p {
+                max-width: 52ch;
+                margin: 1.2rem auto 0;
+                color: var(--muted);
+                font-size: clamp(1rem, 2.5vw, 1.15rem);
+                line-height: 1.65;
+                text-wrap: pretty;
+            }
+
+            .hero p a {
+                font-weight: 600;
+                text-decoration: underline;
+                text-underline-offset: 0.18em;
+            }
+
+            .actions {
+                display: flex;
+                justify-content: center;
+                flex-wrap: wrap;
+                gap: 0.75rem;
+                margin-top: 1.6rem;
+            }
+
+            .button {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                gap: 0.65rem;
+                padding: 0.72rem 1.15rem;
+                border: 1px solid var(--brand);
+                border-radius: 0.65rem;
+                background: var(--brand);
+                color: #fff;
+                font-weight: 650;
+            }
+
+            .button:hover {
+                border-color: var(--brand-dark);
+                background: var(--brand-dark);
+            }
+
+            .button-secondary {
+                border-color: var(--border);
+                background: var(--surface);
+                color: var(--text);
+            }
+
+            .button-secondary:hover {
+                border-color: var(--brand);
+                background: var(--brand-soft);
+            }
+
+            .resources h2 {
+                margin: 0 0 0.8rem;
+                font-size: 1.15rem;
+                letter-spacing: -0.02em;
+            }
+
+            .resources ul {
+                display: grid;
+                grid-template-columns: repeat(4, minmax(0, 1fr));
+                gap: 0.8rem;
+                margin: 0;
+                padding: 0;
+                list-style: none;
+            }
+
+            .resource {
+                display: flex;
+                flex-direction: column;
+                gap: 0.35rem;
+                height: 100%;
+                padding: 1.15rem 1.25rem;
+                border: 1px solid var(--border);
+                border-radius: 0.85rem;
+                background: var(--surface);
+                color: var(--text);
+                box-shadow: 0 14px 30px -25px #365487;
+            }
+
+            .resource:hover {
+                border-color: #9bb5ec;
+            }
+
+            .resource-title {
+                display: flex;
+                align-items: baseline;
+                justify-content: space-between;
+                gap: 0.5rem;
+                font-weight: 700;
+            }
+
+            .resource-title span {
+                color: var(--brand);
+            }
+
+            .resource-description {
+                color: var(--muted);
+                font-size: 0.92rem;
+            }
+
+            .footer {
+                margin-top: clamp(2.75rem, 7vw, 4.5rem);
+                padding-block: 1.1rem 1.4rem;
+                border-top: 1px solid var(--border);
+                font-size: 0.88rem;
+            }
+
+            @media (max-width: 62rem) {
+                .resources ul {
+                    grid-template-columns: repeat(2, minmax(0, 1fr));
+                }
+            }
+
+            @media (max-width: 44rem) {
+                .container {
+                    width: calc(100% - 2rem);
+                }
+
+                .resources ul {
+                    grid-template-columns: 1fr;
+                }
+            }
+        </style>
+        <script async src="https://www.googletagmanager.com/gtag/js?id=G-J8XPLSRY91"></script>
+        <script>
+            window.dataLayer = window.dataLayer || [];
+            function gtag() {
+                dataLayer.push(arguments);
+            }
+            gtag('js', new Date());
+            gtag('config', 'G-J8XPLSRY91');
+        </script>
+    </head>
+    <body>
+        <header class="header">
+            <div class="container">
+                <a class="brand" href="https://sf-workbench.com/">
+                    <span class="brand-icon" aria-hidden="true">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </span>
+                    Workbench
+                </a>
+                <nav aria-label="Site">
+                    <a href="https://doc.sf-workbench.com/">Docs</a>
+                    <a href="https://github.com/grebmann1/workbench">GitHub</a>
+                </nav>
+            </div>
+        </header>
+
+        <main class="container">
+            <section class="hero" aria-labelledby="rename-heading">
+                <h1 id="rename-heading">
+                    SF Toolkit is now
+                    <span>Workbench.</span>
+                </h1>
+                <p>
+                    Your Salesforce tools have a new home at
+                    <a href="https://sf-workbench.com/">sf-workbench.com</a>
+                    . Explore your orgs, query data, and analyze access with Workbench.
+                </p>
+                <div class="actions">
+                    <a class="button" href="https://sf-workbench.com/">
+                        Visit Workbench
+                        <span aria-hidden="true">→</span>
+                    </a>
+                    <a
+                        class="button button-secondary"
+                        href="https://chromewebstore.google.com/detail/workbench/konbmllgicfccombdckckakhnmejjoei">
+                        Install Chrome extension
+                    </a>
+                </div>
+            </section>
+
+            <section class="resources" aria-labelledby="resources-heading">
+                <h2 id="resources-heading">Quick links</h2>
+                <ul>
+                    <li>
+                        <a class="resource" href="https://sf-toolkit.com/app">
+                            <span class="resource-title">
+                                Legacy web app
+                                <span aria-hidden="true">→</span>
+                            </span>
+                            <span class="resource-description">
+                                Open the original browser toolkit.
+                            </span>
+                        </a>
+                    </li>
+                    <li>
+                        <a class="resource" href="https://sf-toolkit.com/cta">
+                            <span class="resource-title">
+                                CTA personal notes
+                                <span aria-hidden="true">→</span>
+                            </span>
+                            <span class="resource-description">
+                                Read the Salesforce CTA board preparation notes.
+                            </span>
+                        </a>
+                    </li>
+                    <li>
+                        <a class="resource" href="https://doc.sf-workbench.com/">
+                            <span class="resource-title">
+                                Workbench documentation
+                                <span aria-hidden="true">→</span>
+                            </span>
+                            <span class="resource-description">
+                                Find setup guides and tool references.
+                            </span>
+                        </a>
+                    </li>
+                    <li>
+                        <a class="resource" href="https://zana-ide.com/">
+                            <span class="resource-title">
+                                Zana IDE
+                                <span aria-hidden="true">→</span>
+                            </span>
+                            <span class="resource-description">
+                                An open-source agentic IDE built by Salesforce for running and
+                                coordinating coding agents.
+                            </span>
+                        </a>
+                    </li>
+                </ul>
+            </section>
+        </main>
+
+        <footer class="footer container">
+            <span>Workbench for Salesforce</span>
+            <a href="https://github.com/grebmann1/workbench">Open source on GitHub</a>
+        </footer>
+    </body>
+</html>
